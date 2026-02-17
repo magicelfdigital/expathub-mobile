@@ -62,6 +62,8 @@ async function removeToken(): Promise<void> {
   await AsyncStorage.removeItem(TOKEN_KEY);
 }
 
+const AUTH_BASE = AUTH_API_URL.replace(/\/$/, "");
+
 async function authFetch<T>(
   path: string,
   options: { method?: string; body?: Record<string, unknown>; token?: string | null } = {}
@@ -71,10 +73,11 @@ async function authFetch<T>(
     headers["Authorization"] = `Bearer ${options.token}`;
   }
 
-  const res = await fetch(`${AUTH_API_URL}${path}`, {
+  const res = await fetch(`${AUTH_BASE}${path}`, {
     method: options.method ?? "GET",
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
+    redirect: "follow",
   });
 
   if (!res.ok) {
@@ -110,15 +113,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        const data = await authFetch<{ user: User }>("/api/auth/me", { token: stored });
-        if (mounted) {
+        const data = await authFetch<{ user: User | null }>("/api/auth", { token: stored });
+        if (mounted && data.user) {
           setToken(stored);
           setUser(data.user);
           console.log(`[AUTH] Session restored for user ${data.user.id}, syncing with RevenueCat`);
           loginUser(data.user.id.toString());
+        } else if (mounted) {
+          await removeToken();
+          setToken(null);
+          setUser(null);
         }
       } catch (e: any) {
-        if (e.status === 401) {
+        if (e.status === 401 || e.status === 301) {
           await removeToken();
         }
         if (mounted) {
@@ -136,9 +143,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const data = await authFetch<{ token: string; user: User }>("/api/auth/login", {
+    const data = await authFetch<{ token: string; user: User }>("/api/auth", {
       method: "POST",
-      body: { email, password },
+      body: { action: "signin", email, password },
     });
     await saveToken(data.token);
     setToken(data.token);
@@ -147,9 +154,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const register = useCallback(async (email: string, password: string) => {
-    const data = await authFetch<{ token: string; user: User }>("/api/auth/register", {
+    const data = await authFetch<{ token: string; user: User }>("/api/auth", {
       method: "POST",
-      body: { email, password },
+      body: { action: "signin", email, password },
     });
     await saveToken(data.token);
     setToken(data.token);
@@ -158,6 +165,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    try {
+      await authFetch("/api/auth", { method: "POST", body: { action: "signout" } });
+    } catch {}
     await removeToken();
     setToken(null);
     setUser(null);
