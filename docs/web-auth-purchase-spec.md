@@ -12,8 +12,7 @@ The auth API lives at `https://expathub.world` and uses a single `/api/auth` end
 
 | Endpoint | Method | Body | Response |
 |---|---|---|---|
-| `/api/auth` | POST | `{ action: "register", email, password }` | `{ token, user: { id, email } }` |
-| `/api/auth` | POST | `{ action: "signin", email, password }` | `{ token, user: { id, email } }` |
+| `/api/auth` | POST | `{ action: "signin", email, password }` | `{ token, user: { id, email } }` — auto-creates account on first sign-in |
 | `/api/auth` | POST | `{ action: "signout" }` + Authorization: Bearer TOKEN | `{ ok: true }` |
 | `/api/auth` | GET | — (Authorization: Bearer TOKEN) | `{ id, email }` |
 
@@ -26,7 +25,7 @@ The auth API lives at `https://expathub.world` and uses a single `/api/auth` end
 After every successful auth event (login, register, OR session restore), call `loginUser(userId.toString())` to bind the session to RevenueCat. This must happen at three points:
 
 1. **Login success** — immediately after receiving `{ token, user }` from `POST /api/auth` with action `"signin"`.
-2. **Register success** — immediately after receiving `{ token, user }` from `POST /api/auth` with action `"register"`.
+2. **Register success** — same as login; the API auto-creates accounts on first sign-in with `action: "signin"`.
 3. **Session restore** — after `GET /api/auth` validates a stored token on page load.
 
 **Race condition note:** `loginUser()` internally ensures RevenueCat is initialized before calling `rc.logIn()`. If `initPurchases()` hasn't completed yet (e.g., session restore fires before the entitlement context mounts), `loginUser()` will call `initPurchases()` itself. This is safe because `initPurchases()` is idempotent.
