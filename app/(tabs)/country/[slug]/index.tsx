@@ -80,14 +80,13 @@ export default function CountryDetailScreen() {
   const { hasActiveSubscription, hasFullAccess, hasCountryAccess, accessType, decisionPassDaysLeft } = useSubscription();
 
   const urlSlug = typeof slug === "string" ? slug : Array.isArray(slug) ? slug[0] : "";
+  const countrySlug = urlSlug || selectedCountrySlug || "";
 
   React.useEffect(() => {
-    if (urlSlug && !selectedCountrySlug) {
-      setSelectedCountrySlug(urlSlug);
+    if (countrySlug && countrySlug !== selectedCountrySlug) {
+      setSelectedCountrySlug(countrySlug);
     }
-  }, []);
-
-  const countrySlug = selectedCountrySlug || urlSlug || "";
+  }, [countrySlug]);
 
   const countryName = useMemo(() => {
     if (!countrySlug) return "Country";

@@ -86,7 +86,7 @@ export default function CountryResourcesScreen() {
   const { slug } = useLocalSearchParams<{ slug?: string }>();
   const { selectedCountrySlug } = useCountry();
   const urlSlug = typeof slug === "string" ? slug : undefined;
-  const countrySlug = selectedCountrySlug || urlSlug || undefined;
+  const countrySlug = urlSlug || selectedCountrySlug || undefined;
 
   return (
     <Screen>
