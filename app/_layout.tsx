@@ -4,9 +4,6 @@ import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
-import { Platform } from "react-native";
-
-import Purchases, { LOG_LEVEL } from "react-native-purchases";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { queryClient } from "@/lib/query-client";
@@ -45,36 +42,6 @@ export default function RootLayout() {
 
   useEffect(() => {
     initCrashlytics();
-  }, []);
-
-  useEffect(() => {
-    const initRevenueCat = async () => {
-      try {
-        Purchases.setLogLevel(LOG_LEVEL.DEBUG);
-
-        const apiKey =
-          Platform.OS === "android"
-            ? process.env.EXPO_PUBLIC_RC_ANDROID_API_KEY
-            : process.env.EXPO_PUBLIC_RC_IOS_API_KEY;
-
-        if (!apiKey) {
-          console.warn(
-            `[RevenueCat] Missing API key for ${Platform.OS}. Set EXPO_PUBLIC_RC_ANDROID_API_KEY / EXPO_PUBLIC_RC_IOS_API_KEY`
-          );
-          return;
-        }
-
-        await Purchases.configure({ apiKey });
-
-        // Optional sanity check (leave commented until products are mapped in RC)
-        // const offerings = await Purchases.getOfferings();
-        // console.log("[RevenueCat] offerings:", Object.keys(offerings.all || {}));
-      } catch (e: any) {
-        console.error("[RevenueCat] init failed:", e?.message || e);
-      }
-    };
-
-    initRevenueCat();
   }, []);
 
   if (!fontsLoaded) {
