@@ -182,6 +182,17 @@ export default function AuthScreen() {
               </Text>
             )}
           </Pressable>
+
+          {mode === "login" ? (
+            <Pressable
+              onPress={() => router.push("/forgot-password" as any)}
+              hitSlop={12}
+              style={s.forgotWrap}
+              testID="auth-forgot-password"
+            >
+              <Text style={s.forgotText}>Forgot password?</Text>
+            </Pressable>
+          ) : null}
         </View>
 
         <Pressable onPress={toggleMode} hitSlop={12} style={s.toggleWrap}>
@@ -317,6 +328,17 @@ const s = {
   } as const,
 
   toggleLink: {
+    color: tokens.color.primary,
+    fontWeight: tokens.weight.bold,
+  } as const,
+
+  forgotWrap: {
+    marginTop: 14,
+    alignItems: "center" as const,
+  } as const,
+
+  forgotText: {
+    fontSize: tokens.text.body,
     color: tokens.color.primary,
     fontWeight: tokens.weight.bold,
   } as const,
