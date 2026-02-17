@@ -8,25 +8,26 @@ This document specifies how the ExpatHub website (expathub.world) should impleme
 
 ### 1.1 Auth Backend
 
-The auth API lives at `https://expathub.world` and provides:
+The auth API lives at `https://expathub.world` and uses a single `/api/auth` endpoint with an `action` parameter:
 
 | Endpoint | Method | Body | Response |
 |---|---|---|---|
-| `/api/auth/register` | POST | `{ email, password }` | `{ token, user: { id, email } }` |
-| `/api/auth/login` | POST | `{ email, password }` | `{ token, user: { id, email } }` |
-| `/api/auth/me` | GET | — (Authorization: Bearer TOKEN) | `{ id, email }` |
+| `/api/auth` | POST | `{ action: "register", email, password }` | `{ token, user: { id, email } }` |
+| `/api/auth` | POST | `{ action: "signin", email, password }` | `{ token, user: { id, email } }` |
+| `/api/auth` | POST | `{ action: "signout" }` + Authorization: Bearer TOKEN | `{ ok: true }` |
+| `/api/auth` | GET | — (Authorization: Bearer TOKEN) | `{ id, email }` |
 
 - Passwords must be >= 6 characters.
 - The `token` is a JWT. Store it in `localStorage` (web) under the key `auth_jwt_token`.
-- On page load, check for a stored token and call `/api/auth/me` to restore the session. If the token is expired or invalid, clear it silently.
+- On page load, check for a stored token and call `GET /api/auth` with the Authorization header to restore the session. If the token is expired or invalid, clear it silently.
 
 ### 1.2 RevenueCat User Sync
 
 After every successful auth event (login, register, OR session restore), call `loginUser(userId.toString())` to bind the session to RevenueCat. This must happen at three points:
 
-1. **Login success** — immediately after receiving `{ token, user }` from `/api/auth/login`.
-2. **Register success** — immediately after receiving `{ token, user }` from `/api/auth/register`.
-3. **Session restore** — after `/api/auth/me` validates a stored token on page load.
+1. **Login success** — immediately after receiving `{ token, user }` from `POST /api/auth` with action `"signin"`.
+2. **Register success** — immediately after receiving `{ token, user }` from `POST /api/auth` with action `"register"`.
+3. **Session restore** — after `GET /api/auth` validates a stored token on page load.
 
 **Race condition note:** `loginUser()` internally ensures RevenueCat is initialized before calling `rc.logIn()`. If `initPurchases()` hasn't completed yet (e.g., session restore fires before the entitlement context mounts), `loginUser()` will call `initPurchases()` itself. This is safe because `initPurchases()` is idempotent.
 
@@ -51,6 +52,30 @@ This is the key UX innovation — users see prices and can tap "buy" before havi
 4. The paywall component detects the user is now logged in, reads `pending_purchase` from localStorage, clears it, and auto-initiates the purchase flow for the stored type.
    - **For `country_lifetime`:** The resume logic passes `pending.countrySlug` as a slug override to the purchase handler. This is critical — do NOT fall back to the current page's country context, because the user may have been redirected and the page context may have changed. Always use the stored slug.
 5. If the user dismisses auth without logging in, they return to the paywall — pending purchase stays in storage for next attempt.
+
+### 1.5 Forgot Password
+
+The forgot password flow allows users to reset their password:
+
+- **Endpoint**: `POST /api/auth/forgot-password` on `https://www.expathub.website` (note: `www` subdomain required to avoid TLS redirect)
+- **Body**: `{ email }`
+- **Response**: `{ ok: true }` (always returns `ok: true` regardless of whether the email exists, for security)
+
+**On Web:**
+- The frontend proxies the request through the Express backend at `POST /api/auth/forgot-password` to avoid CORS issues when calling the external URL.
+- User submits email on forgot password screen.
+- Backend calls the external endpoint.
+- Response is `{ ok: true }` which displays a success message: "Check your email for a reset link."
+
+**On Native:**
+- The native app calls the external URL directly: `https://www.expathub.website/api/auth/forgot-password`.
+- No CORS constraint on native platforms.
+
+**Reset Flow:**
+- Email contains a reset link in the format: `expathub.website/reset-password?token=xxx`
+- User opens the link in their phone's browser.
+- User resets their password on the web form.
+- After reset, user returns to the app and signs in with their new password.
 
 ---
 
@@ -301,7 +326,7 @@ All auth and purchase logs use these prefixes for easy filtering:
 
 ### 7.2 Key Events to Log
 
-- `[AUTH] Session restored for user {id}, syncing with RevenueCat` — on token restore + `/api/auth/me` success
+- `[AUTH] Session restored for user {id}, syncing with RevenueCat` — on token restore + `GET /api/auth` success
 - `[RC] loginUser called before init, attempting initPurchases first for user {id}` — race condition self-heal
 - `[RC] Logged in user: {id}` + active entitlements — after RevenueCat `logIn`
 - `[PURCHASE] Stored pending purchase: {type, countrySlug}` — when storing pending intent before auth redirect
@@ -350,10 +375,11 @@ User taps "Buy" on paywall
 ### Auth
 - [ ] Auth modal/page with login + register modes
 - [ ] JWT token storage in localStorage
-- [ ] Session restore on page load via `/api/auth/me`
+- [ ] Session restore on page load via `GET /api/auth` with Authorization header
 - [ ] Auth auto-dismiss after successful login/register
 - [ ] `loginUser(userId)` called after login, register, AND session restore
 - [ ] Race-safe: `loginUser()` self-initializes RevenueCat if needed
+- [ ] Forgot password form calling `POST /api/auth/forgot-password` (proxied on web, direct on native)
 
 ### Pending Purchase
 - [ ] Pending purchase storage in localStorage (`{ type, countrySlug }`)
