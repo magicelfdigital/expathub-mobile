@@ -82,10 +82,10 @@ export default function CountryDetailScreen() {
   const urlSlug = typeof slug === "string" ? slug : Array.isArray(slug) ? slug[0] : "";
 
   React.useEffect(() => {
-    if (urlSlug && urlSlug !== selectedCountrySlug) {
+    if (urlSlug && !selectedCountrySlug) {
       setSelectedCountrySlug(urlSlug);
     }
-  }, [urlSlug]);
+  }, []);
 
   const countrySlug = selectedCountrySlug || urlSlug || "";
 
