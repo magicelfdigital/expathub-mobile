@@ -114,12 +114,13 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   const checkAuthApiSubscription = useCallback(async (): Promise<boolean> => {
     if (!token) return false;
     try {
-      const res = await fetch(`${AUTH_API_URL}/api/auth/subscription`, {
+      const res = await fetch(`${AUTH_API_URL}/api/auth`, {
         headers: { Authorization: `Bearer ${token}` },
+        redirect: "follow",
       });
       if (!res.ok) return false;
       const data = await res.json();
-      return Boolean(data?.hasProAccess || data?.subscription?.active);
+      return Boolean(data?.hasProAccess || data?.subscription?.active || data?.user?.hasProAccess);
     } catch {
       return false;
     }
