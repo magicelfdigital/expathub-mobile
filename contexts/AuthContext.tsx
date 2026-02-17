@@ -9,8 +9,9 @@ import React, {
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { loginUser, logoutUser } from "@/src/subscriptions/revenuecat";
+import { getApiUrl } from "@/lib/query-client";
 
-const AUTH_API_URL = process.env.EXPO_PUBLIC_AUTH_API_URL ?? "https://expathub.world";
+const AUTH_API_URL = process.env.EXPO_PUBLIC_AUTH_API_URL ?? "https://www.expathub.world";
 const TOKEN_KEY = "auth_jwt_token";
 
 type User = {
@@ -64,6 +65,17 @@ async function removeToken(): Promise<void> {
 
 const AUTH_BASE = AUTH_API_URL.replace(/\/$/, "");
 
+function getAuthBase(): string {
+  if (Platform.OS === "web") {
+    try {
+      return getApiUrl().replace(/\/$/, "");
+    } catch {
+      return AUTH_BASE;
+    }
+  }
+  return AUTH_BASE;
+}
+
 async function authFetch<T>(
   path: string,
   options: { method?: string; body?: Record<string, unknown>; token?: string | null } = {}
@@ -73,7 +85,8 @@ async function authFetch<T>(
     headers["Authorization"] = `Bearer ${options.token}`;
   }
 
-  const res = await fetch(`${AUTH_BASE}${path}`, {
+  const base = getAuthBase();
+  const res = await fetch(`${base}${path}`, {
     method: options.method ?? "GET",
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,

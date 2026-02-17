@@ -25,6 +25,7 @@ import {
 } from "@/src/config/subscription";
 import { trackEvent } from "@/src/lib/analytics";
 import { useAuth, AUTH_API_URL } from "@/contexts/AuthContext";
+import { getApiUrl } from "@/lib/query-client";
 
 type EntitlementSource = "revenuecat" | "stripe" | "sandbox" | "none";
 type AccessType = "decision_pass" | "country_lifetime" | "subscription" | "sandbox" | "none";
@@ -114,7 +115,11 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   const checkAuthApiSubscription = useCallback(async (): Promise<boolean> => {
     if (!token) return false;
     try {
-      const res = await fetch(`${AUTH_API_URL}/api/auth`, {
+      let base = AUTH_API_URL;
+      if (Platform.OS === "web") {
+        try { base = getApiUrl().replace(/\/$/, ""); } catch { /* use default */ }
+      }
+      const res = await fetch(`${base}/api/auth`, {
         headers: { Authorization: `Bearer ${token}` },
         redirect: "follow",
       });
