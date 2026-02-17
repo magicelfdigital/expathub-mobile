@@ -1,0 +1,56 @@
+[
+  {
+    "id": "pt-aima",
+    "countrySlug": "portugal",
+    "pathwayKey": null,
+    "url": "https://www.aima.gov.pt/en/",
+    "detectedAt": "2026-02-11T00:09:13.959Z",
+    "severity": "P2",
+    "summary": "Source unreachable: fetch failed"
+  },
+  {
+    "id": "es-immigration",
+    "countrySlug": "spain",
+    "pathwayKey": null,
+    "url": "https://extranjeros.inclusion.gob.es/",
+    "detectedAt": "2026-02-11T00:09:14.913Z",
+    "severity": "P2",
+    "summary": "Source unreachable: fetch failed"
+  },
+  {
+    "id": "ca-ircc",
+    "countrySlug": "canada",
+    "pathwayKey": "express-entry",
+    "url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/express-entry.html",
+    "detectedAt": "2026-02-11T00:09:31.540Z",
+    "severity": "P2",
+    "summary": "Source unreachable: This operation was aborted"
+  },
+  {
+    "id": "cr-immigration",
+    "countrySlug": "costa-rica",
+    "pathwayKey": null,
+    "url": "https://www.migracion.go.cr/",
+    "detectedAt": "2026-02-11T00:09:31.801Z",
+    "severity": "P2",
+    "summary": "Source unreachable: HTTP 403 Forbidden"
+  },
+  {
+    "id": "pa-immigration",
+    "countrySlug": "panama",
+    "pathwayKey": null,
+    "url": "https://www.migracion.gob.pa/",
+    "detectedAt": "2026-02-11T00:09:32.880Z",
+    "severity": "P2",
+    "summary": "Source content changed (hash diff). Review for decision-impacting updates."
+  },
+  {
+    "id": "ec-immigration",
+    "countrySlug": "ecuador",
+    "pathwayKey": null,
+    "url": "https://www.cancilleria.gob.ec/",
+    "detectedAt": "2026-02-11T00:09:33.195Z",
+    "severity": "P2",
+    "summary": "Source unreachable: fetch failed"
+  }
+]

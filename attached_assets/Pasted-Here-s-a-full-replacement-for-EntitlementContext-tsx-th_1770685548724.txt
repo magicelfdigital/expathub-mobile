@@ -1,0 +1,132 @@
+Here’s a full replacement for EntitlementContext.tsx that fixes the real issues in your current version:
+
+Sandbox override is always honored even when SANDBOX_ENABLED is false (bug / security footgun)
+
+setSandboxOverride is exposed even when sandbox is disabled
+
+boot() doesn’t guard against unmounts; can set state after unmount
+
+trackEvent is imported but never used (and you want analytics on entitlement source)
+
+Better “source” behavior: keep source stable when no access vs “none” only
+
+This keeps your structure but makes it safe + predictable.
+
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { Platform } from "react-native";
+
+import { initPurchases, getEntitlements as rcGetEntitlements } from "@/src/subscriptions/revenuecat";
+import { getSubscriptionStatus as stripeGetStatus } from "@/src/subscriptions/stripeWeb";
+import { SANDBOX_ENABLED } from "@/src/config/subscription";
+import { trackEvent } from "@/src/lib/analytics";
+
+type EntitlementSource = "revenuecat" | "stripe" | "sandbox" | "none";
+
+interface EntitlementContextValue {
+  hasProAccess: boolean;
+  source: EntitlementSource;
+  loading: boolean;
+  sandboxMode: boolean;
+  setSandboxOverride: (value: boolean) => void;
+  refresh: () => Promise<void>;
+}
+
+const EntitlementContext = createContext<EntitlementContextValue | undefined>(undefined);
+
+export function EntitlementProvider({ children }: { children: React.ReactNode }) {
+  const [hasProAccess, setHasProAccess] = useState(false);
+  const [source, setSource] = useState<EntitlementSource>("none");
+  const [loading, setLoading] = useState(true);
+
+  // Only meaningful when SANDBOX_ENABLED === true
+  const [sandboxOverride, setSandboxOverrideState] = useState(false);
+
+  const setSandboxOverride = useCallback((value: boolean) => {
+    if (!SANDBOX_ENABLED) return; // ignore if sandbox disabled
+    setSandboxOverrideState(value);
+  }, []);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+
+    try {
+      // Sandbox override only applies when explicitly enabled
+      if (SANDBOX_ENABLED && sandboxOverride) {
+        setHasProAccess(true);
+        setSource("sandbox");
+        trackEvent?.("entitlement_refresh", { source: "sandbox", hasProAccess: true });
+        return;
+      }
+
+      if (Platform.OS === "web") {
+        const result = await stripeGetStatus();
+        setHasProAccess(Boolean(result?.hasProAccess));
+        setSource(result?.hasProAccess ? "stripe" : "none");
+        trackEvent?.("entitlement_refresh", { source: result?.hasProAccess ? "stripe" : "none", hasProAccess: Boolean(result?.hasProAccess) });
+      } else {
+        const result = await rcGetEntitlements();
+        setHasProAccess(Boolean(result?.hasProAccess));
+        setSource(result?.hasProAccess ? "revenuecat" : "none");
+        trackEvent?.("entitlement_refresh", { source: result?.hasProAccess ? "revenuecat" : "none", hasProAccess: Boolean(result?.hasProAccess) });
+      }
+    } catch {
+      setHasProAccess(false);
+      setSource("none");
+      trackEvent?.("entitlement_refresh_error", { source: "none" });
+    } finally {
+      setLoading(false);
+    }
+  }, [sandboxOverride]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        if (Platform.OS !== "web") {
+          await initPurchases();
+        }
+        if (mounted) {
+          await refresh();
+        }
+      } catch {
+        if (mounted) {
+          setHasProAccess(false);
+          setSource("none");
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [refresh]);
+
+  const value = useMemo<EntitlementContextValue>(
+    () => ({
+      hasProAccess: SANDBOX_ENABLED && sandboxOverride ? true : hasProAccess,
+      source: SANDBOX_ENABLED && sandboxOverride ? "sandbox" : source,
+      loading,
+      sandboxMode: SANDBOX_ENABLED,
+      setSandboxOverride,
+      refresh,
+    }),
+    [hasProAccess, source, loading, sandboxOverride, setSandboxOverride, refresh]
+  );
+
+  return <EntitlementContext.Provider value={value}>{children}</EntitlementContext.Provider>;
+}
+
+export function useEntitlement() {
+  const ctx = useContext(EntitlementContext);
+  if (!ctx) throw new Error("useEntitlement must be used within EntitlementProvider");
+  return ctx;
+}

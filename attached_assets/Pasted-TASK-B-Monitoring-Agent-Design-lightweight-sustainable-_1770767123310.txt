@@ -1,0 +1,86 @@
+TASK B: Monitoring Agent Design (lightweight, sustainable)
+
+You are working on ExpatHub (Expo/React Native). We already completed Task A (Decision Brief Freshness & Accuracy metadata + helpers). Now implement Task B: a monitoring-agent architecture that can run manually (today) and be automated later (Task E).
+
+GUARDRAILS
+- Do NOT change navigation, UI, paywall, or gating.
+- Do NOT add databases, auth, or external services.
+- Do NOT add new dependencies.
+- FULL FILE REPLACEMENTS ONLY.
+- ASK ME FOR FILES ONE AT A TIME (or create new files if missing and tell me).
+- This task is data + orchestration scaffolding only.
+
+GOAL
+Create a “3-agent” monitoring framework:
+1) Source Monitor: knows what sources to check per country/pathway
+2) Change Detector: compares “last known” snapshots to new signals and assigns severity (P0/P1/P2)
+3) Brief Updater: produces a proposed patch (not auto-applied) and requires approval for P0/P1
+
+OUTPUTS (WHAT TO BUILD)
+
+1) Define monitoring types and interfaces
+Create: src/monitoring/types.ts
+Include:
+- MonitorTarget: { countrySlug: string; pathwayKey?: string }
+- SourceType: "official" | "secondary"
+- SourceSpec: { id: string; label: string; type: SourceType; url: string; keywords: string[] }
+- Signal: { target: MonitorTarget; sourceId: string; fetchedAt: string; title: string; url: string; excerpt?: string }
+- DetectedChange: { target: MonitorTarget; severity: "P0"|"P1"|"P2"; summary: string; sourceUrl?: string; fieldsImpacted: string[] }
+- UpdateProposal: { target: MonitorTarget; proposedMetaPatch: Partial<DecisionBriefMeta>; proposedContentPatch?: any; rationale: string[] }
+
+2) Implement “cadence rules” and volatility config
+Create: src/monitoring/volatility.ts
+- weekly baseline for all targets
+- high-volatility targets checked 2–3x/week
+Expose:
+- isHighVolatility(target): boolean
+- recommendedCheckFrequency(target): "weekly" | "triweekly"
+
+3) Implement a manual runner (no network calls yet)
+Create: src/monitoring/runManualCheck.ts
+This function should:
+- accept (targets, signals[]) as inputs
+- call detectChanges(signals, previousSignals?) — placeholder initially
+- return { changes, proposals }
+No actual fetching. This is orchestration only.
+
+4) Implement approval policy
+Create: src/monitoring/approvalPolicy.ts
+Rules:
+- P0 and P1 require approval before applying changes
+- P2 can be auto-applied later, but for now still return as a proposal (no auto-apply in v1)
+Expose:
+- requiresApproval(severity): boolean
+- shouldAutoApply(severity): boolean (always false for now)
+
+5) Implement a proposal builder that maps DetectedChange -> DecisionBriefMeta patch
+Create: src/monitoring/buildProposal.ts
+Map:
+- updatedAt must change when any change exists
+- lastReviewedAt only changes when approved (so leave it out of proposedMetaPatch)
+- confidenceLevel should downgrade to "low" if P0 exists, "medium" if P1 exists, unchanged for P2
+- changeLog should add a new entry with date, severity, summary, sourceUrl
+
+6) Integration point (no UI): export a single API
+Create: src/monitoring/index.ts
+Export:
+- runManualCheck
+- types
+- volatility helpers
+- approval policy helpers
+
+IMPLEMENTATION ORDER (MANDATORY)
+A) Create src/monitoring/types.ts
+B) Create src/monitoring/approvalPolicy.ts
+C) Create src/monitoring/volatility.ts
+D) Create src/monitoring/buildProposal.ts
+E) Create src/monitoring/runManualCheck.ts
+F) Create src/monitoring/index.ts
+
+STOP after F. Summarize in 5 bullets what exists and how Task C (Source Lists) will plug in.
+
+IMPORTANT NOTES
+- Use the DecisionBriefMeta types from Task A (import them).
+- Keep everything platform-neutral and testable.
+- No fetch(), no RSS parsing, no web scraping yet.
+- Treat “signals” as inputs so we can later plug in real collectors.

@@ -1,0 +1,132 @@
+TASK: Finish v1 decision content system for all 8 launch countries, with analytics and pricing signal.
+
+CONTEXT
+ExpatHub is launching v1 with 8 countries:
+Portugal, Spain, Canada, Costa Rica, Panama, Ecuador, Malta, UK.
+
+We already have:
+- Coverage / AvailabilityGate / ComingSoon wired
+- ProGate + ProPaywall working
+- CompareMatrix feature implemented
+- DecisionBrief freshness metadata (Task A)
+- Gating consistency verified
+
+This task focuses on:
+1) Expanding Decision Brief content (structured, scalable)
+2) Adding minimal analytics to observe decision behavior
+3) Using that data to pressure-test pricing (no pricing changes yet)
+
+GUARDRAILS
+- Do NOT change navigation, routing, or tab structure
+- Do NOT change subscription providers or prices
+- Do NOT add heavy analytics SDKs
+- Use existing trackEvent utility
+- FULL FILE REPLACEMENTS ONLY
+- Ask for files ONE AT A TIME if they already exist
+- No new dependencies
+
+────────────────────────────
+PHASE 1 — Decision Brief Content Expansion (All 8 Countries)
+────────────────────────────
+
+GOAL
+Every launch country must have a credible “decision-closing” brief, not encyclopedic detail.
+
+1) Extend DecisionBrief schema (if not already done)
+Confirm DecisionBrief includes sections:
+- overview
+- workReality
+- familyAndDependents
+- lifestyleAndCulture
+- commonMistakes
+- whoThisIsNotFor
+
+If schema already exists, do NOT change structure—only populate data.
+
+2) Create a reusable content template
+Create: src/data/decisionBriefTemplate.ts
+
+Export function:
+buildDecisionBrief({
+  countrySlug,
+  pathwayKey?
+}) → DecisionBrief
+
+Each brief must answer:
+- Can I stay legally?
+- Can I work, and how realistic is it?
+- Can I bring my spouse/kids?
+- What lifestyle/cultural friction surprises people?
+- Who should NOT choose this country?
+
+Tone:
+- factual
+- cautionary where needed
+- no marketing language
+- no promises
+
+3) Populate briefs for ALL 8 countries
+Create or update:
+src/data/decisionBriefs.ts
+
+Populate SHORT-FORM briefs for:
+- Portugal
+- Spain
+- Canada
+- Costa Rica
+- Panama
+- Ecuador
+- Malta
+- UK
+
+Notes:
+- Use “varies” or “depends” where appropriate
+- It is OK to mark sections as “limited clarity” if true
+- ConfidenceLevel may start at “medium”
+
+STOP after all 8 briefs exist and are wired into existing screens.
+
+────────────────────────────
+PHASE 2 — Minimal Decision Analytics (High Signal Only)
+────────────────────────────
+
+GOAL
+Understand what reduces uncertainty and triggers conversion.
+
+EVENTS TO ADD (ONLY THESE)
+
+Explore:
+- explore_opened (on mount)
+- compare_started (when CompareMatrix first renders)
+
+CompareMatrix:
+- compare_row_viewed
+  payload: { rowId, countrySlugs }
+
+Decision Briefs:
+- decision_brief_opened
+  payload: { countrySlug, pathwayKey? }
+
+- brief_section_viewed
+  payload: { countrySlug, pathwayKey?, sectionId }
+  sectionId values:
+    "work" | "family" | "culture" | "mistakes"
+
+Paywall:
+- paywall_viewed
+  payload: { context, countrySlug?, pathwayKey? }
+- subscription_started
+
+IMPLEMENTATION ORDER
+A) Ask me where trackEvent is defined
+B) Instrument:
+   - Explore screen
+   - CompareMatrix component
+   - Decision Brief screen(s)
+   - ProPaywall component
+C) Use simple “fire once per session” guards (useRef is fine)
+
+DO NOT:
+- track scroll continuously
+- add user identifiers
+- block UI on analytics

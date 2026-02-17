@@ -1,0 +1,68 @@
+We are implementing the Explore refactor now. Do NOT ask me conceptual questions—just ask for files one at a time and provide full replacements only.
+
+GUARDRAILS
+- Do NOT change tab layout config or rename tabs.
+- Do NOT change routing structure for Countries.
+- Do NOT change subscription logic (RevenueCat/Stripe), EntitlementContext, ProGate, or paywall behavior.
+- FULL FILE REPLACEMENTS ONLY.
+- ASK FOR FILES ONE AT A TIME.
+- Keep styling consistent with tokens and existing Screen component patterns.
+- Avoid adding logos in page bodies if headers already show them.
+
+GOAL
+Explore must NOT duplicate Countries.
+Explore should help users who haven’t picked a country by offering decision-first entry points and a lightweight compare view.
+Countries remains the full directory + hub entry.
+
+EXPLORE V1 CONTENT
+Replace Explore with 4 decision entry cards:
+1) "I need to keep working"
+   Subtitle: "Remote work rules vary. Start with options that explicitly allow it and don’t quietly trap you later."
+   Route: /(tabs)/explore/remote-work
+
+2) "I want a local job (sponsorship)"
+   Subtitle: "Employer sponsorship is often the real gate. Learn what’s realistic before you invest time."
+   Route: /(tabs)/explore/sponsorship
+
+3) "I’m not sure yet — I want flexibility"
+   Subtitle: "If you’re still deciding, choose paths that preserve options and buy time legally."
+   Route: /(tabs)/explore/flexibility
+
+4) "I care about long-term residency (PR)"
+   Subtitle: "Some visas are dead ends. Start with options aligned to PR pathways and work rights."
+   Route: /(tabs)/explore/pr
+
+Add a bottom secondary CTA:
+- "Browse all countries" -> /(tabs)/country
+
+COMPARE (LIGHTWEIGHT)
+On Explore, below the cards, add a compact “Compare” section that shows 3 toggles (chips):
+- Remote work
+- Local job/sponsorship
+- PR path
+
+When a chip is selected, show a simple list of the 8 launch countries with a 1-line summary for that dimension and a badge:
+- "Ready" vs "Coming soon" using src/data/coverage.ts if it exists (preferred).
+If coverage.ts is missing, implement a minimal local map just for badges (Portugal/Spain ready, others coming soon).
+
+TOPIC SCREENS
+Create these screens:
+- app/(tabs)/explore/remote-work.tsx
+- app/(tabs)/explore/sponsorship.tsx
+- app/(tabs)/explore/flexibility.tsx
+- app/(tabs)/explore/pr.tsx
+
+Each topic screen must include:
+- Short explainer paragraph (2–4 lines)
+- Curated list of relevant countries (subset of the 8)
+- Each row shows country name + badge Ready/Coming soon + “Open →”
+- Tap navigates to /(tabs)/country/[slug]
+- No paywall here
+
+IMPLEMENTATION ORDER (MANDATORY)
+1) Ask me for the current Explore screen file path and contents (likely app/(tabs)/explore.tsx). Provide full replacement.
+2) Create the 4 topic screen files. Provide full contents for each.
+3) If you need coverage badges and src/data/coverage.ts exists, ask for it. If not, do NOT create it today—use a minimal local map for badges.
+
+STOP after step 2 (and step 3 only if absolutely required to compile).
+Summarize changes in 3 bullets.

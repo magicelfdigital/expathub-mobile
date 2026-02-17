@@ -1,0 +1,78 @@
+Here’s the full replacement for your SubscriptionContext.tsx bridge. It fixes two real problems in your current version:
+
+setHasActiveSubscription(value) ignored the value (it always just refreshed)
+
+Your useMemo dependency on the whole entitlement object is brittle (can cause unnecessary rerenders / stale closures depending on how EntitlementContext is implemented)
+
+This version keeps the bridge “thin,” preserves backward compatibility, and behaves sensibly:
+
+If you call setHasActiveSubscription(true/false) and sandboxMode is enabled, it toggles the sandbox override.
+
+Otherwise, it triggers a refresh() (because real subscription state shouldn’t be set imperatively).
+
+import React, { createContext, useContext, useMemo } from "react";
+import { EntitlementProvider, useEntitlement } from "@/src/contexts/EntitlementContext";
+
+type SubscriptionContextValue = {
+  hasActiveSubscription: boolean;
+  setHasActiveSubscription: (value: boolean) => void;
+  source: "revenuecat" | "stripe" | "sandbox" | "none";
+  loading: boolean;
+  sandboxMode: boolean;
+  setSandboxOverride: (value: boolean) => void;
+  refresh: () => Promise<void>;
+};
+
+const SubscriptionContext = createContext<SubscriptionContextValue | undefined>(undefined);
+
+function SubscriptionBridge({ children }: { children: React.ReactNode }) {
+  const {
+    hasProAccess,
+    source,
+    loading,
+    sandboxMode,
+    setSandboxOverride,
+    refresh,
+  } = useEntitlement();
+
+  const value = useMemo<SubscriptionContextValue>(
+    () => ({
+      hasActiveSubscription: hasProAccess,
+
+      // Back-compat setter:
+      // - If sandboxMode, allow toggling directly
+      // - Otherwise, do NOT pretend we can set a real subscription; refresh instead
+      setHasActiveSubscription: (next: boolean) => {
+        if (sandboxMode) {
+          setSandboxOverride(next);
+          return;
+        }
+        // Real subscriptions come from Stripe/RevenueCat; refresh to re-check state
+        void refresh();
+      },
+
+      source,
+      loading,
+      sandboxMode,
+      setSandboxOverride,
+      refresh,
+    }),
+    [hasProAccess, source, loading, sandboxMode, setSandboxOverride, refresh]
+  );
+
+  return <SubscriptionContext.Provider value={value}>{children}</SubscriptionContext.Provider>;
+}
+
+export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <EntitlementProvider>
+      <SubscriptionBridge>{children}</SubscriptionBridge>
+    </EntitlementProvider>
+  );
+}
+
+export function useSubscription() {
+  const ctx = useContext(SubscriptionContext);
+  if (!ctx) throw new Error("useSubscription must be used within SubscriptionProvider");
+  return ctx;
+}

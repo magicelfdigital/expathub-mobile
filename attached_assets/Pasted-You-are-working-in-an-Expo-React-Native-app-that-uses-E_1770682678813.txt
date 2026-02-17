@@ -1,0 +1,54 @@
+You are working in an Expo (React Native) app that uses Expo Router file-based routing.
+
+GOALS
+1) Implement subscriptions with:
+   - Web: Stripe Checkout + Customer Portal
+   - Mobile (iOS/Android): RevenueCat (react-native-purchases)
+2) Create a SINGLE “entitlement” interface used by the app:
+   - hasProAccess: boolean
+   - source: "revenuecat" | "stripe" | "none"
+   - refresh(): Promise<void>
+3) Do NOT change my routing structure or rename files/folders. Do NOT delete files. If you think a file should be moved/renamed, ASK first.
+
+CONSTRAINTS (critical)
+- This project uses Expo Router. Do not add React Navigation manually.
+- Providers must remain global and mounted once at app root.
+- No UI logos in screen bodies. Headers own logos.
+- No route params like [slug] in headers.
+
+WHAT TO BUILD (step-by-step)
+A) Add dependencies and minimal config for RevenueCat:
+   - install react-native-purchases
+   - implement src/subscriptions/revenuecat.ts with initPurchases(), getEntitlements(), restorePurchases()
+   - on mobile, read entitlement “pro” (or configurable entitlement key) and map to hasProAccess
+
+B) Add minimal Stripe web flow:
+   - implement a small Next/Node/Express-like endpoint OR a placeholder server function file for:
+     - createCheckoutSession(priceId, customerId?)
+     - createCustomerPortalSession(customerId)
+   - In the app, add src/subscriptions/stripeWeb.ts that calls those endpoints when Platform.OS === "web"
+   - Use placeholder URLs and environment variables; do not hardcode secrets in the client.
+
+C) Create a unified context:
+   - src/contexts/EntitlementContext.tsx exports:
+     - EntitlementProvider
+     - useEntitlement()
+   - EntitlementProvider chooses RevenueCat on native and Stripe on web
+   - Provide hasProAccess, source, refresh()
+
+D) Update my existing SubscriptionContext to become a thin wrapper OR replace it safely:
+   - Keep exported names stable if possible: SubscriptionProvider + useSubscription
+   - Internally delegate to EntitlementContext
+   - Do not break imports.
+
+E) Update the Subscribe screen:
+   - On mobile: show “Subscribe” button that triggers RevenueCat purchase flow (using a placeholder product identifier)
+   - On web: show “Subscribe” button that redirects to Stripe Checkout session URL
+   - Add “Restore purchases” on mobile (RevenueCat restore)
+   - Display current entitlement status
+
+DELIVERABLES
+- Give FULL file replacements only.
+- Ask me for files ONE AT A TIME.
+- Start by listing the exact dependencies you will add and the exact new files you will create.
+- Then ask me for app.json/app.config and my current SubscriptionContext file contents (if needed).

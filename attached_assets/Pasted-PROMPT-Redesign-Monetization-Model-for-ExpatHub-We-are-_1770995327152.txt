@@ -1,0 +1,193 @@
+PROMPT: Redesign Monetization Model for ExpatHub
+
+We are redesigning ExpatHub’s monetization model from subscription-only to a 3-tier structure aligned with immigration planning behavior.
+
+Objective
+
+Shift from:
+
+$14.99/month
+
+$99/year
+
+To:
+
+30-Day Decision Pass (primary product)
+
+Country Lifetime Unlock (one-time per country)
+
+Ongoing Monthly Access (optional)
+
+Do not remove subscription capability. Reframe it.
+
+Product Structure to Implement
+1️⃣ 30-Day Decision Pass (Consumable / Time-Limited Access)
+
+Product ID: decision_pass_30d
+
+Includes:
+
+All countries
+
+All pathways
+
+Comparison engine
+
+Risk/failure sections
+
+Full access to premium content
+
+Access expires after 30 days from purchase.
+
+After expiration:
+
+Lock premium content
+
+Show upgrade options
+
+This becomes the default recommended purchase option.
+
+2️⃣ Country Lifetime Unlock (Non-Consumable)
+
+Product ID format:
+country_lifetime_<slug>
+Example:
+
+country_lifetime_portugal
+
+country_lifetime_spain
+
+Includes:
+
+All pathways in that country
+
+Comparison involving that country
+
+Future updates for that country
+
+Never expires
+
+Does NOT include:
+
+Other countries
+
+3️⃣ Ongoing Monthly Access (Subscription)
+
+Product ID: expithub_monthly
+
+Includes:
+
+Full platform access
+
+Continuous updates
+
+Multi-country comparison
+
+Designed for long-term planners
+
+Repositioned as optional, not default.
+
+Access Logic Rules
+
+Access is granted if ANY of the following is true:
+
+User has active decision_pass_30d
+
+User has lifetime unlock for that country
+
+User has active monthly subscription
+
+Decision pass overrides all country locks.
+
+Country lifetime unlock overrides that specific country only.
+
+Subscription overrides all.
+
+Post-Expiration Behavior
+
+When 30-Day Pass expires:
+
+Lock premium content
+
+Preserve saved countries
+
+Show pricing modal with:
+
+Renew 30-Day Pass
+
+Upgrade to Country Lifetime
+
+Subscribe Monthly
+
+Do NOT auto-renew decision pass.
+
+Pricing Page Changes
+
+Rewrite pricing page to:
+
+Headline:
+“Avoid costly immigration mistakes.”
+
+Primary CTA:
+“Start 30-Day Decision Access”
+
+Secondary:
+“Unlock Portugal Forever”
+“Unlock Spain Forever”
+“Continue with Monthly Access”
+
+Remove annual plan.
+
+RevenueCat Requirements
+
+Create:
+
+Consumable: 30-Day Pass
+
+Non-consumables: Country lifetime unlocks
+
+Subscription: Monthly plan
+
+Ensure entitlements are structured cleanly:
+
+decision_access
+
+country_portugal
+
+country_spain
+
+full_access_subscription
+
+Access logic should check entitlements, not product IDs directly.
+
+UI Changes Required
+
+Update Subscribe screen layout
+
+Add country-specific lifetime unlock button inside country hub
+
+Add expiration indicator for 30-Day pass
+
+Update locked.tsx messaging to reflect new pricing options
+
+Important Constraints
+
+Keep architecture simple
+
+Do not refactor entire navigation
+
+Do not add new features beyond pricing logic
+
+Preserve current pathway content
+
+After Implementation
+
+Provide:
+
+Updated entitlement logic
+
+Pricing screen layout structure
+
+Access guard logic example
+
+RevenueCat product mapping list

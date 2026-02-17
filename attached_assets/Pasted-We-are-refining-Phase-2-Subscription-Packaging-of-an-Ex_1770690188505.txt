@@ -1,0 +1,81 @@
+We are refining Phase 2 (Subscription Packaging) of an Expo / React Native app.
+
+IMPORTANT GUARDRAILS (DO NOT VIOLATE)
+- Do NOT change navigation, routes, or Expo Router structure.
+- Do NOT change providers, entitlements, or purchase logic.
+- Do NOT add new dependencies.
+- Do NOT refactor components unless explicitly requested.
+- Provide FULL FILE REPLACEMENTS ONLY when changing files.
+- Ask for files ONE AT A TIME.
+
+CONTEXT (AUTHORITATIVE)
+- Subscriptions are already implemented.
+- EntitlementContext is the single source of truth.
+- ProPaywall and ProGate already exist and work.
+- Phase 1 (Data Foundation) is complete.
+- Phase 2 (Subscription Packaging) is about COPY, STRUCTURE, and CLARITY — not features.
+
+OBJECTIVE
+Shift the Pro value proposition from:
+“Access premium guides”
+to:
+“Avoid making the wrong residency decision”
+
+People should feel they are paying for:
+- disqualification clarity
+- decision confidence
+- avoiding costly mistakes
+
+TASKS (IN ORDER)
+
+TASK 1 — Rewrite Pro Offer Data (Decision Briefs)
+Update `src/data/pro-offer.ts` to encode opinionated, decision-driven Pro content.
+
+Requirements:
+- Keep the existing exported function signature:
+  `getProOffer(countrySlug?, pathwayKey?)`
+- Keep the existing ProOffer shape:
+  headline, bullets, mistakesAvoided, notFor, ctaLabel
+- Do NOT require any screen changes
+
+Implement explicit decision briefs for:
+1) Spain Non-Lucrative Visa (NLV)
+   - Who it is actually for
+   - Who it is not for
+   - Common misconceptions and rejection risks
+2) Portugal D7 vs D8
+   - Clear rule for choosing between them
+   - Why people choose incorrectly
+3) Digital Nomad Visas
+   - Why people get rejected even when they meet income thresholds
+
+Decision briefs must:
+- Be opinionated
+- Emphasize ruling OUT bad fits
+- Focus on real-world review behavior, not blog theory
+
+TASK 2 — Rewrite Paywall Framing (NO LOGIC CHANGES)
+Update `src/components/ProPaywall.tsx` to reflect decision-first framing.
+
+Requirements:
+- Do NOT change pricing, purchase, restore, or platform logic.
+- Do NOT change component props or exports.
+- Rewrite copy and section ordering only.
+
+Paywall should emphasize:
+- “Make the right decision before you spend time and money”
+- “See which pathways you should rule out”
+- Avoidance of costly mistakes
+
+CTA language should shift from:
+“Unlock Pro”
+to:
+“See which pathways to rule out” (or equivalent)
+
+OUTPUT FORMAT
+1) Ask me for `src/data/pro-offer.ts`
+2) Provide a FULL replacement for that file
+3) Then ask me for `src/components/ProPaywall.tsx`
+4) Provide a FULL replacement for that file
+
+Do not proceed past these two files.

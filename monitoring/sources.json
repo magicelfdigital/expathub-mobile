@@ -1,0 +1,82 @@
+[
+  {
+    "id": "pt-aima",
+    "label": "Portugal AIMA (Immigration & Borders)",
+    "countrySlug": "portugal",
+    "pathwayKey": null,
+    "url": "https://www.aima.gov.pt/en/",
+    "keywords": ["visa", "residence", "permit", "authorization"]
+  },
+  {
+    "id": "pt-tax",
+    "label": "Portugal Tax Authority (Portal das Financas)",
+    "countrySlug": "portugal",
+    "pathwayKey": null,
+    "url": "https://www.portaldasfinancas.gov.pt/at/html/index.html",
+    "keywords": ["NHR", "tax", "fiscal", "resident"]
+  },
+  {
+    "id": "es-immigration",
+    "label": "Spain Immigration Portal (Extranjeros)",
+    "countrySlug": "spain",
+    "pathwayKey": null,
+    "url": "https://extranjeros.inclusion.gob.es/",
+    "keywords": ["visa", "residencia", "autorización", "permiso"]
+  },
+  {
+    "id": "es-tax",
+    "label": "Spain Tax Agency (Agencia Tributaria)",
+    "countrySlug": "spain",
+    "pathwayKey": null,
+    "url": "https://sede.agenciatributaria.gob.es/",
+    "keywords": ["IRPF", "Beckham", "tax", "fiscal"]
+  },
+  {
+    "id": "uk-skilled-worker",
+    "label": "UK Gov Skilled Worker Visa",
+    "countrySlug": "united-kingdom",
+    "pathwayKey": "skilled-worker",
+    "url": "https://www.gov.uk/skilled-worker-visa",
+    "keywords": ["skilled worker", "sponsor", "salary", "visa"]
+  },
+  {
+    "id": "ca-ircc",
+    "label": "Canada IRCC Express Entry",
+    "countrySlug": "canada",
+    "pathwayKey": "express-entry",
+    "url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/express-entry.html",
+    "keywords": ["express entry", "CRS", "permanent residence", "immigration"]
+  },
+  {
+    "id": "mt-residency",
+    "label": "Malta Residency Malta Agency",
+    "countrySlug": "malta",
+    "pathwayKey": null,
+    "url": "https://residencymalta.gov.mt/",
+    "keywords": ["residence", "permit", "Malta", "programme"]
+  },
+  {
+    "id": "cr-immigration",
+    "label": "Costa Rica DGME (Immigration)",
+    "countrySlug": "costa-rica",
+    "pathwayKey": null,
+    "url": "https://www.migracion.go.cr/",
+    "keywords": ["residencia", "visa", "permiso", "migración"]
+  },
+  {
+    "id": "pa-immigration",
+    "label": "Panama Immigration Service",
+    "countrySlug": "panama",
+    "pathwayKey": null,
+    "url": "https://www.migracion.gob.pa/",
+    "keywords": ["visa", "residencia", "permiso", "migración"]
+  },
+  {
+    "id": "ec-immigration",
+    "label": "Ecuador Immigration (Cancilleria)",
+    "countrySlug": "ecuador",
+    "pathwayKey": null,
+    "url": "https://www.cancilleria.gob.ec/",
+    "keywords": ["visa", "residencia", "migración", "extranjero"]
+  }
+]

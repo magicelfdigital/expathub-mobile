@@ -1,0 +1,208 @@
+import { COUNTRIES } from "@/data/countries";
+import { getPathwaysForCountry } from "@/data/pathways";
+
+export type ProOffer = {
+  headline: string;
+  bullets: string[];
+  mistakesAvoided: string[];
+  notFor: string[];
+  ctaLabel: string;
+};
+
+// ----------------------------
+// V2+ Copy: Decision-first framing
+// (Still fits the existing ProOffer structure)
+// ----------------------------
+
+const GENERIC_BULLETS = [
+  "Decision briefs: who each pathway is actually for (and who it isn’t)",
+  "Eligibility checklist in plain English (what really passes review)",
+  "Income proof formats that reviewers accept (and what gets questioned)",
+  "Timeline with bottlenecks and “reset risks” flagged",
+  "Cost + friction: fees, translations, insurance, and common surprises",
+];
+
+const GENERIC_MISTAKES = [
+  "Pursuing a pathway that looks good on paper but fails in practice for your profile",
+  "Assuming income “counts” without verifying what proof is accepted",
+  "Submitting documents that trigger resets, delays, or re-requests",
+  "Underestimating timeline friction (appointments, translations, backlogs)",
+  "Missing the transition-year tax and residency traps",
+];
+
+const GENERIC_NOT_FOR = [
+  "People who want a quick tourist plan (under 90 days)",
+  "People who already have a working end-to-end plan and just need links",
+];
+
+// --- Decision briefs encoded into the existing ProOffer fields ---
+// We keep these intentionally “opinionated” so they actually convert.
+
+function decisionBriefSpainNLV(countryName: string): ProOffer {
+  return {
+    headline: `Spain Non-Lucrative Visa: rule it in or out—fast`,
+    bullets: [
+      "Clear fit test: passive/stable income vs “remote work that looks like income”",
+      "What reviewers scrutinize (and what they ignore)",
+      "How to avoid the “I’ll just stop working on paper” trap",
+      "Plan B options if NLV isn’t a fit (before you waste cycles)",
+      "A checklist that’s built for review reality—not blog theory",
+    ],
+    mistakesAvoided: [
+      "Treating remote/freelance work as acceptable for NLV",
+      "Assuming you can “reframe” active income as passive without scrutiny",
+      "Applying without a coherent documentation story a reviewer can verify quickly",
+      "Starting NLV when Digital Nomad / other pathways are a better fit",
+      "Missing the practical friction points that cause rejections or delays",
+    ],
+    notFor: [
+      "Freelancers/consultants who plan to continue active client work while in Spain",
+      "People who want flexibility to work legally without a visa change",
+      "Applicants whose income is recent, irregular, or hard to document cleanly",
+    ],
+    ctaLabel: "See if NLV is a fit",
+  };
+}
+
+function decisionBriefPortugalD7D8(countryName: string): ProOffer {
+  return {
+    headline: `Portugal D7 vs D8: choose the right one the first time`,
+    bullets: [
+      "A simple decision rule: passive/semi-passive vs active/contracted income",
+      "How to document income so it survives scrutiny",
+      "Family considerations and “friction points” people don’t mention",
+      "What makes one path slower or riskier depending on your profile",
+      "A “wrong choice” checklist to avoid resets and rework",
+    ],
+    mistakesAvoided: [
+      "Choosing D8 because you’re a digital nomad, without checking proof expectations",
+      "Choosing D7 while relying on active income that won’t be treated as stable",
+      "Assuming you can switch later without cost, delays, or new scrutiny",
+      "Submitting income evidence that’s technically true but reviewer-hostile",
+      "Underestimating timeline friction and appointment bottlenecks",
+    ],
+    notFor: [
+      "Applicants who want a ‘maybe work, maybe not’ plan without clean documentation",
+      "People who can’t produce stable proofs (banking trail, contracts, statements)",
+    ],
+    ctaLabel: "Get the D7 vs D8 decision brief",
+  };
+}
+
+function decisionBriefDigitalNomadRejections(countryName: string, pathwayTitle?: string): ProOffer {
+  const title = pathwayTitle ?? "Digital Nomad Visa";
+  return {
+    headline: `${title}: why people get rejected even when they qualify`,
+    bullets: [
+      "What matters more than thresholds: consistency, clarity, and verifiability",
+      "The documentation signals that trigger extra scrutiny",
+      "How to present multi-client or variable income without looking risky",
+      "Contract language and proof formats that reduce questions",
+      "A “reviewer-friendly narrative” checklist",
+    ],
+    mistakesAvoided: [
+      "Meeting the income number but failing the “continuity and stability” sniff test",
+      "Submitting fragmented proofs that require interpretation",
+      "Using informal contracts or ambiguous employer relationships",
+      "Over-explaining instead of providing clean, verifiable documentation",
+      "Relying on recent spikes or inconsistent income trails",
+    ],
+    notFor: [
+      "Applicants with highly irregular income and no clean documentation trail",
+      "People who can’t prove continuity (short contracts, unclear renewals, gaps)",
+    ],
+    ctaLabel: "Avoid DN rejection traps",
+  };
+}
+
+// ----------------------------
+// Fallback builders (country/pathway scoped)
+// ----------------------------
+
+function buildCountryBullets(countryName: string): string[] {
+  return [
+    `Decision briefs and checklists scoped to ${countryName}`,
+    ...GENERIC_BULLETS.slice(1),
+  ];
+}
+
+function buildPathwayBullets(pathwayTitle: string, countryName: string): string[] {
+  return [
+    `Decision brief: is ${pathwayTitle} actually right for you in ${countryName}?`,
+    "Eligibility checklist in plain English (what really passes review)",
+    "Income proof formats that reviewers accept (and what gets questioned)",
+    "Timeline with bottlenecks and reset risks flagged",
+    "Cost + friction: fees, translations, insurance, and common surprises",
+  ];
+}
+
+function buildPathwayMistakes(pathwayTitle: string): string[] {
+  return [
+    `Choosing ${pathwayTitle} when a different pathway fits your profile better`,
+    ...GENERIC_MISTAKES.slice(1),
+  ];
+}
+
+function defaultNotFor(): string[] {
+  return GENERIC_NOT_FOR;
+}
+
+// ----------------------------
+// Public API (unchanged signature)
+// ----------------------------
+
+export function getProOffer(countrySlug?: string, pathwayKey?: string): ProOffer {
+  const country = countrySlug ? COUNTRIES.find((c) => c.slug === countrySlug) : undefined;
+  const countryName = country?.name ?? "your target country";
+
+  const pathway =
+    countrySlug && pathwayKey
+      ? getPathwaysForCountry(countrySlug).find((p) => p.key === pathwayKey)
+      : undefined;
+
+  // Highly targeted briefs (only when we know we’re in those cases)
+  if (countrySlug === "spain" && pathwayKey === "nlv") {
+    return decisionBriefSpainNLV(countryName);
+  }
+
+  // Portugal D7/D8 decision framing
+  if (countrySlug === "portugal" && (pathwayKey === "d7" || pathwayKey === "d8")) {
+    return decisionBriefPortugalD7D8(countryName);
+  }
+
+  // Digital nomad rejection brief can apply to Spain DNV or any future DN pathway
+  if (pathwayKey === "dnv" || pathwayKey === "digital-nomad" || pathway?.title?.toLowerCase().includes("digital")) {
+    return decisionBriefDigitalNomadRejections(countryName, pathway?.title);
+  }
+
+  // Generic pathway-scoped offer
+  if (pathway) {
+    return {
+      headline: `Make the right call on ${pathway.title} for ${countryName}`,
+      bullets: buildPathwayBullets(pathway.title, countryName),
+      mistakesAvoided: buildPathwayMistakes(pathway.title),
+      notFor: pathway.notFor?.length ? pathway.notFor : defaultNotFor(),
+      ctaLabel: "See what to rule out",
+    };
+  }
+
+  // Country-scoped offer
+  if (country) {
+    return {
+      headline: `Rule in (or out) the right pathways for ${countryName}`,
+      bullets: buildCountryBullets(countryName),
+      mistakesAvoided: GENERIC_MISTAKES,
+      notFor: defaultNotFor(),
+      ctaLabel: `See which ${countryName} pathways to rule out`,
+    };
+  }
+
+  // Global offer
+  return {
+    headline: "Stop guessing. Rule out the wrong pathways first.",
+    bullets: GENERIC_BULLETS,
+    mistakesAvoided: GENERIC_MISTAKES,
+    notFor: defaultNotFor(),
+    ctaLabel: "See which pathways to rule out",
+  };
+}

@@ -1,0 +1,163 @@
+Role: You are a senior product engineer working on an Expo / React Native app called ExpatHub.
+Goal: Implement a formal freshness, accuracy, and trust system for Decision Briefs.
+Do not change navigation, UI layout, or existing business logic unless explicitly instructed.
+
+1️⃣ Add canonical metadata to Decision Briefs
+
+Create or update the shared type definitions so every Decision Brief (country-level and pathway-level) includes the following metadata:
+
+type ConfidenceLevel = "high" | "medium" | "low";
+
+type ChangeLogEntry = {
+  date: string; // ISO date
+  severity: "P0" | "P1" | "P2";
+  summary: string;
+  source?: string; // optional official URL
+};
+
+type DecisionBriefMeta = {
+  lastReviewedAt: string; // ISO date — human or approved agent review
+  updatedAt: string;     // ISO date — any content change
+  confidenceLevel: ConfidenceLevel;
+  sourceLinks: string[]; // official authorities only
+  changeLog: ChangeLogEntry[];
+};
+
+
+Attach DecisionBriefMeta to:
+
+Country decision briefs
+
+Pathway decision briefs
+
+Do not remove or rename existing fields.
+
+2️⃣ Enforce review & confidence rules (logic only, no UI yet)
+
+Implement helper logic (pure functions, no side effects) that:
+
+Automatically sets confidenceLevel to:
+
+"low" if:
+
+Any open P0 change exists
+
+Or lastReviewedAt is overdue
+
+"medium" if:
+
+A P1 change exists but review is pending
+
+"high" only if:
+
+Reviewed within the last 60 days
+
+No open P0 or P1 issues
+
+Do not block rendering yet — this is data-layer only.
+
+3️⃣ Define severity standards (constants)
+
+Create a shared constants file defining severity meanings (for internal use only):
+
+P0 (Critical):
+
+Eligibility criteria
+
+Income thresholds
+
+Work rights / sponsorship
+
+Program suspension or termination
+
+P1 (Material):
+
+Processing times
+
+Documentation requirements
+
+Tax treatment clarifications
+
+P2 (Informational):
+
+Wording changes
+
+FAQ updates
+
+Minor fee changes
+
+These constants should be reusable by future monitoring agents.
+
+4️⃣ Mandatory review triggers
+
+Create a helper that flags mandatory review required when any of the following fields change:
+
+Eligibility criteria
+
+Work rights
+
+Income thresholds or proof formats
+
+Application portals or authorities
+
+First-year tax residency rules
+
+Processing time change > ±30%
+
+Fee change > ±15%
+
+Return a boolean + severity level.
+
+5️⃣ Source hygiene enforcement
+
+Add lightweight validation ensuring sourceLinks[] only accepts:
+
+Official immigration authority
+
+Official tax authority
+
+Official labor ministry
+
+Embassy or recognized professional body (max 2)
+
+Do not add runtime errors — return warnings for now.
+
+6️⃣ Change log standardization
+
+Ensure all new changeLog entries:
+
+Require date, severity, and summary
+
+Encourage (but do not require) a source
+
+No UI changes required yet.
+
+7️⃣ Guardrails
+
+❌ Do NOT add UI
+
+❌ Do NOT change paywall logic
+
+❌ Do NOT alter navigation
+
+❌ Do NOT surface confidence to users yet
+
+✅ This is a data-foundation task only
+
+8️⃣ Output expectations
+
+Updated type definitions
+
+New helper utilities (pure functions)
+
+No broken imports
+
+App should run with no visual changes
+
+When finished, summarize:
+
+Files changed / added
+
+Any assumptions made
+
+What Task B would build on top of this

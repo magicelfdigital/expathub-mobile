@@ -1,0 +1,109 @@
+TASK: Implement Decision Brief Freshness & Accuracy System (Data + Rules only)
+
+GOAL
+Introduce a canonical freshness, accuracy, and audit model for Decision Briefs.
+This does NOT add automation or agents yet.
+This is foundational data structure + validation rules only.
+
+GUARDRAILS
+- Do NOT change navigation, UI, routing, or paywall behavior
+- Do NOT introduce background jobs or agents yet
+- FULL FILE REPLACEMENTS ONLY
+- Create new files where appropriate
+- Do NOT remove existing fields; extend safely
+
+WHAT TO BUILD
+
+1) Extend DecisionBrief type
+
+If DecisionBrief type exists:
+- Replace the file entirely with an extended version
+If it does NOT exist:
+- Create src/data/decisionBrief.ts
+
+DecisionBrief must include:
+
+- id: string
+- countrySlug: string
+- pathwayKey?: string
+- title: string
+- summary: string
+
+NEW FRESHNESS / TRUST FIELDS
+- lastReviewedAt: string (ISO date)
+- updatedAt: string (ISO date)
+- confidenceLevel: "high" | "medium" | "low"
+- sourceLinks: {
+    label: string
+    url: string
+    type: "official" | "secondary"
+  }[]
+- changeLog: {
+    date: string (ISO)
+    summary: string
+    severity: "P0" | "P1" | "P2"
+  }[]
+
+2) Define Severity Levels & SLAs
+
+Create src/data/briefSeverity.ts exporting:
+
+- Severity definition:
+  P0 = user-facing legality / eligibility / rights changed
+  P1 = material process, threshold, or timeline change
+  P2 = wording, links, clarifications, non-decision impact
+
+- SLAs:
+  P0 → review within 48 hours
+  P1 → review within 7 days
+  P2 → review within 30 days
+
+Export helper:
+- getSLAForSeverity(severity)
+
+3) Mandatory Review Triggers
+
+Create src/data/briefReviewRules.ts exporting:
+
+- requiresImmediateReview(brief): boolean
+  returns true if:
+   - confidenceLevel === "low"
+   - lastReviewedAt older than 6 months
+   - any P0 change in changeLog within last 90 days
+
+- requiresScheduledReview(brief): boolean
+  returns true if:
+   - lastReviewedAt older than 90 days
+   - any P1 change in last 6 months
+
+4) Validation Helper (non-UI)
+
+Create src/data/briefValidation.ts exporting:
+
+- validateBrief(brief): {
+    valid: boolean
+    warnings: string[]
+  }
+
+Warnings include:
+- missing sourceLinks
+- no official sources
+- confidenceLevel = "low"
+- lastReviewedAt > 6 months ago
+
+NO UI changes yet — this is for later surfacing.
+
+5) Documentation
+
+Create src/data/DECISION_BRIEF_TRUST_MODEL.md explaining:
+- why freshness exists
+- what confidenceLevel means
+- how severity is used
+- how this protects user trust
+
+OUTPUT
+- Create / replace files as described
+- Ensure types are exported cleanly
+- Do not reference agents, automation, or GitHub Actions yet
+
+STOP after implementation.

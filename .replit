@@ -1,0 +1,88 @@
+entrypoint = "README.md"
+modules = ["nodejs-22"]
+
+[nix]
+channel = "stable-24_05"
+packages = ["glib", "nspr", "nss", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXrandr", "mesa", "alsa-lib", "at-spi2-atk", "cups", "xorg.libXext", "xorg.libX11", "xorg.libxcb", "xorg.libXfixes", "xorg.libXi", "xorg.libXrender", "xorg.libXtst", "expat", "dbus", "pango", "cairo", "gtk3", "libxkbcommon"]
+
+[deployment]
+deploymentTarget = "cloudrun"
+build = ["sh", "-c", "npm run expo:static:build && npm run server:build"]
+run = ["npm", "run", "server:prod"]
+
+[[ports]]
+localPort = 5000
+externalPort = 5000
+
+[[ports]]
+localPort = 8081
+externalPort = 80
+
+[[ports]]
+localPort = 8082
+externalPort = 3001
+
+[env]
+PORT = "5000"
+
+[agent]
+stack = "EXPO"
+integrations = ["github:1.0.0"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start App"
+
+[[workflows.workflow]]
+name = "Start App"
+author = "agent"
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start Backend"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start Frontend"
+
+[[workflows.workflow]]
+name = "Start Backend"
+author = "agent"
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run server:dev"
+waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Start Frontend"
+author = "agent"
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run expo:dev"
+waitForPort = 8081
+ensurePreviewReachable = "/status"
+
+[userenv]
+
+[userenv.development]
+EXPO_PUBLIC_SANDBOX_MODE = "true"
+EXPO_PUBLIC_RC_MONTHLY_PRODUCT = "pro_monthly"
+EXPO_PUBLIC_RC_ANNUAL_PRODUCT = "pro_annual"
+
+[userenv.shared]
+EXPO_PUBLIC_RC_IOS_KEY = "test_gmdwCXQEfGyDoYuVhXbfNPxMSJT"
+EXPO_PUBLIC_RC_ANDROID_KEY = "test_gmdwCXQEfGyDoYuVhXbfNPxMSJT"
+EXPO_PUBLIC_AUTH_API_URL = "https://expathub.world"

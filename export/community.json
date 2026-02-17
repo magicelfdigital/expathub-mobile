@@ -1,0 +1,196 @@
+{
+  "community": {
+    "portugal": [
+      {
+        "name": "Meetup: Portugal expat groups",
+        "type": "Meetups",
+        "url": "https://www.meetup.com/find/?keywords=Portugal%20expat",
+        "note": "Local meetups by city"
+      },
+      {
+        "name": "Reddit: r/PortugalExpats",
+        "type": "Forums",
+        "url": "https://www.reddit.com/r/PortugalExpats/"
+      },
+      {
+        "name": "Facebook: Portugal expat groups",
+        "type": "Facebook",
+        "url": "https://www.facebook.com/search/groups/?q=Portugal%20expats"
+      },
+      {
+        "name": "InterNations Portugal",
+        "type": "Expat groups",
+        "url": "https://www.internations.org/portugal-expats",
+        "note": "Events and networking"
+      }
+    ],
+    "spain": [
+      {
+        "name": "Meetup: Spain expat groups",
+        "type": "Meetups",
+        "url": "https://www.meetup.com/find/?keywords=Spain%20expat",
+        "note": "Local meetups by city"
+      },
+      {
+        "name": "Reddit: r/Spain",
+        "type": "Forums",
+        "url": "https://www.reddit.com/r/spain/"
+      },
+      {
+        "name": "Facebook: Spain expat groups",
+        "type": "Facebook",
+        "url": "https://www.facebook.com/search/groups/?q=Spain%20expats"
+      },
+      {
+        "name": "InterNations Spain",
+        "type": "Expat groups",
+        "url": "https://www.internations.org/spain-expats",
+        "note": "Events and networking"
+      }
+    ],
+    "france": [
+      {
+        "name": "Meetup: France expat groups",
+        "type": "Meetups",
+        "url": "https://www.meetup.com/find/?keywords=France%20expat",
+        "note": "Paris, Lyon, Bordeaux and more"
+      },
+      {
+        "name": "Reddit: r/France",
+        "type": "Forums",
+        "url": "https://www.reddit.com/r/france/"
+      },
+      {
+        "name": "Toytown France",
+        "type": "Forums",
+        "url": "https://www.toytownfrance.com",
+        "note": "English-speaking expat forum"
+      }
+    ],
+    "italy": [
+      {
+        "name": "Meetup: Italy expat groups",
+        "type": "Meetups",
+        "url": "https://www.meetup.com/find/?keywords=Italy%20expat"
+      },
+      {
+        "name": "Reddit: r/ItalyExpats",
+        "type": "Forums",
+        "url": "https://www.reddit.com/r/ItalyExpats/"
+      },
+      {
+        "name": "Expats Living in Italy",
+        "type": "Facebook",
+        "url": "https://www.facebook.com/search/groups/?q=expats%20living%20italy"
+      }
+    ],
+    "germany": [
+      {
+        "name": "Meetup: Germany expat groups",
+        "type": "Meetups",
+        "url": "https://www.meetup.com/find/?keywords=Germany%20expat"
+      },
+      {
+        "name": "Reddit: r/Germany",
+        "type": "Forums",
+        "url": "https://www.reddit.com/r/germany/"
+      },
+      {
+        "name": "Toytown Germany",
+        "type": "Forums",
+        "url": "https://www.toytowngermany.com",
+        "note": "English-speaking expat community"
+      }
+    ],
+    "thailand": [
+      {
+        "name": "Meetup: Thailand expat groups",
+        "type": "Meetups",
+        "url": "https://www.meetup.com/find/?keywords=Thailand%20expat"
+      },
+      {
+        "name": "Reddit: r/ThailandExpats",
+        "type": "Forums",
+        "url": "https://www.reddit.com/r/ThailandExpats/"
+      },
+      {
+        "name": "Thai Visa Forum",
+        "type": "Forums",
+        "url": "https://forum.thaivisa.com",
+        "note": "Long-running expat forum"
+      }
+    ],
+    "costa-rica": [
+      {
+        "name": "Meetup: Costa Rica expat groups",
+        "type": "Meetups",
+        "url": "https://www.meetup.com/find/?keywords=Costa%20Rica%20expat"
+      },
+      {
+        "name": "Reddit: r/CostaRica",
+        "type": "Forums",
+        "url": "https://www.reddit.com/r/costarica/"
+      },
+      {
+        "name": "ARCR (Association of Residents)",
+        "type": "Expat groups",
+        "url": "https://www.arcr.cr",
+        "note": "Official resident association"
+      }
+    ],
+    "mexico": [
+      {
+        "name": "Meetup: Mexico expat groups",
+        "type": "Meetups",
+        "url": "https://www.meetup.com/find/?keywords=Mexico%20expat"
+      },
+      {
+        "name": "Reddit: r/MexicoCity",
+        "type": "Forums",
+        "url": "https://www.reddit.com/r/MexicoCity/"
+      },
+      {
+        "name": "Expats in Mexico",
+        "type": "Facebook",
+        "url": "https://www.facebook.com/search/groups/?q=expats%20Mexico"
+      }
+    ],
+    "canada": [
+      {
+        "name": "Meetup: Canada newcomer groups",
+        "type": "Meetups",
+        "url": "https://www.meetup.com/find/?keywords=Canada%20newcomers"
+      },
+      {
+        "name": "Reddit: r/ImmigrationCanada",
+        "type": "Forums",
+        "url": "https://www.reddit.com/r/ImmigrationCanada/"
+      },
+      {
+        "name": "Settlement.org",
+        "type": "General",
+        "url": "https://settlement.org",
+        "note": "Ontario newcomer resources"
+      }
+    ]
+  },
+  "defaultCommunity": [
+    {
+      "name": "Meetup: expat groups (search)",
+      "type": "Meetups",
+      "url": "https://www.meetup.com/find/?keywords=expat",
+      "note": "Search by city once you decide"
+    },
+    {
+      "name": "Facebook: expat groups (search)",
+      "type": "Facebook",
+      "url": "https://www.facebook.com/search/groups/?q=expat%20community"
+    },
+    {
+      "name": "InterNations",
+      "type": "Expat groups",
+      "url": "https://www.internations.org",
+      "note": "Global expat network"
+    }
+  ]
+}

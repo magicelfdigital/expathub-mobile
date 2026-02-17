@@ -1,0 +1,69 @@
+TASK: Launch readiness for 8 countries with honest “Coming Soon” disclosure BEFORE purchase.
+
+GUARDRAILS
+- Do NOT change Expo Router routing, folder structure, or navigation layouts.
+- Do NOT change subscription logic (RevenueCat/Stripe), EntitlementContext, or ProGate mechanics.
+- Do NOT add auth, databases, or external services.
+- Ask me for files ONE AT A TIME and provide FULL FILE REPLACEMENTS ONLY.
+- Keep UI layouts mostly the same; only add minimal “Coverage / Coming Soon” UI blocks.
+
+GOAL (NON-NEGOTIABLE)
+We are launching with 8 countries: Portugal, Spain, Canada, Costa Rica, Panama, Ecuador, Malta, UK.
+Any country/pathway that is not ready MUST clearly show “Coming Soon” BEFORE a user purchases.
+No vaporware. No hidden gaps.
+
+DEFINITIONS
+- “Decision-Ready” = has a complete Decision Brief (Work Access Matrix + mistakes + best alternatives).
+- “Coming Soon” = brief not written/validated yet. Must be labeled everywhere users would expect it.
+
+WHAT TO IMPLEMENT
+
+1) DATA: Coverage map
+Create or update a single source of truth that describes coverage status per country + pathway.
+- File to create (if not existing): src/data/coverage.ts
+- Export:
+  - type CoverageStatus = "decision-ready" | "coming-soon"
+  - type CoverageItem = { countrySlug: string; pathwayKey?: string; status: CoverageStatus; label: string }
+  - function getCountryCoverage(countrySlug): { ready: CoverageItem[]; soon: CoverageItem[] }
+  - function isDecisionReady(countrySlug, pathwayKey?): boolean
+
+Initialize coverage so that:
+- Portugal: d7, d8 = decision-ready
+- Spain: nlv, dnv = decision-ready
+- Canada, Costa Rica, Panama, Ecuador, Malta, UK = coming-soon at least at country level (and any pathways listed should be coming-soon unless explicitly marked ready)
+
+2) UI: Pre-purchase disclosure (must appear before paywall)
+Update the COUNTRY HUB landing screen (app/(tabs)/country/[slug]/index.tsx) to show a “Coverage” block near the top:
+- Section title: “Coverage”
+- Show two lists:
+  - “Decision-Ready” (with checkmark)
+  - “Coming Soon” (with clock)
+- If a user taps a Coming Soon pathway item, it should go to a Coming Soon screen (NOT paywall).
+
+3) UI: Pathways list badges
+Wherever pathways are listed (country hub, pathway list screen, etc.), add a small badge:
+- “Ready” for decision-ready
+- “Coming soon” for coming-soon
+This badge must be visible before any ProPaywall is shown.
+
+4) Paywall: Honest coverage disclosure
+Update ProPaywall copy (or the component that renders it) to include a short “Coverage note” below pricing:
+Example text (keep short):
+“Decision-Ready now: Portugal (D7/D8), Spain (NLV/DNV). Coming soon: Canada, UK, Malta, Costa Rica, Panama, Ecuador.”
+No dates. No promises.
+
+IMPORTANT LOGIC RULES
+- ProGate should only block content that is decision-ready and intended to be Pro.
+- Coming Soon content should NOT send users to subscribe; it should show the Coming Soon screen.
+- If any screen is behind ProGate today (resources/vendors/community), and the country is coming-soon, those screens must show Coming Soon instead of paywall.
+
+EXECUTION ORDER (ONE FILE AT A TIME)
+A) Ask me for: src/data/coverage.ts (if doesn’t exist, say so and you will create it)
+   - Provide FULL replacement / new file content.
+B) Ask me for: app/(tabs)/country/[slug]/index.tsx
+   - Provide FULL replacement adding Coverage block + badge logic.
+C) Ask me for: src/components/ProPaywall.tsx
+   - Provide FULL replacement adding the “Coverage note” text.
+STOP after C and summarize what changed in 3 bullets.
+
+DO NOT touch any other files

@@ -1,0 +1,91 @@
+TASK: Build a v1 “Compare Countries” feature using a decision matrix.
+
+GOAL
+Help users compare countries side-by-side on decision-relevant factors.
+This lives in Explore (not Countries) and reinforces decision clarity.
+
+GUARDRAILS
+- Do NOT change existing navigation structure.
+- Do NOT change subscription logic.
+- FULL FILE REPLACEMENTS ONLY.
+- Ask for files ONE AT A TIME if they already exist.
+- No new dependencies.
+
+SCOPE (v1 — deliberately constrained)
+- Compare up to 3 countries at a time
+- Matrix is read-only (no editing)
+- Some rows are free, some are Pro-gated
+- Data-driven (not hardcoded in the screen)
+
+STEP 1 — Data model
+Create: src/data/compareMatrix.ts
+
+Export:
+- type CompareRow = {
+    id: string;
+    label: string;
+    description?: string;
+    proOnly?: boolean;
+    values: Record<countrySlug, string | "—">;
+  }
+
+- export function getCompareMatrix(countrySlugs: string[]): CompareRow[]
+
+INITIAL ROWS (v1 — opinionated and useful):
+FREE rows:
+- Residency pathways available
+- Work allowed without sponsorship (yes/no/limited)
+- Path to permanent residency
+- Typical timeline (high level)
+- Language requirement
+
+PRO rows:
+- Work sponsorship reality (what actually works)
+- Income thresholds (realistic ranges)
+- Tax exposure risk (high/medium/low)
+- Bureaucracy difficulty (low/medium/high)
+- Who this country is NOT good for
+
+Populate initial values for:
+Portugal, Spain, Canada, UK
+Use "—" for missing/unknown values (do not guess).
+
+STEP 2 — CompareMatrix UI component
+Create: src/components/CompareMatrix.tsx
+
+Props:
+- countrySlugs: string[]
+- onRemoveCountry?(slug)
+- onAddCountry?()
+
+Behavior:
+- Render table-like layout:
+  left column = row labels
+  next columns = countries
+- If row.proOnly:
+  - Wrap row values in ProGate
+  - Non-pro users see blurred text + “Unlock to compare”
+- Mobile-first:
+  - Horizontal scroll allowed
+  - Sticky left column labels
+
+STEP 3 — Wire into Explore
+Ask me for: app/(tabs)/explore.tsx
+
+Then update Explore so:
+- Add a “Compare countries” card near top
+- Allow user to pick 2–3 countries (simple modal or inline picker)
+- When selected, render CompareMatrix
+- Do NOT move or remove existing Explore sections
+
+STEP 4 — Guardrails
+- CompareMatrix must respect AvailabilityGate:
+  - Non-launch countries show “Coming Soon” instead of matrix values
+- Do NOT route to subscribe directly from CompareMatrix
+  (ProGate handles upsell)
+
+STOP after wiring Explore.
+Summarize:
+- What users can compare
+- What is Pro-only
+- Why this improves decision clarity

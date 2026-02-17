@@ -1,0 +1,177 @@
+Context
+You are working inside an existing Expo / React Native app called ExpatHub.
+Phase 1 (data foundation) and Phase 2 (subscription + gating) are complete.
+
+We are now implementing Decision Briefs, which are the core paid value of the app.
+
+🎯 OBJECTIVE
+
+Implement a Decision Brief system that:
+
+Defines a canonical Decision Brief structure
+
+Rewrites the product value proposition to reflect a hybrid:
+
+thinking partner + expert advisor
+
+Generates Decision Briefs for all supported countries and pathways
+
+Integrates cleanly with existing Pro gating (ProGate / ProPaywall)
+
+1️⃣ Define the Decision Brief model (REQUIRED)
+
+Create a new canonical model:
+
+File: src/data/decisionBriefs.ts
+
+A DecisionBrief must include:
+
+id: string
+countrySlug: string
+pathwayKey?: string
+
+headline: string
+decisionSummary: string
+
+recommendedFor: string[]
+notRecommendedFor: string[]
+
+keyRequirements: string[]
+financialReality: string[]
+timelineReality: string[]
+riskFlags: string[]
+
+commonMistakes: string[]
+betterAlternatives?: string[]
+
+confidenceLevel: "High" | "Medium" | "Conditional"
+
+lastReviewedAt: string
+
+
+Add helper functions:
+
+getDecisionBrief(countrySlug, pathwayKey?)
+
+getDecisionBriefsForCountry(countrySlug)
+
+No UI logic in this file — data only.
+
+2️⃣ Rewrite the product value proposition (REQUIRED)
+
+Update all Pro-facing copy so ExpatHub is positioned as:
+
+“A decision partner that helps people avoid bad relocation decisions before they commit time, money, or legal risk.”
+
+Specifically:
+
+Replace language like “guides, resources, access”
+
+Use language like:
+
+“decision clarity”
+
+“risk-aware guidance”
+
+“what actually works for people like you”
+
+“who this path is NOT right for”
+
+Update:
+
+ProPaywall headline + subhead
+
+CTA labels
+
+Any generic “Unlock Pro” copy
+
+Do not change pricing.
+
+3️⃣ Generate Decision Briefs for all countries (REQUIRED)
+
+Using existing country + pathway data:
+
+Create at least one Decision Brief per country
+
+Create pathway-specific briefs where pathways exist
+
+Content should be:
+
+Opinionated
+
+Cautious
+
+Explicit about downsides
+
+Clear about tradeoffs
+
+Avoid marketing language.
+Write like an experienced advisor trying to prevent mistakes.
+
+4️⃣ Integrate Decision Briefs into gating (REQUIRED)
+
+All Resources, Vendors, and Community remain behind Pro
+
+The Decision Brief is the first thing shown on gated screens
+
+Community and vendors should feel like supporting evidence, not the product
+
+Do not change navigation or routing.
+
+5️⃣ Guardrails
+
+Do NOT add auth or user accounts
+
+Do NOT add commenting yet
+
+Do NOT change subscription logic
+
+Do NOT touch RevenueCat or Stripe code
+
+This is a content + structure phase, not infrastructure.
+
+✅ Success Criteria
+
+When done:
+
+A user can open a country or pathway
+
+See a Decision Brief immediately
+
+Understand:
+
+“Is this right for me?”
+
+“What could go wrong?”
+
+“What’s the smarter alternative?”
+
+And feel the subscription is justified before community exists
+
+If anything is ambiguous, make a reasonable product decision and proceed.
+
+Why this works (for you, not Replit)
+
+This prompt:
+
+Forces structure before community
+
+Makes pricing feel justified without changing it
+
+Turns “information” into judgment
+
+Sets up v3 community cleanly, later
+
+When Replit finishes, your next move will be:
+
+attach community threads to individual Decision Brief sections
+
+If you want, next we can:
+
+Define the exact brief template you’ll reuse forever, or
+
+Design community prompts that don’t turn into Reddit, or
+
+Decide when (and if) pricing should increase
+
+Just say the number.

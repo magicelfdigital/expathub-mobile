@@ -1,0 +1,86 @@
+TASK: Set up GitHub Actions automation (Option 2) to monitor sources and open PRs with detected changes/proposals.
+
+CONTEXT
+- ExpatHub repo uses JS/TS but we cannot assume ts-node/tsx exists.
+- We will implement a dependency-free monitoring runner in Node (ESM .mjs) that:
+  1) reads a curated list of URLs to monitor
+  2) fetches each URL (no scraping libs)
+  3) extracts basic text + computes SHA256 hash
+  4) compares against saved previous hashes
+  5) if any changes, writes:
+     - monitoring/state.json (updated hashes)
+     - monitoring/proposals.json (simple change entries with timestamps + default severity P2)
+  6) GitHub Action opens a PR with these files updated
+
+GUARDRAILS
+- Do NOT change navigation, UI, paywall, or app runtime code.
+- Do NOT add new dependencies.
+- FULL FILE REPLACEMENTS ONLY.
+- Ask for files ONE AT A TIME only if they already exist and must be edited; otherwise create new files directly.
+
+FILES TO CREATE (NEW)
+1) monitoring/sources.json
+   - contains an array of sources with:
+     { "id": "pt-aima", "label": "Portugal AIMA", "countrySlug": "portugal", "pathwayKey": null, "url": "...", "keywords": ["visa","residence","permit"] }
+
+   Initialize with a SMALL starter list (official only) for:
+   - Portugal (AIMA + tax authority portal)
+   - Spain (immigration ministry / consular visa info + tax agency)
+   - UK (gov.uk skilled worker page)
+   - Canada (IRCC relevant page)
+   - Malta (residency authority page)
+   - Costa Rica, Panama, Ecuador (official immigration authority pages if known; if uncertain, include placeholder entries with url = "" and skip those in the runner)
+
+2) monitoring/state.json
+   - initial empty object:
+     { "version": 1, "lastRunAt": "", "hashes": {} }
+
+3) scripts/monitoring/hash-monitor.mjs
+   Implement:
+   - load sources.json
+   - for each source with a non-empty url:
+     - fetch(url) with timeout (use AbortController)
+     - take response text
+     - normalize (strip script/style tags with regex, collapse whitespace)
+     - sha256(normalizedText)
+   - compare with state.hashes[source.id]
+   - if changed:
+     - add entry to proposals list:
+       { id, countrySlug, pathwayKey, url, detectedAt, severity: "P2", summary: "Source content changed (hash diff). Review for decision-impacting updates." }
+   - update state.hashes[source.id] = newHash
+   - update state.lastRunAt = ISO timestamp
+   - write monitoring/proposals.json always (even if empty)
+   - exit code:
+     - 0 always (we don’t want workflow red on change)
+
+4) scripts/monitoring/README.md
+   - short doc: how it works, what PR means, how to triage P0/P1/P2 manually today
+
+5) .github/workflows/monitor-briefs.yml
+   Schedule:
+   - weekly baseline (every Monday 14:00 UTC)
+   - plus 2 additional runs per week (Wed/Fri 14:00 UTC) to approximate “high volatility 2–3x/week” for now
+   Also allow manual run (workflow_dispatch).
+
+   Steps:
+   - checkout
+   - setup node 20
+   - run: node scripts/monitoring/hash-monitor.mjs
+   - use peter-evans/create-pull-request to open PR ONLY if there are file changes in monitoring/state.json or monitoring/proposals.json
+     PR title: "Monitoring: source changes detected"
+     PR body: include count of proposals and link to proposals.json
+
+IMPLEMENTATION DETAILS
+- Use Node 20’s built-in fetch.
+- Use crypto from node:crypto for sha256.
+- Use fs/promises.
+- Make the runner resilient: if a fetch fails, add a proposal entry severity P2: "Source unreachable" and continue (do not crash).
+- Skip sources with empty url.
+
+OUTPUT
+- Create all 5 files above with correct content.
+- Do NOT modify package.json.
+- Do NOT modify existing TS monitoring framework yet.
+- After creating, summarize how to enable it on GitHub (permissions: Actions enabled; GITHUB_TOKEN default is fine).
+
+STOP after completing these files.

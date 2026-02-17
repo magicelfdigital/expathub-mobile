@@ -1,0 +1,84 @@
+We are implementing a canonical “Work Access Matrix” across all Decision Briefs. This is the core paid value of the app.
+
+GUARDRAILS
+- Do NOT change navigation, routes, or folder structure.
+- Do NOT change subscription logic (RevenueCat/Stripe) or entitlement providers.
+- Do NOT add dependencies.
+- Provide FULL FILE REPLACEMENTS ONLY.
+- Ask for files ONE AT A TIME.
+- Keep UI behavior the same except improved Decision Brief content/structure.
+
+OBJECTIVE
+Create a reusable Work Access Matrix model and apply it to all Decision Briefs so every country/pathway answers:
+- What work is allowed (remote, self-employed, local employment)
+- Whether sponsorship is required
+- Whether the pathway blocks future work authorization
+- Dependents’ work rights (if known; otherwise mark Unclear)
+- Enforcement risk + reviewer scrutiny points
+- Clear “recommended strategy” and “best alternative” outputs
+
+STEP 1 — Create/Update data model
+If `src/data/decisionBriefs.ts` does not exist, create it.
+If it exists, update it.
+
+DecisionBrief must include:
+- id: string
+- countrySlug: string
+- pathwayKey?: string
+- headline: string
+- bottomLine: string
+- workAccess: {
+    remoteWork: "Allowed" | "Restricted" | "NotAllowed" | "Unclear";
+    selfEmployment: "Allowed" | "Restricted" | "NotAllowed" | "Unclear";
+    localEmployment: "Allowed" | "RequiresSponsorship" | "NotAllowed" | "Unclear";
+    localBusiness: "Allowed" | "Restricted" | "NotAllowed" | "Unclear";
+    canTransitionToLocalWork: "Yes" | "Sometimes" | "UsuallyNo" | "Unclear";
+    prPath: "Direct" | "Indirect" | "NotDesignedForPR" | "Unclear";
+    dependentsWorkRights: "Yes" | "Sometimes" | "No" | "Unclear";
+    enforcementRisk: "Low" | "Medium" | "High";
+    reviewerScrutiny: string[];   // 3-5 bullets
+    bestFit: string[];            // 3-5 bullets
+    notAFitIf: string[];          // 3-5 bullets
+    recommendedStrategy: string;  // 1 sentence
+    bestAlternatives: string[];   // 2-4 options
+  }
+- commonMistakes: string[]        // 3-5
+- confidenceLevel: "High" | "Medium" | "Conditional"
+- lastReviewedAt: string
+
+Export helper functions:
+- getDecisionBrief(countrySlug: string, pathwayKey?: string)
+- getDecisionBriefsForCountry(countrySlug: string)
+
+STEP 2 — Populate briefs (v1 scope)
+Populate briefs for these countries:
+Portugal, Spain, Canada, Costa Rica, Panama, Ecuador, Malta, UK
+
+Include at minimum these pathway briefs as “live”:
+- Portugal: d7, d8
+- Spain: nlv, dnv
+- UK: skilled-worker (at least as a brief)
+- Canada: express-entry (at least as a brief)
+
+For all other pathways/countries where details are uncertain, still create a brief but set fields honestly to "Unclear" and confidenceLevel to "Conditional", and include a “Coming soon / under review” bottomLine that does NOT promise dates.
+
+The tone must be advisor-like and opinionated:
+- Highlight sponsorship realities
+- Clarify what each pathway does NOT allow
+- Explicitly warn about “door-closing” choices
+
+STEP 3 — Wire Decision Briefs into Pro offer messaging
+Update `src/data/pro-offer.ts` so Pro offer bullets and mistakes reflect:
+- work/sponsorship clarity
+- avoiding door-closing decisions
+- reviewer scrutiny + enforcement risk
+Do not change its exported signature or shape.
+
+OUTPUT FORMAT
+1) Ask me for `src/data/decisionBriefs.ts` (or confirm if it doesn’t exist and you will create it)
+2) Provide a FULL replacement for that file
+3) Ask me for `src/data/pro-offer.ts`
+4) Provide a FULL replacement for that file
+Stop after these two files.
+
+Do not modify UI components in this task.

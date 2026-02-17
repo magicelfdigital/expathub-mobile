@@ -1,0 +1,241 @@
+ExpatHub Terms of Service
+
+Effective Date: [Insert Date]
+Company: ExpatHub LLC
+Governing Law: [Insert State]
+
+1. Acceptance of Terms
+
+By accessing or using ExpatHub (“Service”), including any paid subscription features, you agree to be bound by these Terms of Service (“Terms”). If you do not agree, you may not use the Service.
+
+2. Nature of the Service
+
+ExpatHub provides educational content, planning tools, and informational decision briefs related to international relocation, immigration pathways, work authorization, residency, and related topics.
+
+ExpatHub does not provide legal, tax, financial, or immigration advice.
+
+Use of the Service is for informational and educational purposes only.
+
+3. No Legal or Professional Advice
+
+ExpatHub is not a law firm, tax advisory service, or licensed financial advisory provider.
+
+Nothing on the platform constitutes:
+
+Legal advice
+
+Immigration advice
+
+Tax advice
+
+Financial advice
+
+Government guidance
+
+Users are responsible for independently verifying all information with official government authorities or licensed professionals before making decisions.
+
+4. Accuracy and Updates
+
+Immigration laws, visa requirements, tax thresholds, sponsorship rules, and related regulations change frequently.
+
+ExpatHub:
+
+Uses internal monitoring and review systems
+
+Displays review metadata where applicable
+
+Updates content periodically
+
+However, ExpatHub does not guarantee that information is complete, current, or applicable to any specific individual.
+
+Use of the Service is at your own risk.
+
+5. Subscription and Billing
+
+ExpatHub offers paid subscription plans.
+
+Billing Platforms
+
+Payments may be processed through:
+
+Stripe (web subscriptions)
+
+Apple App Store (iOS subscriptions)
+
+Google Play Store (Android subscriptions)
+
+RevenueCat (mobile subscription infrastructure)
+
+Auto-Renewal
+
+Subscriptions automatically renew unless cancelled prior to the renewal date.
+
+Cancellation
+
+Web subscriptions must be cancelled through the account dashboard.
+
+Mobile subscriptions must be cancelled through the respective app store.
+
+Refund Policy
+
+All subscription fees are non-refundable except where required by applicable law.
+
+6. Account Responsibilities
+
+You agree to:
+
+Provide accurate account information
+
+Maintain confidentiality of login credentials
+
+Notify us of unauthorized account use
+
+Comply with all applicable laws
+
+You are responsible for all activity conducted under your account.
+
+7. Intellectual Property
+
+All content on ExpatHub, including:
+
+Decision briefs
+
+Frameworks
+
+Structured comparisons
+
+Design elements
+
+Branding
+
+is the property of ExpatHub LLC and may not be copied, redistributed, or reproduced without written permission.
+
+8. Limitation of Liability
+
+To the fullest extent permitted by law:
+
+ExpatHub shall not be liable for:
+
+Visa denials
+
+Immigration application rejections
+
+Missed deadlines
+
+Financial loss
+
+Relocation expenses
+
+Sponsorship failures
+
+Employment consequences
+
+Total liability shall not exceed the amount paid by the user to ExpatHub in the twelve (12) months preceding the claim.
+
+9. No Government Affiliation
+
+ExpatHub is not affiliated with any government agency, immigration authority, or official body.
+
+10. Service Modifications
+
+ExpatHub may:
+
+Add or remove countries
+
+Update or remove content
+
+Modify pricing
+
+Change subscription structures
+
+Introduce new features
+
+Material changes to these Terms will be posted with an updated effective date.
+
+11. Termination
+
+We may suspend or terminate access for:
+
+Fraudulent activity
+
+Abuse of the Service
+
+Violation of these Terms
+
+Users may cancel subscriptions at any time.
+
+12. Governing Law
+
+These Terms are governed by the laws of the State of [Insert State], without regard to conflict of law principles.
+
+Privacy Policy
+
+Effective Date: [Insert Date]
+
+1. Information We Collect
+
+We may collect:
+
+Name and email address
+
+Account credentials
+
+Subscription status
+
+Payment metadata (processed by third parties)
+
+Usage analytics
+
+Device and platform information
+
+We do not store full credit card numbers.
+
+2. Payment Processing
+
+Payments are processed through:
+
+Stripe (web)
+
+Apple App Store
+
+Google Play Store
+
+RevenueCat
+
+These providers handle payment information in accordance with their own privacy policies.
+
+3. Analytics
+
+We may use analytics tools to:
+
+Understand user behavior
+
+Improve product features
+
+Measure engagement
+
+No immigration data is shared with third parties for sale.
+
+4. Data Retention
+
+We retain account data while your account is active. You may request deletion of your account and associated data by contacting support.
+
+5. Data Security
+
+We use reasonable technical and organizational measures to protect your data. However, no system is completely secure.
+
+6. Children
+
+ExpatHub is not directed to children under 18. We do not knowingly collect personal information from minors.
+
+7. Changes to This Policy
+
+We may update this Privacy Policy periodically. The updated version will include a revised effective date.
+
+8. Contact
+
+For questions regarding these Terms or Privacy Policy:
+
+Email: [Insert Contact Email]
+Company: ExpatHub LLC
+Address: [Insert Business Address]

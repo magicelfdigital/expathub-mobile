@@ -1,0 +1,40 @@
+PS C:\Users\annet\expathub-mobile> cd ~
+PS C:\Users\annet> git clone https://github.com/MagicElf-Ann/expathub.git expathub-latest
+Cloning into 'expathub-latest'...
+remote: Enumerating objects: 837, done.
+remote: Counting objects: 100% (93/93), done.
+remote: Compressing objects: 100% (93/93), done.
+remote: Total 837 (delta 49), reused 0 (delta 0), pack-reused 744 (from 2)
+Receiving objects: 100% (837/837), 3.02 MiB | 16.69 MiB/s, done.
+Resolving deltas: 100% (374/374), done.
+PS C:\Users\annet> cd expathub-latest
+PS C:\Users\annet\expathub-latest> npm install
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+npm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
+
+> expo-app@1.0.0 postinstall
+> patch-package
+
+patch-package 8.0.1
+Applying patches...
+expo-asset@12.0.12 ✔
+
+added 1085 packages, and audited 1086 packages in 45s
+
+201 packages are looking for funding
+  run `npm fund` for details
+
+4 moderate severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+PS C:\Users\annet\expathub-latest> eas update --branch preview --message "Latest changes"

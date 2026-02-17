@@ -1,0 +1,186 @@
+{
+  "launchCountries": [
+    "portugal",
+    "spain",
+    "canada",
+    "costa-rica",
+    "panama",
+    "ecuador",
+    "malta",
+    "united-kingdom"
+  ],
+  "coverage": {
+    "portugal": {
+      "isLaunchCountry": true,
+      "isDecisionReady": true,
+      "coverage": {
+        "ready": [
+          {
+            "countrySlug": "portugal",
+            "pathwayKey": "d7",
+            "status": "decision-ready",
+            "label": "D7 (Passive Income)"
+          },
+          {
+            "countrySlug": "portugal",
+            "pathwayKey": "d8",
+            "status": "decision-ready",
+            "label": "D8 (Digital Nomad)"
+          }
+        ],
+        "soon": []
+      }
+    },
+    "spain": {
+      "isLaunchCountry": true,
+      "isDecisionReady": true,
+      "coverage": {
+        "ready": [
+          {
+            "countrySlug": "spain",
+            "pathwayKey": "nlv",
+            "status": "decision-ready",
+            "label": "Non-Lucrative Visa"
+          },
+          {
+            "countrySlug": "spain",
+            "pathwayKey": "dnv",
+            "status": "decision-ready",
+            "label": "Digital Nomad Visa"
+          }
+        ],
+        "soon": []
+      }
+    },
+    "canada": {
+      "isLaunchCountry": true,
+      "isDecisionReady": true,
+      "coverage": {
+        "ready": [
+          {
+            "countrySlug": "canada",
+            "pathwayKey": "express-entry",
+            "status": "decision-ready",
+            "label": "Express Entry"
+          }
+        ],
+        "soon": []
+      }
+    },
+    "costa-rica": {
+      "isLaunchCountry": true,
+      "isDecisionReady": true,
+      "coverage": {
+        "ready": [
+          {
+            "countrySlug": "costa-rica",
+            "pathwayKey": "rentista",
+            "status": "decision-ready",
+            "label": "Rentista Visa"
+          }
+        ],
+        "soon": []
+      }
+    },
+    "panama": {
+      "isLaunchCountry": true,
+      "isDecisionReady": true,
+      "coverage": {
+        "ready": [
+          {
+            "countrySlug": "panama",
+            "pathwayKey": "friendly-nations",
+            "status": "decision-ready",
+            "label": "Friendly Nations Visa"
+          },
+          {
+            "countrySlug": "panama",
+            "pathwayKey": "pensionado",
+            "status": "decision-ready",
+            "label": "Pensionado Visa"
+          },
+          {
+            "countrySlug": "panama",
+            "pathwayKey": "self-economic-solvency",
+            "status": "decision-ready",
+            "label": "Self Economic Solvency Visa"
+          }
+        ],
+        "soon": []
+      }
+    },
+    "ecuador": {
+      "isLaunchCountry": true,
+      "isDecisionReady": true,
+      "coverage": {
+        "ready": [
+          {
+            "countrySlug": "ecuador",
+            "pathwayKey": "rentista",
+            "status": "decision-ready",
+            "label": "Rentista Visa"
+          },
+          {
+            "countrySlug": "ecuador",
+            "pathwayKey": "jubilado",
+            "status": "decision-ready",
+            "label": "Jubilado (Retirement) Visa"
+          }
+        ],
+        "soon": []
+      }
+    },
+    "malta": {
+      "isLaunchCountry": true,
+      "isDecisionReady": true,
+      "coverage": {
+        "ready": [
+          {
+            "countrySlug": "malta",
+            "pathwayKey": "digital-nomad",
+            "status": "decision-ready",
+            "label": "Nomad Residence Permit"
+          },
+          {
+            "countrySlug": "malta",
+            "pathwayKey": "grp",
+            "status": "decision-ready",
+            "label": "Global Residence Programme"
+          }
+        ],
+        "soon": []
+      }
+    },
+    "united-kingdom": {
+      "isLaunchCountry": true,
+      "isDecisionReady": true,
+      "coverage": {
+        "ready": [
+          {
+            "countrySlug": "united-kingdom",
+            "pathwayKey": "skilled-worker",
+            "status": "decision-ready",
+            "label": "Skilled Worker Visa"
+          },
+          {
+            "countrySlug": "united-kingdom",
+            "pathwayKey": "global-talent",
+            "status": "decision-ready",
+            "label": "Global Talent Visa"
+          },
+          {
+            "countrySlug": "united-kingdom",
+            "pathwayKey": "innovator-founder",
+            "status": "decision-ready",
+            "label": "Innovator Founder Visa"
+          }
+        ],
+        "soon": []
+      }
+    }
+  },
+  "summary": {
+    "ready": "Portugal, Spain, Canada, Costa Rica, Panama, Ecuador, Malta, UK",
+    "soon": "France, Italy, Thailand, Mexico, and more"
+  }
+}

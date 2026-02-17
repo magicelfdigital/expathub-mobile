@@ -1,0 +1,64 @@
+We need to implement smarter Pro gating across the app using existing ProGate + ProPaywall.
+
+GUARDRAILS (DO NOT VIOLATE)
+- Do NOT change Expo Router structure, route names, or folder layout.
+- Do NOT refactor navigation or providers.
+- Do NOT change subscription purchase logic (RevenueCat/Stripe).
+- Use existing ProGate and ProPaywall; do NOT duplicate paywall logic inside screens.
+- Ask for files ONE AT A TIME and provide FULL FILE REPLACEMENTS ONLY.
+- Keep UI behavior and layout the same except where gated.
+
+SMART GATING RULE (AUTHORITATIVE)
+
+FREE (no paywall):
+1) Home tab and its content
+2) Explore tab and its content (browsing and comparing at a high level)
+3) Countries list screen: /(tabs)/country
+4) Country hub landing: /(tabs)/country/[slug]  (the “hub” page with cards to Resources/Vendors/Community)
+   - This screen stays free so users can see what’s inside.
+5) Top-level Community tab landing: /(tabs)/community/index
+   - Make this a TEASER page only (no real community content).
+   - It should show:
+     - what community will include
+     - examples of what you can do with Pro
+     - CTA to subscribe
+
+PRO-ONLY (requires Pro):
+A) Country Resources: /(tabs)/country/[slug]/resources
+B) Country Vendors: /(tabs)/country/[slug]/vendors
+C) Country Community (country-scoped): /(tabs)/country/[slug]/community
+D) Any “full guide” pathway content that is already gated (keep existing behavior)
+E) Any future advanced tools (if found)
+
+IMPLEMENTATION REQUIREMENTS
+- Wrap ONLY the PRO-ONLY screens with <ProGate countrySlug={...} pathwayKey={... optional} />
+- Do not gate the country hub landing page; it should remain accessible and act as the upsell gateway.
+- Ensure contextual paywall messaging:
+  - For A/B/C screens, pass countrySlug into ProGate so ProPaywall can show country-scoped messaging.
+  - If a pathwayKey exists, pass it too.
+- No content leaks: when gated, the underlying list/cards should not render.
+- Deep links: opening a Pro-only screen directly should show paywall; after successful purchase/restore, it should render the intended screen.
+
+FILES TO UPDATE (IN ORDER)
+1) app/(tabs)/country/[slug]/resources.tsx   (wrap with ProGate; pass slug)
+2) app/(tabs)/country/[slug]/vendors.tsx    (wrap with ProGate; pass slug)
+3) app/(tabs)/country/[slug]/community.tsx  (wrap with ProGate; pass slug)
+4) app/(tabs)/community/index.tsx
+   - Convert to a TEASER page:
+     - remove any real community lists/links if present
+     - add a clear CTA to subscribe
+     - optionally include “preview” examples that do not require Pro
+5) Search for any other screens that expose resources/vendors/community content and gate them if they are not explicitly in the FREE list above.
+
+OUTPUT FORMAT
+For each file:
+- Ask me for the file path + current contents (ONE FILE ONLY)
+- Return a FULL replacement for that file only
+- Briefly state what changed (1-2 lines)
+Then move to the next file.
+
+STOP CONDITION
+Stop after the above files are updated and report:
+- Which routes are Pro-only
+- Which routes remain free
+- Any additional places where gated content might leak (if found)

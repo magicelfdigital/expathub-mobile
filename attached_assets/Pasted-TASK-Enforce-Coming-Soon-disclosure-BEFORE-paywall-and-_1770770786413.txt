@@ -1,0 +1,91 @@
+TASK: Enforce “Coming Soon” disclosure BEFORE paywall and apply smarter gating rules for Resources/Vendors/Community.
+
+GUARDRAILS
+- Do NOT change routing/nav/tab layout.
+- Do NOT change subscription providers (EntitlementContext, SubscriptionContext bridge).
+- FULL FILE REPLACEMENTS ONLY.
+- Ask for files ONE AT A TIME.
+- No new dependencies.
+
+REQUIREMENTS
+We are launching with 8 countries:
+Portugal, Spain, Canada, Costa Rica, Panama, Ecuador, Malta, UK.
+All other countries must show “Coming Soon” BEFORE any purchase prompt.
+
+SMARTER GATING RULE (replace simplistic “all behind paywall”)
+For any countrySlug:
+1) If country is NOT in the 8 launch list:
+   - Always show Coming Soon screen/message (never ProPaywall)
+2) If country IS in the 8 launch list but the specific content is not decision-ready:
+   - Show Coming Soon screen/message (never ProPaywall)
+3) Only show ProPaywall when BOTH are true:
+   - country is in the 8 launch list
+   - content is decision-ready AND designated as Pro-gated
+
+APPLY THIS TO:
+- Country hub pages (entry page for each country)
+- Resources, Vendors, Community screens (both global and country-level versions if present)
+- Any pathway locked screens should also respect Coming Soon (Coming Soon beats paywall)
+
+IMPLEMENTATION APPROACH
+A) Add a single source of truth for launch + readiness.
+   If src/data/coverage.ts exists, use it.
+   If it does NOT exist, create it with:
+   - LAUNCH_COUNTRIES: string[]
+   - isLaunchCountry(slug): boolean
+   - isDecisionReady(slug, pathwayKey?, section?): boolean
+     section = "brief" | "resources" | "vendors" | "community" | "pathway"
+
+Initialize:
+- Portugal + Spain: decision-ready for brief + pathways (d7/d8, nlv/dnv).
+- For Canada, Costa Rica, Panama, Ecuador, Malta, UK: brief = coming-soon (at minimum), and resources/vendors/community coming-soon.
+- All non-launch countries: everything coming-soon.
+
+B) Create a reusable “AvailabilityGate”
+Create src/components/AvailabilityGate.tsx:
+Props:
+- countrySlug?: string
+- pathwayKey?: string
+- section: "brief" | "resources" | "vendors" | "community" | "pathway"
+- children: ReactNode
+Behavior:
+- If NOT launch country -> render <ComingSoon ... />
+- If launch but NOT decision-ready -> render <ComingSoon ... />
+- Else render children
+
+C) Create a minimal ComingSoon component (if not already present)
+Create src/components/ComingSoon.tsx:
+Props:
+- title: string
+- message: string
+- ctaLabel?: string (optional)
+- onPressCta?: () => void (optional)
+Keep it consistent with tokens + Screen.
+
+D) Wire it into target screens (ONE AT A TIME)
+Ask me for these files in this order and provide full replacements:
+1) app/(tabs)/country/[slug]/index.tsx  (Country hub)
+   Wrap the page content inside AvailabilityGate(section="brief")
+   Show a Coverage block at top listing Ready vs Coming Soon (minimal)
+
+2) app/(tabs)/country/[slug]/resources.tsx
+   Wrap inside AvailabilityGate(section="resources")
+   If available, then apply ProGate to paid content
+   Rule: Coming Soon must block before ProGate
+
+3) app/(tabs)/country/[slug]/vendors.tsx
+   Wrap inside AvailabilityGate(section="vendors")
+   Coming Soon beats ProGate
+
+4) app/(tabs)/country/[slug]/community.tsx (or community/index if that’s what exists)
+   Wrap inside AvailabilityGate(section="community")
+   Coming Soon beats ProGate
+
+5) src/components/ProPaywall.tsx
+   Add short “Coverage note” under pricing (no dates, no promises)
+
+STOP after #5 and summarize changes in 5 bullets, including which sections are now gated and how Coming Soon works.
+
+BEGIN BY ASKING ME FOR:
+- Whether src/data/coverage.ts exists. If it exists, ask me to paste it.
+- If it doesn’t exist, create it as described.

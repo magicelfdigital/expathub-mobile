@@ -1,0 +1,57 @@
+We are refactoring Explore so it is NOT a duplicate of Countries.
+
+GUARDRAILS
+- Do NOT change navigation layout files or tab config (no renaming tabs today).
+- Do NOT change routing for Countries.
+- Do NOT change subscription logic.
+- Provide FULL FILE REPLACEMENTS ONLY.
+- Ask for files ONE AT A TIME.
+
+GOAL
+Explore should help users who have NOT chosen a country yet by offering decision-based entry points.
+Countries remains the full directory and hub entry.
+
+EXPLORE V1 DESIGN
+Replace Explore screen content with 4 “decision entry cards”:
+
+A) Title: "I need to keep working"
+   Subtitle: "Remote work rules vary. Start with visas that explicitly allow it and don’t quietly trap you later."
+   Route to: /explore/remote-work
+
+B) Title: "I want a local job (sponsorship)"
+   Subtitle: "Most countries require employer sponsorship. Learn what’s realistic before you apply or relocate."
+   Route to: /explore/sponsorship
+
+C) Title: "I’m not sure yet — I want flexibility"
+   Subtitle: "If you’re still deciding, choose a path that doesn’t block future options and buys time legally."
+   Route to: /explore/flexibility
+
+D) Title: "I care about long-term residency (PR)"
+   Subtitle: "Some visas are dead ends. Start with options that align with PR pathways and work rights."
+   Route to: /explore/pr
+
+At the bottom of Explore, include a secondary link/button:
+- "Browse all countries" -> /(tabs)/country
+
+TOPIC SCREEN
+Create a single reusable topic detail screen pattern: app/(tabs)/explore/[topic].tsx (or separate files if preferred).
+Each topic screen should show:
+- A short explainer paragraph (2–4 lines)
+- A curated list of countries (from our 8 launch countries) relevant to the topic
+- Each country row includes a badge: "Ready" vs "Coming soon"
+- Tapping a country navigates to /(tabs)/country/[slug]
+- No paywall, no ProGate here.
+
+COUNTRY LIST + BADGES
+Use existing data sources:
+- Countries from src/data (preferred) or existing COUNTRIES array.
+- Coverage badges must come from src/data/coverage.ts (if it exists). If not available, implement a minimal local map in the topic screen for now (but prefer coverage.ts).
+
+IMPLEMENTATION ORDER
+1) Ask me for the current Explore screen file (likely app/(tabs)/explore.tsx).
+   Replace it fully with the new Explore cards UI.
+2) Create the new topic screen file(s) and provide full contents.
+3) If you need coverage.ts, ask for it (but do NOT change it today unless necessary for badges).
+
+STOP after Explore is refactored and topic screens exist.
+Summarize changes in 3 bullets.

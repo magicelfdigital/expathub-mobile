@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "845658892758",
+    "project_id": "expathub-b3083",
+    "storage_bucket": "expathub-b3083.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:845658892758:android:20168462f8976941addc77",
+        "android_client_info": {
+          "package_name": "com.expathub.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBi52EdsvS7wA50yh0yvj55HK6plPqD29g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

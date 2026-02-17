@@ -1,0 +1,44 @@
+We are starting V2 planning + implementation for an Expo (React Native) app using Expo Router.
+
+ABSOLUTE GUARDRAILS (DO NOT BREAK)
+- Do NOT refactor navigation or change the Expo Router folder/file structure.
+- Do NOT rename or move route files/folders.
+- Do NOT rewrite providers or add new global contexts.
+- EntitlementContext + SubscriptionContext are already implemented; do NOT change subscription logic unless there is a proven bug.
+- Ask for files ONE AT A TIME and provide FULL FILE REPLACEMENTS ONLY.
+
+V2 PRIORITY ORDER (MUST FOLLOW)
+Phase 1) Data Foundation
+Phase 2) Subscription Packaging
+Phase 3) Trust Layer
+Phase 4) Community V2
+Phase 5) Vendors V2
+
+PHASE 1 — DATA FOUNDATION (START HERE)
+Goal: eliminate hardcoded arrays scattered across screens and centralize data behind a single access layer.
+
+Deliverables for Phase 1:
+1) Define canonical data schemas/types:
+   - Country, Resource, Vendor, CommunityLink
+   Include fields: id, countrySlug, title/name, url, sourceType, tags/categories, lastReviewedAt, updatedAt.
+2) Create a single data access layer:
+   - src/data/index.ts (or src/data/api.ts) that exposes functions like:
+     - getCountries()
+     - getCountry(slug)
+     - getResources(countrySlug)
+     - getVendors(countrySlug)
+     - getCommunityLinks(countrySlug)
+3) Migrate existing TEMP arrays (currently embedded in screens) into ONE place.
+   - Use local JSON files first (fastest) unless Supabase is explicitly requested.
+4) Update screens to consume the data access layer (no direct hardcoded arrays in screens).
+5) Keep UI behavior identical (no redesign).
+
+OUTPUT FORMAT
+Step 1: List the exact new files you will create and dependencies (if any). (No code changes yet.)
+Step 2: Ask me for the first file you need (ONE FILE ONLY).
+Step 3: Provide a FULL replacement for that file only.
+Repeat.
+
+NOTES
+- Keep it boring and safe: minimal changes, no churn.
+- If you think something should be renamed/moved, STOP and ask first.

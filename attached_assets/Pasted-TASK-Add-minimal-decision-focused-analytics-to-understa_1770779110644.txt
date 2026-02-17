@@ -1,0 +1,86 @@
+TASK: Add minimal, decision-focused analytics to understand user behavior
+while expanding content for all 8 launch countries.
+
+GOAL
+Capture *decision intent*, not vanity metrics.
+Answer:
+- What content reduces hesitation?
+- What do users check before paying?
+- Where do they leave?
+
+GUARDRAILS
+- Do NOT change navigation, layout, or styling.
+- Do NOT add heavy analytics SDKs.
+- Use existing trackEvent utility if present.
+- FULL FILE REPLACEMENTS ONLY.
+- Ask for files ONE AT A TIME.
+
+EVENTS TO ADD (ONLY THESE)
+
+1) Explore
+Event: explore_opened
+Fire once when Explore screen mounts.
+
+Event: compare_started
+Fire when CompareMatrix is first rendered.
+
+2) Compare Matrix
+Event: compare_row_viewed
+Payload:
+- rowId
+- countrySlugs[]
+
+Fire the first time each row becomes visible (no need for perfect viewport detection; first render is OK).
+
+3) Decision Briefs (Country + Pathway)
+Event: decision_brief_opened
+Payload:
+- countrySlug
+- pathwayKey? (if applicable)
+
+Event: brief_section_viewed
+Payload:
+- countrySlug
+- pathwayKey?
+- sectionId ("family" | "culture" | "work" | "tax" | "timeline")
+
+Fire when section header is expanded or scrolled into view.
+
+4) Paywall
+Event: paywall_viewed
+Payload:
+- context ("country" | "pathway" | "compare")
+- countrySlug?
+- pathwayKey?
+
+Event: paywall_dismissed
+Fire when user closes or navigates away.
+
+Event: subscription_started
+Fire when checkout flow begins (not completion).
+
+IMPLEMENTATION PLAN (MANDATORY ORDER)
+
+A) Ask me where trackEvent lives
+   (e.g. src/lib/analytics.ts)
+
+B) Add events to:
+   - app/(tabs)/explore.tsx
+   - src/components/CompareMatrix.tsx
+   - Decision Brief screen(s)
+   - src/components/ProPaywall.tsx
+
+C) Ensure events fire only once per session where appropriate
+   (simple useRef guard is fine).
+
+DO NOT:
+- track scroll position continuously
+- add user identifiers beyond existing setup
+- block UI on analytics
+
+OUTPUT
+- List of files changed
+- List of events implemented
+- One paragraph: “What questions this answers”
+
+STOP after instrumentation.
