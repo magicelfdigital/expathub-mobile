@@ -102,18 +102,27 @@ France, Italy, Thailand, Mexico, Ireland, Germany, Netherlands, Sweden, Norway, 
 - Country comparison matrix (5 free rows)
 - Explore topics (remote work, sponsorship, flexibility, permanent residency, compare)
 
-**Pro Tier ($14.99/month or $99/year):**
-- Decision Briefs — full detailed analysis per country and per pathway
-- Premium pathway details (step-by-step process, realistic timelines, cost ranges)
-- Pro comparison matrix rows (5 additional rows: sponsorship reality, income thresholds, tax exposure, bureaucracy difficulty, not ideal for)
-- Yearly plan saves ~45% vs monthly
+**Pro Tier (3 purchase options):**
+
+1. **30-Day Decision Pass — $29 one-time (consumable)**
+   - Full access to all 8 launch countries for 30 days
+   - Decision Briefs, premium pathway details, pro comparison rows
+   - Product ID: `decision_pass_30d`
+
+2. **Country Lifetime Unlock — $69 per country, one-time (non-consumable)**
+   - Permanent access to one country's Decision Briefs and premium pathway details
+   - Product IDs: `country_lifetime_<slug>` (e.g., `country_lifetime_portugal`)
+
+3. **Monthly Subscription — $14.99/month, auto-renewing**
+   - Ongoing full access to all countries and premium content
+   - Product ID: `expathub_monthly`
 
 ### Payment Processing
 
 | Platform | Provider | Details |
 |----------|----------|---------|
-| iOS | RevenueCat | Entitlement ID: `pro`. Products: `monthly`, `yearly`. API key env: `EXPO_PUBLIC_RC_IOS_KEY` |
-| Android | RevenueCat | Same entitlement and products. API key env: `EXPO_PUBLIC_RC_ANDROID_KEY` |
+| iOS | RevenueCat | Entitlements: `decision_access`, `full_access_subscription`, `country_<slug>`. Products: `decision_pass_30d`, `country_lifetime_<slug>` (×8), `expathub_monthly`. API key env: `EXPO_PUBLIC_RC_IOS_KEY` |
+| Android | RevenueCat | Same entitlements and products. API key env: `EXPO_PUBLIC_RC_ANDROID_KEY` |
 | Web | Stripe | Checkout Sessions for purchase, Customer Portal for management. Server-side via `STRIPE_SECRET_KEY` |
 
 ### Revenue Targets
@@ -227,6 +236,34 @@ France, Italy, Thailand, Mexico, Ireland, Germany, Netherlands, Sweden, Norway, 
 - Served as HTML pages from the backend
 - Links to: privacy policy, terms of service
 - Company: Magic Elf Digital
+
+### F12: Authentication
+
+**Priority:** P0
+
+- JWT-based auth with external API at `expathub.world`
+- Single endpoint `POST /api/auth` with action parameter (`signin`, `signout`)
+- Token stored via `expo-secure-store` (iOS/Android) or `AsyncStorage` (web)
+- Free content accessible without login
+- Purchases require account creation with pending-purchase flow (stores purchase intent, redirects to auth, completes purchase after login)
+
+### F13: Forgot Password
+
+**Priority:** P1
+
+- `POST /api/auth/forgot-password` on `expathub.website`
+- Reset link sent via email opens in phone's browser
+- User resets password on web, returns to app to sign in
+- On web, proxied through Express backend to avoid CORS
+- 1-hour token expiry
+
+### F14: Passport Notes
+
+**Priority:** P1
+
+- Nationality-specific notes for each pathway across 7 passport types (US, UK, CA, AU, EU, JP, CR)
+- Displayed on pathway detail screens in a "Passport Notes" section
+- All pathways have notes for all 7 passport types — coverage is complete
 
 ---
 
@@ -407,18 +444,51 @@ Root Layout
 - Contains the ProPaywall component
 - Accessible from any ProGate interception point
 
-### 6.13 ProPaywall (Component)
+### 6.13 Auth Screen
+
+**Route:** `/auth`
+
+- Login/register modal with email and password fields
+- Toggle between "Sign In" and "Create Account" modes
+- "Forgot password?" link visible in login mode
+- Pending purchase flow: stores purchase intent before redirecting to auth, completes purchase after successful login
+- Profile icon in tab header navigates to auth (if logged out) or account (if logged in)
+
+### 6.14 Forgot Password Screen
+
+**Route:** `/forgot-password`
+
+- Email input field
+- Calls `POST /api/auth/forgot-password` on `expathub.website`
+- Shows confirmation message: "If an account exists for that email, we've sent password reset instructions. Check your spam folder if you don't see it."
+- Notes 1-hour token expiry
+- "Back to Sign In" button
+
+### 6.15 Account Screen
+
+**Route:** `/account`
+
+- User email display
+- Access level indicator: Decision Pass / Country Unlock / Monthly / Free
+- Unlocked countries displayed as chips (for country lifetime unlocks)
+- Decision Pass: shows days remaining
+- Manage subscription link
+- Logout button
+
+### 6.16 ProPaywall (Component)
 
 - **Header:** Contextual headline based on entry point
 - **Value propositions:** Dynamic based on country/pathway context
-- **Pricing:** Two plan cards
-  - Monthly: $14.99/month (or dynamic from RevenueCat)
-  - Yearly: $99/year with savings callout (or dynamic from RevenueCat)
-  - Intro pricing shown when available
+- **Pricing:** Three purchase options
+  - Decision Pass: $29 one-time, 30-day full access (primary CTA)
+  - Country Lifetime Unlock: $69 one-time per country (shown when country context exists)
+  - Monthly Subscription: $14.99/month, ongoing full access (secondary option)
+  - Dynamic pricing from RevenueCat when available
 - **Actions:**
-  - Subscribe button (initiates purchase)
+  - Purchase button per tier (initiates purchase)
   - Restore purchases button
   - Manage subscription button (for existing subscribers)
+- **Pending purchase flow:** If user is not logged in, stores purchase intent and redirects to auth screen
 - **Sandbox toggle:** Dev-only switch to simulate Pro access
 - **Coverage summary:** Shows decision-ready country count
 
@@ -512,6 +582,19 @@ changeLog[]?              — Record of content changes with severity
 
 ## 8. Subscription & Paywall Logic
 
+### Access Hierarchy
+
+```
+Monthly Subscription (full_access_subscription)
+    > Decision Pass 30-day (decision_access)
+        > Country Lifetime Unlock (country_<slug>)
+            > None (free tier)
+```
+
+- `hasFullAccess` = `true` when user has an active monthly subscription OR an active (non-expired) decision pass
+- `hasCountryAccess(slug)` = `true` when user has a country lifetime unlock for that specific country
+- Content gating checks `hasFullAccess` first, then falls back to `hasCountryAccess(slug)` for country-specific content
+
 ### Entitlement Flow
 
 ```
@@ -520,7 +603,8 @@ App Launch
     ├── iOS/Android: Initialize RevenueCat SDK
     │   ├── Configure with platform API key
     │   ├── Get customer info
-    │   ├── Check for "pro" entitlement
+    │   ├── Check for entitlements: decision_access, full_access_subscription, country_<slug>
+    │   ├── Check Decision Pass expiry (30-day window from purchase)
     │   └── Listen for real-time customer info updates
     │
     └── Web: Check Stripe subscription status
@@ -530,41 +614,80 @@ App Launch
 
 ### Content Gating Rules
 
-| Content | Free Users | Pro Users |
-|---------|------------|-----------|
-| Pathway title, summary, whoFor, notFor | Visible | Visible |
-| Pathway steps, timeline, costRange | Blocked (ProGate) | Visible |
-| Decision Brief (any) | Blocked (ProGate) | Visible |
-| Compare matrix (free rows) | Visible | Visible |
-| Compare matrix (pro rows) | Blocked | Visible |
-| Resources | Visible | Visible |
-| Vendors | Visible | Visible |
-| Community | Visible | Visible |
+| Content | Free Users | Decision Pass | Country Unlock | Monthly Sub |
+|---------|------------|---------------|----------------|-------------|
+| Pathway title, summary, whoFor, notFor | Visible | Visible | Visible | Visible |
+| Pathway steps, timeline, costRange | Blocked (ProGate) | Visible | Visible (owned country) | Visible |
+| Decision Brief (any) | Blocked (ProGate) | Visible | Visible (owned country) | Visible |
+| Compare matrix (free rows) | Visible | Visible | Visible | Visible |
+| Compare matrix (pro rows) | Blocked | Visible | Blocked | Visible |
+| Resources | Visible | Visible | Visible | Visible |
+| Vendors | Visible | Visible | Visible | Visible |
+| Community | Visible | Visible | Visible | Visible |
 
 ### ProGate Component Behavior
 
-1. Check `hasActiveSubscription` from EntitlementContext
-2. If loading: show spinner
-3. If subscribed: render children (premium content)
-4. If not subscribed: render ProPaywall with context props
+1. Check `hasFullAccess` from EntitlementContext (subscription or decision pass)
+2. If full access: render children (premium content)
+3. Check `hasCountryAccess(slug)` for country-specific content
+4. If country access: render children
+5. If loading: show spinner
+6. If no access: render ProPaywall with context props
+
+### ProPaywall Display
+
+- Shows 3 purchase options:
+  - **Decision Pass ($29)** — Primary CTA. "Full access for 30 days"
+  - **Country Lifetime Unlock ($69)** — Shown when country context exists. "Permanent access to [Country]"
+  - **Monthly Subscription ($14.99/mo)** — Secondary option. "Ongoing full access"
+- Contextual value propositions based on entry point
+- Pending purchase flow for logged-out users (see below)
 
 ### Purchase Flow
 
-**iOS/Android (RevenueCat):**
-1. User taps Subscribe on paywall
-2. App calls `getOfferings()` to get available packages
-3. App calls `purchasePackage(productId)` with selected plan
-4. RevenueCat handles App Store / Play Store purchase dialog
-5. On success: customer info listener fires, `hasProAccess` becomes true
-6. ProGate re-evaluates and shows premium content
+**Decision Pass (iOS/Android — RevenueCat):**
+1. User taps "Get Decision Pass" on paywall
+2. If not logged in: store purchase intent, redirect to auth screen
+3. After login: resume purchase flow
+4. App calls `purchasePackage("decision_pass_30d")`
+5. RevenueCat handles App Store / Play Store purchase dialog
+6. On success: `decision_access` entitlement activates, purchase timestamp stored in AsyncStorage
+7. ProGate re-evaluates and shows premium content
+
+**Country Lifetime Unlock (iOS/Android — RevenueCat):**
+1. User taps "Unlock [Country]" on paywall
+2. If not logged in: store purchase intent with country slug, redirect to auth screen
+3. After login: resume purchase flow
+4. App calls `purchasePackage("country_lifetime_<slug>")`
+5. RevenueCat handles purchase dialog
+6. On success: `country_<slug>` entitlement activates, slug added to AsyncStorage unlocks array
+7. ProGate re-evaluates for that country's content
+
+**Monthly Subscription (iOS/Android — RevenueCat):**
+1. User taps "Subscribe Monthly" on paywall
+2. If not logged in: store purchase intent, redirect to auth screen
+3. After login: resume purchase flow
+4. App calls `purchasePackage("expathub_monthly")`
+5. RevenueCat handles subscription dialog
+6. On success: `full_access_subscription` entitlement activates
+7. ProGate re-evaluates and shows all premium content
 
 **Web (Stripe):**
-1. User taps Subscribe on paywall
+1. User taps purchase option on paywall
 2. Frontend calls `POST /api/stripe/checkout` with `priceId`
 3. Server creates Stripe Checkout Session
 4. User redirected to Stripe-hosted checkout page
 5. On success: redirected back with `?checkout=success`
 6. App checks `GET /api/stripe/status` for updated entitlement
+
+### Pending Purchase Flow (Logged-Out Users)
+
+1. User taps any purchase option while not logged in
+2. App stores purchase intent in memory: `{ type: "decision_pass" | "country_lifetime" | "monthly", slug?: string }`
+3. User redirected to auth screen
+4. After successful login/registration, app checks for pending purchase intent
+5. If intent exists: automatically resumes purchase flow with stored parameters
+6. If no intent: normal post-login navigation
 
 ### Sandbox Mode
 
@@ -962,6 +1085,95 @@ Returns current subscription status for the web user.
 
 *Note: Currently returns `false` always. Requires webhook integration for real status tracking.*
 
+#### POST /api/auth (Login/Register)
+
+Authenticates or registers a user via external API at `expathub.world`.
+
+**Base URL:** `https://www.expathub.world` (www subdomain required to avoid TLS redirect)
+
+**Request:**
+```json
+{
+  "action": "signin",
+  "email": "user@example.com",
+  "password": "securepassword"
+}
+```
+
+**Response (200):**
+```json
+{
+  "token": "jwt_token_here",
+  "user": { "email": "user@example.com" }
+}
+```
+
+#### GET /api/auth (Session Check)
+
+Validates current session token.
+
+**Headers:** `Authorization: Bearer <token>`
+
+**Response (200):**
+```json
+{
+  "user": { "email": "user@example.com" }
+}
+```
+
+#### POST /api/auth (Logout)
+
+Signs out the current user.
+
+**Request:**
+```json
+{
+  "action": "signout"
+}
+```
+
+#### POST /api/auth/forgot-password
+
+Requests a password reset email.
+
+**Base URL:** `https://www.expathub.website` (www subdomain required to avoid TLS redirect)
+**Note:** On web, proxied through Express backend (`/api/auth/forgot-password`) to avoid CORS.
+
+**Request:**
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Response (200):**
+```json
+{
+  "message": "If an account exists for that email, we've sent password reset instructions."
+}
+```
+
+#### POST /api/auth/reset-password (Web Only)
+
+Resets user password using token from email link. Opens at `expathub.website/reset-password?token=xxx`.
+
+**Base URL:** `https://www.expathub.website`
+
+**Request:**
+```json
+{
+  "token": "reset_token_here",
+  "password": "newpassword"
+}
+```
+
+**Response (200):**
+```json
+{
+  "message": "Password reset successfully."
+}
+```
+
 #### GET /privacy
 
 Serves the privacy policy HTML page.
@@ -978,7 +1190,6 @@ Serves the terms of service HTML page.
 | `EXPO_PUBLIC_RC_ANDROID_KEY` | Yes (Android) | RevenueCat Android API key |
 | `STRIPE_SECRET_KEY` | Yes (Web) | Stripe server-side secret key |
 | `EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID` | Yes (Web) | Stripe price ID for monthly plan |
-| `EXPO_PUBLIC_STRIPE_ANNUAL_PRICE_ID` | Yes (Web) | Stripe price ID for yearly plan |
 | `EXPO_PUBLIC_SANDBOX_MODE` | No | Set to "true" to enable sandbox in production |
 | `SESSION_SECRET` | Yes | Express session secret |
 
@@ -1156,12 +1367,14 @@ Changes to these fields automatically trigger a review:
 
 ### Payment Configuration
 - [ ] Replace RevenueCat test keys with production keys (`appl_` for iOS, `goog_` for Android)
-- [ ] Configure RevenueCat dashboard: entitlement `pro`, products `monthly` and `yearly`, default offering
-- [ ] Set up App Store Connect subscriptions ($14.99/mo, $99/yr)
-- [ ] Set up Google Play subscriptions ($14.99/mo, $99/yr)
+- [ ] Configure RevenueCat dashboard: entitlements `decision_access`, `full_access_subscription`, `country_<slug>` for 8 launch countries
+- [ ] Create RevenueCat products: `decision_pass_30d` (consumable, $29), `country_lifetime_<slug>` (non-consumable, $69 each for 8 countries), `expathub_monthly` (auto-renewing, $14.99/mo)
+- [ ] Set up App Store Connect: `decision_pass_30d` consumable ($29), 8× `country_lifetime_*` non-consumables ($69 each), `expathub_monthly` subscription ($14.99/mo)
+- [ ] Set up Google Play: matching in-app products and subscription
 - [ ] Set `STRIPE_SECRET_KEY` for web subscriptions
-- [ ] Configure Stripe price IDs for monthly and yearly plans
-- [ ] Test full purchase flow on all platforms
+- [ ] Configure Stripe price IDs for monthly subscription
+- [ ] Test full purchase flow on all platforms (all 3 tiers)
+- [ ] Test forgot password flow end-to-end (native and web)
 
 ### App Store Submission
 - [ ] Apple App Review — currently in review process
@@ -1184,4 +1397,4 @@ Changes to these fields automatically trigger a review:
 
 ---
 
-*End of document. This PRD and technical specification covers the complete ExpatHub application as of February 2026.*
+*End of document. This PRD and technical specification covers the complete ExpatHub application as of February 2026. 3-tier monetization model (Decision Pass, Country Lifetime Unlock, Monthly Subscription), JWT authentication, and forgot password flow.*
