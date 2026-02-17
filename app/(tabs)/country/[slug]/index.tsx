@@ -1,5 +1,5 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useGlobalSearchParams, useRouter } from "expo-router";
+﻿import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
@@ -75,7 +75,7 @@ function CoverageRow({ label, status }: { label: string; status: "decision-ready
 
 export default function CountryDetailScreen() {
   const router = useRouter();
-  const { slug } = useGlobalSearchParams<{ slug?: string }>();
+  const { slug } = useLocalSearchParams<{ slug?: string }>();
   const { selectedCountrySlug, setSelectedCountrySlug } = useCountry();
   const { hasActiveSubscription, hasFullAccess, hasCountryAccess, accessType, decisionPassDaysLeft } = useSubscription();
 
@@ -141,7 +141,7 @@ export default function CountryDetailScreen() {
           <View style={styles.accessBanner}>
             <Ionicons name="shield-checkmark" size={16} color={tokens.color.primary} />
             <Text style={styles.accessBannerText}>
-              Decision Pass active — {decisionPassDaysLeft} days remaining
+              Decision Pass active â€” {decisionPassDaysLeft} days remaining
             </Text>
           </View>
         ) : hasAccess && accessType === "country_lifetime" ? (
@@ -178,7 +178,7 @@ export default function CountryDetailScreen() {
             </View>
             <Text style={styles.comingSoonTitle}>Coming Soon</Text>
             <Text style={styles.comingSoonBody}>
-              We're building full guide coverage, verified vendor lists, and community links for {countryName}. Pathway overviews below are available now — complete guides are on the way.
+              We're building full guide coverage, verified vendor lists, and community links for {countryName}. Pathway overviews below are available now â€” complete guides are on the way.
             </Text>
           </View>
         ) : null}

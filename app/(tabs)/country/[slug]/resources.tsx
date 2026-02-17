@@ -1,5 +1,5 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useGlobalSearchParams } from "expo-router";
+﻿import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams } from "expo-router";
 import React, { memo, useMemo, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
@@ -82,7 +82,7 @@ const ResourceCard = memo(function ResourceCard({
 });
 
 export default function CountryResourcesScreen() {
-  const { slug } = useGlobalSearchParams<{ slug?: string }>();
+  const { slug } = useLocalSearchParams<{ slug?: string }>();
   const countrySlug = typeof slug === "string" ? slug : undefined;
 
   return (

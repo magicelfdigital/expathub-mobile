@@ -1,5 +1,5 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useGlobalSearchParams } from "expo-router";
+﻿import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams } from "expo-router";
 import React, { useMemo } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
@@ -22,7 +22,7 @@ const typeIcons: Record<string, string> = {
 };
 
 export default function CountryCommunityScreen() {
-  const { slug } = useGlobalSearchParams<{ slug?: string }>();
+  const { slug } = useLocalSearchParams<{ slug?: string }>();
   const countrySlug = typeof slug === "string" ? slug : "";
 
   return (

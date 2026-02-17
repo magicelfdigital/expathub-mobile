@@ -1,5 +1,5 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useGlobalSearchParams, useRouter } from "expo-router";
+﻿import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef } from "react";
 import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
@@ -20,7 +20,7 @@ const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
 
 export default function PathwayScreen() {
   const router = useRouter();
-  const { slug, key } = useGlobalSearchParams<{ slug?: string; key?: string }>();
+  const { slug, key } = useLocalSearchParams<{ slug?: string; key?: string }>();
   const { user } = useAuth();
   const { selectedCountrySlug } = useCountry();
   const { hasFullAccess, hasCountryAccess, loading } = useSubscription();

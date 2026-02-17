@@ -1,5 +1,5 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useGlobalSearchParams } from "expo-router";
+﻿import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams } from "expo-router";
 import React, { useMemo } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
@@ -12,7 +12,7 @@ import { tokens } from "@/theme/tokens";
 const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
 
 export default function CountryVendorsScreen() {
-  const { slug } = useGlobalSearchParams<{ slug?: string }>();
+  const { slug } = useLocalSearchParams<{ slug?: string }>();
   const countrySlug = typeof slug === "string" ? slug : "";
 
   return (
