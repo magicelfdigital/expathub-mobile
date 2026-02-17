@@ -5,6 +5,7 @@ import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/components/Screen";
 import { AvailabilityGate } from "@/src/components/AvailabilityGate";
+import { useCountry } from "@/contexts/CountryContext";
 import { getCountry, getResources, type ResourceCategory } from "@/src/data";
 import { openInApp } from "@/lib/openInApp";
 import { tokens } from "@/theme/tokens";
@@ -83,7 +84,9 @@ const ResourceCard = memo(function ResourceCard({
 
 export default function CountryResourcesScreen() {
   const { slug } = useLocalSearchParams<{ slug?: string }>();
-  const countrySlug = typeof slug === "string" ? slug : undefined;
+  const { selectedCountrySlug } = useCountry();
+  const urlSlug = typeof slug === "string" ? slug : undefined;
+  const countrySlug = selectedCountrySlug || urlSlug || undefined;
 
   return (
     <Screen>

@@ -25,7 +25,8 @@ export default function PathwayScreen() {
   const { selectedCountrySlug } = useCountry();
   const { hasFullAccess, hasCountryAccess, loading } = useSubscription();
 
-  const countrySlug = typeof slug === "string" ? slug : "";
+  const urlSlug = typeof slug === "string" ? slug : "";
+  const countrySlug = selectedCountrySlug || urlSlug || "";
   const pathwayKey = typeof key === "string" ? key : "";
 
   const countryName = useMemo(() => {

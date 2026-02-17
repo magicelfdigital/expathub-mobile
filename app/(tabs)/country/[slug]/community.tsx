@@ -5,6 +5,7 @@ import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/components/Screen";
 import { AvailabilityGate } from "@/src/components/AvailabilityGate";
+import { useCountry } from "@/contexts/CountryContext";
 import { getCountry, getCommunityLinks, getDefaultCommunityLinks } from "@/src/data";
 import { openExternal } from "@/lib/openExternal";
 import { tokens } from "@/theme/tokens";
@@ -23,7 +24,9 @@ const typeIcons: Record<string, string> = {
 
 export default function CountryCommunityScreen() {
   const { slug } = useLocalSearchParams<{ slug?: string }>();
-  const countrySlug = typeof slug === "string" ? slug : "";
+  const { selectedCountrySlug } = useCountry();
+  const urlSlug = typeof slug === "string" ? slug : "";
+  const countrySlug = selectedCountrySlug || urlSlug || "";
 
   return (
     <Screen>

@@ -87,8 +87,7 @@ export default function CountryDetailScreen() {
     }
   }, [urlSlug]);
 
-  const countrySlug = urlSlug || selectedCountrySlug || "";
-  console.log("HUB_SLUG", countrySlug, "urlSlug=", urlSlug, "contextSlug=", selectedCountrySlug);
+  const countrySlug = selectedCountrySlug || urlSlug || "";
 
   const countryName = useMemo(() => {
     if (!countrySlug) return "Country";

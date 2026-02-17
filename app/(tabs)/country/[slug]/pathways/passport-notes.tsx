@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/components/Screen";
+import { useCountry } from "@/contexts/CountryContext";
 import { getCountry, getPathways } from "@/src/data";
 import { getPassportNotes, PASSPORT_LABELS } from "@/data/passportNotes";
 import { tokens } from "@/theme/tokens";
@@ -13,8 +14,10 @@ const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
 export default function PassportNotesScreen() {
   const router = useRouter();
   const { slug, key } = useLocalSearchParams<{ slug?: string; key?: string }>();
+  const { selectedCountrySlug } = useCountry();
 
-  const countrySlug = typeof slug === "string" ? slug : "";
+  const urlSlug = typeof slug === "string" ? slug : "";
+  const countrySlug = selectedCountrySlug || urlSlug || "";
   const pathwayKey = typeof key === "string" ? key : "";
 
   const countryName = useMemo(() => {
