@@ -24,6 +24,7 @@ function RootLayoutNav() {
       <Stack.Screen name="auth" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="account" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="account-info" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="country-view" options={{ headerShown: false }} />
     </Stack>
   );
 }

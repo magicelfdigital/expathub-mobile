@@ -1,7 +1,8 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Screen } from "@/components/Screen";
 import { useCountry } from "@/contexts/CountryContext";
@@ -73,23 +74,17 @@ function CoverageRow({ label, status }: { label: string; status: "decision-ready
   );
 }
 
-export default function CountryDetailScreen() {
+export default function CountryViewScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { slug } = useLocalSearchParams<{ slug?: string }>();
-  const { selectedCountrySlug, setSelectedCountrySlug } = useCountry();
-  const { hasActiveSubscription, hasFullAccess, hasCountryAccess, accessType, decisionPassDaysLeft } = useSubscription();
+  const { setSelectedCountrySlug } = useCountry();
+  const { hasFullAccess, hasCountryAccess, accessType, decisionPassDaysLeft } = useSubscription();
 
-  const urlSlug = typeof slug === "string" ? slug : Array.isArray(slug) ? slug[0] : "";
-  const countrySlug = selectedCountrySlug || urlSlug || "";
-
-  React.useEffect(() => {
-    if (urlSlug && urlSlug !== selectedCountrySlug) {
-      setSelectedCountrySlug(urlSlug);
-    }
-  }, []);
+  const countrySlug = typeof slug === "string" ? slug : "";
 
   React.useEffect(() => {
-    if (countrySlug && countrySlug !== selectedCountrySlug) {
+    if (countrySlug) {
       setSelectedCountrySlug(countrySlug);
     }
   }, [countrySlug]);
@@ -121,9 +116,17 @@ export default function CountryDetailScreen() {
     <Screen>
       <ScrollView
         style={styles.container}
-        contentContainerStyle={[styles.content, Platform.OS === "web" && { paddingTop: WEB_TOP_INSET + tokens.space.xl }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: (Platform.OS === "web" ? WEB_TOP_INSET : insets.top) + tokens.space.lg },
+        ]}
         showsVerticalScrollIndicator={false}
       >
+        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={22} color={tokens.color.primary} />
+          <Text style={styles.backText}>Back</Text>
+        </Pressable>
+
         <View style={styles.header}>
           <Text style={styles.title}>{countryName}</Text>
           <Text style={styles.subtitle}>
@@ -145,14 +148,14 @@ export default function CountryDetailScreen() {
           <View style={styles.accessBanner}>
             <Ionicons name="shield-checkmark" size={16} color={tokens.color.primary} />
             <Text style={styles.accessBannerText}>
-              Decision Pass active â€” {decisionPassDaysLeft} days remaining
+              Decision Pass active — {decisionPassDaysLeft} days remaining
             </Text>
           </View>
         ) : hasAccess && accessType === "country_lifetime" ? (
           <View style={styles.accessBanner}>
             <Ionicons name="checkmark-circle" size={16} color={tokens.color.primary} />
             <Text style={styles.accessBannerText}>
-              {countryName} unlocked \u2014 lifetime access
+              {countryName} unlocked — lifetime access
             </Text>
           </View>
         ) : !hasAccess && isLaunch ? (
@@ -165,7 +168,7 @@ export default function CountryDetailScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.unlockBannerTitle}>Make a confident relocation decision</Text>
                 <Text style={styles.unlockBannerSub}>
-                  30-day access from {`$29`} or unlock {countryName} forever for {countryPrice}
+                  30-day access from $29 or unlock {countryName} forever for {countryPrice}
                 </Text>
               </View>
             </View>
@@ -182,7 +185,7 @@ export default function CountryDetailScreen() {
             </View>
             <Text style={styles.comingSoonTitle}>Coming Soon</Text>
             <Text style={styles.comingSoonBody}>
-              We're building full guide coverage, verified vendor lists, and community links for {countryName}. Pathway overviews below are available now â€” complete guides are on the way.
+              We're building full guide coverage, verified vendor lists, and community links for {countryName}. Pathway overviews below are available now — complete guides are on the way.
             </Text>
           </View>
         ) : null}
@@ -266,6 +269,18 @@ const styles = {
     padding: tokens.space.xl,
     paddingBottom: tokens.space.xxl,
     gap: tokens.space.lg,
+  },
+
+  backBtn: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 4,
+    marginBottom: tokens.space.xs,
+  },
+  backText: {
+    fontSize: tokens.text.body,
+    color: tokens.color.primary,
+    fontWeight: tokens.weight.bold,
   },
 
   header: {
@@ -598,5 +613,4 @@ const styles = {
     lineHeight: 20,
     textAlign: "center" as const,
   },
-
 } as const;

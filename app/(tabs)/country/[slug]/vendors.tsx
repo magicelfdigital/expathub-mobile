@@ -16,7 +16,7 @@ export default function CountryVendorsScreen() {
   const { slug } = useLocalSearchParams<{ slug?: string }>();
   const { selectedCountrySlug } = useCountry();
   const urlSlug = typeof slug === "string" ? slug : "";
-  const countrySlug = urlSlug || selectedCountrySlug || "";
+  const countrySlug = selectedCountrySlug || urlSlug || "";
 
   return (
     <Screen>
