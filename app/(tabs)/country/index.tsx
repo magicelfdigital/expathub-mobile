@@ -87,7 +87,7 @@ export default function CountryIndexScreen() {
                       onPress={() => {
                         console.log("NAV_COUNTRY", c.slug);
                         setSelectedCountrySlug(c.slug);
-                        router.push({ pathname: "/(tabs)/country/[slug]", params: { slug: c.slug } } as any);
+                        router.navigate({ pathname: "/(tabs)/country/[slug]", params: { slug: c.slug } } as any);
                       }}
                       style={[styles.rowCard, isSelected ? styles.rowCardSelected : null]}
                     >
