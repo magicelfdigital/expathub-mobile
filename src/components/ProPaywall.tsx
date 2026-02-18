@@ -123,16 +123,20 @@ export function ProPaywall({
         pendingPurchaseHandled.current = true;
         await clearPendingPurchase();
 
+        await new Promise((r) => setTimeout(r, 800));
+        if (cancelled) return;
+
         if (pending.type === "decision_pass") {
-          handleDecisionPassPurchase();
+          await handleDecisionPassPurchase();
         } else if (pending.type === "country_lifetime" && pending.countrySlug) {
           console.log(`[PURCHASE] Resuming country_lifetime with stored slug=${pending.countrySlug}`);
-          handleCountryUnlock(pending.countrySlug);
+          await handleCountryUnlock(pending.countrySlug);
         } else if (pending.type === "monthly") {
-          handleMonthlySubscribe();
+          await handleMonthlySubscribe();
         }
       } catch (e) {
         console.log(`[PURCHASE] Error resuming pending purchase: ${e}`);
+        setError("We couldn't start your purchase automatically. Please tap the purchase button to try again.");
       }
     })();
 
