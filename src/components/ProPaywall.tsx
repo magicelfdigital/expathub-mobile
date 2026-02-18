@@ -157,7 +157,7 @@ export function ProPaywall({
     if (!user) {
       console.log("[PURCHASE] Decision Pass tapped but user not logged in — redirecting to auth");
       await storePendingPurchase("decision_pass", resolvedCountrySlug);
-      router.push("/auth");
+      router.push("/auth?mode=register");
       return;
     }
     setBusy(true);
@@ -229,7 +229,7 @@ export function ProPaywall({
     if (!user) {
       console.log(`[PURCHASE] Country unlock tapped but user not logged in — storing slug=${slug}, redirecting to auth`);
       await storePendingPurchase("country_lifetime", slug);
-      router.push("/auth");
+      router.push("/auth?mode=register");
       return;
     }
     setBusy(true);
@@ -300,7 +300,7 @@ export function ProPaywall({
     if (!user) {
       console.log("[PURCHASE] Monthly tapped but user not logged in — redirecting to auth");
       await storePendingPurchase("monthly", resolvedCountrySlug);
-      router.push("/auth");
+      router.push("/auth?mode=register");
       return;
     }
     setBusy(true);

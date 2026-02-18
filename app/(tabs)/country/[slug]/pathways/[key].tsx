@@ -132,7 +132,7 @@ export default function PathwayScreen() {
               You have access to this Decision Brief. Sign in to view it and keep your access synced.
             </Text>
             <Pressable
-              onPress={() => router.push("/auth")}
+              onPress={() => router.push("/auth?mode=register")}
               style={({ pressed }) => [authGateStyles.cta, pressed && { opacity: 0.85 }]}
             >
               <Text style={authGateStyles.ctaText}>Sign In or Create Account</Text>
