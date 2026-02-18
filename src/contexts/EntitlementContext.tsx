@@ -119,11 +119,13 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       if (Platform.OS === "web") {
         try { base = getApiUrl().replace(/\/$/, ""); } catch { /* use default */ }
       }
-      const res = await fetch(`${base}/api/auth`, {
+      const res = await fetch(`${base}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
         redirect: "follow",
       });
       if (!res.ok) return false;
+      const contentType = res.headers.get("content-type") ?? "";
+      if (!contentType.includes("application/json")) return false;
       const data = await res.json();
       return Boolean(data?.hasProAccess || data?.subscription?.active || data?.user?.hasProAccess);
     } catch {
