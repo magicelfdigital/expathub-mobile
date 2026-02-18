@@ -194,7 +194,9 @@ export function ProPaywall({
           else router.back();
           return;
         }
+        console.log("[PURCHASE] Decision Pass: user cancelled payment");
         trackEvent("purchase_cancelled", { type: "decision_pass", platform: Platform.OS });
+        setError(null);
         return;
       }
       if ((result.status === "purchased" || result.status === "already_owned") && result.hasProAccess) {
@@ -267,7 +269,9 @@ export function ProPaywall({
           else router.back();
           return;
         }
+        console.log(`[PURCHASE] Country unlock: user cancelled payment for ${slug}`);
         trackEvent("purchase_cancelled", { type: "country_lifetime", country: slug, platform: Platform.OS });
+        setError(null);
         return;
       }
       if ((result.status === "purchased" || result.status === "already_owned") && result.hasProAccess) {
@@ -344,7 +348,9 @@ export function ProPaywall({
             else router.back();
             return;
           }
+          console.log("[PURCHASE] Monthly: user cancelled payment");
           trackEvent("purchase_cancelled", { type: "monthly_subscription", platform: Platform.OS });
+          setError(null);
           return;
         }
         if ((result.status === "purchased" || result.status === "already_owned") && result.hasProAccess) {

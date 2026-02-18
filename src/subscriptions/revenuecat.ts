@@ -309,9 +309,15 @@ export type PurchaseResult = {
 export async function purchasePackage(
   productId: string,
 ): Promise<PurchaseResult> {
-  if (!initialized) return { status: "cancelled", hasProAccess: false };
+  if (!initialized) {
+    rcLog(`purchasePackage: RC not initialized, cannot purchase ${productId}`);
+    throw new Error("Purchase system is not ready. Please restart the app and try again.");
+  }
   const rc = await loadPurchases();
-  if (!rc) return { status: "cancelled", hasProAccess: false };
+  if (!rc) {
+    rcLog(`purchasePackage: Purchases module not available for ${productId}`);
+    throw new Error("Purchase system is not available. Please restart the app and try again.");
+  }
 
   try {
     rcLog(`purchasePackage: initiating purchase for productId=${productId}`);

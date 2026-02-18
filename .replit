@@ -83,5 +83,5 @@ EXPO_PUBLIC_RC_MONTHLY_PRODUCT = "pro_monthly"
 EXPO_PUBLIC_RC_ANNUAL_PRODUCT = "pro_annual"
 
 [userenv.shared]
-EXPO_PUBLIC_RC_IOS_KEY = "test_gmdwCXQEfGyDoYuVhXbfNPxMSJT"
-EXPO_PUBLIC_RC_ANDROID_KEY = "test_gmdwCXQEfGyDoYuVhXbfNPxMSJT"
+EXPO_PUBLIC_RC_IOS_KEY = "appl_uAcQgNADjxGBEvUuqgvaoYjIaaz"
+EXPO_PUBLIC_RC_ANDROID_KEY = "appl_uAcQgNADjxGBEvUuqgvaoYjIaaz"
