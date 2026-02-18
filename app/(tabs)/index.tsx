@@ -179,7 +179,7 @@ export default function HomeScreen() {
             </View>
 
             <Pressable
-              onPress={() => Linking.openURL("https://expathub.world")}
+              onPress={() => Linking.openURL("https://expathub.website")}
               style={({ pressed }) => [styles.websiteCta, pressed && { opacity: 0.85 }]}
             >
               <Text style={styles.websiteCtaText}>Check out our website at</Text>
@@ -193,11 +193,11 @@ export default function HomeScreen() {
             <View style={styles.footer}>
               <View style={styles.footerDivider} />
               <View style={styles.footerLinks}>
-                <Pressable onPress={() => { Linking.openURL("https://expathub.world/privacy"); }} hitSlop={8}>
+                <Pressable onPress={() => { Linking.openURL("https://expathub.website/privacy"); }} hitSlop={8}>
                   <Text style={styles.footerLinkText}>Privacy Policy</Text>
                 </Pressable>
                 <Text style={styles.footerDot}>&middot;</Text>
-                <Pressable onPress={() => { Linking.openURL("https://expathub.world/terms"); }} hitSlop={8}>
+                <Pressable onPress={() => { Linking.openURL("https://expathub.website/terms"); }} hitSlop={8}>
                   <Text style={styles.footerLinkText}>Terms of Service</Text>
                 </Pressable>
                 <Text style={styles.footerDot}>&middot;</Text>
