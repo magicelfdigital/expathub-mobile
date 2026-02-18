@@ -2,7 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "node:http";
 import Stripe from "stripe";
 
-const AUTH_API_URL = process.env.EXPO_PUBLIC_AUTH_API_URL || "https://www.expathub.world";
+const AUTH_API_URL = "https://www.expathub.website";
 const PASSWORD_API_URL = "https://www.expathub.website";
 
 function getStripe(): Stripe | null {
@@ -18,26 +18,38 @@ function getBaseUrl(req: Request): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  app.all("/api/auth", async (req: Request, res: Response) => {
+  app.post("/api/auth/login", async (req: Request, res: Response) => {
+    try {
+      const upstream = await fetch(`${AUTH_API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req.body),
+      });
+      const text = await upstream.text();
+      res.status(upstream.status);
+      upstream.headers.forEach((value, key) => {
+        if (key.toLowerCase() === "content-type") {
+          res.setHeader(key, value);
+        }
+      });
+      res.send(text);
+    } catch (err: any) {
+      res.status(502).json({ error: "Auth service unavailable" });
+    }
+  });
+
+  app.get("/api/auth/me", async (req: Request, res: Response) => {
     try {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       const authHeader = req.headers.authorization;
       if (authHeader) {
         headers["Authorization"] = authHeader;
       }
-
-      const fetchOptions: RequestInit = {
-        method: req.method,
+      const upstream = await fetch(`${AUTH_API_URL}/api/auth/me`, {
+        method: "GET",
         headers,
-      };
-
-      if (req.method === "POST" && req.body) {
-        fetchOptions.body = JSON.stringify(req.body);
-      }
-
-      const upstream = await fetch(`${AUTH_API_URL}/api/auth`, fetchOptions);
+      });
       const text = await upstream.text();
-
       res.status(upstream.status);
       upstream.headers.forEach((value, key) => {
         if (key.toLowerCase() === "content-type") {
@@ -67,6 +79,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(text);
     } catch (err: any) {
       res.status(502).json({ error: "Registration service unavailable" });
+    }
+  });
+
+  app.post("/api/auth/logout", async (req: Request, res: Response) => {
+    try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const authHeader = req.headers.authorization;
+      if (authHeader) {
+        headers["Authorization"] = authHeader;
+      }
+      const upstream = await fetch(`${AUTH_API_URL}/api/auth/logout`, {
+        method: "POST",
+        headers,
+      });
+      const text = await upstream.text();
+      res.status(upstream.status);
+      upstream.headers.forEach((value, key) => {
+        if (key.toLowerCase() === "content-type") {
+          res.setHeader(key, value);
+        }
+      });
+      res.send(text);
+    } catch (err: any) {
+      res.status(502).json({ error: "Auth service unavailable" });
     }
   });
 
