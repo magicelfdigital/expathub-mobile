@@ -50,6 +50,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/auth/register", async (req: Request, res: Response) => {
+    try {
+      const upstream = await fetch(`${PASSWORD_API_URL}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req.body),
+      });
+      const text = await upstream.text();
+      res.status(upstream.status);
+      upstream.headers.forEach((value, key) => {
+        if (key.toLowerCase() === "content-type") {
+          res.setHeader(key, value);
+        }
+      });
+      res.send(text);
+    } catch (err: any) {
+      res.status(502).json({ error: "Registration service unavailable" });
+    }
+  });
+
   app.post("/api/auth/forgot-password", async (req: Request, res: Response) => {
     try {
       const upstream = await fetch(`${PASSWORD_API_URL}/api/auth/forgot-password`, {
