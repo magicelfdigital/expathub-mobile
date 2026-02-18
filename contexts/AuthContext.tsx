@@ -11,7 +11,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { loginUser, logoutUser } from "@/src/subscriptions/revenuecat";
 import { getApiUrl } from "@/lib/query-client";
 
-const AUTH_API_URL = process.env.EXPO_PUBLIC_AUTH_API_URL ?? "https://www.expathub.website";
+const AUTH_API_URL = process.env.EXPO_PUBLIC_AUTH_API_URL ?? "https://www.expathub.world";
 const REGISTER_API_URL = "https://www.expathub.website";
 const TOKEN_KEY = "auth_jwt_token";
 
