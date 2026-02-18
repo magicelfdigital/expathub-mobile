@@ -186,27 +186,36 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
         }
       } else {
         if (!isRCInitialized()) {
-          gateLog("ACCESS DENIED: RevenueCat not initialized — fail closed");
-          setPurchasesError("Purchase system not configured. Please restart the app.");
-          setHasProAccess(false);
-          setHasFullAccess(false);
-          setAccessType("none");
-          setSource("none");
-          setLoading(false);
-          return;
+          if (__DEV__) {
+            gateLog("DEV MODE: RevenueCat not initialized — skipping RC checks, using local state only");
+          } else {
+            gateLog("ACCESS DENIED: RevenueCat not initialized — fail closed");
+            setPurchasesError("Purchase system not configured. Please restart the app.");
+            setHasProAccess(false);
+            setHasFullAccess(false);
+            setAccessType("none");
+            setSource("none");
+            setLoading(false);
+            return;
+          }
         }
 
+        if (isRCInitialized()) {
         const result = await getCustomerInfo();
 
         if (result.error) {
-          gateLog(`ACCESS DENIED: CustomerInfo error — ${result.error}`);
-          setPurchasesError(result.error);
-          setHasProAccess(false);
-          setHasFullAccess(false);
-          setAccessType("none");
-          setSource("none");
-          setLoading(false);
-          return;
+          if (__DEV__) {
+            gateLog(`DEV MODE: CustomerInfo error (${result.error}) — continuing with local state`);
+          } else {
+            gateLog(`ACCESS DENIED: CustomerInfo error — ${result.error}`);
+            setPurchasesError(result.error);
+            setHasProAccess(false);
+            setHasFullAccess(false);
+            setAccessType("none");
+            setSource("none");
+            setLoading(false);
+            return;
+          }
         }
 
         hasSub = Boolean(result.hasProAccess);
@@ -246,20 +255,29 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
         }
 
         if (!hasSub && localPassActive) {
-          gateLog("Local Decision Pass found but NO RC entitlement — verifying via RC takes priority, denying local-only claim");
-          localPassActive = false;
-          setDecisionPassExpiresAt(null);
-          setDecisionPassDaysLeft(null);
+          if (__DEV__) {
+            gateLog("DEV MODE: Honoring local Decision Pass without RC confirmation");
+          } else {
+            gateLog("Local Decision Pass found but NO RC entitlement — verifying via RC takes priority, denying local-only claim");
+            localPassActive = false;
+            setDecisionPassExpiresAt(null);
+            setDecisionPassDaysLeft(null);
+          }
         }
 
         if (!hasSub && localCountries.length > 0) {
-          const rcCountryKeys = Object.keys(result.entitlements ?? {}).filter((k) => k.startsWith(ENTITLEMENT_COUNTRY_PREFIX));
-          if (rcCountryKeys.length === 0) {
-            gateLog("Local country unlocks found but NO RC country entitlements — denying local-only claim");
-            localCountries = [];
-            setUnlockedCountries([]);
+          if (__DEV__) {
+            gateLog("DEV MODE: Honoring local country unlocks without RC confirmation");
+          } else {
+            const rcCountryKeys = Object.keys(result.entitlements ?? {}).filter((k) => k.startsWith(ENTITLEMENT_COUNTRY_PREFIX));
+            if (rcCountryKeys.length === 0) {
+              gateLog("Local country unlocks found but NO RC country entitlements — denying local-only claim");
+              localCountries = [];
+              setUnlockedCountries([]);
+            }
           }
         }
+        } // close if (isRCInitialized())
       }
 
       if (!hasSub && token) {
@@ -277,6 +295,12 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
         setAccessType("subscription");
         setSource(entSource);
         gateLog(`Final: ACCESS GRANTED via ${entSource}`);
+      } else if (localPassActive) {
+        setHasProAccess(true);
+        setHasFullAccess(true);
+        setAccessType("decision_pass");
+        setSource("revenuecat");
+        gateLog("Final: ACCESS GRANTED via local Decision Pass");
       } else if (unlockedCountries.length > 0 || localCountries.length > 0) {
         setHasProAccess(true);
         setHasFullAccess(false);

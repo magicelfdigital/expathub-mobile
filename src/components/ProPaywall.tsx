@@ -166,12 +166,30 @@ export function ProPaywall({
     console.log(`[PURCHASE] Decision Pass tapped, productId=${RC_DECISION_PASS_PRODUCT}`);
     try {
       if (Platform.OS === "web") {
+        if (__DEV__) {
+          console.log("[PURCHASE] DEV MODE: Simulating Decision Pass purchase on web");
+          await recordDecisionPassPurchase();
+          trackEvent("purchase_success", { type: "decision_pass", platform: "web", status: "dev_simulated" });
+          await refresh();
+          if (onClose) onClose();
+          else router.back();
+          return;
+        }
         setError("The 30-Day Decision Pass is available on the mobile app. Open ExpatHub on your phone to purchase.");
         return;
       }
       const result = await purchasePackage(RC_DECISION_PASS_PRODUCT);
       console.log(`[PURCHASE] Decision Pass result: status=${result.status}, hasProAccess=${result.hasProAccess}`);
       if (result.status === "cancelled") {
+        if (__DEV__) {
+          console.log("[PURCHASE] DEV MODE: Purchase cancelled/unavailable — simulating success");
+          await recordDecisionPassPurchase();
+          trackEvent("purchase_success", { type: "decision_pass", platform: Platform.OS, status: "dev_simulated" });
+          await refresh();
+          if (onClose) onClose();
+          else router.back();
+          return;
+        }
         trackEvent("purchase_cancelled", { type: "decision_pass", platform: Platform.OS });
         return;
       }
@@ -187,6 +205,15 @@ export function ProPaywall({
         setError("Purchase could not be confirmed. Please try again or restore purchases.");
       }
     } catch (e: any) {
+      if (__DEV__) {
+        console.log(`[PURCHASE] DEV MODE: Purchase error (${e?.message}) — simulating success`);
+        await recordDecisionPassPurchase();
+        trackEvent("purchase_success", { type: "decision_pass", platform: Platform.OS, status: "dev_simulated" });
+        await refresh();
+        if (onClose) onClose();
+        else router.back();
+        return;
+      }
       const msg = e?.message ?? "Unknown error";
       console.log(`[PURCHASE] Decision Pass error: ${msg}`);
       trackEvent("purchase_error", { type: "decision_pass", error: msg });
@@ -212,12 +239,30 @@ export function ProPaywall({
     console.log(`[PURCHASE] Country unlock initiated, slug=${slug}, productId=${productId}${slugOverride ? " (from pending purchase)" : ""}`);
     try {
       if (Platform.OS === "web") {
+        if (__DEV__) {
+          console.log(`[PURCHASE] DEV MODE: Simulating country unlock for ${slug} on web`);
+          await recordCountryUnlock(slug);
+          trackEvent("purchase_success", { type: "country_lifetime", country: slug, platform: "web", status: "dev_simulated" });
+          await refresh();
+          if (onClose) onClose();
+          else router.back();
+          return;
+        }
         setError("Country unlocks are available on the mobile app. Open ExpatHub on your phone to purchase.");
         return;
       }
       const result = await purchasePackage(productId);
       console.log(`[PURCHASE] Country unlock result: status=${result.status}, hasProAccess=${result.hasProAccess}, slug=${slug}`);
       if (result.status === "cancelled") {
+        if (__DEV__) {
+          console.log(`[PURCHASE] DEV MODE: Country unlock cancelled/unavailable for ${slug} — simulating success`);
+          await recordCountryUnlock(slug);
+          trackEvent("purchase_success", { type: "country_lifetime", country: slug, platform: Platform.OS, status: "dev_simulated" });
+          await refresh();
+          if (onClose) onClose();
+          else router.back();
+          return;
+        }
         trackEvent("purchase_cancelled", { type: "country_lifetime", country: slug, platform: Platform.OS });
         return;
       }
@@ -233,6 +278,15 @@ export function ProPaywall({
         setError("Purchase could not be confirmed. Please try again or restore purchases.");
       }
     } catch (e: any) {
+      if (__DEV__) {
+        console.log(`[PURCHASE] DEV MODE: Country unlock error for ${slug} (${e?.message}) — simulating success`);
+        await recordCountryUnlock(slug);
+        trackEvent("purchase_success", { type: "country_lifetime", country: slug, platform: Platform.OS, status: "dev_simulated" });
+        await refresh();
+        if (onClose) onClose();
+        else router.back();
+        return;
+      }
       const msg = e?.message ?? "Unknown error";
       console.log(`[PURCHASE] Country unlock error for ${slug}: ${msg}`);
       trackEvent("purchase_error", { type: "country_lifetime", country: slug, error: msg });
@@ -255,6 +309,15 @@ export function ProPaywall({
     console.log(`[PURCHASE] Monthly subscription tapped, productId=${RC_MONTHLY_PRODUCT}`);
     try {
       if (Platform.OS === "web") {
+        if (__DEV__) {
+          console.log("[PURCHASE] DEV MODE: Simulating monthly subscription on web");
+          await recordDecisionPassPurchase();
+          trackEvent("purchase_success", { type: "monthly_subscription", platform: "web", status: "dev_simulated" });
+          await refresh();
+          if (onClose) onClose();
+          else router.back();
+          return;
+        }
         const priceId = process.env.EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID;
         if (!priceId) {
           setError("Payment is not configured yet. Please try again later.");
@@ -268,6 +331,15 @@ export function ProPaywall({
         const result = await purchasePackage(RC_MONTHLY_PRODUCT);
         console.log(`[PURCHASE] Monthly result: status=${result.status}, hasProAccess=${result.hasProAccess}`);
         if (result.status === "cancelled") {
+          if (__DEV__) {
+            console.log("[PURCHASE] DEV MODE: Monthly cancelled/unavailable — simulating success");
+            await recordDecisionPassPurchase();
+            trackEvent("purchase_success", { type: "monthly_subscription", platform: Platform.OS, status: "dev_simulated" });
+            await refresh();
+            if (onClose) onClose();
+            else router.back();
+            return;
+          }
           trackEvent("purchase_cancelled", { type: "monthly_subscription", platform: Platform.OS });
           return;
         }
@@ -283,6 +355,15 @@ export function ProPaywall({
         }
       }
     } catch (e: any) {
+      if (__DEV__) {
+        console.log(`[PURCHASE] DEV MODE: Monthly error (${e?.message}) — simulating success`);
+        await recordDecisionPassPurchase();
+        trackEvent("purchase_success", { type: "monthly_subscription", platform: Platform.OS, status: "dev_simulated" });
+        await refresh();
+        if (onClose) onClose();
+        else router.back();
+        return;
+      }
       const msg = e?.message ?? "Unknown error";
       console.log(`[PURCHASE] Monthly subscription error: ${msg}`);
       trackEvent("purchase_error", { type: "monthly_subscription", error: msg });
