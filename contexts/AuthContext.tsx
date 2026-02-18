@@ -12,6 +12,7 @@ import { loginUser, logoutUser } from "@/src/subscriptions/revenuecat";
 import { getApiUrl } from "@/lib/query-client";
 
 const AUTH_API_URL = process.env.EXPO_PUBLIC_AUTH_API_URL ?? "https://www.expathub.world";
+const REGISTER_API_URL = "https://www.expathub.website";
 const TOKEN_KEY = "auth_jwt_token";
 
 type User = {
@@ -167,10 +168,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const register = useCallback(async (email: string, password: string) => {
-    const data = await authFetch<{ token: string; user: User }>("/api/auth", {
+    const registerBase = Platform.OS === "web"
+      ? getAuthBase()
+      : REGISTER_API_URL.replace(/\/$/, "");
+
+    const res = await fetch(`${registerBase}/api/auth/register`, {
       method: "POST",
-      body: { action: "signin", email, password },
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
     });
+
+    if (!res.ok) {
+      const text = await res.text();
+      let message = `Registration failed (${res.status})`;
+      try {
+        const json = JSON.parse(text);
+        message = json.message || json.error || message;
+      } catch {
+        if (text) message = text;
+      }
+      throw new Error(message);
+    }
+
+    const data = await res.json() as { token: string; user: User };
     await saveToken(data.token);
     setToken(data.token);
     setUser(data.user);
