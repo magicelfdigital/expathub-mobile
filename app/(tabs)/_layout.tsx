@@ -31,7 +31,7 @@ function AccountButton() {
 
   return (
     <Pressable
-      onPress={() => router.push(user ? "/account" : ("/auth" as any))}
+      onPress={() => router.push(user ? "/account" : ("/auth?mode=register" as any))}
       hitSlop={12}
       style={{ marginRight: 16 }}
     >

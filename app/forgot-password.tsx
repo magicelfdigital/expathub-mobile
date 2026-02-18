@@ -72,7 +72,7 @@ export default function ForgotPasswordScreen() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace("/auth" as any);
+      router.replace("/auth?mode=login" as any);
     }
   };
 

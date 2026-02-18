@@ -53,7 +53,7 @@ export default function HomeScreen() {
           <View style={{ width: 28 }} />
           <View style={{ flex: 1 }} />
           <Pressable
-            onPress={() => router.push(user ? "/account" : ("/auth" as any))}
+            onPress={() => router.push(user ? "/account" : ("/auth?mode=register" as any))}
             hitSlop={12}
           >
             <Ionicons
@@ -124,7 +124,7 @@ export default function HomeScreen() {
                   resizeMode="contain"
                   style={[styles.welcomeLogo, { alignSelf: "center" }]}
                 />
-                <Text style={[styles.returningGreeting, { textAlign: "center" }]}>Welcome back</Text>
+                <Text style={[styles.returningGreeting, { textAlign: "center" }]}>{user ? "Welcome back" : "Continue exploring"}</Text>
 
                 <Pressable onPress={() => goCountryHub(selectedCountrySlug!)} style={styles.continueCard}>
                   <View style={styles.continueRow}>

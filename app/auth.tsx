@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { tokens } from "@/theme/tokens";
 
@@ -22,8 +23,9 @@ type Mode = "login" | "register";
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const params = useLocalSearchParams<{ mode?: string }>();
   const { login, register } = useAuth();
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(params.mode === "login" ? "login" : "register");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
