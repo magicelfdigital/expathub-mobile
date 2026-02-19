@@ -22,6 +22,7 @@ import {
   ENTITLEMENT_FULL_ACCESS,
   ENTITLEMENT_COUNTRY_PREFIX,
   DECISION_PASS_DURATION_DAYS,
+  VALID_PROMO_CODES,
 } from "@/src/config/subscription";
 import { trackEvent } from "@/src/lib/analytics";
 import { useAuth, AUTH_API_URL } from "@/contexts/AuthContext";
@@ -32,6 +33,7 @@ type AccessType = "decision_pass" | "country_lifetime" | "subscription" | "sandb
 
 const DECISION_PASS_KEY = "decision_pass_purchased_at";
 const COUNTRY_UNLOCKS_KEY = "country_lifetime_unlocks";
+const PROMO_CODE_KEY = "promo_code_redeemed";
 
 function gateLog(msg: string) {
   console.log(`[GATE] ${msg}`);
@@ -56,6 +58,9 @@ interface EntitlementContextValue {
   refresh: () => Promise<void>;
   recordDecisionPassPurchase: () => Promise<void>;
   recordCountryUnlock: (slug: string) => Promise<void>;
+  promoCodeActive: boolean;
+  redeemPromoCode: (code: string) => Promise<{ success: boolean; error?: string }>;
+  clearPromoCode: () => Promise<void>;
 }
 
 const EntitlementContext = createContext<EntitlementContextValue | undefined>(undefined);
@@ -83,10 +88,35 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   const [sandboxOverride, setSandboxOverrideState] = useState(false);
   const [rcConfigured, setRcConfigured] = useState(false);
   const [purchasesError, setPurchasesError] = useState<string | null>(null);
+  const [promoCodeActive, setPromoCodeActive] = useState(false);
 
   const setSandboxOverride = useCallback((value: boolean) => {
     if (!SANDBOX_ENABLED) return;
     setSandboxOverrideState(value);
+  }, []);
+
+  const redeemPromoCode = useCallback(async (code: string): Promise<{ success: boolean; error?: string }> => {
+    const normalized = code.trim().toUpperCase();
+    if (!VALID_PROMO_CODES.includes(normalized)) {
+      gateLog(`Promo code rejected: "${normalized}"`);
+      return { success: false, error: "Invalid code. Please check and try again." };
+    }
+    await AsyncStorage.setItem(PROMO_CODE_KEY, normalized);
+    setPromoCodeActive(true);
+    setHasProAccess(true);
+    setHasFullAccess(true);
+    setAccessType("sandbox");
+    setSource("sandbox");
+    gateLog(`Promo code redeemed: ${normalized}`);
+    trackEvent?.("promo_code_redeemed", { code: normalized });
+    return { success: true };
+  }, []);
+
+  const clearPromoCode = useCallback(async () => {
+    await AsyncStorage.removeItem(PROMO_CODE_KEY);
+    setPromoCodeActive(false);
+    gateLog("Promo code cleared");
+    trackEvent?.("promo_code_cleared", {});
   }, []);
 
   const recordDecisionPassPurchase = useCallback(async () => {
@@ -149,6 +179,26 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
         trackEvent?.("entitlement_refresh", { source: "sandbox", hasProAccess: true });
         return;
       }
+
+      try {
+        const storedPromo = await AsyncStorage.getItem(PROMO_CODE_KEY);
+        if (storedPromo && VALID_PROMO_CODES.includes(storedPromo)) {
+          gateLog(`ACCESS GRANTED: promo code active (${storedPromo})`);
+          setPromoCodeActive(true);
+          setHasProAccess(true);
+          setHasFullAccess(true);
+          setAccessType("sandbox");
+          setSource("sandbox");
+          setManagementURL(null);
+          setExpirationDate(null);
+          trackEvent?.("entitlement_refresh", { source: "promo_code", hasProAccess: true });
+          return;
+        } else if (storedPromo) {
+          gateLog(`Stored promo code no longer valid: ${storedPromo}`);
+          await AsyncStorage.removeItem(PROMO_CODE_KEY);
+          setPromoCodeActive(false);
+        }
+      } catch {}
 
       let localPassActive = false;
       let localCountries: string[] = [];
@@ -394,17 +444,18 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
 
   const hasCountryAccess = useCallback((slug: string): boolean => {
     if (SANDBOX_ENABLED && sandboxOverride) return true;
+    if (promoCodeActive) return true;
     if (hasFullAccess) return true;
     const normalizedSlug = slug.replace(/_/g, "-");
     return unlockedCountries.some((c) => c.replace(/_/g, "-") === normalizedSlug);
-  }, [sandboxOverride, hasFullAccess, unlockedCountries]);
+  }, [sandboxOverride, promoCodeActive, hasFullAccess, unlockedCountries]);
 
   const value = useMemo<EntitlementContextValue>(
     () => ({
-      hasProAccess: SANDBOX_ENABLED && sandboxOverride ? true : hasProAccess,
-      hasFullAccess: SANDBOX_ENABLED && sandboxOverride ? true : hasFullAccess,
-      accessType: SANDBOX_ENABLED && sandboxOverride ? "sandbox" : accessType,
-      source: SANDBOX_ENABLED && sandboxOverride ? "sandbox" : source,
+      hasProAccess: (SANDBOX_ENABLED && sandboxOverride) || promoCodeActive ? true : hasProAccess,
+      hasFullAccess: (SANDBOX_ENABLED && sandboxOverride) || promoCodeActive ? true : hasFullAccess,
+      accessType: (SANDBOX_ENABLED && sandboxOverride) || promoCodeActive ? "sandbox" : accessType,
+      source: (SANDBOX_ENABLED && sandboxOverride) || promoCodeActive ? "sandbox" : source,
       loading,
       sandboxMode: SANDBOX_ENABLED,
       managementURL,
@@ -419,8 +470,11 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       refresh,
       recordDecisionPassPurchase,
       recordCountryUnlock,
+      promoCodeActive,
+      redeemPromoCode,
+      clearPromoCode,
     }),
-    [hasProAccess, hasFullAccess, accessType, source, loading, sandboxOverride, managementURL, expirationDate, decisionPassExpiresAt, decisionPassDaysLeft, unlockedCountries, rcConfigured, purchasesError, hasCountryAccess, setSandboxOverride, refresh, recordDecisionPassPurchase, recordCountryUnlock]
+    [hasProAccess, hasFullAccess, accessType, source, loading, sandboxOverride, promoCodeActive, managementURL, expirationDate, decisionPassExpiresAt, decisionPassDaysLeft, unlockedCountries, rcConfigured, purchasesError, hasCountryAccess, setSandboxOverride, refresh, recordDecisionPassPurchase, recordCountryUnlock, redeemPromoCode, clearPromoCode]
   );
 
   return <EntitlementContext.Provider value={value}>{children}</EntitlementContext.Provider>;

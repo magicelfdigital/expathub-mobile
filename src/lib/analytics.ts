@@ -25,7 +25,9 @@ type AnalyticsEvent =
   | "purchase_tapped"
   | "purchase_success"
   | "purchase_cancelled"
-  | "purchase_error";
+  | "purchase_error"
+  | "promo_code_redeemed"
+  | "promo_code_cleared";
 
 type EventProperties = Record<string, string | number | boolean | undefined>;
 

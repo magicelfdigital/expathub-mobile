@@ -21,6 +21,9 @@ type SubscriptionContextValue = {
   refresh: () => Promise<void>;
   recordDecisionPassPurchase: () => Promise<void>;
   recordCountryUnlock: (slug: string) => Promise<void>;
+  promoCodeActive: boolean;
+  redeemPromoCode: (code: string) => Promise<{ success: boolean; error?: string }>;
+  clearPromoCode: () => Promise<void>;
 };
 
 const SubscriptionContext = createContext<SubscriptionContextValue | undefined>(undefined);
@@ -45,6 +48,9 @@ function SubscriptionBridge({ children }: { children: React.ReactNode }) {
     refresh,
     recordDecisionPassPurchase,
     recordCountryUnlock,
+    promoCodeActive,
+    redeemPromoCode,
+    clearPromoCode,
   } = useEntitlement();
 
   const value = useMemo<SubscriptionContextValue>(
@@ -76,8 +82,11 @@ function SubscriptionBridge({ children }: { children: React.ReactNode }) {
       refresh,
       recordDecisionPassPurchase,
       recordCountryUnlock,
+      promoCodeActive,
+      redeemPromoCode,
+      clearPromoCode,
     }),
-    [hasProAccess, hasFullAccess, accessType, source, loading, sandboxMode, managementURL, expirationDate, decisionPassExpiresAt, decisionPassDaysLeft, unlockedCountries, rcConfigured, purchasesError, hasCountryAccess, setSandboxOverride, refresh, recordDecisionPassPurchase, recordCountryUnlock]
+    [hasProAccess, hasFullAccess, accessType, source, loading, sandboxMode, managementURL, expirationDate, decisionPassExpiresAt, decisionPassDaysLeft, unlockedCountries, rcConfigured, purchasesError, hasCountryAccess, setSandboxOverride, refresh, recordDecisionPassPurchase, recordCountryUnlock, promoCodeActive, redeemPromoCode, clearPromoCode]
   );
 
   return <SubscriptionContext.Provider value={value}>{children}</SubscriptionContext.Provider>;
