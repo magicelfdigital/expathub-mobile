@@ -47,7 +47,17 @@ export function isRCInitialized(): boolean {
   return initialized;
 }
 
-export async function initPurchases(): Promise<boolean> {
+export async function initRevenueCat(): Promise<{ ok: boolean }> {
+  const result = await _initRevenueCat();
+  return { ok: result };
+}
+
+export const initPurchases = async (): Promise<boolean> => {
+  const result = await initRevenueCat();
+  return result.ok;
+};
+
+async function _initRevenueCat(): Promise<boolean> {
   if (Platform.OS === "web") {
     rcLog("Skipping init on web platform");
     return false;
@@ -69,13 +79,14 @@ export async function initPurchases(): Promise<boolean> {
   }
 
   try {
-    if (__DEV__ && LOG_LEVEL) {
+    if (LOG_LEVEL) {
       rc.setLogLevel(LOG_LEVEL.DEBUG);
     }
 
+    rcLog(`RC key prefix: ${apiKey.slice(0, 5)}`);
     rc.configure({ apiKey });
     initialized = true;
-    rcLog(`RevenueCat configured (key ends with: ${maskKey(apiKey)})`);
+    rcLog("RevenueCat configured");
 
     try {
       const info = await rc.getCustomerInfo();
@@ -88,7 +99,7 @@ export async function initPurchases(): Promise<boolean> {
 
     return true;
   } catch (e) {
-    rcLog(`FAILED: Configure threw: ${e}`);
+    rcLog(`RevenueCat init failed: ${e}`);
     return false;
   }
 }

@@ -1,0 +1,113 @@
+I need you to audit and fix my RevenueCat initialization for iOS in an Expo React Native app.
+
+Context:
+
+RevenueCat SDK: react-native-purchases
+
+API key is provided via EAS secret: EXPO_PUBLIC_RC_IOS_KEY
+
+I use a wrapper at: src/subscriptions/revenuecat.ts
+
+The app imports from "@/src/subscriptions/revenuecat"
+
+I also use a hook/provider: useSubscription()
+
+Purchases are currently unreliable in TestFlight
+
+Do NOT refactor unrelated code
+
+Do NOT change my architecture
+
+Only ensure RevenueCat is initialized correctly and exactly once at app startup
+
+Tasks:
+
+Open src/subscriptions/revenuecat.ts.
+
+Ensure there is a function named initRevenueCat() that:
+
+Dynamically imports "react-native-purchases"
+
+Sets log level to DEBUG
+
+Reads process.env.EXPO_PUBLIC_RC_IOS_KEY
+
+Logs the key prefix using apiKey.slice(0, 5)
+
+Calls Purchases.configure({ apiKey })
+
+Guards against double initialization
+
+Returns a result object { ok: boolean }
+
+Ensure initialization only runs on native platforms (ios/android), not web.
+
+Ensure initRevenueCat() is called once at app startup:
+
+Find my SubscriptionProvider or useSubscription hook
+
+Add a useEffect that calls initRevenueCat() exactly once
+
+Do NOT move business logic
+
+Do NOT re-architect state
+
+Do NOT modify paywall logic.
+
+Do NOT modify entitlement logic.
+
+Do NOT modify build configuration.
+
+Do NOT rename environment variables.
+
+Confirm that:
+
+EXPO_PUBLIC_RC_IOS_KEY is referenced exactly
+
+No old variable names like EXPO_PUBLIC_RC_IOS_API_KEY exist
+
+Purchases.configure is called before any getOfferings or purchase calls
+
+Add clear console logs:
+
+"RC key prefix:"
+
+"RevenueCat configured"
+
+"RevenueCat init failed"
+
+After changes:
+
+Show me the final src/subscriptions/revenuecat.ts
+
+Show me the diff of any file you modified
+
+Do not make speculative changes
+
+End.
+
+Why this prompt works
+
+It:
+
+Constrains scope
+
+Prevents Replit from rewriting your app
+
+Forces deterministic initialization
+
+Prevents double configure
+
+Ensures key is actually injected
+
+Keeps you from burning another build
+
+After Replit responds, paste back:
+
+The final revenuecat.ts
+
+Any SubscriptionProvider changes
+
+Then I will sanity-check it before you rebuild.
+
+We are not wasting another build credit.
