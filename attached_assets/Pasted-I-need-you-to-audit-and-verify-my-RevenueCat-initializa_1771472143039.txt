@@ -1,0 +1,81 @@
+I need you to audit and verify my RevenueCat initialization implementation for iOS in my Expo React Native app before I rebuild.
+
+Context:
+
+RevenueCat SDK: react-native-purchases
+
+API key: process.env.EXPO_PUBLIC_RC_IOS_KEY
+
+Initialization lives in: src/subscriptions/revenuecat.ts
+
+EntitlementContext.tsx calls initPurchases() on mount
+
+I just made changes to:
+
+Always enable DEBUG log level
+
+Log apiKey.slice(0, 5) to confirm appl_ prefix
+
+Add initRevenueCat() returning { ok: boolean }
+
+Keep initPurchases() as a wrapper so no call sites break
+
+I need you to do the following:
+
+Show me the full contents of:
+
+src/subscriptions/revenuecat.ts
+
+The useEffect in EntitlementContext.tsx that calls initPurchases()
+
+Verify all of the following conditions explicitly:
+
+A. Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG) runs BEFORE configure()
+B. The code logs:
+
+"RC key prefix: " + apiKey.slice(0, 5)
+
+"RevenueCat configured"
+
+"RevenueCat init failed"
+C. The environment variable referenced is EXACTLY:
+process.env.EXPO_PUBLIC_RC_IOS_KEY
+D. There are NO references anywhere to:
+EXPO_PUBLIC_RC_IOS_API_KEY
+E. Initialization only runs on native platforms (Platform.OS !== "web")
+F. There is a double-initialization guard (e.g., initialized flag)
+G. Purchases.configure({ apiKey }) is called before any getOfferings or purchase calls
+H. The function used by EntitlementContext is still initPurchases() (no broken imports)
+I. If initRevenueCat() was added, confirm it is safely aliased and does not break existing calls
+
+Confirm whether:
+
+The import style is correct for react-native-purchases
+(i.e., default import vs named import)
+
+Purchases is the correct object type when setLogLevel and configure are called
+
+If you find ANY structural risk that could cause:
+
+Missing initialization
+
+Configure not running
+
+Env var undefined in production build
+
+Initialization running too late
+
+Silent failure in TestFlight
+
+Explain exactly what the risk is.
+Do NOT refactor the architecture.
+Suggest minimal changes only.
+
+Do NOT modify files automatically.
+I want analysis + verification only.
+No speculative rewrites.
+
+Goal:
+I want a final pre-build sanity check so I do not waste another EAS build credit.
+
+End.
