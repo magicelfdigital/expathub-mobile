@@ -9,6 +9,7 @@ import {
   ScrollView,
   Switch,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -82,9 +83,16 @@ export function ProPaywall({
     refresh,
     recordDecisionPassPurchase,
     recordCountryUnlock,
+    promoCodeActive,
+    redeemPromoCode,
+    clearPromoCode,
   } = useSubscription();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPromoInput, setShowPromoInput] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoSuccess, setPromoSuccess] = useState(false);
   const insets = useSafeAreaInsets();
   const resolvedCountrySlug = countrySlug ?? selectedCountrySlug ?? undefined;
   const pendingPurchaseHandled = useRef(false);
@@ -425,6 +433,25 @@ export function ProPaywall({
     }
   }
 
+  async function handlePromoSubmit() {
+    if (!promoCode.trim()) return;
+    setBusy(true);
+    setPromoError(null);
+    const result = await redeemPromoCode(promoCode);
+    if (result.success) {
+      setPromoSuccess(true);
+      setPromoError(null);
+      await refresh();
+      setTimeout(() => {
+        if (onClose) onClose();
+        else router.back();
+      }, 1200);
+    } else {
+      setPromoError(result.error ?? "Invalid code");
+    }
+    setBusy(false);
+  }
+
   function handleClose() {
     trackEvent("paywall_dismissed", {
       countrySlug: resolvedCountrySlug ?? "none",
@@ -522,7 +549,7 @@ export function ProPaywall({
               : accessType === "subscription"
                 ? "Monthly subscription"
                 : accessType === "sandbox"
-                  ? "Sandbox mode (testing)"
+                  ? promoCodeActive ? "Access code applied" : "Sandbox mode (testing)"
                   : ""}
           </Text>
           {decisionPassExpiresAt ? (
@@ -634,6 +661,51 @@ export function ProPaywall({
               <Text style={s.restoreText}>Restore Purchases</Text>
             )}
           </Pressable>
+
+          {!showPromoInput ? (
+            <Pressable onPress={() => setShowPromoInput(true)} style={s.restoreButton}>
+              <Text style={s.promoLinkText}>Have a code?</Text>
+            </Pressable>
+          ) : (
+            <View style={s.promoCard}>
+              <Text style={s.promoLabel}>Enter your access code</Text>
+              <View style={s.promoInputRow}>
+                <TextInput
+                  style={s.promoInput}
+                  placeholder="e.g. EXPATHUB-REVIEW-2026"
+                  placeholderTextColor={tokens.color.subtext}
+                  value={promoCode}
+                  onChangeText={setPromoCode}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  editable={!promoSuccess}
+                />
+                <Pressable
+                  onPress={handlePromoSubmit}
+                  disabled={busy || !promoCode.trim() || promoSuccess}
+                  style={({ pressed }) => [
+                    s.promoSubmitBtn,
+                    (!promoCode.trim() || promoSuccess) && s.promoSubmitDisabled,
+                    pressed && s.ctaPressed,
+                  ]}
+                >
+                  {busy ? (
+                    <ActivityIndicator size="small" color={tokens.color.white} />
+                  ) : promoSuccess ? (
+                    <Ionicons name="checkmark" size={20} color={tokens.color.white} />
+                  ) : (
+                    <Ionicons name="arrow-forward" size={20} color={tokens.color.white} />
+                  )}
+                </Pressable>
+              </View>
+              {promoError ? (
+                <Text style={s.promoErrorText}>{promoError}</Text>
+              ) : null}
+              {promoSuccess ? (
+                <Text style={s.promoSuccessText}>Access unlocked</Text>
+              ) : null}
+            </View>
+          )}
 
           <View style={s.coverageNote}>
             <Ionicons name="information-circle-outline" size={16} color={tokens.color.subtext} />
@@ -1009,6 +1081,60 @@ const s = {
     fontSize: tokens.text.small,
     color: tokens.color.subtext,
     lineHeight: 18,
+  },
+  promoLinkText: {
+    color: tokens.color.subtext,
+    fontSize: tokens.text.small,
+    textDecorationLine: "underline" as const,
+  },
+  promoCard: {
+    padding: tokens.space.lg,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    backgroundColor: tokens.color.surface,
+    gap: 10,
+  },
+  promoLabel: {
+    fontSize: tokens.text.small,
+    fontWeight: tokens.weight.bold,
+    color: tokens.color.text,
+  },
+  promoInputRow: {
+    flexDirection: "row" as const,
+    gap: 8,
+    alignItems: "center" as const,
+  },
+  promoInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    borderRadius: tokens.radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: tokens.text.body,
+    color: tokens.color.text,
+    backgroundColor: tokens.color.bg,
+  },
+  promoSubmitBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: tokens.radius.md,
+    backgroundColor: tokens.color.primary,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  promoSubmitDisabled: {
+    opacity: 0.4,
+  },
+  promoErrorText: {
+    fontSize: tokens.text.small,
+    color: "#dc2626",
+  },
+  promoSuccessText: {
+    fontSize: tokens.text.small,
+    color: tokens.color.primary,
+    fontWeight: tokens.weight.bold,
   },
   disclaimer: {
     fontSize: 10,

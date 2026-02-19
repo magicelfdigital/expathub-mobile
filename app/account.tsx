@@ -26,6 +26,7 @@ export default function AccountScreen() {
     decisionPassDaysLeft,
     decisionPassExpiresAt,
     unlockedCountries,
+    promoCodeActive,
   } = useSubscription();
 
   const WEB_TOP = Platform.OS === "web" ? 67 : 0;
@@ -59,7 +60,7 @@ export default function AccountScreen() {
       case "subscription":
         return "Monthly";
       case "sandbox":
-        return "Sandbox";
+        return promoCodeActive ? "Access Code" : "Sandbox";
       default:
         return "Free";
     }
