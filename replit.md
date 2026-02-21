@@ -108,7 +108,7 @@ Preferred communication style: Simple, everyday language.
 
 Before publishing or submitting to app stores, address these items:
 
-- [ ] **Swap privacy policy & terms URLs** — Currently using Replit dev domain. Update to `https://magicelfdigital.com/privacy` and `https://magicelfdigital.com/terms` in Google Play Console, Apple App Store Connect, and in the app footer links (app/(tabs)/index.tsx).
+- [x] **Swap privacy policy & terms URLs** — Updated to `https://expathub.website/privacy` and `https://expathub.website/terms` in `src/config/subscription.ts`. Also update in Google Play Console and Apple App Store Connect.
 - [ ] **RevenueCat production keys** — Replace test API key with production keys from RevenueCat dashboard (starts with `appl_` for iOS, `goog_` for Android). Update `EXPO_PUBLIC_RC_IOS_KEY` and `EXPO_PUBLIC_RC_ANDROID_KEY`.
 - [ ] **Configure RevenueCat dashboard** — Create entitlements `decision_access`, `full_access_subscription`, and `country_<slug>` for each launch country. Create products: `decision_pass_30d` (consumable), `country_lifetime_<slug>` (non-consumable) for each country, and `expathub_monthly` (auto-renewing subscription).
 - [ ] **Set up App Store Connect products** — Create `decision_pass_30d` consumable ($29), 8 `country_lifetime_*` non-consumables ($69 each), and `expathub_monthly` subscription ($14.99/mo).
