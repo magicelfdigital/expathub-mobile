@@ -63,7 +63,7 @@ const COUNTRY_LIFETIME_PRODUCT_IDS: Record<string, string> = {
   canada: "canada_lifetime_unlock",
   "costa-rica": "CR_Llifetime_unlock",
   panama: "panama_lifetime_unlock",
-  ecuador: "equador_lifetime_unlock",
+  ecuador: "lifetime_ecuador",
   malta: "malta_lifetime_unlock",
   "united-kingdom": "UK_lifetime_unlock",
 };
