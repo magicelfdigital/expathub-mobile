@@ -1,0 +1,163 @@
+We are working in an Expo React Native app (TypeScript) with RevenueCat integrated.
+
+Backend endpoints:
+- POST /billing/mobile/refresh
+- GET /entitlements
+
+Non-negotiable architectural rules:
+
+1) RevenueCat SDK is NOT the entitlement authority.
+2) Access control must use backend entitlements only.
+3) After purchase or restore, we MUST call backend refresh.
+4) After refresh, we MUST poll backend entitlements.
+5) RevenueCat must use stable internal user_id as appUserID.
+6) No UI component may gate access from RevenueCat CustomerInfo.
+
+Your task:
+Refactor billing into a testable orchestration layer and implement offline unit tests that enforce these rules.
+
+-------------------------------------------------
+PART 1 — Create Testable Billing Layer
+-------------------------------------------------
+
+Create the following modules:
+
+src/billing/types.ts
+- Define interfaces:
+  - RevenueCatClient
+      purchasePackage()
+      restorePurchases()
+      getOfferings()
+      logIn()
+      logOut()
+  - BackendClient
+      refreshMobileBilling()
+      getEntitlements()
+  - BillingOrchestrator
+      purchase()
+      restore()
+      syncOnLogin()
+
+src/billing/orchestrator.ts
+Implement:
+
+purchase(package)
+- call RC purchasePackage
+- call backend refreshMobileBilling
+- poll backend getEntitlements until active or timeout
+- return backend entitlements
+
+restore()
+- call RC restorePurchases
+- call backend refreshMobileBilling
+- poll backend getEntitlements
+
+syncOnLogin(userId)
+- call RC logIn(userId)
+- call backend refreshMobileBilling
+- fetch entitlements
+
+IMPORTANT:
+Do NOT read RevenueCat CustomerInfo to determine access.
+CustomerInfo may be logged but not used for gating.
+
+src/billing/polling.ts
+Implement generic poll():
+poll(fn, { intervalMs, timeoutMs, shouldStop })
+
+src/billing/entitlementGate.ts
+Implement:
+hasEntitlement(entitlements, productKey)
+
+This is the ONLY gating function used by UI.
+
+-------------------------------------------------
+PART 2 — Enforce UI Gating Rule
+-------------------------------------------------
+
+Search codebase:
+- Remove any direct gating based on RevenueCat CustomerInfo.
+- Ensure gated screens use backend entitlements state only.
+
+-------------------------------------------------
+PART 3 — Implement Tests
+-------------------------------------------------
+
+Create:
+
+src/billing/__tests__/orchestrator.test.ts
+src/billing/__tests__/entitlementGate.test.ts
+
+Use Jest (or existing runner).
+
+Mock:
+- react-native-purchases
+- backend client
+- timers (fake timers)
+
+Required test scenarios:
+
+1) Purchase success:
+   - RC purchase called
+   - backend refresh called
+   - entitlements polled
+   - returns backend entitlements
+
+2) Purchase delayed webhook:
+   - first N polls inactive
+   - later poll active
+   - succeeds before timeout
+
+3) Purchase timeout:
+   - never becomes active
+   - throws EntitlementPollingTimeoutError
+
+4) Restore flow:
+   - restorePurchases called
+   - refresh called
+   - polling executed
+
+5) Login alias flow:
+   - RC logIn(userId) called
+   - refresh called
+   - entitlements fetched
+
+6) Critical enforcement test:
+   - RC returns CustomerInfo showing active entitlement
+   - Backend entitlements remain inactive
+   - Result must remain inactive
+   - This proves we NEVER gate from RC.
+
+7) Poll interval correctness:
+   - use fake timers
+   - assert expected poll count given interval/timeout
+
+-------------------------------------------------
+PART 4 — Errors
+-------------------------------------------------
+
+Create:
+src/billing/errors.ts
+
+Define:
+- BillingRefreshError
+- EntitlementPollingTimeoutError
+- RevenueCatPurchaseError
+
+Tests must assert correct error types.
+
+-------------------------------------------------
+PART 5 — Final Verification
+-------------------------------------------------
+
+Confirm:
+- No component gates from RevenueCat directly.
+- All gating uses hasEntitlement().
+- Tests run offline.
+- No real network calls required.
+
+Return:
+1) New/updated file list
+2) Test plan matrix
+3) Test implementation
+4) Command to run tests
