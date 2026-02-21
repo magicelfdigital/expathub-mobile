@@ -33,6 +33,7 @@ export default function AccountScreen() {
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleVersionTap = useCallback(() => {
+    if (!__DEV__) return;
     tapCountRef.current += 1;
     if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
     if (tapCountRef.current >= 7) {

@@ -156,6 +156,7 @@ export default function AccountInfoScreen() {
   }, [fetchData]);
 
   const handleIdTap = () => {
+    if (!__DEV__) return;
     tapCountRef.current += 1;
     if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
 

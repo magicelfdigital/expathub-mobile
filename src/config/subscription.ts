@@ -20,8 +20,7 @@ export const STRIPE_DECISION_PASS_PRICE_ID =
 export const RC_API_KEY_IOS = process.env.EXPO_PUBLIC_RC_IOS_KEY ?? "";
 export const RC_API_KEY_ANDROID = process.env.EXPO_PUBLIC_RC_ANDROID_KEY ?? "";
 
-export const SANDBOX_ENABLED =
-  process.env.EXPO_PUBLIC_SANDBOX_MODE === "true" || __DEV__;
+export const SANDBOX_ENABLED: boolean = __DEV__;
 
 export const VALID_PROMO_CODES: string[] = __DEV__ ? ["EXPATHUB-REVIEW-2026", "EXPATHUB-PRESS-2026"] : [];
 

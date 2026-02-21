@@ -124,8 +124,8 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     setPurchasesError(null);
 
     try {
-      if (SANDBOX_ENABLED && sandboxOverride) {
-        gateLog("ACCESS GRANTED: sandbox mode enabled");
+      if (__DEV__ && SANDBOX_ENABLED && sandboxOverride) {
+        gateLog("ACCESS GRANTED: sandbox mode enabled [DEV ONLY]");
         setHasProAccess(true);
         setHasFullAccess(true);
         setAccessType("sandbox");
@@ -287,18 +287,19 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   }, [refresh]);
 
   const hasCountryAccess = useCallback((slug: string): boolean => {
-    if (SANDBOX_ENABLED && sandboxOverride) return true;
-    if (promoCodeActive) return true;
+    if (__DEV__ && SANDBOX_ENABLED && sandboxOverride) return true;
+    if (__DEV__ && promoCodeActive) return true;
     if (hasFullAccess) return true;
     return hasCountryEntitlement(backendEntitlements, slug);
   }, [sandboxOverride, promoCodeActive, hasFullAccess, backendEntitlements]);
 
+  const devBypass = __DEV__ && ((SANDBOX_ENABLED && sandboxOverride) || promoCodeActive);
   const value = useMemo<EntitlementContextValue>(
     () => ({
-      hasProAccess: (SANDBOX_ENABLED && sandboxOverride) || promoCodeActive ? true : hasProAccess,
-      hasFullAccess: (SANDBOX_ENABLED && sandboxOverride) || promoCodeActive ? true : hasFullAccess,
-      accessType: (SANDBOX_ENABLED && sandboxOverride) || promoCodeActive ? "sandbox" : accessType,
-      source: (SANDBOX_ENABLED && sandboxOverride) || promoCodeActive ? "sandbox" : source,
+      hasProAccess: devBypass ? true : hasProAccess,
+      hasFullAccess: devBypass ? true : hasFullAccess,
+      accessType: devBypass ? "sandbox" : accessType,
+      source: devBypass ? "sandbox" : source,
       loading,
       sandboxMode: SANDBOX_ENABLED,
       managementURL,
@@ -318,7 +319,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       clearPromoCode,
       backendEntitlements,
     }),
-    [hasProAccess, hasFullAccess, accessType, source, loading, sandboxOverride, promoCodeActive, managementURL, expirationDate, decisionPassExpiresAt, decisionPassDaysLeft, unlockedCountries, rcConfigured, purchasesError, hasCountryAccess, setSandboxOverride, refresh, recordDecisionPassPurchase, recordCountryUnlock, redeemPromoCode, clearPromoCode, backendEntitlements]
+    [hasProAccess, hasFullAccess, accessType, source, loading, devBypass, managementURL, expirationDate, decisionPassExpiresAt, decisionPassDaysLeft, unlockedCountries, rcConfigured, purchasesError, hasCountryAccess, setSandboxOverride, refresh, recordDecisionPassPurchase, recordCountryUnlock, redeemPromoCode, clearPromoCode, backendEntitlements]
   );
 
   return <EntitlementContext.Provider value={value}>{children}</EntitlementContext.Provider>;
