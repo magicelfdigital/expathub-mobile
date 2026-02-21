@@ -171,6 +171,16 @@ export default function AccountScreen() {
 
       {__DEV__ ? (
         <Pressable
+          style={s.debugBillingBtn}
+          onPress={() => router.push("/debug-billing" as any)}
+        >
+          <Ionicons name="code-slash-outline" size={20} color="#1e40af" />
+          <Text style={s.debugBillingText}>Billing Debug (Dev Only)</Text>
+        </Pressable>
+      ) : null}
+
+      {__DEV__ ? (
+        <Pressable
           style={s.crashTestBtn}
           onPress={() => {
             if (isNativeBuild()) {
@@ -377,6 +387,25 @@ const s = {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
     color: "#b91c1c",
+  } as const,
+
+  debugBillingBtn: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+    backgroundColor: "#eff6ff",
+    marginTop: 16,
+  } as const,
+
+  debugBillingText: {
+    fontSize: tokens.text.small,
+    fontWeight: tokens.weight.bold,
+    color: "#1e40af",
   } as const,
 
   crashTestBtn: {
