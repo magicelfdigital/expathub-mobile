@@ -5,6 +5,7 @@ module.exports = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
     "^@shared/(.*)$": "<rootDir>/shared/$1",
+    "^react-native$": "<rootDir>/src/billing/__mocks__/react-native.ts",
   },
   transform: {
     "^.+\\.tsx?$": [
