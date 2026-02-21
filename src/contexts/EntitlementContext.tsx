@@ -21,7 +21,7 @@ import {
 } from "@/src/config/subscription";
 import { trackEvent } from "@/src/lib/analytics";
 import { useAuth, AUTH_API_URL } from "@/contexts/AuthContext";
-import { getBackendClientInstance } from "@/src/billing";
+import { getBackendClientInstance, getOrchestrator } from "@/src/billing";
 import type { BackendEntitlements } from "@/src/billing";
 import { hasEntitlement, hasCountryEntitlement } from "@/src/billing";
 
@@ -78,6 +78,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   const [purchasesError, setPurchasesError] = useState<string | null>(null);
   const [promoCodeActive, setPromoCodeActive] = useState(false);
   const [backendEntitlements, setBackendEntitlements] = useState<BackendEntitlements | null>(null);
+  const [lastSyncedUserId, setLastSyncedUserId] = useState<string | null>(null);
 
   const setSandboxOverride = useCallback((value: boolean) => {
     if (!SANDBOX_ENABLED) return;
@@ -160,12 +161,28 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
         setAccessType("none");
         setSource("none");
         setBackendEntitlements(null);
+        setLastSyncedUserId(null);
         setLoading(false);
         return;
       }
 
       const backendClient = getBackendClientInstance(() => token);
       const userId = user?.id?.toString() ?? "";
+
+      if (userId && userId !== lastSyncedUserId) {
+        gateLog(`Login sync: refreshing backend billing for user=${userId}`);
+        try {
+          await backendClient.refreshMobileBilling({
+            userId,
+            source: "revenuecat",
+          });
+          setLastSyncedUserId(userId);
+          gateLog("Login sync: backend refresh complete");
+        } catch (e: any) {
+          gateLog(`Login sync: backend refresh failed (non-fatal): ${e?.message}`);
+          setLastSyncedUserId(userId);
+        }
+      }
 
       gateLog("Fetching entitlements from backend (single source of truth)");
       const ent = await backendClient.getEntitlements(userId);
@@ -223,7 +240,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     } finally {
       setLoading(false);
     }
-  }, [sandboxOverride, token, user?.id]);
+  }, [sandboxOverride, token, user?.id, lastSyncedUserId]);
 
   useEffect(() => {
     let mounted = true;
