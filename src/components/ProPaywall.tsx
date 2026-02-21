@@ -165,7 +165,22 @@ export function ProPaywall({
 
   useEffect(() => {
     if (Platform.OS === "web" || hasActiveSubscription) return;
-    getOfferings().catch(() => {});
+    getOfferings()
+      .then((result) => {
+        console.log("[PAYWALL-DIAG] Offerings loaded:");
+        console.log("[PAYWALL-DIAG] Current offering identifier:", result.current?.[0] ? "default" : "none");
+        console.log("[PAYWALL-DIAG] Package count:", result.current?.length ?? 0);
+        result.current?.forEach((pkg) => {
+          console.log(`[PAYWALL-DIAG] Package: id=${pkg.identifier}, productId=${pkg.productId}, type=${pkg.packageType}, price=${pkg.priceString}`);
+        });
+        console.log("[PAYWALL-DIAG] Monthly package productId:", result.monthlyPackage?.productId ?? "NOT FOUND");
+        if (result.error) {
+          console.log("[PAYWALL-DIAG] Error:", result.error);
+        }
+      })
+      .catch((e) => {
+        console.log("[PAYWALL-DIAG] getOfferings failed:", e);
+      });
   }, [hasActiveSubscription]);
 
   async function handleMobilePurchase(productId: string, type: string, slug?: string) {
