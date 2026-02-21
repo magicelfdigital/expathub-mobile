@@ -14,6 +14,9 @@ function billingLog(msg: string) {
 }
 
 function getBackendBase(): string {
+  const explicit = process.env.EXPO_PUBLIC_BACKEND_URL;
+  if (explicit) return explicit.replace(/\/$/, "");
+
   if (Platform.OS === "web") {
     const host = process.env.EXPO_PUBLIC_DOMAIN;
     if (host) return `https://${host}`;

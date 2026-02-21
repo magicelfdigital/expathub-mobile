@@ -80,12 +80,18 @@ function createRCClient(): RevenueCatClient {
   };
 }
 
+let _tokenRef: { current: () => string | null } = { current: () => null };
 let _orchestrator: BillingOrchestrator | null = null;
 let _backendClient: BackendClient | null = null;
 
+function tokenGetter(): string | null {
+  return _tokenRef.current();
+}
+
 export function getOrchestrator(getToken: () => string | null): BillingOrchestrator {
+  _tokenRef.current = getToken;
   if (!_orchestrator) {
-    _backendClient = createBackendClient(getToken);
+    _backendClient = createBackendClient(tokenGetter);
     _orchestrator = new BillingOrchestrator(createRCClient(), _backendClient, {
       intervalMs: 2000,
       timeoutMs: 60000,
@@ -95,8 +101,9 @@ export function getOrchestrator(getToken: () => string | null): BillingOrchestra
 }
 
 export function getBackendClientInstance(getToken: () => string | null): BackendClient {
+  _tokenRef.current = getToken;
   if (!_backendClient) {
-    _backendClient = createBackendClient(getToken);
+    _backendClient = createBackendClient(tokenGetter);
   }
   return _backendClient;
 }
@@ -104,4 +111,5 @@ export function getBackendClientInstance(getToken: () => string | null): Backend
 export function resetOrchestrator() {
   _orchestrator = null;
   _backendClient = null;
+  _tokenRef.current = () => null;
 }
