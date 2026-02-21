@@ -24,8 +24,8 @@ export const SANDBOX_ENABLED: boolean = __DEV__;
 
 export const VALID_PROMO_CODES: string[] = __DEV__ ? ["EXPATHUB-REVIEW-2026", "EXPATHUB-PRESS-2026"] : [];
 
-export const TERMS_URL = "https://expathub.website/terms";
-export const PRIVACY_URL = "https://expathub.website/privacy";
+export const TERMS_URL = "https://www.expathub.website/terms";
+export const PRIVACY_URL = "https://www.expathub.website/privacy";
 
 export const DECISION_PASS_DURATION_DAYS = 30;
 
