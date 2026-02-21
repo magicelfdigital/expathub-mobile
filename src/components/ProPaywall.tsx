@@ -20,13 +20,7 @@ import { useCountry } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { getProOffer } from "@/src/data";
 import type { ProOffer } from "@/src/data";
-import {
-  purchasePackage,
-  restorePurchases,
-  getOfferings,
-  getManagementURL,
-} from "@/src/subscriptions/revenuecat";
-import type { OfferingPackage } from "@/src/subscriptions/revenuecat";
+import { getOfferings } from "@/src/subscriptions/revenuecat";
 import { createCheckoutSession, createCustomerPortalSession } from "@/src/subscriptions/stripeWeb";
 import {
   DECISION_PASS_PRICE,
@@ -41,6 +35,11 @@ import { COVERAGE_SUMMARY } from "@/src/data";
 import { trackEvent } from "@/src/lib/analytics";
 import { tokens } from "@/theme/tokens";
 import { COUNTRIES } from "@/data/countries";
+import {
+  getOrchestrator,
+  EntitlementPollingTimeoutError,
+  RevenueCatPurchaseError,
+} from "@/src/billing";
 
 type PaywallEntryPoint = "compare" | "brief" | "pathway" | "general" | "country";
 
@@ -64,7 +63,7 @@ export function ProPaywall({
   onClose,
 }: ProPaywallProps) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { selectedCountrySlug } = useCountry();
   const {
     hasActiveSubscription,
@@ -165,6 +164,65 @@ export function ProPaywall({
     getOfferings().catch(() => {});
   }, [hasActiveSubscription]);
 
+  async function handleMobilePurchase(productId: string, type: string, slug?: string) {
+    const userId = user!.id.toString();
+    const orchestrator = getOrchestrator(() => token);
+
+    setError(null);
+    setBusy(true);
+    console.log(`[PURCHASE] ${type} purchase via orchestrator: productId=${productId}`);
+
+    try {
+      const result = await orchestrator.purchase(productId, userId);
+
+      if (result.status === "confirmed") {
+        trackEvent("purchase_success", { type, platform: Platform.OS, status: "confirmed" });
+        await refresh();
+        console.log(`[PURCHASE] ${type} confirmed by backend, closing paywall`);
+        if (onClose) onClose();
+        else router.back();
+      } else {
+        console.log(`[PURCHASE] ${type}: backend status=${result.status}`);
+        setError("Purchase is being processed. Please check back in a moment.");
+      }
+    } catch (e: any) {
+      if (e instanceof RevenueCatPurchaseError && e.userCancelled) {
+        if (__DEV__) {
+          console.log(`[PURCHASE] DEV MODE: ${type} cancelled — simulating success`);
+          trackEvent("purchase_success", { type, platform: Platform.OS, status: "dev_simulated" });
+          await refresh();
+          if (onClose) onClose();
+          else router.back();
+          return;
+        }
+        console.log(`[PURCHASE] ${type}: user cancelled payment`);
+        trackEvent("purchase_cancelled", { type, platform: Platform.OS });
+        setError(null);
+        return;
+      }
+      if (e instanceof EntitlementPollingTimeoutError) {
+        console.log(`[PURCHASE] ${type}: backend confirmation timed out after ${e.elapsedMs}ms`);
+        setError("Purchase received. Access will activate shortly. If not, tap Restore Purchases.");
+        trackEvent("purchase_timeout", { type, platform: Platform.OS });
+        return;
+      }
+      if (__DEV__) {
+        console.log(`[PURCHASE] DEV MODE: ${type} error (${e?.message}) — simulating success`);
+        trackEvent("purchase_success", { type, platform: Platform.OS, status: "dev_simulated" });
+        await refresh();
+        if (onClose) onClose();
+        else router.back();
+        return;
+      }
+      const msg = e?.message ?? "Unknown error";
+      console.log(`[PURCHASE] ${type} error: ${msg}`);
+      trackEvent("purchase_error", { type, error: msg });
+      setError(msg);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleDecisionPassPurchase() {
     if (!user) {
       console.log("[PURCHASE] Decision Pass tapped but user not logged in — redirecting to auth");
@@ -172,69 +230,20 @@ export function ProPaywall({
       router.push("/auth?mode=register");
       return;
     }
-    setBusy(true);
-    setError(null);
     trackEvent("purchase_tapped", { type: "decision_pass", platform: Platform.OS });
-    console.log(`[PURCHASE] Decision Pass tapped, productId=${RC_DECISION_PASS_PRODUCT}`);
-    try {
-      if (Platform.OS === "web") {
-        if (__DEV__) {
-          console.log("[PURCHASE] DEV MODE: Simulating Decision Pass purchase on web");
-          await recordDecisionPassPurchase();
-          trackEvent("purchase_success", { type: "decision_pass", platform: "web", status: "dev_simulated" });
-          await refresh();
-          if (onClose) onClose();
-          else router.back();
-          return;
-        }
-        setError("The 30-Day Decision Pass is available on the mobile app. Open ExpatHub on your phone to purchase.");
-        return;
-      }
-      const result = await purchasePackage(RC_DECISION_PASS_PRODUCT);
-      console.log(`[PURCHASE] Decision Pass result: status=${result.status}, hasProAccess=${result.hasProAccess}`);
-      if (result.status === "cancelled") {
-        if (__DEV__) {
-          console.log("[PURCHASE] DEV MODE: Purchase cancelled/unavailable — simulating success");
-          await recordDecisionPassPurchase();
-          trackEvent("purchase_success", { type: "decision_pass", platform: Platform.OS, status: "dev_simulated" });
-          await refresh();
-          if (onClose) onClose();
-          else router.back();
-          return;
-        }
-        console.log("[PURCHASE] Decision Pass: user cancelled payment");
-        trackEvent("purchase_cancelled", { type: "decision_pass", platform: Platform.OS });
-        setError(null);
-        return;
-      }
-      if ((result.status === "purchased" || result.status === "already_owned") && result.hasProAccess) {
-        await recordDecisionPassPurchase();
-        trackEvent("purchase_success", { type: "decision_pass", platform: Platform.OS, status: result.status });
-        await refresh();
-        console.log(`[PURCHASE] Decision Pass ${result.status}, closing paywall`);
-        if (onClose) onClose();
-        else router.back();
-      } else {
-        console.log(`[PURCHASE] Decision Pass: status=${result.status} but no entitlement active`);
-        setError("Purchase could not be confirmed. Please try again or restore purchases.");
-      }
-    } catch (e: any) {
+    if (Platform.OS === "web") {
       if (__DEV__) {
-        console.log(`[PURCHASE] DEV MODE: Purchase error (${e?.message}) — simulating success`);
-        await recordDecisionPassPurchase();
-        trackEvent("purchase_success", { type: "decision_pass", platform: Platform.OS, status: "dev_simulated" });
+        console.log("[PURCHASE] DEV MODE: Simulating Decision Pass purchase on web");
+        trackEvent("purchase_success", { type: "decision_pass", platform: "web", status: "dev_simulated" });
         await refresh();
         if (onClose) onClose();
         else router.back();
         return;
       }
-      const msg = e?.message ?? "Unknown error";
-      console.log(`[PURCHASE] Decision Pass error: ${msg}`);
-      trackEvent("purchase_error", { type: "decision_pass", error: msg });
-      setError(msg);
-    } finally {
-      setBusy(false);
+      setError("The 30-Day Decision Pass is available on the mobile app. Open ExpatHub on your phone to purchase.");
+      return;
     }
+    await handleMobilePurchase(RC_DECISION_PASS_PRODUCT, "decision_pass");
   }
 
   async function handleCountryUnlock(slugOverride?: string) {
@@ -246,70 +255,21 @@ export function ProPaywall({
       router.push("/auth?mode=register");
       return;
     }
-    setBusy(true);
-    setError(null);
     const productId = getCountryLifetimeProductId(slug);
     trackEvent("purchase_tapped", { type: "country_lifetime", country: slug, platform: Platform.OS });
-    console.log(`[PURCHASE] Country unlock initiated, slug=${slug}, productId=${productId}${slugOverride ? " (from pending purchase)" : ""}`);
-    try {
-      if (Platform.OS === "web") {
-        if (__DEV__) {
-          console.log(`[PURCHASE] DEV MODE: Simulating country unlock for ${slug} on web`);
-          await recordCountryUnlock(slug);
-          trackEvent("purchase_success", { type: "country_lifetime", country: slug, platform: "web", status: "dev_simulated" });
-          await refresh();
-          if (onClose) onClose();
-          else router.back();
-          return;
-        }
-        setError("Country unlocks are available on the mobile app. Open ExpatHub on your phone to purchase.");
-        return;
-      }
-      const result = await purchasePackage(productId);
-      console.log(`[PURCHASE] Country unlock result: status=${result.status}, hasProAccess=${result.hasProAccess}, slug=${slug}`);
-      if (result.status === "cancelled") {
-        if (__DEV__) {
-          console.log(`[PURCHASE] DEV MODE: Country unlock cancelled/unavailable for ${slug} — simulating success`);
-          await recordCountryUnlock(slug);
-          trackEvent("purchase_success", { type: "country_lifetime", country: slug, platform: Platform.OS, status: "dev_simulated" });
-          await refresh();
-          if (onClose) onClose();
-          else router.back();
-          return;
-        }
-        console.log(`[PURCHASE] Country unlock: user cancelled payment for ${slug}`);
-        trackEvent("purchase_cancelled", { type: "country_lifetime", country: slug, platform: Platform.OS });
-        setError(null);
-        return;
-      }
-      if ((result.status === "purchased" || result.status === "already_owned") && result.hasProAccess) {
-        await recordCountryUnlock(slug);
-        trackEvent("purchase_success", { type: "country_lifetime", country: slug, platform: Platform.OS, status: result.status });
-        await refresh();
-        console.log(`[PURCHASE] Country unlock ${result.status} for ${slug}, closing paywall`);
-        if (onClose) onClose();
-        else router.back();
-      } else {
-        console.log(`[PURCHASE] Country unlock: status=${result.status} but no entitlement active for ${slug}`);
-        setError("Purchase could not be confirmed. Please try again or restore purchases.");
-      }
-    } catch (e: any) {
+    if (Platform.OS === "web") {
       if (__DEV__) {
-        console.log(`[PURCHASE] DEV MODE: Country unlock error for ${slug} (${e?.message}) — simulating success`);
-        await recordCountryUnlock(slug);
-        trackEvent("purchase_success", { type: "country_lifetime", country: slug, platform: Platform.OS, status: "dev_simulated" });
+        console.log(`[PURCHASE] DEV MODE: Simulating country unlock for ${slug} on web`);
+        trackEvent("purchase_success", { type: "country_lifetime", country: slug, platform: "web", status: "dev_simulated" });
         await refresh();
         if (onClose) onClose();
         else router.back();
         return;
       }
-      const msg = e?.message ?? "Unknown error";
-      console.log(`[PURCHASE] Country unlock error for ${slug}: ${msg}`);
-      trackEvent("purchase_error", { type: "country_lifetime", country: slug, error: msg });
-      setError(msg);
-    } finally {
-      setBusy(false);
+      setError("Country unlocks are available on the mobile app. Open ExpatHub on your phone to purchase.");
+      return;
     }
+    await handleMobilePurchase(productId, "country_lifetime", slug);
   }
 
   async function handleMonthlySubscribe() {
@@ -319,15 +279,13 @@ export function ProPaywall({
       router.push("/auth?mode=register");
       return;
     }
-    setBusy(true);
-    setError(null);
     trackEvent("purchase_tapped", { type: "monthly_subscription", platform: Platform.OS });
-    console.log(`[PURCHASE] Monthly subscription tapped, productId=${RC_MONTHLY_PRODUCT}`);
-    try {
-      if (Platform.OS === "web") {
+    if (Platform.OS === "web") {
+      setBusy(true);
+      setError(null);
+      try {
         if (__DEV__) {
           console.log("[PURCHASE] DEV MODE: Simulating monthly subscription on web");
-          await recordDecisionPassPurchase();
           trackEvent("purchase_success", { type: "monthly_subscription", platform: "web", status: "dev_simulated" });
           await refresh();
           if (onClose) onClose();
@@ -343,68 +301,41 @@ export function ProPaywall({
         if (url) {
           window.location.href = url;
         }
-      } else {
-        const result = await purchasePackage(RC_MONTHLY_PRODUCT);
-        console.log(`[PURCHASE] Monthly result: status=${result.status}, hasProAccess=${result.hasProAccess}`);
-        if (result.status === "cancelled") {
-          if (__DEV__) {
-            console.log("[PURCHASE] DEV MODE: Monthly cancelled/unavailable — simulating success");
-            await recordDecisionPassPurchase();
-            trackEvent("purchase_success", { type: "monthly_subscription", platform: Platform.OS, status: "dev_simulated" });
-            await refresh();
-            if (onClose) onClose();
-            else router.back();
-            return;
-          }
-          console.log("[PURCHASE] Monthly: user cancelled payment");
-          trackEvent("purchase_cancelled", { type: "monthly_subscription", platform: Platform.OS });
-          setError(null);
-          return;
-        }
-        if ((result.status === "purchased" || result.status === "already_owned") && result.hasProAccess) {
-          trackEvent("purchase_success", { type: "monthly_subscription", platform: Platform.OS, status: result.status });
-          await refresh();
-          console.log(`[PURCHASE] Monthly subscription ${result.status}, closing paywall`);
-          if (onClose) onClose();
-          else router.back();
-        } else {
-          console.log(`[PURCHASE] Monthly: status=${result.status} but no entitlement active`);
-          setError("Subscription could not be confirmed. Please try again or restore purchases.");
-        }
+      } catch (e: any) {
+        setError(e?.message ?? "Unknown error");
+      } finally {
+        setBusy(false);
       }
-    } catch (e: any) {
-      if (__DEV__) {
-        console.log(`[PURCHASE] DEV MODE: Monthly error (${e?.message}) — simulating success`);
-        await recordDecisionPassPurchase();
-        trackEvent("purchase_success", { type: "monthly_subscription", platform: Platform.OS, status: "dev_simulated" });
-        await refresh();
-        if (onClose) onClose();
-        else router.back();
-        return;
-      }
-      const msg = e?.message ?? "Unknown error";
-      console.log(`[PURCHASE] Monthly subscription error: ${msg}`);
-      trackEvent("purchase_error", { type: "monthly_subscription", error: msg });
-      setError(msg);
-    } finally {
-      setBusy(false);
+      return;
     }
+    await handleMobilePurchase(RC_MONTHLY_PRODUCT, "monthly_subscription");
   }
 
   async function handleRestore() {
+    if (!user) {
+      setError("Please sign in first to restore purchases.");
+      return;
+    }
     setBusy(true);
     setError(null);
     trackEvent("restore_tapped", { platform: Platform.OS });
     try {
-      const result = await restorePurchases();
+      const orchestrator = getOrchestrator(() => token);
+      const result = await orchestrator.restore(user.id.toString());
       await refresh();
-      if (result.hasProAccess) {
+      if (result.status === "confirmed" && result.entitlements.hasFullAccess) {
         trackEvent("restore_success", { platform: Platform.OS });
       } else {
         trackEvent("restore_not_found", { platform: Platform.OS });
         setError("We couldn't find an active purchase linked to your account. If you purchased on a different platform, try restoring there.");
       }
     } catch (e: any) {
+      if (e instanceof EntitlementPollingTimeoutError) {
+        await refresh();
+        setError("Restore is taking longer than expected. Your access will activate shortly.");
+        trackEvent("restore_timeout", { platform: Platform.OS });
+        return;
+      }
       trackEvent("restore_error", { platform: Platform.OS, error: e?.message ?? "unknown" });
       setError("We had trouble checking your purchases. Please check your connection and try again.");
     } finally {

@@ -26,6 +26,8 @@ type AnalyticsEvent =
   | "purchase_success"
   | "purchase_cancelled"
   | "purchase_error"
+  | "purchase_timeout"
+  | "restore_timeout"
   | "promo_code_redeemed"
   | "promo_code_cleared";
 
