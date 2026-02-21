@@ -30,6 +30,8 @@ import {
   RC_MONTHLY_PRODUCT,
   getCountryLifetimeProductId,
   SANDBOX_ENABLED,
+  TERMS_URL,
+  PRIVACY_URL,
 } from "@/src/config/subscription";
 import { COVERAGE_SUMMARY } from "@/src/data";
 import { trackEvent } from "@/src/lib/analytics";
@@ -93,6 +95,7 @@ export function ProPaywall({
   const [promoCode, setPromoCode] = useState("");
   const [promoError, setPromoError] = useState<string | null>(null);
   const [promoSuccess, setPromoSuccess] = useState(false);
+  const showPromoCodeFeature = __DEV__;
   const insets = useSafeAreaInsets();
   const resolvedCountrySlug = countrySlug ?? selectedCountrySlug ?? undefined;
   const pendingPurchaseHandled = useRef(false);
@@ -482,7 +485,7 @@ export function ProPaywall({
               : accessType === "subscription"
                 ? "Monthly subscription"
                 : accessType === "sandbox"
-                  ? promoCodeActive ? "Access code applied" : "Sandbox mode (testing)"
+                  ? "Sandbox mode (testing)"
                   : ""}
           </Text>
           {decisionPassExpiresAt ? (
@@ -595,50 +598,52 @@ export function ProPaywall({
             )}
           </Pressable>
 
-          {!showPromoInput ? (
-            <Pressable onPress={() => setShowPromoInput(true)} style={s.restoreButton}>
-              <Text style={s.promoLinkText}>Have a code?</Text>
-            </Pressable>
-          ) : (
-            <View style={s.promoCard}>
-              <Text style={s.promoLabel}>Enter your access code</Text>
-              <View style={s.promoInputRow}>
-                <TextInput
-                  style={s.promoInput}
-                  placeholder="e.g. EXPATHUB-REVIEW-2026"
-                  placeholderTextColor={tokens.color.subtext}
-                  value={promoCode}
-                  onChangeText={setPromoCode}
-                  autoCapitalize="characters"
-                  autoCorrect={false}
-                  editable={!promoSuccess}
-                />
-                <Pressable
-                  onPress={handlePromoSubmit}
-                  disabled={busy || !promoCode.trim() || promoSuccess}
-                  style={({ pressed }) => [
-                    s.promoSubmitBtn,
-                    (!promoCode.trim() || promoSuccess) && s.promoSubmitDisabled,
-                    pressed && s.ctaPressed,
-                  ]}
-                >
-                  {busy ? (
-                    <ActivityIndicator size="small" color={tokens.color.white} />
-                  ) : promoSuccess ? (
-                    <Ionicons name="checkmark" size={20} color={tokens.color.white} />
-                  ) : (
-                    <Ionicons name="arrow-forward" size={20} color={tokens.color.white} />
-                  )}
-                </Pressable>
+          {showPromoCodeFeature ? (
+            !showPromoInput ? (
+              <Pressable onPress={() => setShowPromoInput(true)} style={s.restoreButton}>
+                <Text style={s.promoLinkText}>Have a code? (Dev only)</Text>
+              </Pressable>
+            ) : (
+              <View style={s.promoCard}>
+                <Text style={s.promoLabel}>Enter your access code (Dev only)</Text>
+                <View style={s.promoInputRow}>
+                  <TextInput
+                    style={s.promoInput}
+                    placeholder="e.g. EXPATHUB-REVIEW-2026"
+                    placeholderTextColor={tokens.color.subtext}
+                    value={promoCode}
+                    onChangeText={setPromoCode}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    editable={!promoSuccess}
+                  />
+                  <Pressable
+                    onPress={handlePromoSubmit}
+                    disabled={busy || !promoCode.trim() || promoSuccess}
+                    style={({ pressed }) => [
+                      s.promoSubmitBtn,
+                      (!promoCode.trim() || promoSuccess) && s.promoSubmitDisabled,
+                      pressed && s.ctaPressed,
+                    ]}
+                  >
+                    {busy ? (
+                      <ActivityIndicator size="small" color={tokens.color.white} />
+                    ) : promoSuccess ? (
+                      <Ionicons name="checkmark" size={20} color={tokens.color.white} />
+                    ) : (
+                      <Ionicons name="arrow-forward" size={20} color={tokens.color.white} />
+                    )}
+                  </Pressable>
+                </View>
+                {promoError ? (
+                  <Text style={s.promoErrorText}>{promoError}</Text>
+                ) : null}
+                {promoSuccess ? (
+                  <Text style={s.promoSuccessText}>Access unlocked</Text>
+                ) : null}
               </View>
-              {promoError ? (
-                <Text style={s.promoErrorText}>{promoError}</Text>
-              ) : null}
-              {promoSuccess ? (
-                <Text style={s.promoSuccessText}>Access unlocked</Text>
-              ) : null}
-            </View>
-          )}
+            )
+          ) : null}
 
           <View style={s.coverageNote}>
             <Ionicons name="information-circle-outline" size={16} color={tokens.color.subtext} />
@@ -669,9 +674,19 @@ export function ProPaywall({
         {Platform.OS === "web"
           ? "Payment managed via Stripe. Cancel anytime from the customer portal."
           : Platform.OS === "ios"
-            ? "Payment will be charged to your Apple ID account. Subscriptions renew automatically unless cancelled at least 24 hours before the end of the current period. The Decision Pass and country unlocks are one-time purchases."
-            : "Subscriptions renew automatically. Cancel anytime in Google Play Store settings. The Decision Pass and country unlocks are one-time purchases."}
+            ? "Payment will be charged to your Apple ID account. Monthly subscription ($14.99/month) automatically renews unless cancelled at least 24 hours before the end of the current period. You can manage and cancel subscriptions in your App Store account settings. The 30-Day Decision Pass and country unlocks are one-time, non-recurring purchases."
+            : "Monthly subscription ($14.99/month) automatically renews. Cancel anytime in Google Play Store settings. The 30-Day Decision Pass and country unlocks are one-time, non-recurring purchases."}
       </Text>
+
+      <View style={s.legalFooter}>
+        <Pressable onPress={() => Linking.openURL(TERMS_URL)}>
+          <Text style={s.legalLink}>Terms of Use</Text>
+        </Pressable>
+        <Text style={s.legalSeparator}>|</Text>
+        <Pressable onPress={() => Linking.openURL(PRIVACY_URL)}>
+          <Text style={s.legalLink}>Privacy Policy</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
@@ -1075,5 +1090,22 @@ const s = {
     textAlign: "center" as const,
     lineHeight: 14,
     opacity: 0.7,
+  },
+  legalFooter: {
+    flexDirection: "row" as const,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    gap: 8,
+    paddingVertical: 8,
+  },
+  legalLink: {
+    fontSize: tokens.text.small,
+    color: tokens.color.primary,
+    fontWeight: tokens.weight.bold,
+    textDecorationLine: "underline" as const,
+  },
+  legalSeparator: {
+    fontSize: tokens.text.small,
+    color: tokens.color.subtext,
   },
 };

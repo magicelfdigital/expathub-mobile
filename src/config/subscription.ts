@@ -23,7 +23,10 @@ export const RC_API_KEY_ANDROID = process.env.EXPO_PUBLIC_RC_ANDROID_KEY ?? "";
 export const SANDBOX_ENABLED =
   process.env.EXPO_PUBLIC_SANDBOX_MODE === "true" || __DEV__;
 
-export const VALID_PROMO_CODES = ["EXPATHUB-REVIEW-2026", "EXPATHUB-PRESS-2026"];
+export const VALID_PROMO_CODES: string[] = __DEV__ ? ["EXPATHUB-REVIEW-2026", "EXPATHUB-PRESS-2026"] : [];
+
+export const TERMS_URL = "https://magicelfdigital.com/terms";
+export const PRIVACY_URL = "https://magicelfdigital.com/privacy";
 
 export const DECISION_PASS_DURATION_DAYS = 30;
 

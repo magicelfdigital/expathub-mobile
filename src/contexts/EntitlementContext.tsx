@@ -85,6 +85,9 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   }, []);
 
   const redeemPromoCode = useCallback(async (code: string): Promise<{ success: boolean; error?: string }> => {
+    if (!__DEV__) {
+      return { success: false, error: "Not available." };
+    }
     const normalized = code.trim().toUpperCase();
     if (!VALID_PROMO_CODES.includes(normalized)) {
       gateLog(`Promo code rejected: "${normalized}"`);
@@ -134,22 +137,31 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       }
 
       try {
-        const storedPromo = await AsyncStorage.getItem(PROMO_CODE_KEY);
-        if (storedPromo && VALID_PROMO_CODES.includes(storedPromo)) {
-          gateLog(`ACCESS GRANTED: promo code active (${storedPromo})`);
-          setPromoCodeActive(true);
-          setHasProAccess(true);
-          setHasFullAccess(true);
-          setAccessType("sandbox");
-          setSource("sandbox");
-          setManagementURL(null);
-          setExpirationDate(null);
-          trackEvent?.("entitlement_refresh", { source: "promo_code", hasProAccess: true });
-          return;
-        } else if (storedPromo) {
-          gateLog(`Stored promo code no longer valid: ${storedPromo}`);
-          await AsyncStorage.removeItem(PROMO_CODE_KEY);
-          setPromoCodeActive(false);
+        if (__DEV__) {
+          const storedPromo = await AsyncStorage.getItem(PROMO_CODE_KEY);
+          if (storedPromo && VALID_PROMO_CODES.includes(storedPromo)) {
+            gateLog(`ACCESS GRANTED: promo code active (${storedPromo}) [DEV ONLY]`);
+            setPromoCodeActive(true);
+            setHasProAccess(true);
+            setHasFullAccess(true);
+            setAccessType("sandbox");
+            setSource("sandbox");
+            setManagementURL(null);
+            setExpirationDate(null);
+            trackEvent?.("entitlement_refresh", { source: "promo_code", hasProAccess: true });
+            return;
+          } else if (storedPromo) {
+            gateLog(`Stored promo code no longer valid: ${storedPromo}`);
+            await AsyncStorage.removeItem(PROMO_CODE_KEY);
+            setPromoCodeActive(false);
+          }
+        } else {
+          const storedPromo = await AsyncStorage.getItem(PROMO_CODE_KEY);
+          if (storedPromo) {
+            gateLog("Clearing promo code in production build");
+            await AsyncStorage.removeItem(PROMO_CODE_KEY);
+            setPromoCodeActive(false);
+          }
         }
       } catch {}
 
