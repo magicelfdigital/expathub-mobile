@@ -1,0 +1,194 @@
+You are working in an Expo React Native app (TypeScript) with RevenueCat integrated.
+
+We already have a backend entitlement authority:
+
+POST /billing/mobile/refresh
+
+GET /entitlements
+
+Non-negotiable rules:
+
+The app must NEVER gate access based on RevenueCat CustomerInfo directly.
+
+After purchase OR restore, the app must call backend refresh and then fetch entitlements.
+
+The app must poll backend entitlements after purchase/restore (handles delayed webhooks).
+
+RevenueCat appUserID must be the internal user_id (stable identity). If anonymous exists, alias on login.
+
+Your job:
+Implement a testable architecture + unit tests that prove these rules without hitting Apple/Google or RevenueCat network.
+
+REQUIRED OUTPUTS (return in order)
+
+A short list of new/updated modules you created (filenames).
+
+A test plan matrix (scenarios → expected calls/state).
+
+Working Jest tests (or Vitest if repo uses it) that pass locally.
+
+One command to run tests.
+
+TEST STACK
+
+Use Jest + @testing-library/react-native (preferred) OR whatever existing test runner already configured.
+
+Mock:
+
+react-native-purchases (RevenueCat SDK)
+
+backend API client (fetch/axios)
+
+timers for polling
+
+REQUIRED REFACTOR FOR TESTABILITY (do this)
+
+Create a small billing layer with dependency injection so we can mock easily:
+
+A) src/billing/types.ts
+
+Define:
+
+RevenueCatClient interface (purchasePackage, restorePurchases, getOfferings, logIn, logOut, getCustomerInfo optional)
+
+BackendClient interface (refreshMobileBilling, getEntitlements)
+
+BillingOrchestrator API (purchase(), restore(), syncOnLogin())
+
+B) src/billing/orchestrator.ts
+Implement:
+
+purchase(packageId | packageObj)
+
+restore()
+
+syncOnLogin(userId)
+Each must:
+
+call RC client method
+
+then call backend refresh
+
+then poll backend entitlements (every 2s, max 60s, configurable)
+
+return final entitlements
+Important: orchestrator must NOT read CustomerInfo to gate access; it may use it only for analytics/logging.
+
+C) src/billing/polling.ts
+Implement a generic:
+
+poll(fn, { intervalMs, timeoutMs, shouldStop })
+
+D) src/billing/entitlementGate.ts
+Implement:
+
+hasEntitlement(entitlements, productKey) (pure function)
+This is the ONLY gating mechanism used by UI.
+
+E) Update UI gating
+Ensure screens/components that gate access:
+
+use entitlements returned from backend (state/store)
+
+do NOT import/use RevenueCat CustomerInfo for access decisions
+
+TESTS TO IMPLEMENT (MINIMUM)
+
+Create src/billing/__tests__/orchestrator.test.ts covering:
+
+Purchase success path:
+
+RC purchasePackage called once
+
+backend refresh called once
+
+getEntitlements polled until entitlement active
+
+returns backend entitlements
+
+ASSERT: CustomerInfo not used for gating (see test 6)
+
+Purchase delayed webhook path:
+
+first N entitlements calls return inactive
+
+later call returns active
+
+orchestrator waits and succeeds within timeout
+
+Purchase timeout path:
+
+entitlements never become active
+
+orchestrator returns inactive + error state (or throws a typed error)
+
+UI can show “Processing / Try again” message
+
+Restore path:
+
+restorePurchases called
+
+backend refresh called
+
+entitlements fetched/polled
+
+returns entitlements
+
+Login alias path:
+
+syncOnLogin(userId) calls RC logIn(userId)
+
+then backend refresh
+
+then entitlements fetch
+
+“Never gate from RC” enforcement test:
+
+Mock RC purchasePackage to return CustomerInfo that indicates entitlement active
+
+Mock backend entitlements to remain inactive
+
+EXPECT orchestrator result is inactive (or pending), NOT active
+This test is critical.
+
+Polling interval/timer correctness:
+
+Use fake timers
+
+Assert number of polls equals expected given interval/timeout
+
+Also create src/billing/__tests__/entitlementGate.test.ts:
+
+hasEntitlement true/false
+
+handles missing keys
+
+handles multiple entitlements
+
+API CLIENT MOCKING REQUIREMENTS
+
+If you have a backend client module (fetch wrapper), refactor so orchestrator consumes a BackendClient instance.
+Tests must not require real env vars.
+
+ERROR HANDLING REQUIREMENTS
+
+Implement typed errors in src/billing/errors.ts:
+
+BillingRefreshError
+
+EntitlementPollingTimeoutError
+
+RevenueCatPurchaseError
+Tests must assert correct error type thrown/returned.
+
+FINAL CHECKLIST
+
+No component reads RevenueCat CustomerInfo to decide access
+
+Gating uses hasEntitlement on backend entitlements only
+
+Purchase/restore always triggers backend refresh + poll
+
+Tests run offline
+
+Return the code and ensure tests pass.
