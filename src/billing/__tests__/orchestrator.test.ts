@@ -45,11 +45,11 @@ function mockRCClient(overrides?: Partial<RevenueCatClient>): RevenueCatClient {
             full_access_subscription: { isActive: true, expirationDate: null },
           },
         },
-        activeSubscriptions: ["expathub_monthly"],
+        activeSubscriptions: ["monthly_subscription_all_access"],
         originalAppUserId: "usr_123",
         managementURL: null,
       },
-      productIdentifier: "expathub_monthly",
+      productIdentifier: "monthly_subscription_all_access",
     }),
     restorePurchases: jest.fn().mockResolvedValue({
       entitlements: {
@@ -57,7 +57,7 @@ function mockRCClient(overrides?: Partial<RevenueCatClient>): RevenueCatClient {
           full_access_subscription: { isActive: true, expirationDate: null },
         },
       },
-      activeSubscriptions: ["expathub_monthly"],
+      activeSubscriptions: ["monthly_subscription_all_access"],
     }),
     getOfferings: jest.fn().mockResolvedValue({ current: null }),
     logIn: jest.fn().mockResolvedValue({
@@ -101,12 +101,12 @@ describe("BillingOrchestrator", () => {
         timeoutMs: 5000,
       });
 
-      const resultPromise = orchestrator.purchase("expathub_monthly", "usr_123");
+      const resultPromise = orchestrator.purchase("monthly_subscription_all_access", "usr_123");
       jest.runAllTimersAsync();
       const result = await resultPromise;
 
       expect(rc.purchasePackage).toHaveBeenCalledTimes(1);
-      expect(rc.purchasePackage).toHaveBeenCalledWith("expathub_monthly");
+      expect(rc.purchasePackage).toHaveBeenCalledWith("monthly_subscription_all_access");
       expect(backend.refreshMobileBilling).toHaveBeenCalledTimes(1);
       expect(backend.refreshMobileBilling).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -138,7 +138,7 @@ describe("BillingOrchestrator", () => {
         timeoutMs: 10000,
       });
 
-      const resultPromise = orchestrator.purchase("expathub_monthly", "usr_123");
+      const resultPromise = orchestrator.purchase("monthly_subscription_all_access", "usr_123");
       jest.runAllTimersAsync();
       const result = await resultPromise;
 
@@ -160,7 +160,7 @@ describe("BillingOrchestrator", () => {
         timeoutMs: 500,
       });
 
-      const resultPromise = orchestrator.purchase("expathub_monthly", "usr_123");
+      const resultPromise = orchestrator.purchase("monthly_subscription_all_access", "usr_123");
       jest.runAllTimersAsync();
 
       await expect(resultPromise).rejects.toThrow(EntitlementPollingTimeoutError);
@@ -179,7 +179,7 @@ describe("BillingOrchestrator", () => {
       const orchestrator = new BillingOrchestrator(rc, backend);
 
       await expect(
-        orchestrator.purchase("expathub_monthly", "usr_123"),
+        orchestrator.purchase("monthly_subscription_all_access", "usr_123"),
       ).rejects.toThrow(RevenueCatPurchaseError);
 
       expect(backend.refreshMobileBilling).not.toHaveBeenCalled();
@@ -198,7 +198,7 @@ describe("BillingOrchestrator", () => {
       const orchestrator = new BillingOrchestrator(rc, backend);
 
       try {
-        await orchestrator.purchase("expathub_monthly", "usr_123");
+        await orchestrator.purchase("monthly_subscription_all_access", "usr_123");
         fail("Should have thrown");
       } catch (err) {
         expect(err).toBeInstanceOf(RevenueCatPurchaseError);
@@ -220,7 +220,7 @@ describe("BillingOrchestrator", () => {
       const orchestrator = new BillingOrchestrator(rc, backend);
 
       await expect(
-        orchestrator.purchase("expathub_monthly", "usr_123"),
+        orchestrator.purchase("monthly_subscription_all_access", "usr_123"),
       ).rejects.toThrow(BillingRefreshError);
 
       expect(rc.purchasePackage).toHaveBeenCalledTimes(1);
@@ -289,11 +289,11 @@ describe("BillingOrchestrator", () => {
                 decision_access: { isActive: true, expirationDate: null },
               },
             },
-            activeSubscriptions: ["expathub_monthly"],
+            activeSubscriptions: ["monthly_subscription_all_access"],
             originalAppUserId: "usr_123",
             managementURL: null,
           },
-          productIdentifier: "expathub_monthly",
+          productIdentifier: "monthly_subscription_all_access",
         }),
       });
 
@@ -306,7 +306,7 @@ describe("BillingOrchestrator", () => {
         timeoutMs: 500,
       });
 
-      const resultPromise = orchestrator.purchase("expathub_monthly", "usr_123");
+      const resultPromise = orchestrator.purchase("monthly_subscription_all_access", "usr_123");
       jest.runAllTimersAsync();
 
       await expect(resultPromise).rejects.toThrow(EntitlementPollingTimeoutError);
@@ -325,7 +325,7 @@ describe("BillingOrchestrator", () => {
         timeoutMs: 1000,
       });
 
-      const resultPromise = orchestrator.purchase("expathub_monthly", "usr_123");
+      const resultPromise = orchestrator.purchase("monthly_subscription_all_access", "usr_123");
       jest.runAllTimersAsync();
 
       try {

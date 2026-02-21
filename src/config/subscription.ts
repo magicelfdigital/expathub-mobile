@@ -6,9 +6,9 @@ export const ENTITLEMENT_COUNTRY_PREFIX = "country_";
 
 export const ENTITLEMENT_ID = "full_access_subscription";
 
-export const RC_DECISION_PASS_PRODUCT = "decision_pass_30d";
+export const RC_DECISION_PASS_PRODUCT = "30_day_pass";
 export const RC_MONTHLY_PRODUCT =
-  process.env.EXPO_PUBLIC_RC_MONTHLY_PRODUCT ?? "expathub_monthly";
+  process.env.EXPO_PUBLIC_RC_MONTHLY_PRODUCT ?? "monthly_subscription_all_access";
 export const RC_ANNUAL_PRODUCT =
   process.env.EXPO_PUBLIC_RC_ANNUAL_PRODUCT ?? "yearly";
 
@@ -57,8 +57,19 @@ export const COUNTRY_LIFETIME_PRICES: Record<string, string> = {
   "united-kingdom": "$69",
 };
 
+const COUNTRY_LIFETIME_PRODUCT_IDS: Record<string, string> = {
+  portugal: "portugal_lifetime_unlock",
+  spain: "spain_lifetime_unlock",
+  canada: "canada_lifetime_unlock",
+  "costa-rica": "CR_Llifetime_unlock",
+  panama: "panama_lifetime_unlock",
+  ecuador: "equador_lifetime_unlock",
+  malta: "malta_lifetime_unlock",
+  "united-kingdom": "uk_lifetime_unlock",
+};
+
 export function getCountryLifetimeProductId(slug: string): string {
-  return `country_lifetime_${slug.replace(/-/g, "_")}`;
+  return COUNTRY_LIFETIME_PRODUCT_IDS[slug] ?? `${slug.replace(/-/g, "_")}_lifetime_unlock`;
 }
 
 export function getCountryEntitlementId(slug: string): string {
