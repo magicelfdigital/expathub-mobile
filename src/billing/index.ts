@@ -12,6 +12,7 @@ export {
   EntitlementPollingTimeoutError,
   RevenueCatPurchaseError,
 } from "./errors";
+export { clearCooldown as clearRefreshCooldown } from "./refreshCooldown";
 
 function createRCClient(): RevenueCatClient {
   async function loadRC() {

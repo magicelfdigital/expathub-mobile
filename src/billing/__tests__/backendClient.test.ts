@@ -1,4 +1,5 @@
-import { createBackendClient } from "../backendClient";
+import { createBackendClient, getBackendBase } from "../backendClient";
+import { Platform } from "react-native";
 import type { BackendClient } from "../types";
 
 const MOCK_TOKEN = "jwt_test_token_123";
@@ -27,18 +28,77 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.restoreAllMocks();
+  delete process.env.EXPO_PUBLIC_BACKEND_URL;
+  delete process.env.EXPO_PUBLIC_DOMAIN;
+});
+
+describe("getBackendBase — native enforcement", () => {
+  it("throws when EXPO_PUBLIC_BACKEND_URL is missing on native (iOS)", () => {
+    (Platform as any).OS = "ios";
+    delete process.env.EXPO_PUBLIC_BACKEND_URL;
+
+    expect(() => getBackendBase()).toThrow(
+      "Missing EXPO_PUBLIC_BACKEND_URL — mobile builds must explicitly set backend base URL.",
+    );
+  });
+
+  it("throws when EXPO_PUBLIC_BACKEND_URL is missing on native (Android)", () => {
+    (Platform as any).OS = "android";
+    delete process.env.EXPO_PUBLIC_BACKEND_URL;
+
+    expect(() => getBackendBase()).toThrow(
+      "Missing EXPO_PUBLIC_BACKEND_URL — mobile builds must explicitly set backend base URL.",
+    );
+  });
+
+  it("returns EXPO_PUBLIC_BACKEND_URL on native when set", () => {
+    (Platform as any).OS = "ios";
+    process.env.EXPO_PUBLIC_BACKEND_URL = "https://prod.example.com";
+
+    expect(getBackendBase()).toBe("https://prod.example.com");
+  });
+
+  it("strips trailing slash on native", () => {
+    (Platform as any).OS = "ios";
+    process.env.EXPO_PUBLIC_BACKEND_URL = "https://prod.example.com/";
+
+    expect(getBackendBase()).toBe("https://prod.example.com");
+  });
+});
+
+describe("getBackendBase — web fallback", () => {
+  beforeEach(() => {
+    (Platform as any).OS = "web";
+  });
+
+  it("returns EXPO_PUBLIC_BACKEND_URL when set on web", () => {
+    process.env.EXPO_PUBLIC_BACKEND_URL = "https://prod.example.com";
+
+    expect(getBackendBase()).toBe("https://prod.example.com");
+  });
+
+  it("falls back to EXPO_PUBLIC_DOMAIN on web when EXPO_PUBLIC_BACKEND_URL is missing", () => {
+    delete process.env.EXPO_PUBLIC_BACKEND_URL;
+    process.env.EXPO_PUBLIC_DOMAIN = "myapp.replit.dev:5000";
+
+    expect(getBackendBase()).toBe("https://myapp.replit.dev:5000");
+  });
+
+  it("returns empty string on web when both env vars are missing", () => {
+    delete process.env.EXPO_PUBLIC_BACKEND_URL;
+    delete process.env.EXPO_PUBLIC_DOMAIN;
+
+    expect(getBackendBase()).toBe("");
+  });
 });
 
 describe("createBackendClient — route structure", () => {
   let client: BackendClient;
 
   beforeEach(() => {
+    (Platform as any).OS = "ios";
     process.env.EXPO_PUBLIC_BACKEND_URL = "https://test-backend.example.com";
     client = createBackendClient(() => MOCK_TOKEN);
-  });
-
-  afterEach(() => {
-    delete process.env.EXPO_PUBLIC_BACKEND_URL;
   });
 
   it("GET /api/entitlements with Authorization header", async () => {

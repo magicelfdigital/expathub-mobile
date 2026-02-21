@@ -13,15 +13,19 @@ function billingLog(msg: string) {
   console.log(`[BILLING] ${msg}`);
 }
 
-function getBackendBase(): string {
+export function getBackendBase(): string {
   const explicit = process.env.EXPO_PUBLIC_BACKEND_URL;
   if (explicit) return explicit.replace(/\/$/, "");
 
-  if (Platform.OS === "web") {
-    const host = process.env.EXPO_PUBLIC_DOMAIN;
-    if (host) return `https://${host}`;
+  if (Platform.OS !== "web") {
+    throw new Error(
+      "Missing EXPO_PUBLIC_BACKEND_URL — mobile builds must explicitly set backend base URL.",
+    );
   }
-  return "https://www.expathub.website";
+
+  const host = process.env.EXPO_PUBLIC_DOMAIN;
+  if (host) return `https://${host}`;
+  return "";
 }
 
 export function createBackendClient(getToken: () => string | null): BackendClient {

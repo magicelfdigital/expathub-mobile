@@ -39,6 +39,7 @@ import {
   getOrchestrator,
   EntitlementPollingTimeoutError,
   RevenueCatPurchaseError,
+  clearRefreshCooldown,
 } from "@/src/billing";
 
 type PaywallEntryPoint = "compare" | "brief" | "pathway" | "general" | "country";
@@ -320,6 +321,7 @@ export function ProPaywall({
     setError(null);
     trackEvent("restore_tapped", { platform: Platform.OS });
     try {
+      clearRefreshCooldown(user.id.toString());
       const orchestrator = getOrchestrator(() => token);
       const result = await orchestrator.restore(user.id.toString());
       await refresh();
