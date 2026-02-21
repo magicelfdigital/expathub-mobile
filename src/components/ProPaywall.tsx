@@ -573,17 +573,24 @@ export function ProPaywall({
                 </Pressable>
               ) : null}
 
-              <Pressable
-                onPress={handleMonthlySubscribe}
-                disabled={busy}
-                style={({ pressed }) => [s.secondaryCta, pressed && s.ctaPressed]}
-              >
-                {busy ? (
-                  <ActivityIndicator size="small" color={tokens.color.text} />
-                ) : (
-                  <Text style={s.secondaryCtaText}>Continue with Monthly Access - {MONTHLY_PRICE}</Text>
-                )}
-              </Pressable>
+              <View style={s.monthlyCard}>
+                <View style={s.monthlyHeader}>
+                  <Ionicons name="calendar-outline" size={18} color={tokens.color.primary} />
+                  <Text style={s.monthlyTitle}>Monthly Subscription</Text>
+                </View>
+                <Text style={s.monthlyMeta}>{MONTHLY_PRICE}/month · auto-renewing</Text>
+                <Pressable
+                  onPress={handleMonthlySubscribe}
+                  disabled={busy}
+                  style={({ pressed }) => [s.secondaryCta, pressed && s.ctaPressed]}
+                >
+                  {busy ? (
+                    <ActivityIndicator size="small" color={tokens.color.text} />
+                  ) : (
+                    <Text style={s.secondaryCtaText}>Subscribe Monthly — {MONTHLY_PRICE}/mo</Text>
+                  )}
+                </Pressable>
+              </View>
             </View>
 
           <Pressable
@@ -1083,6 +1090,28 @@ const s = {
     fontSize: tokens.text.small,
     color: tokens.color.primary,
     fontWeight: tokens.weight.bold,
+  },
+  monthlyCard: {
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    borderRadius: tokens.radius.md,
+    padding: 16,
+    gap: 8,
+    backgroundColor: tokens.color.surface,
+  },
+  monthlyHeader: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 8,
+  },
+  monthlyTitle: {
+    fontSize: tokens.text.body,
+    fontWeight: tokens.weight.bold,
+    color: tokens.color.text,
+  },
+  monthlyMeta: {
+    fontSize: tokens.text.small,
+    color: tokens.color.subtext,
   },
   disclaimer: {
     fontSize: 10,
