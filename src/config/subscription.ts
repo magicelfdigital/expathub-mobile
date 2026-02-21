@@ -65,7 +65,7 @@ const COUNTRY_LIFETIME_PRODUCT_IDS: Record<string, string> = {
   panama: "panama_lifetime_unlock",
   ecuador: "equador_lifetime_unlock",
   malta: "malta_lifetime_unlock",
-  "united-kingdom": "uk_lifetime_unlock",
+  "united-kingdom": "UK_lifetime_unlock",
 };
 
 export function getCountryLifetimeProductId(slug: string): string {
