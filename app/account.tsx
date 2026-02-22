@@ -156,11 +156,11 @@ export default function AccountScreen() {
       </View>
 
       <Pressable
-        onPress={() => Linking.openURL("https://expathub.website")}
+        onPress={() => Linking.openURL("https://www.expathub.website")}
         style={s.websiteLink}
       >
         <Ionicons name="globe-outline" size={18} color={tokens.color.primary} />
-        <Text style={s.websiteLinkText}>Visit expathub.website</Text>
+        <Text style={s.websiteLinkText}>Visit www.expathub.website</Text>
         <Ionicons name="open-outline" size={14} color={tokens.color.primary} style={{ marginLeft: "auto" as any }} />
       </Pressable>
 
