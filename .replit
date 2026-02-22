@@ -81,8 +81,11 @@ ensurePreviewReachable = "/status"
 EXPO_PUBLIC_SANDBOX_MODE = "true"
 EXPO_PUBLIC_RC_MONTHLY_PRODUCT = "pro_monthly"
 EXPO_PUBLIC_RC_ANNUAL_PRODUCT = "pro_annual"
+EXPO_PUBLIC_BACKEND_URL = "https://12fdb424-3efb-4864-937e-932f37ffa941-00-d6eb1hbr4m91.janeway.replit.dev"
 
 [userenv.shared]
 EXPO_PUBLIC_RC_IOS_KEY = "appl_uAcQgNADjxGBEvUuqgvaoYjIaaz"
 EXPO_PUBLIC_RC_ANDROID_KEY = "appl_uAcQgNADjxGBEvUuqgvaoYjIaaz"
-EXPO_PUBLIC_BACKEND_URL = "https://12fdb424-3efb-4864-937e-932f37ffa941-00-d6eb1hbr4m91.janeway.replit.dev"
+
+[userenv.production]
+EXPO_PUBLIC_BACKEND_URL = "https://expathub.website"
