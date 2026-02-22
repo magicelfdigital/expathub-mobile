@@ -88,4 +88,4 @@ EXPO_PUBLIC_RC_IOS_KEY = "appl_uAcQgNADjxGBEvUuqgvaoYjIaaz"
 EXPO_PUBLIC_RC_ANDROID_KEY = "appl_uAcQgNADjxGBEvUuqgvaoYjIaaz"
 
 [userenv.production]
-EXPO_PUBLIC_BACKEND_URL = "https://expathub.website"
+EXPO_PUBLIC_BACKEND_URL = "https://www.expathub.website"
