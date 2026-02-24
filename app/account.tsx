@@ -109,10 +109,9 @@ export default function AccountScreen() {
   const hasPaidAccess = hasActiveSubscription && accessType !== "sandbox" && accessType !== "none";
 
   return (
-    <View style={[s.outerContainer, isLargeScreen && s.outerCentered]}>
     <ScrollView
-      style={[s.container, isLargeScreen && s.containerLarge, { paddingTop: (Platform.OS === "web" ? WEB_TOP : insets.top) + 16 }]}
-      contentContainerStyle={s.scrollContent}
+      style={[s.container, { paddingTop: (Platform.OS === "web" ? WEB_TOP : insets.top) + 16 }]}
+      contentContainerStyle={[s.scrollContent, isLargeScreen && s.scrollContentLarge]}
       showsVerticalScrollIndicator={false}
     >
       <View style={s.header}>
@@ -264,33 +263,24 @@ export default function AccountScreen() {
         <Text style={s.versionText}>ExpatHub v1.0.0</Text>
       </Pressable>
     </ScrollView>
-    </View>
   );
 }
 
 const s = {
-  outerContainer: {
-    flex: 1,
-    backgroundColor: tokens.color.bg,
-  } as const,
-
-  outerCentered: {
-    alignItems: "center" as const,
-  } as const,
-
   container: {
     flex: 1,
     backgroundColor: tokens.color.bg,
   } as const,
 
-  containerLarge: {
-    maxWidth: 700,
-    width: "100%" as const,
-  } as const,
-
   scrollContent: {
     paddingHorizontal: 24,
     paddingBottom: 40,
+  } as const,
+
+  scrollContentLarge: {
+    maxWidth: 700,
+    alignSelf: "center" as const,
+    width: "100%" as const,
   } as const,
 
   header: {
