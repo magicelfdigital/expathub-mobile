@@ -6,13 +6,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { getBackendBase } from "@/src/billing/backendClient";
 import { COUNTRIES } from "@/data/countries";
 import { tokens } from "@/theme/tokens";
 import { testCrash, isNativeBuild } from "@/utils/crashlytics";
-
-const BACKEND_URL = Platform.OS === "web"
-  ? (process.env.EXPO_PUBLIC_BACKEND_URL || "").replace(/\/$/, "")
-  : "https://www.expathub.website";
 
 function getCountryName(slug: string): string {
   return COUNTRIES.find((c) => c.slug === slug)?.name ?? slug;
@@ -58,7 +55,7 @@ export default function AccountScreen() {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      "Delete account?",
+      "Delete Account",
       "This will permanently delete your account and associated data. This action cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
@@ -68,7 +65,8 @@ export default function AccountScreen() {
           onPress: async () => {
             setDeleting(true);
             try {
-              const res = await fetch(`${BACKEND_URL}/api/account`, {
+              const base = getBackendBase();
+              const res = await fetch(`${base}/api/account`, {
                 method: "DELETE",
                 headers: {
                   "Content-Type": "application/json",
@@ -209,6 +207,7 @@ export default function AccountScreen() {
         <Text style={s.logoutText}>Sign Out</Text>
       </Pressable>
 
+      <Text style={s.dangerHeader}>Danger Zone</Text>
       <Pressable
         style={s.deleteBtn}
         onPress={handleDeleteAccount}
@@ -440,6 +439,16 @@ const s = {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
     color: "#b91c1c",
+  } as const,
+
+  dangerHeader: {
+    fontSize: tokens.text.small,
+    fontWeight: tokens.weight.black,
+    color: "#991b1b",
+    textTransform: "uppercase" as const,
+    letterSpacing: 1,
+    marginTop: 32,
+    marginBottom: 8,
   } as const,
 
   deleteBtn: {

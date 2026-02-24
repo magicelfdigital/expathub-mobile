@@ -1,0 +1,36 @@
+You are working in an Expo React Native app (iOS + Android) that uses Supabase Auth and a Node/Express backend.
+
+Context:
+- Backend endpoint DELETE /api/account already exists and works (validates Supabase JWT, deletes user rows, deletes Supabase Auth user, returns { ok: true }).
+- Mobile agent already added a “Delete Account” button to app/account.tsx, but it was styled subtly and uses a hardcoded production URL.
+
+Goal:
+Make the in-app account deletion flow App Review–proof and robust with minimal changes.
+
+Tasks (do ALL):
+1) In app/account.tsx, make the Delete Account option clearly discoverable:
+   - Add a visible section header like “Privacy” or “Danger Zone”.
+   - Keep the button labeled exactly “Delete Account”.
+   - Do not hide it as tiny text; it should be clearly tappable.
+2) Keep the existing native confirmation dialog (Alert.alert) but ensure wording matches:
+   - Title: “Delete Account”
+   - Message: “This will permanently delete your account and associated data. This action cannot be undone.”
+   - Buttons: “Cancel” and “Confirm Delete” (destructive)
+3) Remove hardcoded base URL:
+   - Use the same API base URL mechanism used elsewhere in the app (existing API_URL constant/env/config helper).
+   - If none exists, create a single shared constant (e.g., in app/config.ts or lib/api.ts) and use it for ALL API calls in this file.
+   - It must work for production + TestFlight review; do not introduce staging-only URLs.
+4) Error handling:
+   - If DELETE fails or returns non-200, show Alert with: “Unable to delete account. Please try again.”
+   - Ensure loading spinner + disabled state remains to prevent double taps.
+5) Post-delete behavior:
+   - On success, call existing logout() (or supabase.auth.signOut()) and navigate to the signed-out/auth screen.
+   - Ensure local user state is cleared.
+6) Keep changes minimal:
+   - Touch as few files as possible.
+   - Do not modify paywall / IAP logic.
+
+Output:
+- List the exact files modified
+- Provide the exact code changes (diff-style or full updated file sections)
+- Ensure the code compiles.
