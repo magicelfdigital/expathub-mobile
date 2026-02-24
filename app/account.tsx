@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,6 +30,8 @@ export default function AccountScreen() {
   } = useSubscription();
 
   const [deleting, setDeleting] = useState(false);
+  const { width: screenWidth } = useWindowDimensions();
+  const isLargeScreen = screenWidth >= 768;
   const WEB_TOP = Platform.OS === "web" ? 67 : 0;
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -107,8 +109,9 @@ export default function AccountScreen() {
   const hasPaidAccess = hasActiveSubscription && accessType !== "sandbox" && accessType !== "none";
 
   return (
+    <View style={[s.outerContainer, isLargeScreen && s.outerCentered]}>
     <ScrollView
-      style={[s.container, { paddingTop: (Platform.OS === "web" ? WEB_TOP : insets.top) + 16 }]}
+      style={[s.container, isLargeScreen && s.containerLarge, { paddingTop: (Platform.OS === "web" ? WEB_TOP : insets.top) + 16 }]}
       contentContainerStyle={s.scrollContent}
       showsVerticalScrollIndicator={false}
     >
@@ -261,13 +264,28 @@ export default function AccountScreen() {
         <Text style={s.versionText}>ExpatHub v1.0.0</Text>
       </Pressable>
     </ScrollView>
+    </View>
   );
 }
 
 const s = {
+  outerContainer: {
+    flex: 1,
+    backgroundColor: tokens.color.bg,
+  } as const,
+
+  outerCentered: {
+    alignItems: "center" as const,
+  } as const,
+
   container: {
     flex: 1,
     backgroundColor: tokens.color.bg,
+  } as const,
+
+  containerLarge: {
+    maxWidth: 700,
+    width: "100%" as const,
   } as const,
 
   scrollContent: {

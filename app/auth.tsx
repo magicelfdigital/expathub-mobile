@@ -11,6 +11,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -33,6 +34,8 @@ export default function AuthScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
+  const { width: screenWidth } = useWindowDimensions();
+  const isLargeScreen = screenWidth >= 768;
   const WEB_TOP = Platform.OS === "web" ? 67 : 0;
 
   const canSubmit =
@@ -72,12 +75,12 @@ export default function AuthScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={s.flex}
+      style={[s.flex, isLargeScreen && s.flexCentered]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={0}
     >
       <ScrollView
-        style={s.scroll}
+        style={[s.scroll, isLargeScreen && s.scrollLarge]}
         contentContainerStyle={[
           s.scrollContent,
           { paddingTop: (Platform.OS === "web" ? WEB_TOP : insets.top) + 40 },
@@ -214,7 +217,9 @@ export default function AuthScreen() {
 
 const s = {
   flex: { flex: 1, backgroundColor: tokens.color.bg } as const,
+  flexCentered: { alignItems: "center" as const } as const,
   scroll: { flex: 1, backgroundColor: tokens.color.bg } as const,
+  scrollLarge: { maxWidth: 700, width: "100%" as const } as const,
   scrollContent: {
     paddingHorizontal: 24,
     paddingBottom: 60,
