@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
-import { Alert, Linking, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +10,10 @@ import { COUNTRIES } from "@/data/countries";
 import { tokens } from "@/theme/tokens";
 import { testCrash, isNativeBuild } from "@/utils/crashlytics";
 
+const BACKEND_URL = Platform.OS === "web"
+  ? (process.env.EXPO_PUBLIC_BACKEND_URL || "").replace(/\/$/, "")
+  : "https://www.expathub.website";
+
 function getCountryName(slug: string): string {
   return COUNTRIES.find((c) => c.slug === slug)?.name ?? slug;
 }
@@ -17,7 +21,7 @@ function getCountryName(slug: string): string {
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const {
     hasActiveSubscription,
     hasFullAccess,
@@ -28,6 +32,7 @@ export default function AccountScreen() {
     unlockedCountries,
   } = useSubscription();
 
+  const [deleting, setDeleting] = useState(false);
   const WEB_TOP = Platform.OS === "web" ? 67 : 0;
   const tapCountRef = useRef(0);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -49,6 +54,41 @@ export default function AccountScreen() {
   const handleLogout = async () => {
     await logout();
     router.replace("/");
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete account?",
+      "This will permanently delete your account and associated data. This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Confirm Delete",
+          style: "destructive",
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              const res = await fetch(`${BACKEND_URL}/api/account`, {
+                method: "DELETE",
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
+              });
+              if (!res.ok) {
+                throw new Error(`Failed (${res.status})`);
+              }
+              await logout();
+              router.replace("/auth");
+            } catch {
+              Alert.alert("Error", "Unable to delete account. Please try again.");
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const accessLabel = (() => {
@@ -167,6 +207,19 @@ export default function AccountScreen() {
       <Pressable style={s.logoutBtn} onPress={handleLogout}>
         <Ionicons name="log-out-outline" size={20} color="#b91c1c" />
         <Text style={s.logoutText}>Sign Out</Text>
+      </Pressable>
+
+      <Pressable
+        style={s.deleteBtn}
+        onPress={handleDeleteAccount}
+        disabled={deleting}
+      >
+        {deleting ? (
+          <ActivityIndicator size="small" color="#991b1b" />
+        ) : (
+          <Ionicons name="trash-outline" size={20} color="#991b1b" />
+        )}
+        <Text style={s.deleteText}>Delete Account</Text>
       </Pressable>
 
       {__DEV__ ? (
@@ -387,6 +440,22 @@ const s = {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
     color: "#b91c1c",
+  } as const,
+
+  deleteBtn: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: tokens.radius.md,
+    marginTop: 12,
+  } as const,
+
+  deleteText: {
+    fontSize: tokens.text.small,
+    fontWeight: tokens.weight.bold,
+    color: "#991b1b",
   } as const,
 
   debugBillingBtn: {
