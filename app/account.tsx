@@ -184,15 +184,6 @@ export default function AccountScreen() {
           </View>
         ) : null}
 
-        {!hasActiveSubscription ? (
-          <Pressable
-            style={s.upgradeBtn}
-            onPress={() => router.push("/subscribe" as any)}
-          >
-            <Ionicons name="star" size={18} color={tokens.color.white} />
-            <Text style={s.upgradeBtnText}>Start your 30-day decision window</Text>
-          </Pressable>
-        ) : null}
       </View>
 
       <Pressable
