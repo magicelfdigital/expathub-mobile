@@ -449,11 +449,14 @@ const s = {
     gap: 8,
     paddingVertical: 16,
     borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    borderColor: "#fecaca",
+    backgroundColor: "#fef2f2",
     marginTop: 12,
   } as const,
 
   deleteText: {
-    fontSize: tokens.text.small,
+    fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
     color: "#991b1b",
   } as const,
