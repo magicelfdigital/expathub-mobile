@@ -269,7 +269,7 @@ const s = {
   } as const,
 
   scrollContentLarge: {
-    maxWidth: 700,
+    maxWidth: 900,
     alignSelf: "center" as const,
     width: "100%" as const,
   } as const,

@@ -1,0 +1,41 @@
+You are the MOBILE Replit agent working on an Expo React Native app.
+
+Problem:
+On iPad, the app content is centered but there is a lot of BLACK space/gutters around the app. This is happening in the app itself (not just in App Store screenshot previews). The current large-screen wrapper uses maxWidth ~700 and likely doesn’t set background color on the true outer container.
+
+Goal:
+Make iPad layout look intentional: wider content area, no black gutters, correct background fills the full screen. Keep phone layout unchanged.
+
+Tasks (do ALL):
+1) Fix the outermost background:
+   - Ensure the top-level SafeAreaView (or outer container) has:
+     - flex: 1
+     - backgroundColor set to the app’s normal background (likely white or theme background)
+   - The background MUST fill the entire iPad screen.
+
+2) Adjust large-screen width constraints:
+   - Increase large-screen maxWidth from 700 to 900 (or 1000 if needed) so the app does not look like a narrow phone column on iPad.
+   - Keep width: "100%" on the inner container so it stretches up to maxWidth.
+   - Apply centering (alignItems: "center") only on large screens.
+
+3) Remove accidental extra centering constraints:
+   - Search for and remove/avoid any of these on wrappers/ScrollViews that could shrink content further:
+     - alignSelf: "center"
+     - width: some fixed number
+     - maxWidth applied twice (parent + child)
+   - Ensure ScrollView contentContainerStyle does not force a narrow centered column unless it uses width:"100%".
+
+4) Preserve behavior:
+   - Phone layout must remain identical (no visual changes on width < 768).
+   - Do not modify business logic, navigation, paywall/IAP, or API code.
+
+Output:
+- Exact files changed
+- Code diffs / patches
+- Confirm which maxWidth you chose (900 or 1000) and why.
+- Confirm background color is applied at the top-level container so there are no black gutters on iPad.
+
+Acceptance:
+- On iPad portrait and landscape, the background fills the entire screen (no black margins).
+- Content area is wider than before and looks tablet-appropriate.
+- On iPhone, nothing changes.

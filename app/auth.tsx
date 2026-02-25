@@ -219,7 +219,7 @@ const s = {
   flex: { flex: 1, backgroundColor: tokens.color.bg } as const,
   flexCentered: { alignItems: "center" as const } as const,
   scroll: { flex: 1, backgroundColor: tokens.color.bg } as const,
-  scrollLarge: { maxWidth: 700, width: "100%" as const } as const,
+  scrollLarge: { maxWidth: 900, width: "100%" as const } as const,
   scrollContent: {
     paddingHorizontal: 24,
     paddingBottom: 60,

@@ -4,7 +4,7 @@ import { StyleSheet, View, ViewStyle, useWindowDimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const LARGE_SCREEN = 768;
-const MAX_CONTENT_WIDTH = 700;
+const MAX_CONTENT_WIDTH = 900;
 
 export function Screen({
   children,
