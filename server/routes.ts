@@ -126,6 +126,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/account", async (req: Request, res: Response) => {
+    try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const authHeader = req.headers.authorization;
+      if (authHeader) headers["Authorization"] = authHeader;
+      const upstream = await fetch(`${AUTH_API_URL}/api/account`, {
+        method: "DELETE",
+        headers,
+      });
+      const text = await upstream.text();
+      res.status(upstream.status);
+      upstream.headers.forEach((value, key) => {
+        if (key.toLowerCase() === "content-type") res.setHeader(key, value);
+      });
+      res.send(text);
+    } catch (err: any) {
+      res.status(502).json({ error: "Account deletion service unavailable" });
+    }
+  });
+
+  app.post("/api/billing/mobile/refresh", async (req: Request, res: Response) => {
+    try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const authHeader = req.headers.authorization;
+      if (authHeader) headers["Authorization"] = authHeader;
+      const upstream = await fetch(`${AUTH_API_URL}/api/billing/mobile/refresh`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(req.body),
+      });
+      const text = await upstream.text();
+      res.status(upstream.status);
+      upstream.headers.forEach((value, key) => {
+        if (key.toLowerCase() === "content-type") res.setHeader(key, value);
+      });
+      res.send(text);
+    } catch (err: any) {
+      res.status(502).json({ error: "Billing service unavailable" });
+    }
+  });
+
+  app.get("/api/entitlements", async (req: Request, res: Response) => {
+    try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const authHeader = req.headers.authorization;
+      if (authHeader) headers["Authorization"] = authHeader;
+      const upstream = await fetch(`${AUTH_API_URL}/api/entitlements`, {
+        method: "GET",
+        headers,
+      });
+      const text = await upstream.text();
+      res.status(upstream.status);
+      upstream.headers.forEach((value, key) => {
+        if (key.toLowerCase() === "content-type") res.setHeader(key, value);
+      });
+      res.send(text);
+    } catch (err: any) {
+      res.status(502).json({ error: "Entitlements service unavailable" });
+    }
+  });
+
   app.post("/api/stripe/checkout", async (req: Request, res: Response) => {
     const stripe = getStripe();
     if (!stripe) {
