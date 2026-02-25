@@ -90,6 +90,7 @@ export function ProPaywall({
     clearPromoCode,
   } = useSubscription();
   const [busy, setBusy] = useState(false);
+  const [purchaseSuccess, setPurchaseSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPromoInput, setShowPromoInput] = useState(false);
   const [promoCode, setPromoCode] = useState("");
@@ -197,9 +198,12 @@ export function ProPaywall({
       if (result.status === "confirmed") {
         trackEvent("purchase_success", { type, platform: Platform.OS, status: "confirmed" });
         await refresh();
-        console.log(`[PURCHASE] ${type} confirmed by backend, closing paywall`);
-        if (onClose) onClose();
-        else router.back();
+        console.log(`[PURCHASE] ${type} confirmed by backend, showing success`);
+        setPurchaseSuccess(true);
+        setTimeout(() => {
+          if (onClose) onClose();
+          else router.back();
+        }, 2000);
       } else {
         console.log(`[PURCHASE] ${type}: backend status=${result.status}`);
         setError("Purchase is being processed. Please check back in a moment.");
@@ -411,6 +415,20 @@ export function ProPaywall({
     if (onClose) onClose();
     else if (router.canGoBack()) router.back();
     else router.replace("/(tabs)" as any);
+  }
+
+  if (purchaseSuccess) {
+    return (
+      <View style={s.loadingContainer}>
+        <Ionicons name="checkmark-circle" size={64} color={tokens.color.primary} />
+        <Text style={{ fontSize: 22, fontWeight: "700", color: tokens.color.text, marginTop: 16, textAlign: "center" }}>
+          Purchase Complete
+        </Text>
+        <Text style={{ fontSize: 15, color: tokens.color.subtext, marginTop: 8, textAlign: "center" }}>
+          Your access has been unlocked.
+        </Text>
+      </View>
+    );
   }
 
   if (entitlementLoading) {
