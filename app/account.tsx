@@ -31,6 +31,7 @@ export default function AccountScreen() {
   } = useSubscription();
 
   const [deleting, setDeleting] = useState(false);
+  const [deletedSuccess, setDeletedSuccess] = useState(false);
   const { width: screenWidth } = useWindowDimensions();
   const isLargeScreen = screenWidth >= 768;
   const WEB_TOP = Platform.OS === "web" ? 67 : 0;
@@ -92,12 +93,10 @@ export default function AccountScreen() {
         throw new Error(`Delete failed (${res.status}): ${body}`);
       }
       await logout();
-      if (Platform.OS === "web") {
-        window.alert("Your account has been deleted.");
-      } else {
-        Alert.alert("Account Deleted", "Your account has been successfully deleted.");
-      }
-      router.replace("/");
+      setDeletedSuccess(true);
+      setTimeout(() => {
+        router.replace("/");
+      }, 2500);
     } catch (e: any) {
       const msg = e?.message ?? "Unknown error";
       console.log(`[DELETE_ACCOUNT] error: ${msg}`);
@@ -127,6 +126,20 @@ export default function AccountScreen() {
   })();
 
   const hasPaidAccess = hasActiveSubscription && accessType !== "sandbox" && accessType !== "none";
+
+  if (deletedSuccess) {
+    return (
+      <View style={[s.container, { justifyContent: "center", alignItems: "center", paddingHorizontal: 32 }]}>
+        <Ionicons name="checkmark-circle" size={64} color={tokens.color.primary} />
+        <Text style={{ fontSize: 22, fontWeight: "700", color: tokens.color.text, marginTop: 16, textAlign: "center" }}>
+          Account Deleted
+        </Text>
+        <Text style={{ fontSize: 15, color: tokens.color.subtext, marginTop: 8, textAlign: "center" }}>
+          Your account has been successfully deleted.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView
