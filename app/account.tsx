@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { getBackendBase } from "@/src/billing/backendClient";
+import { getApiUrl } from "@/lib/query-client";
 import { COUNTRIES } from "@/data/countries";
 import { tokens } from "@/theme/tokens";
 import { testCrash, isNativeBuild } from "@/utils/crashlytics";
@@ -74,7 +75,9 @@ export default function AccountScreen() {
 
     setDeleting(true);
     try {
-      const base = getBackendBase();
+      const base = Platform.OS === "web"
+        ? getApiUrl().replace(/\/$/, "")
+        : getBackendBase();
       console.log(`[DELETE_ACCOUNT] DELETE ${base}/api/account`);
       const res = await fetch(`${base}/api/account`, {
         method: "DELETE",
@@ -89,11 +92,20 @@ export default function AccountScreen() {
         throw new Error(`Delete failed (${res.status}): ${body}`);
       }
       await logout();
-      router.replace("/auth");
+      if (Platform.OS === "web") {
+        window.alert("Your account has been deleted.");
+      } else {
+        Alert.alert("Account Deleted", "Your account has been successfully deleted.");
+      }
+      router.replace("/");
     } catch (e: any) {
       const msg = e?.message ?? "Unknown error";
       console.log(`[DELETE_ACCOUNT] error: ${msg}`);
-      Alert.alert("Error", msg);
+      if (Platform.OS === "web") {
+        window.alert(msg);
+      } else {
+        Alert.alert("Error", msg);
+      }
     } finally {
       setDeleting(false);
     }
@@ -123,7 +135,7 @@ export default function AccountScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={s.header}>
-        <Pressable onPress={() => router.back()} hitSlop={12}>
+        <Pressable onPress={() => { if (router.canGoBack()) router.back(); else router.replace("/"); }} hitSlop={12}>
           <Ionicons name="close" size={28} color={tokens.color.text} />
         </Pressable>
         <Text style={s.headerTitle}>Account</Text>
