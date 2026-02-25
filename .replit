@@ -45,6 +45,10 @@ args = "Start App"
 task = "workflow.run"
 args = "Start Backend"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start Frontend"
+
 [[workflows.workflow]]
 name = "Start App"
 author = "agent"
@@ -78,9 +82,11 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run expo:dev"
+args = "EXPO_NO_PROMPT=1 npm run expo:dev"
 waitForPort = 8081
-ensurePreviewReachable = "/status"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [userenv]
 
