@@ -13,6 +13,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
 import { initCrashlytics } from "@/utils/crashlytics";
+import { tokens } from "@/theme/tokens";
 
 SplashScreen.preventAutoHideAsync();
 
