@@ -68,6 +68,7 @@ export default function AccountScreen() {
             setDeleting(true);
             try {
               const base = getBackendBase();
+              console.log(`[DELETE_ACCOUNT] DELETE ${base}/api/account`);
               const res = await fetch(`${base}/api/account`, {
                 method: "DELETE",
                 headers: {
@@ -75,13 +76,17 @@ export default function AccountScreen() {
                   ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 },
               });
+              const body = await res.text();
+              console.log(`[DELETE_ACCOUNT] status=${res.status} body=${body}`);
               if (!res.ok) {
-                throw new Error(`Failed (${res.status})`);
+                throw new Error(`Delete failed (${res.status}): ${body}`);
               }
               await logout();
               router.replace("/auth");
-            } catch {
-              Alert.alert("Error", "Unable to delete account. Please try again.");
+            } catch (e: any) {
+              const msg = e?.message ?? "Unknown error";
+              console.log(`[DELETE_ACCOUNT] error: ${msg}`);
+              Alert.alert("Error", msg);
             } finally {
               setDeleting(false);
             }
