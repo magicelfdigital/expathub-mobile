@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { tokens } from "@/theme/tokens";
+import { trackEvent } from "@/src/lib/analytics";
 
 type Mode = "login" | "register";
 
@@ -51,6 +52,7 @@ export default function AuthScreen() {
     try {
       if (mode === "register") {
         await register(email.trim().toLowerCase(), password);
+        trackEvent("account_created", { platform: Platform.OS });
       } else {
         await login(email.trim().toLowerCase(), password);
       }

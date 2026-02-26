@@ -1,3 +1,6 @@
+import { Platform } from "react-native";
+import { getBackendBase } from "@/src/billing/backendClient";
+
 type AnalyticsEvent =
   | "subscribe_screen_viewed"
   | "subscribe_tapped"
@@ -29,7 +32,10 @@ type AnalyticsEvent =
   | "purchase_timeout"
   | "restore_timeout"
   | "promo_code_redeemed"
-  | "promo_code_cleared";
+  | "promo_code_cleared"
+  | "product_selected"
+  | "account_created"
+  | "account_deleted";
 
 type EventProperties = Record<string, string | number | boolean | undefined>;
 
@@ -42,9 +48,28 @@ export function trackEvent(
   if (__DEV__) {
     console.log(`[Analytics] ${event}`, properties);
   }
+
   for (const listener of listeners) {
     try {
       listener(event, properties);
+    } catch {}
+  }
+
+  if (!__DEV__) {
+    try {
+      const base = getBackendBase();
+      if (base) {
+        fetch(`${base}/api/analytics`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event,
+            properties,
+            platform: Platform.OS,
+            timestamp: new Date().toISOString(),
+          }),
+        }).catch(() => {});
+      }
     } catch {}
   }
 }

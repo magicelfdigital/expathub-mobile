@@ -11,6 +11,7 @@ import { getApiUrl } from "@/lib/query-client";
 import { COUNTRIES } from "@/data/countries";
 import { tokens } from "@/theme/tokens";
 import { testCrash, isNativeBuild } from "@/utils/crashlytics";
+import { trackEvent } from "@/src/lib/analytics";
 
 function getCountryName(slug: string): string {
   return COUNTRIES.find((c) => c.slug === slug)?.name ?? slug;
@@ -93,6 +94,7 @@ export default function AccountScreen() {
         throw new Error(`Delete failed (${res.status}): ${body}`);
       }
       await logout();
+      trackEvent("account_deleted", { platform: Platform.OS });
       setDeletedSuccess(true);
       setTimeout(() => {
         router.replace("/");

@@ -25,6 +25,7 @@ import { createCheckoutSession, createCustomerPortalSession } from "@/src/subscr
 import {
   DECISION_PASS_PRICE,
   MONTHLY_PRICE,
+  COUNTRY_LIFETIME_PRICE,
   COUNTRY_LIFETIME_PRICES,
   RC_DECISION_PASS_PRODUCT,
   RC_MONTHLY_PRODUCT,
@@ -249,6 +250,7 @@ export function ProPaywall({
       router.push("/auth?mode=register");
       return;
     }
+    trackEvent("product_selected", { productId: RC_DECISION_PASS_PRODUCT, price: DECISION_PASS_PRICE, type: "decision_pass" });
     trackEvent("purchase_tapped", { type: "decision_pass", platform: Platform.OS });
     if (Platform.OS === "web") {
       if (__DEV__) {
@@ -275,6 +277,7 @@ export function ProPaywall({
       return;
     }
     const productId = getCountryLifetimeProductId(slug);
+    trackEvent("product_selected", { productId, price: COUNTRY_LIFETIME_PRICE, type: "country_lifetime", country: slug });
     trackEvent("purchase_tapped", { type: "country_lifetime", country: slug, platform: Platform.OS });
     if (Platform.OS === "web") {
       if (__DEV__) {
@@ -298,6 +301,7 @@ export function ProPaywall({
       router.push("/auth?mode=register");
       return;
     }
+    trackEvent("product_selected", { productId: RC_MONTHLY_PRODUCT, price: MONTHLY_PRICE, type: "monthly_subscription" });
     trackEvent("purchase_tapped", { type: "monthly_subscription", platform: Platform.OS });
     if (Platform.OS === "web") {
       setBusy(true);

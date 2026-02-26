@@ -187,6 +187,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/analytics", async (req: Request, res: Response) => {
+    try {
+      const upstream = await fetch(`${AUTH_API_URL}/api/analytics`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(req.body),
+      });
+      res.status(upstream.status).json({ ok: true });
+    } catch {
+      res.status(200).json({ ok: true });
+    }
+  });
+
   app.post("/api/stripe/checkout", async (req: Request, res: Response) => {
     const stripe = getStripe();
     if (!stripe) {
