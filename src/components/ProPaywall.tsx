@@ -18,7 +18,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { getProOffer } from "@/src/data";
+import { getProOffer, isLaunchCountry } from "@/src/data";
 import type { ProOffer } from "@/src/data";
 import { getOfferings } from "@/src/subscriptions/revenuecat";
 import { createCheckoutSession, createCustomerPortalSession } from "@/src/subscriptions/stripeWeb";
@@ -108,6 +108,7 @@ export function ProPaywall({
 
   const countryName = resolvedCountrySlug ? getCountryName(resolvedCountrySlug) : null;
   const countryPrice = resolvedCountrySlug ? (COUNTRY_LIFETIME_PRICES[resolvedCountrySlug] ?? "$69") : "$69";
+  const isLaunch = !resolvedCountrySlug || isLaunchCountry(resolvedCountrySlug);
 
   const alreadyHasCountry = resolvedCountrySlug ? hasCountryAccess(resolvedCountrySlug) : false;
 
@@ -415,6 +416,30 @@ export function ProPaywall({
     if (onClose) onClose();
     else if (router.canGoBack()) router.back();
     else router.replace("/(tabs)" as any);
+  }
+
+  if (!isLaunch && resolvedCountrySlug) {
+    return (
+      <View style={s.loadingContainer}>
+        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: "#e5e7eb", alignItems: "center" as const, justifyContent: "center" as const, marginBottom: 8 }}>
+          <Ionicons name="time-outline" size={28} color="#6b7280" />
+        </View>
+        <Text style={{ fontSize: 22, fontWeight: "700", color: tokens.color.text, textAlign: "center", marginBottom: 8 }}>
+          Coming Soon
+        </Text>
+        <Text style={{ fontSize: 15, color: tokens.color.subtext, textAlign: "center", lineHeight: 22, paddingHorizontal: 24 }}>
+          Full Decision Briefs for {countryName} are being built. Complete guides with detailed advice will be available here soon.
+        </Text>
+        {showClose ? (
+          <Pressable
+            onPress={handleClose}
+            style={{ marginTop: 24, paddingVertical: 12, paddingHorizontal: 24, borderRadius: tokens.radius.lg, backgroundColor: tokens.color.primary }}
+          >
+            <Text style={{ fontSize: 15, fontWeight: "700", color: tokens.color.white }}>Browse available countries</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    );
   }
 
   if (entitlementLoading) {

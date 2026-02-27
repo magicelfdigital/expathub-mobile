@@ -11,9 +11,10 @@ import { ProPaywall } from "@/src/components/ProPaywall";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { getCountry, getPathways, getDecisionBrief } from "@/src/data";
+import { getCountry, getPathways, getDecisionBrief, isLaunchCountry } from "@/src/data";
 import { getPassportNotes } from "@/data/passportNotes";
 import { trackEvent } from "@/src/lib/analytics";
+import { ComingSoon } from "@/src/components/ComingSoon";
 import { tokens } from "@/theme/tokens";
 
 const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
@@ -103,6 +104,18 @@ export default function PathwayScreen() {
   }
 
   if (pathway.premium && !hasAccess) {
+    if (!resolvedSlug || !isLaunchCountry(resolvedSlug)) {
+      return (
+        <Screen>
+          <ComingSoon
+            title="Coming Soon"
+            message={`Full Decision Briefs for ${countryName} are being built. Complete guides with detailed advice will be available here soon.`}
+            ctaLabel="Browse available countries"
+            onPressCta={() => router.push("/(tabs)/country" as any)}
+          />
+        </Screen>
+      );
+    }
     return (
       <Screen>
         <ProPaywall
