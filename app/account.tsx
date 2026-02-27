@@ -13,6 +13,16 @@ import { tokens } from "@/theme/tokens";
 import { testCrash, isNativeBuild } from "@/utils/crashlytics";
 import { trackEvent } from "@/src/lib/analytics";
 
+async function loadPurchasesModule() {
+  if (Platform.OS === "web") return null;
+  try {
+    const mod = await import("react-native-purchases");
+    return mod.default;
+  } catch {
+    return null;
+  }
+}
+
 function getCountryName(slug: string): string {
   return COUNTRIES.find((c) => c.slug === slug)?.name ?? slug;
 }
@@ -33,6 +43,8 @@ export default function AccountScreen() {
 
   const [deleting, setDeleting] = useState(false);
   const [deletedSuccess, setDeletedSuccess] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const { width: screenWidth } = useWindowDimensions();
   const isLargeScreen = screenWidth >= 768;
   const WEB_TOP = Platform.OS === "web" ? 67 : 0;
@@ -45,7 +57,7 @@ export default function AccountScreen() {
     if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
     if (tapCountRef.current >= 7) {
       tapCountRef.current = 0;
-      router.push("/account-info" as any);
+      router.push("/debug-billing" as any);
       return;
     }
     tapTimerRef.current = setTimeout(() => {
@@ -56,6 +68,53 @@ export default function AccountScreen() {
   const handleLogout = async () => {
     await logout();
     router.replace("/");
+  };
+
+  const handleRestore = async () => {
+    setRestoring(true);
+    setStatusMsg(null);
+    const rc = await loadPurchasesModule();
+    if (!rc) {
+      setStatusMsg("Purchase system not available on this platform.");
+      setRestoring(false);
+      return;
+    }
+    try {
+      const result = await rc.restorePurchases();
+      const activeCount = Object.values(result.entitlements.active).length;
+      setStatusMsg(
+        activeCount > 0
+          ? `Restored ${activeCount} purchase(s) successfully.`
+          : "No previous purchases found."
+      );
+    } catch {
+      setStatusMsg("Restore failed. Please try again later.");
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const handleManageSubscription = () => {
+    if (Platform.OS === "ios") {
+      Linking.openURL("https://apps.apple.com/account/subscriptions");
+    } else if (Platform.OS === "android") {
+      Linking.openURL("https://play.google.com/store/account/subscriptions");
+    } else {
+      Alert.alert(
+        "Manage Subscription",
+        "Visit your app store account settings to manage your subscription."
+      );
+    }
+  };
+
+  const handleContactSupport = () => {
+    const subject = encodeURIComponent("ExpatHub Support Request");
+    const body = encodeURIComponent(
+      `\n\n---\nEmail: ${user?.email ?? "unknown"}\nPlatform: ${Platform.OS}`
+    );
+    Linking.openURL(
+      `mailto:support@magicelfdigital.com?subject=${subject}&body=${body}`
+    );
   };
 
   const handleDeleteAccount = async () => {
@@ -221,14 +280,60 @@ export default function AccountScreen() {
 
       </View>
 
-      <Pressable
-        onPress={() => Linking.openURL("https://www.expathub.website")}
-        style={s.websiteLink}
-      >
-        <Ionicons name="globe-outline" size={18} color={tokens.color.primary} />
-        <Text style={s.websiteLinkText}>Visit www.expathub.website</Text>
-        <Ionicons name="open-outline" size={14} color={tokens.color.primary} style={{ marginLeft: "auto" as any }} />
-      </Pressable>
+      {statusMsg ? (
+        <View style={s.statusBox}>
+          <Text style={s.statusText}>{statusMsg}</Text>
+        </View>
+      ) : null}
+
+      <View style={s.actionsGroup}>
+        <Pressable
+          onPress={handleRestore}
+          disabled={restoring}
+          style={({ pressed }) => [s.actionRow, pressed && { opacity: 0.7 }]}
+        >
+          {restoring ? (
+            <ActivityIndicator size="small" color={tokens.color.primary} />
+          ) : (
+            <Ionicons name="arrow-undo" size={18} color={tokens.color.primary} />
+          )}
+          <Text style={s.actionRowText}>Restore Purchases</Text>
+          <Ionicons name="chevron-forward" size={16} color={tokens.color.subtext} style={{ marginLeft: "auto" as any }} />
+        </Pressable>
+
+        <View style={s.actionDivider} />
+
+        <Pressable
+          onPress={handleManageSubscription}
+          style={({ pressed }) => [s.actionRow, pressed && { opacity: 0.7 }]}
+        >
+          <Ionicons name="settings-outline" size={18} color={tokens.color.primary} />
+          <Text style={s.actionRowText}>Manage Subscription</Text>
+          <Ionicons name="chevron-forward" size={16} color={tokens.color.subtext} style={{ marginLeft: "auto" as any }} />
+        </Pressable>
+
+        <View style={s.actionDivider} />
+
+        <Pressable
+          onPress={handleContactSupport}
+          style={({ pressed }) => [s.actionRow, pressed && { opacity: 0.7 }]}
+        >
+          <Ionicons name="mail-outline" size={18} color={tokens.color.primary} />
+          <Text style={s.actionRowText}>Contact Support</Text>
+          <Ionicons name="chevron-forward" size={16} color={tokens.color.subtext} style={{ marginLeft: "auto" as any }} />
+        </Pressable>
+
+        <View style={s.actionDivider} />
+
+        <Pressable
+          onPress={() => Linking.openURL("https://www.expathub.website")}
+          style={({ pressed }) => [s.actionRow, pressed && { opacity: 0.7 }]}
+        >
+          <Ionicons name="globe-outline" size={18} color={tokens.color.primary} />
+          <Text style={s.actionRowText}>Visit www.expathub.website</Text>
+          <Ionicons name="open-outline" size={14} color={tokens.color.subtext} style={{ marginLeft: "auto" as any }} />
+        </Pressable>
+      </View>
 
       <Pressable style={s.logoutBtn} onPress={handleLogout}>
         <Ionicons name="log-out-outline" size={20} color="#b91c1c" />
@@ -438,23 +543,48 @@ const s = {
     color: tokens.color.white,
   } as const,
 
-  websiteLink: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+  statusBox: {
+    backgroundColor: tokens.color.primarySoft,
     borderRadius: tokens.radius.md,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    backgroundColor: tokens.color.surface,
+    padding: 12,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: tokens.color.primaryBorder,
   } as const,
 
-  websiteLinkText: {
+  statusText: {
+    fontSize: tokens.text.small,
+    color: tokens.color.primary,
+    textAlign: "center" as const,
+  } as const,
+
+  actionsGroup: {
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    marginBottom: 24,
+    overflow: "hidden" as const,
+  } as const,
+
+  actionRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  } as const,
+
+  actionRowText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
-    color: tokens.color.primary,
+    color: tokens.color.text,
+  } as const,
+
+  actionDivider: {
+    height: 1,
+    backgroundColor: tokens.color.border,
+    marginHorizontal: 16,
   } as const,
 
   logoutBtn: {

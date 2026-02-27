@@ -201,8 +201,8 @@ export default function HomeScreen() {
                   <Text style={styles.footerLinkText}>Terms of Service</Text>
                 </Pressable>
                 <Text style={styles.footerDot}>&middot;</Text>
-                <Pressable onPress={() => router.push("/account-info" as any)} hitSlop={8}>
-                  <Text style={styles.footerLinkText}>Account Info</Text>
+                <Pressable onPress={() => router.push(user ? "/account" : ("/auth?mode=register" as any))} hitSlop={8}>
+                  <Text style={styles.footerLinkText}>Account</Text>
                 </Pressable>
               </View>
               <Text style={styles.footerCopy}>2026 Magic Elf Digital</Text>
