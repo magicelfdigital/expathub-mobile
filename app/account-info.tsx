@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import {
   getAppUserId,
@@ -70,6 +71,7 @@ async function loadPurchasesModule() {
 export default function AccountInfoScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { user } = useAuth();
   const { refresh, rcConfigured, purchasesError } = useSubscription();
   const [data, setData] = useState<AccountData>(EMPTY);
   const [loading, setLoading] = useState(true);
@@ -225,7 +227,7 @@ export default function AccountInfoScreen() {
   const handleContactSupport = () => {
     const subject = encodeURIComponent("ExpatHub Support Request");
     const body = encodeURIComponent(
-      `\n\n---\nUser ID: ${data.appUserId ?? "unknown"}\nPlatform: ${Platform.OS}\nRC Configured: ${data.rcInitialized}`
+      `\n\n---\nEmail: ${user?.email ?? "unknown"}\nPlatform: ${Platform.OS}`
     );
     Linking.openURL(
       `mailto:support@magicelfdigital.com?subject=${subject}&body=${body}`
@@ -342,29 +344,12 @@ export default function AccountInfoScreen() {
           )}
 
           <Pressable onPress={handleIdTap} style={s.card}>
-            <Text style={s.cardLabel}>Your Account ID</Text>
+            <Text style={s.cardLabel}>Your Email</Text>
             <View style={s.idRow}>
               <Text style={s.idText} numberOfLines={1} ellipsizeMode="middle">
-                {data.appUserId ?? "Not available"}
+                {user?.email ?? "Not signed in"}
               </Text>
-              {data.appUserId && (
-                <Pressable onPress={handleCopyId} hitSlop={8}>
-                  <Ionicons
-                    name={copied ? "checkmark-circle" : "copy-outline"}
-                    size={20}
-                    color={copied ? "#16a34a" : tokens.color.primary}
-                  />
-                </Pressable>
-              )}
             </View>
-            {!data.appUserId && Platform.OS !== "web" && (
-              <Text style={s.warningText}>
-                {!data.rcInitialized ? "RevenueCat not configured" : "Could not retrieve user ID"}
-              </Text>
-            )}
-            {copied && (
-              <Text style={s.copiedText}>Copied to clipboard</Text>
-            )}
           </Pressable>
 
           <View style={s.card}>
