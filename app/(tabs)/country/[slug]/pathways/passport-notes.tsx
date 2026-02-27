@@ -1,4 +1,4 @@
-﻿import { Ionicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
@@ -62,7 +62,7 @@ export default function PassportNotesScreen() {
             <Text style={styles.h1}>Passport Notes</Text>
           </View>
           <Text style={styles.subtitle}>
-            {pathway.title} â€” {countryName}
+            {pathway.title} — {countryName}
           </Text>
           <Text style={styles.lead}>
             Key details by passport nationality for this pathway.
