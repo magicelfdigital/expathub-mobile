@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "lastRunAt": "2026-02-11T00:09:33.195Z",
+  "lastRunAt": "2026-02-27T15:55:34.683Z",
   "hashes": {
-    "pt-tax": "825178e5a8dfa9abb6d7b57130a92ca78dcc7274865e02afcb0fca29be256b49",
-    "es-tax": "4e12885be429f5d7dc445b8af49933f709617d5db88972a0288ef21e8e8261c5",
+    "pt-tax": "feb216274a743d61f2cb82162eef357371d08fbf5f36a3ca025e93c854dd5dce",
+    "es-tax": "8e36956520d55649b6ee08e923a4fee2f3cb723875852c904c748324996b7a87",
     "uk-skilled-worker": "29c9974bba935e65bb6791efbccf068d19f10e2876c9e0e058609e49a284d4ce",
     "mt-residency": "99f87707d6466bd0381d562bc2c33f00a0a842905b130aa36d75f49683e7648d",
-    "pa-immigration": "0841368b2674687059aa572fe2ed1dc3d066ba38693c74b2da2b110416af859a"
+    "pa-immigration": "879acf61fc967d1a2c1b233ce1d19a8572c65a8726a85b360be24b2eda9b69f9"
   }
 }
