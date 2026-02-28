@@ -37,24 +37,200 @@ const EMPLOYMENT_TYPES = [
   "Other",
 ];
 
-type ResultType = "viable" | "review" | null;
+type PathwayThreshold = {
+  minimumIncomeIndex: number;
+  minimumSavingsIndex: number;
+  allowedEmployment?: string[];
+  excludedPassports?: string[];
+  notes?: string;
+};
+
+const PATHWAY_THRESHOLDS: Record<string, PathwayThreshold> = {
+  d7: {
+    minimumIncomeIndex: 1,
+    minimumSavingsIndex: 1,
+    allowedEmployment: ["Retired / pension", "Freelancer / self-employed", "Business owner", "Other"],
+    notes: "D7 requires passive income — active employment typically does not qualify.",
+  },
+  d8: {
+    minimumIncomeIndex: 2,
+    minimumSavingsIndex: 1,
+    allowedEmployment: ["Remote employee", "Freelancer / self-employed", "Business owner"],
+    excludedPassports: ["EU / EEA"],
+    notes: "D8 requires remote work income from outside Portugal.",
+  },
+  nlv: {
+    minimumIncomeIndex: 2,
+    minimumSavingsIndex: 2,
+    allowedEmployment: ["Retired / pension", "Other"],
+    excludedPassports: ["EU / EEA"],
+    notes: "Non-Lucrative Visa prohibits all work, including remote work.",
+  },
+  dnv: {
+    minimumIncomeIndex: 2,
+    minimumSavingsIndex: 1,
+    allowedEmployment: ["Remote employee", "Freelancer / self-employed", "Business owner"],
+    excludedPassports: ["EU / EEA"],
+  },
+  "elective-residency": {
+    minimumIncomeIndex: 2,
+    minimumSavingsIndex: 2,
+    allowedEmployment: ["Retired / pension", "Other"],
+    excludedPassports: ["EU / EEA"],
+    notes: "Elective Residency does not permit employment in Italy.",
+  },
+  "talent-passport": {
+    minimumIncomeIndex: 2,
+    minimumSavingsIndex: 1,
+    allowedEmployment: ["Remote employee", "Freelancer / self-employed", "Business owner"],
+  },
+  visitor: {
+    minimumIncomeIndex: 1,
+    minimumSavingsIndex: 2,
+    allowedEmployment: ["Retired / pension", "Other"],
+    notes: "Long-stay visitor visa does not permit employment.",
+  },
+  "express-entry": {
+    minimumIncomeIndex: 2,
+    minimumSavingsIndex: 2,
+    allowedEmployment: ["Remote employee", "Freelancer / self-employed", "Business owner"],
+  },
+  "skilled-worker": {
+    minimumIncomeIndex: 1,
+    minimumSavingsIndex: 1,
+    allowedEmployment: ["Remote employee"],
+  },
+  "global-talent": {
+    minimumIncomeIndex: 2,
+    minimumSavingsIndex: 1,
+    allowedEmployment: ["Remote employee", "Freelancer / self-employed", "Business owner"],
+  },
+  "innovator-founder": {
+    minimumIncomeIndex: 3,
+    minimumSavingsIndex: 3,
+    allowedEmployment: ["Business owner", "Freelancer / self-employed"],
+  },
+  grp: {
+    minimumIncomeIndex: 2,
+    minimumSavingsIndex: 2,
+    excludedPassports: ["EU / EEA"],
+  },
+  "digital-nomad": {
+    minimumIncomeIndex: 2,
+    minimumSavingsIndex: 1,
+    allowedEmployment: ["Remote employee", "Freelancer / self-employed", "Business owner"],
+  },
+  retirement: {
+    minimumIncomeIndex: 1,
+    minimumSavingsIndex: 2,
+    allowedEmployment: ["Retired / pension"],
+  },
+  pensionado: {
+    minimumIncomeIndex: 1,
+    minimumSavingsIndex: 2,
+    allowedEmployment: ["Retired / pension"],
+  },
+  jubilado: {
+    minimumIncomeIndex: 1,
+    minimumSavingsIndex: 2,
+    allowedEmployment: ["Retired / pension"],
+  },
+  rentista: {
+    minimumIncomeIndex: 2,
+    minimumSavingsIndex: 2,
+    allowedEmployment: ["Retired / pension", "Freelancer / self-employed", "Business owner", "Other"],
+    notes: "Rentista typically requires proof of stable income or financial means.",
+  },
+  "self-economic-solvency": {
+    minimumIncomeIndex: 2,
+    minimumSavingsIndex: 2,
+  },
+  "friendly-nations": {
+    minimumIncomeIndex: 1,
+    minimumSavingsIndex: 1,
+  },
+  "temporary-resident": {
+    minimumIncomeIndex: 1,
+    minimumSavingsIndex: 1,
+  },
+  "permanent-resident": {
+    minimumIncomeIndex: 2,
+    minimumSavingsIndex: 2,
+  },
+  ltr: {
+    minimumIncomeIndex: 3,
+    minimumSavingsIndex: 2,
+    allowedEmployment: ["Remote employee", "Freelancer / self-employed", "Business owner", "Retired / pension"],
+  },
+  student: {
+    minimumIncomeIndex: 0,
+    minimumSavingsIndex: 1,
+    allowedEmployment: ["Student"],
+  },
+};
+
+const DEFAULT_THRESHOLD: PathwayThreshold = {
+  minimumIncomeIndex: 2,
+  minimumSavingsIndex: 2,
+};
+
+type EligibilityResult = {
+  alignmentLevel: "strong" | "moderate";
+  strengths: string[];
+  cautions: string[];
+  info: string[];
+};
 
 function computeResult(
-  nationality: string | null,
-  income: string | null,
-  savings: string | null,
-  employment: string | null,
-): ResultType {
-  if (!nationality || !income || !savings || !employment) return null;
-
+  nationality: string,
+  income: string,
+  savings: string,
+  employment: string,
+  pathwayId: string,
+): EligibilityResult {
+  const thresholds = PATHWAY_THRESHOLDS[pathwayId] ?? DEFAULT_THRESHOLD;
   const incomeIndex = INCOME_BRACKETS.indexOf(income);
   const savingsIndex = SAVINGS_BRACKETS.indexOf(savings);
 
-  if (incomeIndex >= 2 && savingsIndex >= 2) {
-    return "viable";
+  const strengths: string[] = [];
+  const cautions: string[] = [];
+  const info: string[] = [];
+
+  if (incomeIndex >= thresholds.minimumIncomeIndex) {
+    strengths.push("Income bracket appears to meet typical thresholds for this pathway.");
+  } else {
+    cautions.push("Income may fall below the typical threshold for this pathway.");
   }
 
-  return "review";
+  if (savingsIndex >= thresholds.minimumSavingsIndex) {
+    strengths.push("Savings bracket appears sufficient for application and initial costs.");
+  } else {
+    cautions.push("Savings may be lower than typically expected for this pathway.");
+  }
+
+  if (thresholds.excludedPassports?.includes(nationality)) {
+    cautions.push("This pathway is generally designed for non-EU nationals. EU/EEA citizens may have simpler options available.");
+  } else {
+    strengths.push("Your passport nationality is generally eligible for this pathway type.");
+  }
+
+  if (thresholds.allowedEmployment) {
+    if (thresholds.allowedEmployment.includes(employment)) {
+      strengths.push("Your employment type aligns with the typical requirements.");
+    } else {
+      cautions.push("This pathway may not be the best fit for your employment type.");
+    }
+  } else {
+    strengths.push("Employment type does not appear to be a limiting factor.");
+  }
+
+  if (thresholds.notes) {
+    info.push(thresholds.notes);
+  }
+
+  const alignmentLevel = cautions.length <= 1 ? "strong" : "moderate";
+
+  return { alignmentLevel, strengths, cautions, info };
 }
 
 function DropdownSelect({
@@ -183,19 +359,20 @@ export default function EligibilitySnapshot({
   const [income, setIncome] = useState<string | null>(null);
   const [savings, setSavings] = useState<string | null>(null);
   const [employment, setEmployment] = useState<string | null>(null);
-  const [result, setResult] = useState<ResultType>(null);
+  const [result, setResult] = useState<EligibilityResult | null>(null);
   const [hasRun, setHasRun] = useState(false);
 
   const allFilled = !!nationality && !!income && !!savings && !!employment;
 
   const handleRun = () => {
-    const computed = computeResult(nationality, income, savings, employment);
+    if (!allFilled) return;
+    const computed = computeResult(nationality, income, savings, employment, pathwayId ?? "");
     setResult(computed);
     setHasRun(true);
     trackEvent("eligibility_snapshot_run", {
       country: countrySlug,
       pathway: pathwayId ?? "",
-      result: computed ?? "incomplete",
+      result: computed.alignmentLevel,
     });
   };
 
@@ -269,36 +446,71 @@ export default function EligibilitySnapshot({
             </Text>
           </Pressable>
         </>
-      ) : (
+      ) : result ? (
         <View style={styles.resultContainer}>
-          {result === "viable" ? (
-            <View style={styles.resultCard}>
-              <View style={styles.resultIconRow}>
-                <Ionicons name="checkmark-circle" size={24} color="#2E7D32" />
-                <Text style={styles.resultTitle}>Looks viable</Text>
-              </View>
-              <Text style={styles.resultBody}>
-                Based on what you've shared, this pathway appears to be a reasonable fit. We recommend reviewing the detailed requirements to confirm.
+          <View
+            style={[
+              styles.resultCard,
+              result.alignmentLevel === "moderate" && styles.resultCardModerate,
+            ]}
+          >
+            <View style={styles.resultIconRow}>
+              <Ionicons
+                name={result.alignmentLevel === "strong" ? "checkmark-circle" : "alert-circle"}
+                size={24}
+                color={result.alignmentLevel === "strong" ? "#2E7D32" : "#E65100"}
+              />
+              <Text style={styles.resultTitle}>
+                {result.alignmentLevel === "strong"
+                  ? "This pathway appears viable based on your inputs."
+                  : "This pathway may work, but a few areas need review."}
               </Text>
             </View>
-          ) : (
-            <View style={[styles.resultCard, styles.resultCardReview]}>
-              <View style={styles.resultIconRow}>
-                <Ionicons name="alert-circle" size={24} color="#E65100" />
-                <Text style={styles.resultTitle}>May work, needs review</Text>
-              </View>
-              <Text style={styles.resultBody}>
-                Some aspects of your situation may need closer review against the specific requirements of this pathway. Consider consulting a specialist.
-              </Text>
+          </View>
+
+          {result.strengths.length > 0 ? (
+            <View style={styles.findingsSection}>
+              {result.strengths.map((s, i) => (
+                <View key={`s-${i}`} style={styles.findingRow}>
+                  <Ionicons name="checkmark-circle" size={16} color="#2E7D32" />
+                  <Text style={styles.findingText}>{s}</Text>
+                </View>
+              ))}
             </View>
-          )}
+          ) : null}
+
+          {result.cautions.length > 0 ? (
+            <View style={styles.findingsSection}>
+              {result.cautions.map((c, i) => (
+                <View key={`c-${i}`} style={styles.findingRow}>
+                  <Ionicons name="information-circle" size={16} color="#E65100" />
+                  <Text style={styles.findingText}>{c}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {result.info.length > 0 ? (
+            <View style={styles.findingsSection}>
+              {result.info.map((n, i) => (
+                <View key={`n-${i}`} style={styles.findingRow}>
+                  <Ionicons name="bulb-outline" size={16} color={tokens.color.subtext} />
+                  <Text style={styles.findingTextMuted}>{n}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          <Text style={styles.disclaimer}>
+            This is a general indication only. Always verify specific requirements with the relevant consulate or immigration authority.
+          </Text>
 
           <Pressable style={styles.resetButton} onPress={handleReset}>
             <Ionicons name="refresh-outline" size={16} color={tokens.color.primary} />
             <Text style={styles.resetText}>Run again with different inputs</Text>
           </Pressable>
         </View>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -369,25 +581,47 @@ const styles = StyleSheet.create({
     borderColor: "rgba(46, 125, 50, 0.2)",
     padding: tokens.space.md,
   },
-  resultCardReview: {
+  resultCardModerate: {
     backgroundColor: "rgba(230, 81, 0, 0.08)",
     borderColor: "rgba(230, 81, 0, 0.2)",
   },
   resultIconRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 8,
-    marginBottom: 6,
   },
   resultTitle: {
-    fontSize: tokens.text.h3,
+    fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
     color: tokens.color.text,
-  },
-  resultBody: {
-    fontSize: tokens.text.body,
-    color: tokens.color.subtext,
+    flex: 1,
     lineHeight: 20,
+  },
+  findingsSection: {
+    gap: tokens.space.xs + 2,
+  },
+  findingRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  findingText: {
+    fontSize: tokens.text.body,
+    color: tokens.color.text,
+    flex: 1,
+    lineHeight: 20,
+  },
+  findingTextMuted: {
+    fontSize: tokens.text.small,
+    color: tokens.color.subtext,
+    flex: 1,
+    lineHeight: 18,
+    fontStyle: "italic" as const,
+  },
+  disclaimer: {
+    fontSize: tokens.text.small,
+    color: tokens.color.subtext,
+    lineHeight: 16,
   },
   resetButton: {
     flexDirection: "row",
