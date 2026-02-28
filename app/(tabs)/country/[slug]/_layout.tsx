@@ -27,8 +27,8 @@ function BackButton({ fallback }: { fallback?: string }) {
           router.replace("/(tabs)" as any);
         }
       }}
-      hitSlop={10}
-      style={{ padding: 4 }}
+      hitSlop={12}
+      style={{ paddingVertical: 4, paddingHorizontal: 8, marginLeft: -4 }}
     >
       <Ionicons name="chevron-back" size={24} color={tokens.color.primary} />
     </Pressable>
