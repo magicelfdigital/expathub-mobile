@@ -113,6 +113,13 @@ export default function AboutScreen() {
         </Pressable>
       </View>
 
+      <View style={s.privacyNote}>
+        <Ionicons name="lock-closed-outline" size={16} color={tokens.color.subtext} />
+        <Text style={s.privacyNoteText}>
+          Personal inputs entered in the app are stored on your device unless explicitly submitted.
+        </Text>
+      </View>
+
       <Text style={s.copyright}>{"\u00A9"} 2026 MagicElfDigital LLC</Text>
     </ScrollView>
   );
@@ -244,6 +251,21 @@ const s = {
 
   chevron: {
     marginLeft: "auto" as any,
+  } as const,
+
+  privacyNote: {
+    flexDirection: "row" as const,
+    alignItems: "flex-start" as const,
+    gap: 10,
+    marginTop: 8,
+    paddingHorizontal: 4,
+  } as const,
+
+  privacyNoteText: {
+    flex: 1,
+    fontSize: tokens.text.small,
+    color: tokens.color.subtext,
+    lineHeight: 18,
   } as const,
 
   copyright: {
