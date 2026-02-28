@@ -58,10 +58,11 @@ export default function HomeScreen() {
     const slug = lastViewedCountrySlug || selectedCountrySlug;
     if (!slug) return;
     setSelectedCountrySlug(slug);
+    router.push({ pathname: "/country-view", params: { slug } } as any);
     if (lastViewedSection) {
-      router.push({ pathname: `/(tabs)/country/[slug]/${lastViewedSection}` as any, params: { slug } });
-    } else {
-      router.push({ pathname: "/country-view", params: { slug } } as any);
+      setTimeout(() => {
+        router.push({ pathname: `/(tabs)/country/[slug]/${lastViewedSection}` as any, params: { slug } });
+      }, 50);
     }
   };
 

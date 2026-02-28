@@ -24,7 +24,7 @@ function BackButton({ fallback }: { fallback?: string }) {
         } else if (fallback) {
           router.replace(fallback as any);
         } else {
-          router.replace("/(tabs)/country" as any);
+          router.replace("/(tabs)" as any);
         }
       }}
       hitSlop={10}
