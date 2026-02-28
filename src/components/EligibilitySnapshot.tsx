@@ -1,8 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { tokens } from "@/theme/tokens";
 import { trackEvent } from "@/src/lib/analytics";
+
+const PASSPORT_STORAGE_KEY = "expathub_passport_nationality";
 
 const NATIONALITIES = [
   "US / Canada",
@@ -362,6 +365,19 @@ export default function EligibilitySnapshot({
   const [result, setResult] = useState<EligibilityResult | null>(null);
   const [hasRun, setHasRun] = useState(false);
 
+  useEffect(() => {
+    AsyncStorage.getItem(PASSPORT_STORAGE_KEY).then((stored) => {
+      if (stored && NATIONALITIES.includes(stored)) {
+        setNationality(stored);
+      }
+    });
+  }, []);
+
+  const handleNationalityChange = (val: string) => {
+    setNationality(val);
+    AsyncStorage.setItem(PASSPORT_STORAGE_KEY, val);
+  };
+
   const allFilled = !!nationality && !!income && !!savings && !!employment;
 
   const handleRun = () => {
@@ -377,7 +393,6 @@ export default function EligibilitySnapshot({
   };
 
   const handleReset = () => {
-    setNationality(null);
     setIncome(null);
     setSavings(null);
     setEmployment(null);
@@ -395,7 +410,7 @@ export default function EligibilitySnapshot({
       <View style={styles.privacyNote}>
         <Ionicons name="lock-closed-outline" size={14} color={tokens.color.subtext} />
         <Text style={styles.privacyText}>
-          Your answers are stored only on your device and are not shared.
+          Stored only on your device and not shared.
         </Text>
       </View>
 
@@ -405,7 +420,7 @@ export default function EligibilitySnapshot({
             label="Passport Nationality"
             options={NATIONALITIES}
             value={nationality}
-            onSelect={setNationality}
+            onSelect={handleNationalityChange}
           />
           <DropdownSelect
             label="Monthly Income"

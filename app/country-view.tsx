@@ -138,7 +138,7 @@ export default function CountryViewScreen() {
             <View style={styles.passportNotice}>
               <Ionicons name="earth" size={12} color="#0D8A8A" />
               <Text style={styles.passportNoticeText}>
-                Passport Notes on each pathway cover 7 nationalities including US, UK, EU, and more
+                Passport Notes on each pathway cover 7 nationality groups
               </Text>
             </View>
           ) : null}

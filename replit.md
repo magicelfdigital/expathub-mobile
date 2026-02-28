@@ -71,6 +71,14 @@ Preferred communication style: Simple, everyday language.
 - **Fixed CTA**: Sticky bottom bar with "Start 30-Day Decision Access" button, visible when user has no access.
 - **FAQ**: 5 expandable Q&A items covering Decision Briefs, multi-country access, cancellation, trial, and payment methods.
 
+### Internationalization Sweep (v1.1)
+- **Neutral Language**: All main content in `decisionBriefs.ts` uses "home country", "destination country", "state pension" instead of US-centric terms ("Social Security", "401(k)", "FBI check", "US prices").
+- **Passport Scoping**: US-specific terms (IRS, US Social Security, etc.) only appear in `data/passportNotes.ts` entries scoped to `passport: "us"`.
+- **Passport Persistence**: `EligibilitySnapshot` stores selected passport nationality via AsyncStorage (`expathub_passport_nationality`), pre-filling on subsequent visits.
+- **No US Default**: Passport nationality dropdown defaults to `null` (requires selection).
+- **Privacy Note**: "Stored only on your device and not shared." displayed above bracket inputs in EligibilitySnapshot.
+- **Country Page**: Passport Notes notice says "7 nationality groups" (not "including US, UK, EU, and more").
+
 ### Planner Layer (v1.1)
 - **Purpose**: Semi-linear 6-step relocation planning system for paid users.
 - **Context**: `PlanContext` (`src/contexts/PlanContext.tsx`) manages plan state with AsyncStorage persistence.

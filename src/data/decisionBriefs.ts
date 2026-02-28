@@ -146,7 +146,7 @@ const BRIEFS: DecisionBrief[] = [
     decisionSummary:
       "The D7 is strictly for passive income: pensions, dividends, rental income. If you earn money by doing work — even remotely — this is the wrong visa and your application will be rejected or create problems at renewal. Most people who think they qualify for a D7 actually need a D8.",
     recommendedFor: [
-      "Retirees with pension or Social Security providing 760+ EUR/month",
+      "Retirees with pension or state pension providing 760+ EUR/month",
       "Investors living off dividends, rental income, or interest — with 12+ months of documentation",
       "People who genuinely will not work in any capacity while in Portugal",
     ],
@@ -247,7 +247,7 @@ const BRIEFS: DecisionBrief[] = [
       "Visa fee: ~90 EUR + residency permit: ~170 EUR",
       "Agent and document fees: 1,000-2,500 EUR realistically (NIF agent, translations, apostilles, possibly a lawyer)",
       "Tax reality: once you are a tax resident (183+ days), you owe Portuguese income tax at 14.5-48%. Plan for this. NHR replacement benefits are narrow.",
-      "Hidden cost: if your consulate requires in-person appointments, travel costs for consulate visits add up — especially from rural US locations",
+      "Hidden cost: if your consulate requires in-person appointments, travel costs for consulate visits add up — especially if you live far from your nearest consulate",
     ],
     timelineReality: [
       "Document gathering and preparation: 2-4 weeks if organized. 2+ months if you are chasing apostilles from multiple states or countries.",
@@ -488,7 +488,7 @@ const BRIEFS: DecisionBrief[] = [
     ],
     timelineReality: [
       "Document gathering and apostilles: 2-4 weeks. Start this before booking your consulate appointment.",
-      "Consulate appointment: 1-4 weeks wait. Varies wildly by location — some US consulates are 2+ months.",
+      "Consulate appointment: 1-4 weeks wait. Varies wildly by location — some consulates are 2+ months.",
       "Processing: 1-3 months. Budget for 3.",
       "Must enter Spain within 90 days of visa issuance. Do not book non-refundable flights before you have the visa.",
       "NIE/TIE card after arrival: 1-3 months additional. You are legal but without your physical card.",
@@ -609,7 +609,7 @@ const BRIEFS: DecisionBrief[] = [
       "The digital nomad scene in Barcelona, Valencia, and Malaga is vibrant — coworking events, nomad meetups, and international communities make it easy to build a social circle with other remote workers quickly.",
       "Daily life on a DNV is comfortable: menú del día lunches for 10-15 EUR, excellent public transport, walkable cities, and a food-and-wine culture that is hard to beat. Budget 1,800-3,000 EUR/month beyond rent for a good lifestyle.",
       "Spanish is necessary for deep integration. You can survive in English in Barcelona's tech scene and Madrid's international bubble, but government offices, healthcare beyond emergencies, and genuine friendships require Spanish.",
-      "The Spanish work-life rhythm is different: long lunches, late dinners (9-10 PM), and a social culture that values presence over efficiency. Remote workers who keep US time zones find themselves out of sync with local life.",
+      "The Spanish work-life rhythm is different: long lunches, late dinners (9-10 PM), and a social culture that values presence over efficiency. Remote workers who keep home country time zones find themselves out of sync with local life.",
       "Safety is excellent. Spain has one of the lowest violent crime rates in Europe. Cities are lively until late, which creates natural safety through activity. Bike infrastructure in Valencia and Barcelona is superb.",
     ],
     confidenceLevel: "Medium",
@@ -936,7 +936,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "elective-residency",
     headline: "Italy Elective Residency: the income bar is higher than anyone tells you, and it varies by consulate",
     decisionSummary:
-      "Italy's Elective Residency looks straightforward: prove passive income, promise not to work, move to Italy. The reality is that 'sufficient income' is undefined, varies wildly by consulate, and is interpreted conservatively. Italian consulates in the US typically want 31,000+ EUR/year for a single applicant. If your income is borderline, expect rejection without explanation.",
+      "Italy's Elective Residency looks straightforward: prove passive income, promise not to work, move to Italy. The reality is that 'sufficient income' is undefined, varies wildly by consulate, and is interpreted conservatively. Consulates typically want 31,000+ EUR/year for a single applicant. If your income is borderline, expect rejection without explanation.",
     recommendedFor: [
       "Retirees with pension income of 2,500+ EUR/month who are clearly above any reasonable threshold",
       "Wealthy individuals with investment portfolios generating documented passive returns",
@@ -1182,7 +1182,7 @@ const BRIEFS: DecisionBrief[] = [
       "The O-A retirement visa is the easiest way for 50+ retirees to stay in Thailand long-term. The financial bar is low (800,000 THB in a Thai bank or 65,000 THB/month income). The annual renewal, 90-day reporting, and tightening insurance requirements are the ongoing cost. This visa gives you the right to stay — not to work, not to build permanence, and not to relax about paperwork.",
     recommendedFor: [
       "Retirees 50+ with 800,000 THB (~22,000 USD) available to park in a Thai bank account",
-      "Pensioners with verifiable income of 65,000 THB/month (~1,800 USD) from Social Security, pension, or annuities",
+      "Pensioners with verifiable income of 65,000 THB/month (~1,800 USD) from a state pension, private pension, or annuities",
       "People who genuinely want to retire in Thailand and accept the annual renewal cycle",
     ],
     notRecommendedFor: [
@@ -1243,7 +1243,7 @@ const BRIEFS: DecisionBrief[] = [
       "Nature enthusiasts who prioritize biodiversity and outdoor lifestyle above all else",
     ],
     notRecommendedFor: [
-      "Budget expats expecting cheap Central American living — San José and popular beach areas cost 70-90% of comparable US mid-tier cities",
+      "Budget expats expecting cheap Central American living — San José and popular beach areas cost 70-90% of comparable mid-tier cities in your home country",
       "Anyone who needs a fast immigration process — DGME routinely takes 4-8 months for straightforward applications",
       "People who want to work locally — residency does not include work authorization, which requires a separate permit",
       "Expats who do not want to deal with mandatory CAJA enrollment and its monthly contributions",
@@ -1251,7 +1251,7 @@ const BRIEFS: DecisionBrief[] = [
     keyRequirements: [
       "Valid visa category: Rentista ($2,500/month income), Pensionado ($1,000/month pension), or Inversionista ($200,000+ investment)",
       "CAJA enrollment — mandatory public healthcare. You cannot opt out.",
-      "Criminal background check — FBI background check for US citizens, apostilled",
+      "Criminal background check from your home country, apostilled",
       "Costa Rican consulate appointment for initial application",
       "Immigration attorney strongly recommended — the process has many procedural requirements that are not documented online",
     ],
@@ -1259,12 +1259,12 @@ const BRIEFS: DecisionBrief[] = [
       "Cost of living: $1,800-3,500 USD/month for a couple in the Central Valley. Beach towns: $2,000-4,000 USD/month.",
       "Rent: $600-1,500 USD/month for a 2-bedroom depending on location and quality. Furnished rentals command a premium.",
       "CAJA healthcare contributions: $80-200 USD/month based on declared income. Mandatory even if you use private healthcare.",
-      "Private healthcare: excellent and affordable by US standards. Doctor visits $50-100 USD. Private hospital stays are 50-70% cheaper than US.",
-      "Groceries: imported goods are expensive (30-50% more than US). Local produce is cheap. Overall grocery budget: $400-700 USD/month for a couple.",
-      "Hidden cost: vehicle import taxes are 50-80% of vehicle value. Buying a car in Costa Rica costs roughly double what it costs in the US.",
+      "Private healthcare: excellent and affordable. Doctor visits $50-100 USD. Private hospital stays cost significantly less than in many home countries.",
+      "Groceries: imported goods are expensive (30-50% more than your home country). Local produce is cheap. Overall grocery budget: $400-700 USD/month for a couple.",
+      "Hidden cost: vehicle import taxes are 50-80% of vehicle value. Buying a car in Costa Rica costs roughly double what it costs in most home countries.",
     ],
     timelineReality: [
-      "Document preparation: 2-4 weeks for FBI checks, apostilles, and translations",
+      "Document preparation: 2-4 weeks for background checks, apostilles, and translations",
       "DGME application processing: 4-8 months. Not an exaggeration. Some applications take 12+ months.",
       "Initial residency: valid for 2 years, then renewable",
       "Permanent residency: eligible after 3 years of temporary residency",
@@ -1332,7 +1332,7 @@ const BRIEFS: DecisionBrief[] = [
     keyRequirements: [
       "Proof of stable monthly income of at least $2,500 USD for 2 years (pay stubs, pension statements, bank statements showing recurring deposits)",
       "OR deposit of $60,000 USD in a Costa Rican bank (released in monthly $2,500 increments over 2 years)",
-      "FBI background check (for US citizens) or equivalent — apostilled and translated",
+      "Criminal background check from your home country — apostilled and translated",
       "Valid passport with at least 1 year validity",
       "Costa Rican consulate appointment in your home country for initial application",
     ],
@@ -1342,10 +1342,10 @@ const BRIEFS: DecisionBrief[] = [
       "Application and processing fees: $250-500 in government fees",
       "Immigration attorney: $1,500-3,000 USD. Strongly recommended — the process has procedural traps that will cost you more time and money if you stumble into them.",
       "CAJA enrollment: $80-200 USD/month based on declared income. Mandatory. You cannot opt out even if you use private healthcare exclusively.",
-      "Hidden cost: document authentication chain (FBI check → state authentication → apostille → translation → Costa Rican consulate certification) costs $200-500 total",
+      "Hidden cost: document authentication chain (background check → authentication → apostille → translation → Costa Rican consulate certification) costs $200-500 total",
     ],
     timelineReality: [
-      "Document preparation: 2-4 weeks minimum. FBI checks alone take 2-4 weeks.",
+      "Document preparation: 2-4 weeks minimum. Background checks alone take 2-4 weeks.",
       "DGME application processing: 4-8 months. Some applications languish for 12+ months with no communication.",
       "Initial residency: valid for 2 years",
       "Renewable for additional 2-year periods with continued income proof",
@@ -1399,9 +1399,9 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "pensionado",
     headline: "Costa Rica Pensionado: the lowest bar in the region, but read the fine print",
     decisionSummary:
-      "At $1,000 USD/month from a permanent pension, the Pensionado has one of the lowest financial thresholds in the Americas. If you have Social Security, a government pension, or a private annuity, you likely qualify. The catch: only permanent pensions count, the DGME process is still slow (4-8 months), CAJA enrollment is mandatory, and $1,000/month is not enough to live comfortably in most popular expat areas. You will need supplemental income or savings.",
+      "At $1,000 USD/month from a permanent pension, the Pensionado has one of the lowest financial thresholds in the Americas. If you have a state pension, government pension, or private annuity, you likely qualify. The catch: only permanent pensions count, the DGME process is still slow (4-8 months), CAJA enrollment is mandatory, and $1,000/month is not enough to live comfortably in most popular expat areas. You will need supplemental income or savings.",
     recommendedFor: [
-      "Retirees with Social Security or government pension of $1,000+ USD/month",
+      "Retirees with state pension or government pension of $1,000+ USD/month",
       "Couples where at least one partner has a qualifying permanent pension",
       "People willing to live in less expensive areas outside the Central Valley and beach towns",
     ],
@@ -1414,25 +1414,25 @@ const BRIEFS: DecisionBrief[] = [
     keyRequirements: [
       "Proof of permanent pension of at least $1,000 USD/month from a recognized source",
       "Pension letter from the issuing authority — must be apostilled and translated into Spanish",
-      "Clean criminal record — FBI check for US citizens, apostilled",
+      "Clean criminal record — background check from your home country, apostilled",
       "Valid passport with 1+ year validity",
     ],
     financialReality: [
-      "Pension threshold: $1,000 USD/month. Must be permanent and verifiable. Social Security, government pensions, and permanent annuities qualify.",
+      "Pension threshold: $1,000 USD/month. Must be permanent and verifiable. State pensions, government pensions, and permanent annuities qualify.",
       "Legal/attorney fees: $1,500-2,500 USD. Non-optional in practice.",
       "CAJA healthcare contributions: $80-150 USD/month",
       "Reality check: $1,000 USD/month is not enough to live on in popular areas. A single person needs $1,500-2,000/month minimum. A couple needs $2,000-3,000/month. You need savings or additional income beyond the pension.",
       "Hidden cost: CAJA contributions are based on declared income, which may include income beyond your pension if you report it",
     ],
     timelineReality: [
-      "Document preparation: 2-4 weeks (FBI check + apostille + translation chain)",
+      "Document preparation: 2-4 weeks (background check + apostille + translation chain)",
       "DGME processing: 4-8 months. Identical delays as the Rentista visa.",
       "Renewable every 2 years with continued pension proof",
       "Permanent residency: eligible after 3 years",
       "Citizenship: eligible after 7 years of legal residency",
     ],
     riskFlags: [
-      "Only permanent pensions qualify. Social Security disability that converts to retirement at 65 is fine. Temporary disability or severance payments are not.",
+      "Only permanent pensions qualify. Disability benefits that convert to a retirement pension at eligibility age are fine. Temporary disability or severance payments are not.",
       "CAJA enrollment is mandatory regardless of whether you use public healthcare. Monthly contributions are ongoing.",
       "The $1,000 threshold has not been adjusted for inflation in years. It may increase.",
       "Cannot work locally without a separate work permit. The pension must be your support.",
@@ -1474,9 +1474,9 @@ const BRIEFS: DecisionBrief[] = [
     countrySlug: "mexico",
     headline: "Mexico: the easiest move in the Americas, but the rules shift under your feet",
     decisionSummary:
-      "Mexico is the default choice for Americans and Canadians relocating abroad: close proximity, low cost of living, excellent food, strong expat communities, and relatively accessible residency. The problems are real but manageable: income thresholds change frequently (pegged to UMA, which updates annually), consulate-to-consulate variation is extreme, and you cannot convert tourist status to residency from within Mexico. If you plan ahead and check current numbers, Mexico is a solid choice. If you wing it, you will waste time and money.",
+      "Mexico is a popular choice for those relocating to the Americas: low cost of living, excellent food, strong expat communities, and relatively accessible residency. The problems are real but manageable: income thresholds change frequently (pegged to UMA, which updates annually), consulate-to-consulate variation is extreme, and you cannot convert tourist status to residency from within Mexico. If you plan ahead and check current numbers, Mexico is a solid choice. If you wing it, you will waste time and money.",
     recommendedFor: [
-      "Remote workers earning $2,500+ USD/month who want an easy, affordable base close to the US",
+      "Remote workers earning $2,500+ USD/month who want an easy, affordable base in the Americas",
       "Retirees with moderate pension or savings who want warm weather and low costs",
       "Families seeking affordable living with access to international schools and private healthcare",
       "People who want a realistic path to permanent residency within 4 years",
@@ -1524,7 +1524,7 @@ const BRIEFS: DecisionBrief[] = [
     ],
     betterAlternatives: [
       "Costa Rica — if you want Central American stability with better environmental infrastructure, though it is more expensive and slower to process",
-      "Panama — Friendly Nations Visa is faster and has different financial requirements. Good for US/Canadian citizens.",
+      "Panama — Friendly Nations Visa is faster and has different financial requirements. Available to citizens of approximately 50 approved countries.",
       "Portugal — if you want EU access and are willing to deal with a different set of bureaucratic challenges",
     ],
     confidenceLevel: "Medium",
@@ -1539,7 +1539,7 @@ const BRIEFS: DecisionBrief[] = [
       "Mexico's temporary resident visa is one of the most accessible in the Americas — moderate income or savings gets you 1-4 years of legal residency with a path to permanent status. The problem is that the financial thresholds (pegged to UMA) change annually, every consulate interprets requirements differently, and you absolutely cannot apply from within Mexico. If you check current numbers, pick the right consulate, and apply from abroad, it works. If you do not, you are wasting time.",
     recommendedFor: [
       "Remote workers earning $2,500+ USD/month with bank statements or pay stubs to prove it",
-      "Retirees with pension, Social Security, or investment income meeting current thresholds",
+      "Retirees with pension, state pension, or investment income meeting current thresholds",
       "People with $42,000-65,000 USD in savings (12-month average balance) as an alternative to income proof",
       "Anyone who wants a 4-year path to permanent residency in Mexico",
     ],
@@ -1588,7 +1588,7 @@ const BRIEFS: DecisionBrief[] = [
     betterAlternatives: [
       "Mexico Permanent Resident — if you meet the higher threshold (roughly double), skip renewals entirely and get permanent status on day one",
       "Costa Rica Rentista — fixed $2,500/month threshold (does not change annually) and a more structured process, though slower",
-      "Panama Friendly Nations Visa — faster processing, different financial structure, and good for US/Canadian citizens",
+      "Panama Friendly Nations Visa — faster processing, different financial structure, available to citizens of approximately 50 approved countries",
     ],
     confidenceLevel: "Medium",
     lastReviewedAt: "2025-12-01",
@@ -1729,7 +1729,7 @@ const BRIEFS: DecisionBrief[] = [
     lifestyleAndCulture: [
       "Canadian winters are not a minor inconvenience — they are a lifestyle-defining reality. Toronto sees -15°C regularly from December to March. Winnipeg and Edmonton hit -30°C. Calgary gets chinook winds but also brutal cold snaps. If you have never experienced a real winter, do a January visit before committing.",
       "Toronto and Vancouver are genuinely multicultural — 50%+ of residents are foreign-born. You will find your ethnic community, familiar food, and cultural institutions. But this diversity concentrates in suburbs, and commutes of 60-90 minutes each way are common.",
-      "Cost of living in Toronto and Vancouver has reached crisis levels. A family of four needs $6,000-8,000 CAD/month minimum. Groceries are 30-50% more expensive than the US. Housing alone consumes 40-60% of household income for newcomers.",
+      "Cost of living in Toronto and Vancouver has reached crisis levels. A family of four needs $6,000-8,000 CAD/month minimum. Groceries are notably more expensive than in many countries. Housing alone consumes 40-60% of household income for newcomers.",
       "Smaller cities (Calgary, Ottawa, Halifax, Winnipeg) offer significantly better affordability and quality of life, but with trade-offs: smaller job markets, less diversity, harsher weather (except Halifax), and fewer cultural amenities.",
       "Canadian politeness is real but social depth takes time. Making acquaintances is easy; making close friends is hard. Many immigrants report feeling isolated in the first 2-3 years. Joining community organizations, sports leagues, or religious institutions is the most reliable way to build a social network.",
     ],
@@ -1890,21 +1890,21 @@ const BRIEFS: DecisionBrief[] = [
     workReality: [
       "Panama's dollarized economy means remote workers earning in USD face zero currency conversion risk — your paycheck buys exactly what you expect. This is a genuine advantage over most of Latin America.",
       "Local salaries are low by Western standards (800-1,500 USD/month for many roles), but Panama City's financial, logistics, and maritime sectors pay significantly better. The Canal Zone and Colon Free Trade Zone drive demand for bilingual professionals.",
-      "Territorial taxation means income earned outside Panama is untaxed. If you work remotely for a US or European employer, Panama does not tax that income. Income earned inside Panama is taxed at 0-25% progressive rates.",
+      "Territorial taxation means income earned outside Panama is untaxed. If you work remotely for an employer outside Panama, Panama does not tax that income. Income earned inside Panama is taxed at 0-25% progressive rates.",
       "Starting a business in Panama is straightforward with a lawyer, but bureaucracy is slow and unpredictable. Expect 4-8 weeks to incorporate, open a corporate bank account, and obtain operating permits. Without a lawyer, expect months.",
     ],
     familyAndDependents: [
       "Most Panama visa categories allow dependents (spouse, children under 18, dependent parents). Each dependent adds documentation requirements and small additional fees, but the process is straightforward.",
       "International schools in Panama City are expensive but genuinely good — 8,000-18,000 USD/year per child. Top options include Balboa Academy, International School of Panama, and King's College. Waitlists exist for popular schools.",
       "Panama is a family-friendly culture. Children are welcomed everywhere, family gatherings are central to social life, and public spaces are designed with families in mind. Latin American family culture is a genuine lifestyle upgrade for many expats.",
-      "Childcare is affordable by US standards — 300-700 USD/month for full-time nannies in Panama City. Live-in domestic help is common among middle-class families and costs 400-600 USD/month plus room and board.",
+      "Childcare is affordable — 300-700 USD/month for full-time nannies in Panama City. Live-in domestic help is common among middle-class families and costs 400-600 USD/month plus room and board.",
     ],
     lifestyleAndCulture: [
       "Panama City is a genuine metropolis — modern skyscrapers, international restaurants, Uber, shopping malls, and reliable infrastructure. But 30 minutes outside the city, roads deteriorate, power outages occur, and the developing-world reality is visible.",
       "The tropical climate is relentless: 85°F year-round with 80%+ humidity. There is no cool season, no dry highland escape like Costa Rica or Ecuador. Air conditioning is not optional — it is a survival necessity that adds 100-300 USD/month to electricity bills.",
-      "Healthcare in Panama City is excellent and affordable by US standards — JCI-accredited hospitals (Punta Pacifica, Hospital Nacional) with English-speaking doctors. Outside the capital, healthcare drops to basic clinics only. Serious conditions require a trip to the city.",
+      "Healthcare in Panama City is excellent and affordable — JCI-accredited hospitals (Punta Pacifica, Hospital Nacional) with English-speaking doctors. Outside the capital, healthcare drops to basic clinics only. Serious conditions require a trip to the city.",
       "English is widely spoken in Panama City's business and tourism sectors, but daily life outside those contexts requires Spanish. Government offices, local shops, and anything outside the capital operate entirely in Spanish.",
-      "The Canal Zone lifestyle is unique — a mix of American influence (US military legacy), Latin American warmth, and international diversity. Panama City has a cosmopolitan feel that smaller Latin American capitals lack.",
+      "The Canal Zone lifestyle is unique — a blend of international influence, Latin American warmth, and global diversity. Panama City has a cosmopolitan feel that smaller Latin American capitals lack.",
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
@@ -1984,19 +1984,19 @@ const BRIEFS: DecisionBrief[] = [
       "The Friendly Nations Visa grants full work authorization in Panama — you can work for a Panamanian employer, start a business, or freelance legally. This is a significant advantage over many Latin American visa categories that restrict employment.",
       "Panama's economy is strong by regional standards, driven by the Canal, logistics, banking, and the Colon Free Trade Zone. Business owners in import/export, real estate, tourism, and professional services find genuine opportunities.",
       "Industries with consistent demand for bilingual professionals include banking and financial services, maritime logistics, legal services, IT, and hospitality/tourism management. English-Spanish bilingual skills are highly valued.",
-      "Territorial taxation means your foreign-sourced income is untaxed. If you run an online business serving US or European clients, Panama does not tax that revenue. Only income earned from Panamanian sources is subject to the 0-25% progressive tax.",
+      "Territorial taxation means your foreign-sourced income is untaxed. If you run an online business serving clients outside Panama, Panama does not tax that revenue. Only income earned from Panamanian sources is subject to the 0-25% progressive tax.",
     ],
     familyAndDependents: [
       "The FNV allows dependents (spouse, children under 18, dependent parents) to be included on the same application. Each dependent requires their own documents (criminal background check, health certificate) and adds the 250 USD/dependent solvency requirement.",
       "International schools in Panama City are expensive but high-quality — 8,000-18,000 USD/year per child. The best schools (ISP, Balboa Academy, King's College) follow IB or American curricula and have strong university placement records.",
-      "Panama's family-friendly culture is a genuine draw — children are welcomed in restaurants, social events, and public spaces. Extended family is central to Panamanian life, and expat families often find the social environment warmer than in the US or Europe.",
+      "Panama's family-friendly culture is a genuine draw — children are welcomed in restaurants, social events, and public spaces. Extended family is central to Panamanian life, and expat families often find the social environment warmer than back home.",
       "Healthcare for children is excellent in Panama City with pediatric specialists at private hospitals. Outside the capital, pediatric care is limited to general practitioners at basic clinics.",
     ],
     lifestyleAndCulture: [
       "Panama City offers a modern, cosmopolitan lifestyle — international dining, nightlife, shopping, coworking spaces, and reliable public transit (Metro Lines 1 and 2). It feels more like Miami than a typical Latin American capital.",
       "Outside Panama City, lifestyle options vary dramatically: Boquete offers mountain coolness and a small expat community, Coronado and the Pacific beaches offer resort living, and Bocas del Toro is Caribbean island life — each with trade-offs in infrastructure and services.",
       "The social scene for expats is active but smaller than Mexico or Costa Rica. Networking groups, chambers of commerce, and expat associations exist in Panama City. Integration with Panamanians requires Spanish and patience — relationships build slowly but are genuine.",
-      "Cost of living in Panama City rivals some US cities — groceries, dining out, and entertainment are not the bargain many expect. Budget 2,500-4,000 USD/month for a comfortable single lifestyle in a desirable neighborhood.",
+      "Cost of living in Panama City rivals major international cities — groceries, dining out, and entertainment are not the bargain many expect. Budget 2,500-4,000 USD/month for a comfortable single lifestyle in a desirable neighborhood.",
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
@@ -2007,9 +2007,9 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "pensionado",
     headline: "Pensionado Visa: the best retiree program in the Americas, and it is not close",
     decisionSummary:
-      "Panama's Pensionado Visa requires only 1,000 USD/month in pension income and delivers permanent residency plus a package of discounts that no other country matches: 25% off airline tickets, 25% off restaurant bills, 15% off hospital bills, 20% off medical consultations, and more. These are real, legally mandated discounts, not marketing gimmicks. The catch is that you must have a government or private pension — Social Security counts, but investment income or savings drawdowns do not.",
+      "Panama's Pensionado Visa requires only 1,000 USD/month in pension income and delivers permanent residency plus a package of discounts that no other country matches: 25% off airline tickets, 25% off restaurant bills, 15% off hospital bills, 20% off medical consultations, and more. These are real, legally mandated discounts, not marketing gimmicks. The catch is that you must have a government or private pension — state pensions count, but investment income or savings drawdowns do not.",
     recommendedFor: [
-      "Retirees receiving 1,000+ USD/month from Social Security, military pension, government pension, or private pension plan",
+      "Retirees receiving 1,000+ USD/month from a state pension, military pension, government pension, or private pension plan",
       "Couples where at least one spouse has a qualifying pension (add 250 USD/month for dependents)",
       "People who want permanent residency without a high financial threshold — 1,000 USD/month is among the lowest in the Americas",
       "Retirees who will actually use the discounts — frequent diners, medical care users, and domestic travelers benefit most",
@@ -2029,7 +2029,7 @@ const BRIEFS: DecisionBrief[] = [
       "Additional 250 USD/month demonstrated for each dependent",
     ],
     financialReality: [
-      "Pension threshold: 1,000 USD/month (12,000 USD/year). Social Security qualifies. Add 250 USD/month per dependent.",
+      "Pension threshold: 1,000 USD/month (12,000 USD/year). State pensions qualify. Add 250 USD/month per dependent.",
       "If you own property in Panama worth 100,000+ USD, the pension threshold drops to 750 USD/month.",
       "Immigration lawyer: 1,500-3,000 USD. Same requirement as other Panama visas — do not go without one.",
       "Government fees: 250-350 USD for immigration processing",
@@ -2052,8 +2052,8 @@ const BRIEFS: DecisionBrief[] = [
       "Government has discussed modifying the Pensionado program multiple times. Current benefits are not guaranteed indefinitely.",
     ],
     commonMistakes: [
-      "Confusing investment income with pension income. A 401(k) drawdown is not a pension. Social Security is. A corporate pension is. A brokerage account is not.",
-      "Not getting the pension letter apostilled before traveling to Panama. You cannot get a US apostille in Panama. This oversight adds weeks to the process.",
+      "Confusing investment income with pension income. Withdrawals from a retirement savings account are not a pension. A state pension is. A corporate pension is. A brokerage account is not.",
+      "Not getting the pension letter apostilled before traveling to Panama. Apostilles must be obtained from your home country. This oversight adds weeks to the process.",
       "Expecting the Pensionado discounts to work everywhere. Chain restaurants in Panama City honor them reliably. The beachfront restaurant in Bocas del Toro may not.",
       "Assuming permanent residency means you can immediately access Panama's public healthcare. There is an enrollment process for CSS, and it requires additional steps.",
       "Moving to Panama without visiting first. Spend 2-3 weeks in Panama City, Boquete, and one beach area before committing. The climate and lifestyle vary dramatically by region.",
@@ -2071,7 +2071,7 @@ const BRIEFS: DecisionBrief[] = [
     familyAndDependents: [
       "Spouses can be included as dependents with an additional 250 USD/month pension requirement per dependent. The dependent spouse receives the same Pensionado discount benefits.",
       "Dependent children under 18 (or under 25 if enrolled in university) can be included on the application. Each adds 250 USD/month to the pension threshold.",
-      "Healthcare for retirees in Panama City is excellent and affordable — private hospitals offer procedures at 40-70% of US costs. The Pensionado discount (15% off hospital, 20% off consultations) stacks on top of already-low prices.",
+      "Healthcare for retirees in Panama City is excellent and affordable — private hospitals offer procedures at significantly lower costs than most home countries. The Pensionado discount (15% off hospital, 20% off consultations) stacks on top of already-low prices.",
       "Many retiree couples settle in Boquete or Coronado for the quieter lifestyle, but serious medical needs still require travel to Panama City. Factor in the logistics of healthcare access when choosing your location.",
     ],
     lifestyleAndCulture: [
@@ -2155,7 +2155,7 @@ const BRIEFS: DecisionBrief[] = [
       "Dependents (spouse, children under 18, dependent parents) can be included on the Self Economic Solvency application. No additional financial threshold per dependent — the 300,000 USD covers the family.",
       "If purchasing real estate as your investment, the property can serve as your family home — combining the visa requirement with practical housing needs. Many applicants buy a 300,000+ USD condo in Panama City and live in it.",
       "International schools for children cost 8,000-18,000 USD/year per child in Panama City. Public schools are free but instruction is entirely in Spanish. For families with school-age children, education costs are a significant ongoing expense.",
-      "Healthcare for families is excellent in Panama City — private hospitals accept international insurance and out-of-pocket costs are 40-70% lower than the US. Outside the capital, family healthcare options are limited to basic clinics.",
+      "Healthcare for families is excellent in Panama City — private hospitals accept international insurance and out-of-pocket costs are significantly lower than in many home countries. Outside the capital, family healthcare options are limited to basic clinics.",
     ],
     lifestyleAndCulture: [
       "The Self Economic Solvency Visa attracts a different demographic than the Pensionado — typically younger, wealthier individuals and families who want residency flexibility without nationality restrictions or income requirements.",
@@ -2175,10 +2175,10 @@ const BRIEFS: DecisionBrief[] = [
     decisionSummary:
       "Ecuador offers what almost no other country can: US-dollar economy, dramatically low cost of living, excellent healthcare value, and mountain cities with near-perfect year-round climate. Cuenca has become the poster child for affordable expat retirement, and it earns the reputation. But Ecuador's political instability, rising crime in Guayaquil and Quito, altitude challenges, and thin infrastructure outside major cities are not footnotes — they are defining features. If you can handle uncertainty, Ecuador rewards you financially like nowhere else in the hemisphere.",
     recommendedFor: [
-      "Retirees on Social Security or modest pensions who want maximum purchasing power — 1,500 USD/month buys a comfortable life in Cuenca",
+      "Retirees on state pensions or modest pensions who want maximum purchasing power — 1,500 USD/month buys a comfortable life in Cuenca",
       "People who want a dollarized economy without Panama or El Salvador's higher costs",
       "Those who thrive at altitude and want spring-like weather year-round — Cuenca sits at 8,400 feet with highs of 65-75°F daily",
-      "Healthcare-conscious retirees — Ecuador's public and private healthcare costs a fraction of US prices with quality that surprises most people",
+      "Healthcare-conscious retirees — Ecuador's public and private healthcare costs a fraction of typical home country prices with quality that surprises most people",
       "FIRE retirees with lean budgets who need their money to stretch as far as possible",
     ],
     notRecommendedFor: [
@@ -2239,7 +2239,7 @@ const BRIEFS: DecisionBrief[] = [
       "Ecuador uses a dollarized economy, which eliminates currency risk for USD earners but means local wages are low relative to costs in expat-popular areas",
     ],
     familyAndDependents: [
-      "International schools in Quito and Cuenca cost 300-800 USD/month — a fraction of US or European equivalents — with bilingual Spanish-English curricula available",
+      "International schools in Quito and Cuenca cost 300-800 USD/month — a fraction of international equivalents elsewhere — with bilingual Spanish-English curricula available",
       "Public schools are free but instruction is entirely in Spanish, class sizes are large, and quality varies dramatically between urban and rural areas",
       "IESS public healthcare covers the entire family once enrolled, but pediatric specialists and advanced care are concentrated in Quito and Guayaquil",
       "Childcare and domestic help are very affordable — full-time nannies cost 300-500 USD/month, making dual-income remote work feasible",
@@ -2311,7 +2311,7 @@ const BRIEFS: DecisionBrief[] = [
       "Assuming the Rentista Visa allows you to work in Ecuador. It does not grant work authorization. If you need to work locally, you need a different visa category.",
     ],
     betterAlternatives: [
-      "Ecuador Jubilado — if your income comes from a guaranteed lifetime pension (Social Security, government, or military pension), the Jubilado requires the same 1,410 USD/month threshold but is limited to pension sources and includes senior discounts",
+      "Ecuador Jubilado — if your income comes from a guaranteed lifetime pension (state pension, government, or military pension), the Jubilado requires the same 1,410 USD/month threshold but is limited to pension sources and includes senior discounts",
       "Panama Friendly Nations — if your country qualifies, you can invest 200,000 USD for residency (2-year provisional, then permanent) with no tax on foreign income",
       "Colombia Rentista — similar concept with a comparable threshold, but Medellín offers better infrastructure and a larger expat community",
     ],
@@ -2342,9 +2342,9 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "jubilado",
     headline: "Ecuador Jubilado: pension-based residency at 1,410 USD/month — same threshold as Rentista but limited to guaranteed pension income",
     decisionSummary:
-      "The Jubilado (Retirement) Visa requires 1,410 USD/month in guaranteed lifetime pension income (3× Ecuador's basic salary, same threshold as the Rentista). The key differentiator is not the amount — it is the income source. Jubilado requires permanent pension income (Social Security, government pension, military pension), while Rentista accepts broader passive income sources. Combined with Ecuador's low cost of living, dollarized economy, and senior discounts, it remains a strong option for retirees with qualifying pensions. Healthcare access depends on where you live, and the country's security situation has deteriorated.",
+      "The Jubilado (Retirement) Visa requires 1,410 USD/month in guaranteed lifetime pension income (3× Ecuador's basic salary, same threshold as the Rentista). The key differentiator is not the amount — it is the income source. Jubilado requires permanent pension income (state pension, government pension, military pension), while Rentista accepts broader passive income sources. Combined with Ecuador's low cost of living, dollarized economy, and senior discounts, it remains a strong option for retirees with qualifying pensions. Healthcare access depends on where you live, and the country's security situation has deteriorated.",
     recommendedFor: [
-      "Retirees with Social Security or pension income of 1,410+ USD/month who want maximum purchasing power in a dollarized economy",
+      "Retirees with state pension or pension income of 1,410+ USD/month who want maximum purchasing power in a dollarized economy",
       "Couples where one spouse has a qualifying pension — the threshold applies per household, not per person",
       "People who want the fastest path to citizenship in the Americas — 3 years from initial residency",
       "Retirees who prioritize healthcare value — a specialist visit costs 20-50 USD, and IESS enrollment is available to visa holders",
@@ -2352,11 +2352,11 @@ const BRIEFS: DecisionBrief[] = [
     notRecommendedFor: [
       "Anyone whose pension income barely meets the 1,410 USD/month threshold — budget above the minimum for emergencies, travel, and lifestyle",
       "Retirees who need consistent, high-quality healthcare — IESS has long wait times and supply issues. Private care is affordable but limited outside Cuenca, Quito, and Guayaquil.",
-      "People drawing from investment accounts rather than a formal pension — 401(k) withdrawals and brokerage distributions do not qualify",
+      "People drawing from investment accounts rather than a formal pension — retirement savings withdrawals and brokerage distributions do not qualify",
       "Those who cannot handle altitude — if Cuenca (8,400 ft) makes you sick, your affordable retirement options in Ecuador shrink dramatically. Coastal cities are cheaper but have worse infrastructure and more crime.",
     ],
     keyRequirements: [
-      "Proof of lifetime pension income of at least 1,410 USD/month from Social Security, government pension, military pension, or recognized private pension",
+      "Proof of lifetime pension income of at least 1,410 USD/month from a state pension, government pension, military pension, or recognized private pension",
       "Pension verification letter from the issuing agency — apostilled and translated into Spanish by a certified translator",
       "Apostilled criminal background check translated into Spanish",
       "Health insurance: enrollment in IESS (Ecuadorian public system) or private Ecuadorian health insurance",
@@ -2364,7 +2364,7 @@ const BRIEFS: DecisionBrief[] = [
       "Application at Ecuadorian consulate or in-country at the Ministry of Foreign Affairs",
     ],
     financialReality: [
-      "Pension threshold: 1,410 USD/month (16,920 USD/year). This is the same as the Rentista threshold (3× Ecuador's basic salary). Social Security payments qualify.",
+      "Pension threshold: 1,410 USD/month (16,920 USD/year). This is the same as the Rentista threshold (3× Ecuador's basic salary). State pensions and government pensions qualify.",
       "Add approximately 100 USD/month for each dependent on the application.",
       "Immigration lawyer: 800-2,000 USD. Strongly recommended — the process is in Spanish and procedurally inconsistent.",
       "Government visa fees: 50-200 USD",
@@ -2392,7 +2392,7 @@ const BRIEFS: DecisionBrief[] = [
     ],
     commonMistakes: [
       "Planning to live on exactly 1,410 USD/month. This is the visa threshold, not a generous budget. You need 1,800-2,200 USD/month minimum for a single person to live comfortably without constant financial stress.",
-      "Confusing investment withdrawals with pension income. A 401(k) distribution is not a pension. Social Security is. A government or military pension is. Immigration makes this distinction.",
+      "Confusing investment withdrawals with pension income. Withdrawals from a retirement savings account are not a pension. A state pension is. A government or military pension is. Immigration makes this distinction.",
       "Not enrolling in IESS or private insurance before applying. Health coverage is a prerequisite for the visa, not an afterthought.",
       "Choosing Cuenca without visiting first and testing the altitude. Spend at least 2 weeks at altitude. If you have persistent headaches, insomnia, or shortness of breath after 7 days, reconsider.",
       "Assuming Ecuador's low cost of living means low quality of life. Private healthcare is excellent and affordable. The produce is exceptional. The lifestyle can be very good — but only if you budget above the bare minimum.",
@@ -2412,7 +2412,7 @@ const BRIEFS: DecisionBrief[] = [
     familyAndDependents: [
       "Spouse and minor children can be included on the Jubilado application — add approximately 100 USD/month to the income threshold per dependent",
       "Senior healthcare through IESS is available but quality varies: Quito and Cuenca have the best public hospital infrastructure, while rural and coastal facilities are significantly more limited",
-      "Aging in Ecuador is viable in Cuenca and Quito where private geriatric care, home nursing, and assisted living options exist at a fraction of US costs — but options thin out dramatically in smaller cities",
+      "Aging in Ecuador is viable in Cuenca and Quito where private geriatric care, home nursing, and assisted living options exist at a fraction of typical home country costs — but options thin out dramatically in smaller cities",
       "Spousal benefits continue if the primary visa holder passes away — the surviving spouse can maintain residency status independently",
     ],
     lifestyleAndCulture: [
@@ -2852,7 +2852,7 @@ const BRIEFS: DecisionBrief[] = [
       "The 5-year path to Indefinite Leave to Remain (ILR) requires continuous residence, no absences exceeding 180 days in any 12-month period. Track your travel carefully from day one.",
       "The Life in the UK test is required for ILR and citizenship. It covers British history, traditions, and civic knowledge. Study the official handbook — the test is genuinely difficult and many people fail on the first attempt.",
       "English language requirements must be met at B1 level for ILR (higher than the A1 required for some initial visas). Plan ahead if English is not your first language — IELTS or equivalent test scores are required.",
-      "Professional integration in the UK workplace values indirect communication, self-deprecation, and understatement. Aggressive self-promotion that works in US workplaces can be perceived negatively. Observe local workplace culture before asserting yourself.",
+      "Professional integration in the UK workplace values indirect communication, self-deprecation, and understatement. Aggressive self-promotion that works in some cultures can be perceived negatively. Observe local workplace culture before asserting yourself.",
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
