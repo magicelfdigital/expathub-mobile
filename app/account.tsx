@@ -367,10 +367,10 @@ export default function AccountScreen() {
         <Text style={s.deleteText}>Delete Account</Text>
       </Pressable>
 
-      {__DEV__ && sandboxMode ? (
+      {sandboxMode ? (
         <View style={s.sandboxToggleRow}>
           <View style={{ flex: 1 }}>
-            <Text style={s.sandboxToggleTitle}>Sandbox Mode (Dev Only)</Text>
+            <Text style={s.sandboxToggleTitle}>Sandbox Mode</Text>
             <Text style={s.sandboxToggleSub}>Bypass paywall for testing</Text>
           </View>
           <Switch
