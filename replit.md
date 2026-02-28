@@ -50,6 +50,20 @@ Preferred communication style: Simple, everyday language.
 - **Analytics**: Lightweight conversion tracking for user actions and purchases.
 - **Non-Launch Country Gating**: Countries not in the `LAUNCH_COUNTRIES` array are marked as "Coming Soon".
 
+### Planner Layer (v1.1)
+- **Purpose**: Semi-linear 6-step relocation planning system for paid users.
+- **Context**: `PlanContext` (`src/contexts/PlanContext.tsx`) manages plan state with AsyncStorage persistence.
+- **State**: `activeCountrySlug`, `activePathwayId`, `completedSteps[]` — one active plan at a time.
+- **Steps**: Fixed 6-step structure in `src/data/planSteps.ts` (Confirm Pathway, Validate Finances, Prepare Docs, Execute Residency, Register Local, Post-Arrival Compliance).
+- **Components**:
+  - `PlanModule` (`src/components/PlanModule.tsx`) — expandable step cards with checklists
+  - `EligibilitySnapshot` (`src/components/EligibilitySnapshot.tsx`) — bracket-based eligibility check inside Step 1
+  - `LifetimeOfferBanner` (`src/components/LifetimeOfferBanner.tsx`) — inline upsell after 2+ steps completed
+  - `PlanCompletionCard` (`src/components/PlanCompletionCard.tsx`) — shown when all 6 steps done
+- **Integration**: Country page (`app/(tabs)/country/[slug]/index.tsx`) shows Focus Activation for paid users, PlanModule for active plans.
+- **Analytics Events**: `plan_focus_started`, `plan_step_completed`, `eligibility_snapshot_run`, `lifetime_offer_shown`, `lifetime_offer_clicked`, `plan_completed`.
+- **Tone**: Calm, advisory — no exclamation marks, no urgency, no legal assurance language.
+
 ## External Dependencies
 
 ### Core Runtime

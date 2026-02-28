@@ -10,6 +10,7 @@ import { queryClient } from "@/lib/query-client";
 import { CountryProvider } from "@/contexts/CountryContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { PlanProvider } from "@/src/contexts/PlanContext";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
 import { initCrashlytics } from "@/utils/crashlytics";
@@ -60,7 +61,9 @@ export default function RootLayout() {
             <AuthProvider>
               <CountryProvider>
                 <SubscriptionProvider>
-                  <RootLayoutNav />
+                  <PlanProvider>
+                    <RootLayoutNav />
+                  </PlanProvider>
                 </SubscriptionProvider>
               </CountryProvider>
             </AuthProvider>

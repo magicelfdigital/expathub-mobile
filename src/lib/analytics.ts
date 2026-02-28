@@ -35,7 +35,13 @@ type AnalyticsEvent =
   | "promo_code_cleared"
   | "product_selected"
   | "account_created"
-  | "account_deleted";
+  | "account_deleted"
+  | "eligibility_snapshot_run"
+  | "plan_focus_started"
+  | "plan_step_completed"
+  | "plan_completed"
+  | "lifetime_offer_shown"
+  | "lifetime_offer_clicked";
 
 type EventProperties = Record<string, string | number | boolean | undefined>;
 
