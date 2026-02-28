@@ -1,10 +1,12 @@
 export type ResourceCategory = "visa" | "tax" | "housing" | "healthcare" | "work";
 
+export type SourceType = "official" | "authoritative" | "community";
+
 export type Resource = {
   label: string;
   note?: string;
   url: string;
-  sourceType?: "official" | "community" | "expert";
+  sourceType: SourceType;
   category?: ResourceCategory;
 };
 

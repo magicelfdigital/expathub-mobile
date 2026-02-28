@@ -17,6 +17,7 @@ import type {
   Country,
   ResourceCategory,
   CommunityLinkType,
+  SourceType,
 } from "./types";
 
 export type {
@@ -28,6 +29,7 @@ export type {
   Country,
   ResourceCategory,
   CommunityLinkType,
+  SourceType,
 };
 
 export { REGION_ORDER, sortCountriesAlpha };

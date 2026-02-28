@@ -4,9 +4,10 @@ import React, { useMemo } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/components/Screen";
+import { SourceBadge } from "@/src/components/SourceBadge";
 import { useCountry } from "@/contexts/CountryContext";
 import { useSaved } from "@/src/contexts/SavedContext";
-import { getCountry, getResources } from "@/src/data";
+import { getCountry, getResources, type SourceType } from "@/src/data";
 import { openInApp } from "@/lib/openInApp";
 import { tokens } from "@/theme/tokens";
 
@@ -15,13 +16,13 @@ const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
 function SavedResourceCard({
   title,
   subtitle,
-  sourceType = "official",
+  sourceType,
   onPress,
   onRemove,
 }: {
   title: string;
   subtitle?: string;
-  sourceType?: "official" | "community" | "expert";
+  sourceType: SourceType;
   onPress: () => void;
   onRemove: () => void;
 }) {
@@ -37,11 +38,7 @@ function SavedResourceCard({
         </Text>
 
         <View style={styles.cardTopRight}>
-          <View style={[styles.badge, badgeStyles[sourceType]]}>
-            <Text style={[styles.badgeText, badgeTextStyles[sourceType]]} numberOfLines={1}>
-              {sourceType === "official" ? "Official" : sourceType === "community" ? "Community" : "Expert"}
-            </Text>
-          </View>
+          <SourceBadge sourceType={sourceType} />
           <Pressable
             onPress={(e) => { e.stopPropagation(); onRemove(); }}
             hitSlop={8}
@@ -217,17 +214,6 @@ const styles = {
     color: tokens.color.primary,
   },
 
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: tokens.radius.pill,
-  },
-
-  badgeText: {
-    fontSize: tokens.text.small,
-    fontWeight: tokens.weight.black,
-  },
-
   emptyCard: {
     padding: tokens.space.xl,
     borderRadius: tokens.radius.lg,
@@ -255,26 +241,3 @@ const styles = {
   },
 } as const;
 
-const badgeStyles = {
-  official: {
-    backgroundColor: tokens.color.primarySoft,
-    borderWidth: 1,
-    borderColor: tokens.color.primaryBorder,
-  },
-  community: {
-    backgroundColor: tokens.color.surface,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-  },
-  expert: {
-    backgroundColor: tokens.color.surface,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-  },
-} as const;
-
-const badgeTextStyles = {
-  official: { color: tokens.color.primary },
-  community: { color: tokens.color.text },
-  expert: { color: tokens.color.text },
-} as const;
