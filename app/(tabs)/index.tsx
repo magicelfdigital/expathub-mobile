@@ -59,11 +59,6 @@ export default function HomeScreen() {
     if (!slug) return;
     setSelectedCountrySlug(slug);
     router.push({ pathname: "/country-view", params: { slug } } as any);
-    if (lastViewedSection) {
-      setTimeout(() => {
-        router.push({ pathname: `/(tabs)/country/[slug]/${lastViewedSection}` as any, params: { slug } });
-      }, 50);
-    }
   };
 
   const goBrowseCountries = () => {

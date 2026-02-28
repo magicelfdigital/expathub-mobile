@@ -214,6 +214,7 @@ export default function CountryViewScreen() {
           <NavCard title="Resources" subtitle="Guides, official links, checklists" icon="document-text-outline" onPress={() => go("resources")} />
           <NavCard title="Vendors" subtitle="Licensed professionals and services" icon="briefcase-outline" onPress={() => go("vendors")} />
           <NavCard title="Community" subtitle="Groups, forums, meetups" icon="people-outline" onPress={() => go("community")} />
+          <NavCard title="Saved" subtitle="Your bookmarked resources" icon="bookmark-outline" onPress={() => go("saved")} />
         </View>
 
         {pathways.length > 0 ? (
