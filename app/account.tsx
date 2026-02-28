@@ -282,20 +282,18 @@ export default function AccountScreen() {
 
       </View>
 
-      {sandboxMode ? (
-        <View style={s.sandboxToggleRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={s.sandboxToggleTitle}>Sandbox Mode</Text>
-            <Text style={s.sandboxToggleSub}>Bypass paywall for testing</Text>
-          </View>
-          <Switch
-            value={hasActiveSubscription && accessType === "sandbox"}
-            onValueChange={(val) => setSandboxOverride(val)}
-            trackColor={{ false: "#d1d5db", true: tokens.color.primaryBorder }}
-            thumbColor={hasActiveSubscription && accessType === "sandbox" ? tokens.color.primary : "#f4f4f5"}
-          />
+      <View style={s.sandboxToggleRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.sandboxToggleTitle}>Sandbox Mode</Text>
+          <Text style={s.sandboxToggleSub}>Bypass paywall for testing</Text>
         </View>
-      ) : null}
+        <Switch
+          value={hasActiveSubscription && accessType === "sandbox"}
+          onValueChange={(val) => setSandboxOverride(val)}
+          trackColor={{ false: "#d1d5db", true: tokens.color.primaryBorder }}
+          thumbColor={hasActiveSubscription && accessType === "sandbox" ? tokens.color.primary : "#f4f4f5"}
+        />
+      </View>
 
       {statusMsg ? (
         <View style={s.statusBox}>
