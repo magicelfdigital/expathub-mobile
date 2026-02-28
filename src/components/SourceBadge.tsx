@@ -10,35 +10,17 @@ const LABEL: Record<SourceType, string> = {
   community: "COMMUNITY",
 };
 
-const BG: Record<SourceType, string> = {
-  official: tokens.color.primarySoft,
-  authoritative: tokens.color.primarySoft,
-  community: tokens.color.surface,
-};
-
-const BORDER: Record<SourceType, string> = {
-  official: tokens.color.primaryBorder,
-  authoritative: tokens.color.primaryBorder,
-  community: tokens.color.border,
-};
-
-const FG: Record<SourceType, string> = {
-  official: tokens.color.primary,
-  authoritative: tokens.color.primary,
-  community: tokens.color.subtext,
-};
-
 export function SourceBadge({ sourceType }: { sourceType: SourceType }) {
   const safe: SourceType = LABEL[sourceType] ? sourceType : "community";
   return (
     <View
       style={{
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+        paddingHorizontal: 7,
+        paddingVertical: 3,
         borderRadius: tokens.radius.pill,
         borderWidth: 1,
-        backgroundColor: BG[safe],
-        borderColor: BORDER[safe],
+        backgroundColor: tokens.color.surface,
+        borderColor: tokens.color.border,
       }}
       accessibilityLabel={`Source: ${LABEL[safe]}`}
     >
@@ -46,7 +28,7 @@ export function SourceBadge({ sourceType }: { sourceType: SourceType }) {
         style={{
           fontSize: 10,
           fontWeight: tokens.weight.bold,
-          color: FG[safe],
+          color: tokens.color.subtext,
           textTransform: "uppercase",
           letterSpacing: 0.5,
         }}

@@ -1,0 +1,100 @@
+Implement “Source Badges” for resource links across all countries using the existing Resource.sourceType field.
+
+Current resource shape in data/resources.ts includes:
+- label
+- note (optional)
+- url
+- sourceType: "official" | "authoritative" | "community"
+- category (optional)
+
+Constraints:
+- Do NOT modify entitlements, billing, paywall logic, or routing.
+- Do NOT change Planner logic.
+- Keep the UI calm and minimal (badge must be visually subtle).
+
+---------------------------------------------
+1) Backfill / Validate Resource.sourceType
+---------------------------------------------
+
+Scan ALL resource entries in data/resources.ts.
+
+- Ensure EVERY resource has a valid sourceType value.
+- If any are missing, assign conservatively:
+  - default to "community" when uncertain
+  - prefer "official" only for true government/immigration authority sites
+  - "authoritative" for major institutions/portals (not personal blogs)
+
+Do NOT browse the web.
+Use URL domain patterns + existing notes only.
+
+At the end, output counts:
+- official: N
+- authoritative: N
+- community: N
+And list any resources defaulted to community due to uncertainty.
+
+---------------------------------------------
+2) Create SourceBadge component
+---------------------------------------------
+
+Create: src/components/SourceBadge.tsx
+
+Props:
+- sourceType: SourceType (import from data/resources types)
+
+Label mapping:
+- official -> "OFFICIAL"
+- authoritative -> "AUTHORITATIVE"
+- community -> "COMMUNITY"
+
+Styling requirements:
+- pill badge
+- subtle neutral background and thin border using existing theme tokens
+- uppercase text
+- small metadata-sized font
+- minimal visual weight (no bright colors)
+- small horizontal and vertical padding
+- fully rounded corners
+- visually quiet (badge should not dominate the title)
+
+Accessibility:
+- accessibilityLabel: `Source: ${LABEL}`
+
+---------------------------------------------
+3) Render Badge in Resource List UI
+---------------------------------------------
+
+Find the component(s) rendering Resource items from data/resources.ts.
+
+Update each resource row to show:
+
+[label]  [SourceBadge]
+
+UX micro-detail (this matters):
+- Put the badge on the SAME ROW as the label.
+- Right-aligned OR immediately after the label.
+- Do NOT bury it under the note text.
+- Users scan titles first — badge must visually attach to the title.
+- If wrapping occurs on small screens, allow the badge to wrap beneath the label but keep it visually grouped with it.
+
+Do NOT change existing click behavior or navigation.
+Keep note text as-is.
+
+---------------------------------------------
+4) QA
+---------------------------------------------
+
+- TypeScript builds cleanly.
+- No undefined sourceType at runtime.
+- Verify resources render correctly for at least:
+  Portugal, UK, Canada, Germany, Australia.
+- Confirm no changes to entitlement/billing/paywall logic.
+
+---------------------------------------------
+5) Output summary
+---------------------------------------------
+
+Print:
+- Files changed
+- Counts by sourceType
+- Any resources changed to add/fix sourceType
