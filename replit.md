@@ -50,6 +50,7 @@ Preferred communication style: Simple, everyday language.
 - **Premium Content Gating**: `ProGate` component and `ProPaywall` manage access and display paywall.
 - **Analytics**: Lightweight conversion tracking for user actions and purchases.
 - **Non-Launch Country Gating**: Countries not in the `LAUNCH_COUNTRIES` array are marked as "Coming Soon".
+- **Launch Countries**: Portugal, Spain, Canada, Costa Rica, Panama, Ecuador, Malta, United Kingdom, Germany, Ireland, Australia (11 total).
 
 ### Continue / Last Viewed (v1.1)
 - **Context**: `ContinueContext` (`src/contexts/ContinueContext.tsx`) persists last viewed country, section, and resource ID.

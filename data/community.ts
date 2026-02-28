@@ -59,6 +59,16 @@ export const COMMUNITY: CountryCommunity = {
     { name: "Reddit: r/ImmigrationCanada", type: "Forums", url: "https://www.reddit.com/r/ImmigrationCanada/" },
     { name: "Settlement.org", type: "General", url: "https://settlement.org", note: "Ontario newcomer resources" },
   ],
+  ireland: [
+    { name: "Meetup: Ireland expat groups", type: "Meetups", url: "https://www.meetup.com/find/?keywords=Ireland%20expat", note: "Dublin, Cork, Galway and more" },
+    { name: "Reddit: r/MoveToIreland", type: "Forums", url: "https://www.reddit.com/r/MoveToIreland/" },
+    { name: "InterNations Ireland", type: "Expat groups", url: "https://www.internations.org/ireland-expats", note: "Events and networking" },
+  ],
+  australia: [
+    { name: "Meetup: Australia expat groups", type: "Meetups", url: "https://www.meetup.com/find/?keywords=Australia%20expat", note: "Sydney, Melbourne, Brisbane and more" },
+    { name: "Reddit: r/AusVisa", type: "Forums", url: "https://www.reddit.com/r/AusVisa/" },
+    { name: "Expat Forum Australia", type: "Forums", url: "https://www.expatforum.com/forums/australia-expat-forum.12/", note: "Long-running expat community" },
+  ],
 };
 
 export function getCommunityForCountry(slug: string): CommunityLink[] {

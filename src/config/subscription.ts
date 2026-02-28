@@ -42,6 +42,9 @@ export const LAUNCH_COUNTRIES = [
   "ecuador",
   "malta",
   "united-kingdom",
+  "germany",
+  "ireland",
+  "australia",
 ] as const;
 
 export type LaunchCountrySlug = (typeof LAUNCH_COUNTRIES)[number];

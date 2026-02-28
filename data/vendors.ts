@@ -52,6 +52,16 @@ export const VENDORS: CountryVendors = {
     { name: "CPA Canada", category: "Tax", url: "https://www.cpacanada.ca", note: "Chartered Professional Accountants" },
     { name: "IRCC Settlement Services", category: "Relocation", url: "https://www.canada.ca/en/immigration-refugees-citizenship/services/new-immigrants.html", note: "Free newcomer services" },
   ],
+  ireland: [
+    { name: "Law Society of Ireland", category: "Legal", url: "https://www.lawsociety.ie", note: "Find solicitors" },
+    { name: "Chartered Accountants Ireland", category: "Tax", url: "https://www.charteredaccountants.ie", note: "Find certified accountants" },
+    { name: "MyHome.ie", category: "Housing", url: "https://www.myhome.ie", note: "Property listings and rentals" },
+  ],
+  australia: [
+    { name: "Law Council of Australia", category: "Legal", url: "https://www.lawcouncil.asn.au", note: "Find legal practitioners" },
+    { name: "CPA Australia", category: "Tax", url: "https://www.cpaaustralia.com.au", note: "Certified practising accountants" },
+    { name: "MARA (Migration Agents)", category: "Relocation", url: "https://www.mara.gov.au", note: "Registered migration agents" },
+  ],
 };
 
 export function getVendorsForCountry(slug: string): Vendor[] {

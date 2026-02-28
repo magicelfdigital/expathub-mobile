@@ -49,6 +49,18 @@ const COVERAGE_MAP: Record<string, CountryCoverage> = {
     pathways: { _country: "decision-ready", "skilled-worker": "decision-ready", "global-talent": "decision-ready", "innovator-founder": "decision-ready" },
     sections: { brief: "decision-ready", pathway: "decision-ready", resources: "coming-soon", vendors: "coming-soon", community: "coming-soon" },
   },
+  germany: {
+    pathways: { _country: "decision-ready", "eu-blue-card": "decision-ready", "skilled-worker-residence": "decision-ready" },
+    sections: { brief: "decision-ready", pathway: "decision-ready", resources: "decision-ready", vendors: "decision-ready", community: "decision-ready" },
+  },
+  ireland: {
+    pathways: { _country: "decision-ready", "critical-skills": "decision-ready", "general-employment": "decision-ready" },
+    sections: { brief: "decision-ready", pathway: "decision-ready", resources: "decision-ready", vendors: "decision-ready", community: "decision-ready" },
+  },
+  australia: {
+    pathways: { _country: "decision-ready", "skilled-independent-189": "decision-ready", "skilled-nominated-190": "decision-ready" },
+    sections: { brief: "decision-ready", pathway: "decision-ready", resources: "decision-ready", vendors: "decision-ready", community: "decision-ready" },
+  },
 };
 
 const LAUNCH_COUNTRIES = [
@@ -60,6 +72,9 @@ const LAUNCH_COUNTRIES = [
   "ecuador",
   "malta",
   "united-kingdom",
+  "germany",
+  "ireland",
+  "australia",
 ];
 
 export function isLaunchCountry(countrySlug: string): boolean {
@@ -132,6 +147,6 @@ export function getCountryCoverage(countrySlug: string): {
 }
 
 export const COVERAGE_SUMMARY = {
-  ready: "Portugal, Spain, Canada, Costa Rica, Panama, Ecuador, Malta, UK",
+  ready: "Portugal, Spain, Canada, Costa Rica, Panama, Ecuador, Malta, UK, Germany, Ireland, Australia",
   soon: "France, Italy, Thailand, Mexico, and more",
 };

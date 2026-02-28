@@ -1,0 +1,134 @@
+We are expanding supported countries in ExpatHub mobile.
+
+Goal:
+Add Germany, Ireland, and Australia using the existing country architecture.
+This is a content-only expansion.
+Do NOT modify payment logic, entitlement logic, routing structure, or eligibility engine structure.
+
+Critical Constraints:
+- No changes to Stripe
+- No changes to RevenueCat
+- No new entitlements
+- No new feature flags
+- No structural logic changes
+- Reuse existing Country model, Planner structure, and EligibilitySnapshot component
+
+--------------------------------------------------
+1️⃣ Add Country Data Objects
+--------------------------------------------------
+
+Add three new country entries:
+
+Germany
+Ireland
+Australia
+
+Match the exact data structure used for existing countries (e.g., Portugal, Canada).
+
+Each country must include:
+
+- slug
+- displayName
+- region grouping (consistent with existing taxonomy)
+- summary description (calm, neutral tone)
+- 1–2 primary visa pathways only
+- income threshold (approximate bracket-based guidance)
+- savings threshold (bracket-based guidance)
+- high-level documentation checklist
+- passport notes (neutral language; do not assume US passport)
+
+--------------------------------------------------
+2️⃣ Pathway Scope Discipline
+--------------------------------------------------
+
+Germany:
+Primary pathways:
+- EU Blue Card
+- Skilled Worker Residence Permit
+
+Ireland:
+Primary pathways:
+- Critical Skills Employment Permit
+- General Employment Permit
+
+Australia:
+Primary pathways:
+- Skilled Independent Visa (subclass 189)
+- Skilled Nominated Visa (subclass 190)
+
+For Australia:
+Do NOT implement a points calculator.
+Use bracket-based eligibility guidance only.
+Include a disclaimer line in pathway description:
+"Australia uses a points-based system requiring detailed assessment."
+
+--------------------------------------------------
+3️⃣ Planner Integration
+--------------------------------------------------
+
+For each new country:
+
+- Automatically use existing 6-step Planner structure.
+- No custom step variations.
+- No custom UI components.
+- No new checklist categories.
+- Reuse planSteps.ts structure.
+
+--------------------------------------------------
+4️⃣ EligibilitySnapshot Integration
+--------------------------------------------------
+
+Map each new pathway to bracket thresholds:
+
+- Income threshold → bracket comparison only
+- Savings threshold → bracket comparison only
+- Passport → no restrictive assumptions unless legally necessary
+
+Do NOT:
+- Add complex scoring
+- Add country-specific logic branches
+- Add dynamic rule engines
+
+Keep logic simple and readable.
+
+--------------------------------------------------
+5️⃣ Country Hub Update
+--------------------------------------------------
+
+Ensure Germany, Ireland, and Australia appear in:
+
+- Country list
+- Country hub
+- Navigation
+- Search (if applicable)
+
+Maintain existing sort/grouping behavior.
+
+--------------------------------------------------
+6️⃣ QA Safety Checks
+--------------------------------------------------
+
+Before finishing, verify:
+
+- App builds cleanly
+- No missing assets
+- No TypeScript errors
+- No undefined references
+- No entitlement conditions altered
+- No paywall behavior changed
+
+--------------------------------------------------
+Tone Requirements
+--------------------------------------------------
+
+- Calm, structured, advisory tone
+- No exclamation marks
+- No marketing language
+- No legal guarantees
+- No urgency phrasing
+- Avoid US-centric language
+- Use "home country" / "destination country"
+
+This is a stability-focused expansion.
+Do not refactor existing code.
+Do not optimize unrelated files.
