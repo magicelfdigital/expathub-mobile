@@ -121,8 +121,35 @@ export default function CountryResourcesScreen() {
   );
 }
 
+function SourceLegend({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  if (!visible) return null;
+  return (
+    <View style={styles.legendCard}>
+      <View style={styles.legendHeader}>
+        <Text style={styles.legendTitle}>Source types</Text>
+        <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
+          <Ionicons name="close" size={18} color={tokens.color.subtext} />
+        </Pressable>
+      </View>
+      <View style={styles.legendRow}>
+        <Text style={styles.legendLabel}>OFFICIAL</Text>
+        <Text style={styles.legendDesc}>Government or immigration authority</Text>
+      </View>
+      <View style={styles.legendRow}>
+        <Text style={styles.legendLabel}>AUTHORITATIVE</Text>
+        <Text style={styles.legendDesc}>Trusted public institution or portal</Text>
+      </View>
+      <View style={styles.legendRow}>
+        <Text style={styles.legendLabel}>COMMUNITY</Text>
+        <Text style={styles.legendDesc}>Helpful third-party guidance</Text>
+      </View>
+    </View>
+  );
+}
+
 function ResourcesContent({ countrySlug }: { countrySlug?: string }) {
   const { toggleSavedResource, isSaved } = useSaved();
+  const [showLegend, setShowLegend] = useState(false);
 
   const countryName = useMemo(() => {
     if (!countrySlug) return "this country";
@@ -173,8 +200,19 @@ function ResourcesContent({ countrySlug }: { countrySlug?: string }) {
           <Ionicons name="document-text" size={12} color={tokens.color.subtext} />
           <Text style={styles.evidenceLabelText}>Supporting resources</Text>
         </View>
-        <Text style={styles.title}>Resources</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Resources</Text>
+          <Pressable
+            onPress={() => setShowLegend((v) => !v)}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Source type information"
+          >
+            <Ionicons name="information-circle-outline" size={20} color={tokens.color.subtext} />
+          </Pressable>
+        </View>
         <Text style={styles.subtitle}>Trusted government and expert sources for {countryName}.</Text>
+        <SourceLegend visible={showLegend} onClose={() => setShowLegend(false)} />
 
         <View style={styles.chipRow}>
           <Chip label="All" active={selected.size === 0} onPress={clearFilters} />
@@ -384,6 +422,51 @@ const styles = {
     fontSize: tokens.text.body,
     textAlign: "center" as const,
     lineHeight: 20,
+  },
+
+  titleRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 8,
+  },
+
+  legendCard: {
+    marginTop: tokens.space.sm,
+    padding: tokens.space.lg,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    backgroundColor: tokens.color.surface,
+    gap: 10,
+  },
+
+  legendHeader: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+  },
+
+  legendTitle: {
+    fontSize: tokens.text.body,
+    fontWeight: tokens.weight.black,
+    color: tokens.color.text,
+  },
+
+  legendRow: {
+    gap: 2,
+  },
+
+  legendLabel: {
+    fontSize: 10,
+    fontWeight: tokens.weight.black,
+    color: tokens.color.subtext,
+    letterSpacing: 0.5,
+  },
+
+  legendDesc: {
+    fontSize: tokens.text.small,
+    color: tokens.color.text,
+    lineHeight: 16,
   },
 } as const;
 
