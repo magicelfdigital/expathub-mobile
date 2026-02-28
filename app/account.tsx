@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Switch, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -39,6 +39,8 @@ export default function AccountScreen() {
     decisionPassDaysLeft,
     decisionPassExpiresAt,
     unlockedCountries,
+    sandboxMode,
+    setSandboxOverride,
   } = useSubscription();
 
   const [deleting, setDeleting] = useState(false);
@@ -365,6 +367,21 @@ export default function AccountScreen() {
         <Text style={s.deleteText}>Delete Account</Text>
       </Pressable>
 
+      {__DEV__ && sandboxMode ? (
+        <View style={s.sandboxToggleRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.sandboxToggleTitle}>Sandbox Mode (Dev Only)</Text>
+            <Text style={s.sandboxToggleSub}>Bypass paywall for testing</Text>
+          </View>
+          <Switch
+            value={hasActiveSubscription && accessType === "sandbox"}
+            onValueChange={(val) => setSandboxOverride(val)}
+            trackColor={{ false: "#d1d5db", true: tokens.color.primaryBorder }}
+            thumbColor={hasActiveSubscription && accessType === "sandbox" ? tokens.color.primary : "#f4f4f5"}
+          />
+        </View>
+      ) : null}
+
       {__DEV__ ? (
         <Pressable
           style={s.debugBillingBtn}
@@ -644,6 +661,31 @@ const s = {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
     color: "#991b1b",
+  } as const,
+
+  sandboxToggleRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    borderColor: "#bbf7d0",
+    backgroundColor: "#f0fdf4",
+    marginTop: 16,
+  } as const,
+
+  sandboxToggleTitle: {
+    fontSize: tokens.text.body,
+    fontWeight: tokens.weight.black,
+    color: "#166534",
+  } as const,
+
+  sandboxToggleSub: {
+    fontSize: tokens.text.small,
+    color: "#4ade80",
+    marginTop: 1,
   } as const,
 
   debugBillingBtn: {
