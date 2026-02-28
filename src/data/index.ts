@@ -1,4 +1,5 @@
 import { COUNTRIES, REGION_ORDER, sortCountriesAlpha } from "@/data/countries";
+import { isLaunchCountry } from "./coverage";
 import { RESOURCES, getResourcesForCountry } from "@/data/resources";
 import { VENDORS, getVendorsForCountry } from "@/data/vendors";
 import {
@@ -86,8 +87,14 @@ function pathwayId(slug: string, key: string): string {
   return `${slug}-pw-${key}`;
 }
 
+const VISIBLE_SLUGS = new Set([
+  "portugal", "spain", "canada", "costa-rica", "panama", "ecuador",
+  "malta", "united-kingdom", "germany", "ireland", "australia",
+  "france", "italy", "thailand", "mexico", "new-zealand",
+]);
+
 export function getCountries(): Country[] {
-  return COUNTRIES;
+  return COUNTRIES.filter((c) => VISIBLE_SLUGS.has(c.slug));
 }
 
 export function getCountry(slug: string): Country | undefined {
@@ -99,7 +106,7 @@ export function getCountriesByRegion(region: Region): Country[] {
 }
 
 export function getPopularCountries(): Country[] {
-  return COUNTRIES.filter((c) => c.popular).sort(sortCountriesAlpha);
+  return COUNTRIES.filter((c) => c.popular && isLaunchCountry(c.slug)).sort(sortCountriesAlpha);
 }
 
 export function getResources(countrySlug: string): Resource[] {
