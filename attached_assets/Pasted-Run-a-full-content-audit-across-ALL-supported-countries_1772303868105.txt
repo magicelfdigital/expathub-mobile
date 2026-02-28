@@ -1,0 +1,108 @@
+Run a full content audit across ALL supported countries in the repo.
+
+Goal:
+Validate every factual claim related to immigration pathways, visa rules, income thresholds, savings thresholds, documentation requirements, and process descriptions.
+
+Scope:
+ALL country data files and pathway definitions, including:
+- Existing countries
+- Germany
+- Ireland
+- Australia
+
+Critical Rules:
+- Do NOT browse the web.
+- Do NOT invent citations.
+- Use only URLs or references already present in the repository.
+- If no in-repo source exists, mark as UNSOURCED.
+- If a claim involves thresholds, numbers, dates, program names, or eligibility rules, mark as VOLATILE even if a link exists.
+
+--------------------------------------------------
+1️⃣ Build a Master Audit Table
+--------------------------------------------------
+
+Create a structured table with these columns:
+
+Country
+File Path
+Field / Location
+Claim (short excerpt)
+Claim Type (Visa Rule / Threshold / Process / General Info / Documentation)
+Source Found in Repo (exact URL or reference)
+Source Type (Official / Authoritative / Community / None)
+Status (SUPPORTED / UNSOURCED / VOLATILE)
+Risk Level (Low / Medium / High)
+Recommended Action (Keep / Soften / Add Source Placeholder / Remove Specific Number)
+
+Do this for ALL countries, not just the new ones.
+
+--------------------------------------------------
+2️⃣ Source Badge Classification
+--------------------------------------------------
+
+For every resource link found:
+
+Classify as:
+- OFFICIAL (government immigration site, embassy, official ministry)
+- AUTHORITATIVE (recognized institution, EU portal, national health service)
+- COMMUNITY (blog, expat site, forum)
+- NONE (no source present)
+
+If no source exists for a claim:
+Mark:
+Source Type = NONE
+Status = UNSOURCED
+
+--------------------------------------------------
+3️⃣ Volatility Detection Rules
+--------------------------------------------------
+
+Automatically flag as VOLATILE if the claim contains:
+- Specific income numbers
+- Specific savings numbers
+- Exact processing times
+- Named visa subclasses (e.g., 189, Blue Card, etc.)
+- Salary thresholds
+- Tax rules
+- Health insurance requirements tied to regulation
+
+Even if supported, mark VOLATILE to indicate likely change over time.
+
+--------------------------------------------------
+4️⃣ Rewrite Recommendations
+--------------------------------------------------
+
+For each HIGH or MEDIUM risk UNSOURCED or VOLATILE claim:
+Provide a safer rewrite suggestion.
+
+Rules for rewrite:
+- Replace exact numbers with bracket-based phrasing
+- Use "typically", "often", "based on published guidance"
+- Add: "Requirements may change. Always verify with official sources."
+- Never say "you qualify" or "guaranteed"
+
+Do NOT modify code yet.
+Only produce recommendations.
+
+--------------------------------------------------
+5️⃣ Final Output Structure
+--------------------------------------------------
+
+Output:
+
+A) Summary by country:
+   - Total claims
+   - # Supported
+   - # Unsourced
+   - # Volatile
+   - Top 3 highest-risk statements
+
+B) Full Master Audit Table (structured and readable)
+
+C) Priority Fix List:
+   - Top 15 highest-risk items across all countries
+
+This is a compliance and stability audit.
+Do not refactor unrelated code.
+Do not modify entitlements.
+Do not change payment logic.
