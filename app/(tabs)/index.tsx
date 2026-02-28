@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Screen } from "@/components/Screen";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
+import { useContinue } from "@/src/contexts/ContinueContext";
 import { getCountries, getCountry, getPopularCountries } from "@/src/data";
 import { COVERAGE_SUMMARY } from "@/src/data";
 import { getApiUrl } from "@/lib/query-client";
@@ -19,11 +20,18 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { selectedCountrySlug, setSelectedCountrySlug, isLoaded } = useCountry();
+  const { lastViewedCountrySlug, lastViewedSection, clearContinue } = useContinue();
 
   const selected = useMemo(() => {
     if (!selectedCountrySlug) return null;
     return getCountry(selectedCountrySlug) ?? null;
   }, [selectedCountrySlug]);
+
+  const continueCountry = useMemo(() => {
+    const slug = lastViewedCountrySlug || selectedCountrySlug;
+    if (!slug) return null;
+    return getCountry(slug) ?? null;
+  }, [lastViewedCountrySlug, selectedCountrySlug]);
 
   const popular = useMemo(() => {
     const flagged = getPopularCountries();
@@ -31,16 +39,37 @@ export default function HomeScreen() {
     return list.slice(0, 6);
   }, []);
 
+  const sectionLabel = useMemo(() => {
+    if (!lastViewedSection) return null;
+    const labels: Record<string, string> = {
+      resources: "Resources",
+      vendors: "Vendors",
+      community: "Community",
+    };
+    return labels[lastViewedSection] ?? null;
+  }, [lastViewedSection]);
+
   const goCountryHub = (slug: string) => {
     setSelectedCountrySlug(slug);
     router.push({ pathname: "/country-view", params: { slug } } as any);
+  };
+
+  const goContinue = () => {
+    const slug = lastViewedCountrySlug || selectedCountrySlug;
+    if (!slug) return;
+    setSelectedCountrySlug(slug);
+    if (lastViewedSection) {
+      router.push({ pathname: `/(tabs)/country/[slug]/${lastViewedSection}` as any, params: { slug } });
+    } else {
+      router.push({ pathname: "/country-view", params: { slug } } as any);
+    }
   };
 
   const goBrowseCountries = () => {
     router.push("/(tabs)/country");
   };
 
-  const hasSelection = Boolean(selectedCountrySlug && selected);
+  const hasSelection = Boolean(continueCountry);
 
   return (
     <Screen>
@@ -126,19 +155,24 @@ export default function HomeScreen() {
                 />
                 <Text style={[styles.returningGreeting, { textAlign: "center" }]}>{user ? "Welcome back" : "Continue exploring"}</Text>
 
-                <Pressable onPress={() => goCountryHub(selectedCountrySlug!)} style={styles.continueCard}>
+                <Pressable onPress={goContinue} style={styles.continueCard}>
                   <View style={styles.continueRow}>
                     <View style={styles.continueFlagCircle}>
                       <Ionicons name="flag" size={18} color={tokens.color.white} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.continueTitle}>{selected!.name}</Text>
-                      <Text style={styles.continueSub}>Pick up where you left off</Text>
+                      <Text style={styles.continueTitle}>{continueCountry!.name}</Text>
+                      <Text style={styles.continueSub}>
+                        {sectionLabel ? sectionLabel : "Pick up where you left off"}
+                      </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={18} color={tokens.color.white} />
                   </View>
                 </Pressable>
 
+                <Pressable onPress={clearContinue} hitSlop={10}>
+                  <Text style={styles.clearText}>Clear</Text>
+                </Pressable>
               </View>
             )}
 
@@ -378,6 +412,13 @@ const styles = {
     fontSize: tokens.text.body,
     color: "rgba(255,255,255,0.8)",
     lineHeight: 18,
+    marginTop: 2,
+  },
+
+  clearText: {
+    fontSize: tokens.text.small,
+    color: tokens.color.subtext,
+    textAlign: "center" as const,
     marginTop: 2,
   },
 

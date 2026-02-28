@@ -6,6 +6,8 @@ import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { Screen } from "@/components/Screen";
 import { AvailabilityGate } from "@/src/components/AvailabilityGate";
 import { useCountry } from "@/contexts/CountryContext";
+import { useSaved } from "@/src/contexts/SavedContext";
+import { useContinue } from "@/src/contexts/ContinueContext";
 import { getCountry, getResources, type ResourceCategory } from "@/src/data";
 import { openInApp } from "@/lib/openInApp";
 import { tokens } from "@/theme/tokens";
@@ -44,11 +46,15 @@ const ResourceCard = memo(function ResourceCard({
   subtitle,
   sourceType = "official",
   onPress,
+  bookmarked,
+  onToggleBookmark,
 }: {
   title: string;
   subtitle?: string;
   sourceType?: "official" | "community" | "expert";
   onPress: () => void;
+  bookmarked: boolean;
+  onToggleBookmark: () => void;
 }) {
   return (
     <Pressable
@@ -61,10 +67,24 @@ const ResourceCard = memo(function ResourceCard({
           {title}
         </Text>
 
-        <View style={[styles.badge, badgeStyles[sourceType]]}>
-          <Text style={[styles.badgeText, badgeTextStyles[sourceType]]} numberOfLines={1}>
-            {sourceType === "official" ? "Official" : sourceType === "community" ? "Community" : "Expert"}
-          </Text>
+        <View style={styles.cardTopRight}>
+          <View style={[styles.badge, badgeStyles[sourceType]]}>
+            <Text style={[styles.badgeText, badgeTextStyles[sourceType]]} numberOfLines={1}>
+              {sourceType === "official" ? "Official" : sourceType === "community" ? "Community" : "Expert"}
+            </Text>
+          </View>
+          <Pressable
+            onPress={(e) => { e.stopPropagation(); onToggleBookmark(); }}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={bookmarked ? "Remove bookmark" : "Add bookmark"}
+          >
+            <Ionicons
+              name={bookmarked ? "bookmark" : "bookmark-outline"}
+              size={20}
+              color={bookmarked ? tokens.color.primary : tokens.color.subtext}
+            />
+          </Pressable>
         </View>
       </View>
 
@@ -85,8 +105,15 @@ const ResourceCard = memo(function ResourceCard({
 export default function CountryResourcesScreen() {
   const { slug } = useLocalSearchParams<{ slug?: string }>();
   const { selectedCountrySlug } = useCountry();
+  const { recordView } = useContinue();
   const urlSlug = typeof slug === "string" ? slug : undefined;
   const countrySlug = selectedCountrySlug || urlSlug || undefined;
+
+  React.useEffect(() => {
+    if (countrySlug) {
+      recordView(countrySlug, "resources");
+    }
+  }, [countrySlug]);
 
   return (
     <Screen>
@@ -98,6 +125,8 @@ export default function CountryResourcesScreen() {
 }
 
 function ResourcesContent({ countrySlug }: { countrySlug?: string }) {
+  const { toggleSavedResource, isSaved } = useSaved();
+
   const countryName = useMemo(() => {
     if (!countrySlug) return "this country";
     return getCountry(countrySlug)?.name ?? "this country";
@@ -185,6 +214,8 @@ function ResourcesContent({ countrySlug }: { countrySlug?: string }) {
             subtitle={item.note}
             sourceType={item.sourceType}
             onPress={() => openInApp(item.url)}
+            bookmarked={countrySlug ? isSaved(countrySlug, item.url) : false}
+            onToggleBookmark={() => countrySlug && toggleSavedResource(countrySlug, item.url)}
           />
         ))}
       </View>
@@ -303,6 +334,12 @@ const styles = {
   cardTop: {
     flexDirection: "row" as const,
     alignItems: "flex-start" as const,
+    gap: tokens.space.sm,
+  },
+
+  cardTopRight: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
     gap: tokens.space.sm,
   },
 

@@ -11,6 +11,8 @@ import { CountryProvider } from "@/contexts/CountryContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { PlanProvider } from "@/src/contexts/PlanContext";
+import { SavedProvider } from "@/src/contexts/SavedContext";
+import { ContinueProvider } from "@/src/contexts/ContinueContext";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
 import { initCrashlytics } from "@/utils/crashlytics";
@@ -62,7 +64,11 @@ export default function RootLayout() {
               <CountryProvider>
                 <SubscriptionProvider>
                   <PlanProvider>
-                    <RootLayoutNav />
+                    <ContinueProvider>
+                      <SavedProvider>
+                        <RootLayoutNav />
+                      </SavedProvider>
+                    </ContinueProvider>
                   </PlanProvider>
                 </SubscriptionProvider>
               </CountryProvider>

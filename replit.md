@@ -50,6 +50,27 @@ Preferred communication style: Simple, everyday language.
 - **Analytics**: Lightweight conversion tracking for user actions and purchases.
 - **Non-Launch Country Gating**: Countries not in the `LAUNCH_COUNTRIES` array are marked as "Coming Soon".
 
+### Continue / Last Viewed (v1.1)
+- **Context**: `ContinueContext` (`src/contexts/ContinueContext.tsx`) persists last viewed country, section, and resource ID.
+- **State**: `lastViewedCountrySlug`, `lastViewedSection` (resources/vendors/community/null), `lastViewedResourceId`.
+- **Tracking**: Country detail, resources, vendors, and community pages call `recordView()` on mount.
+- **Home Screen**: Shows "Continue where you left off" card with section context, navigates to last viewed page. "Clear" link resets.
+- **Persistence**: AsyncStorage under `expathub_continue`.
+
+### Saved Resources (v1.1)
+- **Context**: `SavedContext` (`src/contexts/SavedContext.tsx`) manages bookmarked resources per country.
+- **State**: `savedResourcesByCountry: Record<string, string[]>` — keyed by country slug, values are resource URLs.
+- **Methods**: `toggleSavedResource()`, `isSaved()`, `getSavedResources()`, `removeSavedResource()`.
+- **Resources Page**: Bookmark icon on each resource card toggles saved state.
+- **Saved Page**: Route at `/country/[slug]/saved`, lists bookmarked resources with remove, empty state.
+- **NavCard**: "Saved" card on country detail page navigates to saved page.
+- **Persistence**: AsyncStorage under `expathub_saved`.
+
+### Paywall Segmented Navigation (v1.1)
+- **Tabs**: ProPaywall component has 3 segmented tabs: "What you get", "Plans" (default), "FAQ".
+- **Fixed CTA**: Sticky bottom bar with "Start 30-Day Decision Access" button, visible when user has no access.
+- **FAQ**: 5 expandable Q&A items covering Decision Briefs, multi-country access, cancellation, trial, and payment methods.
+
 ### Planner Layer (v1.1)
 - **Purpose**: Semi-linear 6-step relocation planning system for paid users.
 - **Context**: `PlanContext` (`src/contexts/PlanContext.tsx`) manages plan state with AsyncStorage persistence.

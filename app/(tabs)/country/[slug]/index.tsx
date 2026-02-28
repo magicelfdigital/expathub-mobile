@@ -12,6 +12,7 @@ import { COUNTRY_LIFETIME_PRICES } from "@/src/config/subscription";
 import { PlanModule } from "@/src/components/PlanModule";
 import LifetimeOfferBanner from "@/src/components/LifetimeOfferBanner";
 import PlanCompletionCard from "@/src/components/PlanCompletionCard";
+import { useContinue } from "@/src/contexts/ContinueContext";
 import { tokens } from "@/theme/tokens";
 
 const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
@@ -83,6 +84,7 @@ export default function CountryDetailScreen() {
   const { selectedCountrySlug, setSelectedCountrySlug } = useCountry();
   const { hasActiveSubscription, hasFullAccess, hasCountryAccess, accessType, decisionPassDaysLeft } = useSubscription();
   const { activeCountrySlug: planCountrySlug, startPlan } = usePlan();
+  const { recordView } = useContinue();
 
   const urlSlug = typeof slug === "string" ? slug : Array.isArray(slug) ? slug[0] : "";
   const countrySlug = selectedCountrySlug || urlSlug || "";
@@ -96,6 +98,12 @@ export default function CountryDetailScreen() {
   React.useEffect(() => {
     if (countrySlug && countrySlug !== selectedCountrySlug) {
       setSelectedCountrySlug(countrySlug);
+    }
+  }, [countrySlug]);
+
+  React.useEffect(() => {
+    if (countrySlug) {
+      recordView(countrySlug);
     }
   }, [countrySlug]);
 
@@ -226,6 +234,7 @@ export default function CountryDetailScreen() {
           <NavCard title="Resources" subtitle="Guides, official links, checklists" icon="document-text-outline" onPress={() => go("resources")} />
           <NavCard title="Vendors" subtitle="Licensed professionals and services" icon="briefcase-outline" onPress={() => go("vendors")} />
           <NavCard title="Community" subtitle="Groups, forums, meetups" icon="people-outline" onPress={() => go("community")} />
+          <NavCard title="Saved" subtitle="Your bookmarked resources" icon="bookmark-outline" onPress={() => go("saved")} />
         </View>
 
         {pathways.length > 0 ? (
