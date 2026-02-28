@@ -81,6 +81,21 @@ Preferred communication style: Simple, everyday language.
 - **Privacy Note**: "Stored only on your device and not shared." displayed above bracket inputs in EligibilitySnapshot.
 - **Country Page**: Passport Notes notice says "7 nationality groups" (not "including US, UK, EU, and more").
 
+### Expanding Soon / Waitlist (v1.1)
+- **Location**: Explore screen (`app/(tabs)/explore/index.tsx`), bottom section.
+- **Countries**: France, Italy, Thailand, Mexico, New Zealand — muted cards, no navigation to country pages.
+- **Waitlist Modal**: Email (required) + optional note, POST to `/api/waitlist`, stores in `waitlist` table (PostgreSQL).
+- **Backend**: `POST /api/waitlist` in `server/routes.ts` — validates email/countrySlug, inserts via `pg` pool.
+- **DB Table**: `waitlist` (id serial PK, country_slug, email, note, created_at) — defined in `shared/schema.ts`.
+- **Analytics**: `waitlist_joined` event on successful submission.
+- **No auth required, no entitlement checks.**
+
+### Source Badge Classification (v1.1)
+- **Three levels**: `official` (immigration/visa authorities), `authoritative` (tax, health, employment institutions), `community` (commercial/third-party).
+- **Counts**: 15 official, 20 authoritative, 10 community (45 total).
+- **Info Legend**: Resources page has an info icon next to title that toggles an inline explainer card.
+- **Component**: `src/components/SourceBadge.tsx` renders all three levels with neutral styling.
+
 ### Planner Layer (v1.1)
 - **Purpose**: Semi-linear 6-step relocation planning system for paid users.
 - **Context**: `PlanContext` (`src/contexts/PlanContext.tsx`) manages plan state with AsyncStorage persistence.

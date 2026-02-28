@@ -41,7 +41,8 @@ type AnalyticsEvent =
   | "plan_step_completed"
   | "plan_completed"
   | "lifetime_offer_shown"
-  | "lifetime_offer_clicked";
+  | "lifetime_offer_clicked"
+  | "waitlist_joined";
 
 type EventProperties = Record<string, string | number | boolean | undefined>;
 
