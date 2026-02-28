@@ -282,6 +282,21 @@ export default function AccountScreen() {
 
       </View>
 
+      {sandboxMode ? (
+        <View style={s.sandboxToggleRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.sandboxToggleTitle}>Sandbox Mode</Text>
+            <Text style={s.sandboxToggleSub}>Bypass paywall for testing</Text>
+          </View>
+          <Switch
+            value={hasActiveSubscription && accessType === "sandbox"}
+            onValueChange={(val) => setSandboxOverride(val)}
+            trackColor={{ false: "#d1d5db", true: tokens.color.primaryBorder }}
+            thumbColor={hasActiveSubscription && accessType === "sandbox" ? tokens.color.primary : "#f4f4f5"}
+          />
+        </View>
+      ) : null}
+
       {statusMsg ? (
         <View style={s.statusBox}>
           <Text style={s.statusText}>{statusMsg}</Text>
@@ -366,21 +381,6 @@ export default function AccountScreen() {
         )}
         <Text style={s.deleteText}>Delete Account</Text>
       </Pressable>
-
-      {sandboxMode ? (
-        <View style={s.sandboxToggleRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={s.sandboxToggleTitle}>Sandbox Mode</Text>
-            <Text style={s.sandboxToggleSub}>Bypass paywall for testing</Text>
-          </View>
-          <Switch
-            value={hasActiveSubscription && accessType === "sandbox"}
-            onValueChange={(val) => setSandboxOverride(val)}
-            trackColor={{ false: "#d1d5db", true: tokens.color.primaryBorder }}
-            thumbColor={hasActiveSubscription && accessType === "sandbox" ? tokens.color.primary : "#f4f4f5"}
-          />
-        </View>
-      ) : null}
 
       {__DEV__ ? (
         <Pressable
