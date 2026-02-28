@@ -106,7 +106,7 @@ Preferred communication style: Simple, everyday language.
   - `EligibilitySnapshot` (`src/components/EligibilitySnapshot.tsx`) — bracket-based eligibility check inside Step 1
   - `LifetimeOfferBanner` (`src/components/LifetimeOfferBanner.tsx`) — inline upsell after 2+ steps completed
   - `PlanCompletionCard` (`src/components/PlanCompletionCard.tsx`) — shown when all 6 steps done
-- **Integration**: Country page (`app/(tabs)/country/[slug]/index.tsx`) shows Focus Activation for paid users, PlanModule for active plans.
+- **Integration**: Both country pages show Focus Activation for paid users and PlanModule for active plans: tabbed page (`app/(tabs)/country/[slug]/index.tsx`) and standalone hub (`app/country-view.tsx`).
 - **Analytics Events**: `plan_focus_started`, `plan_step_completed`, `eligibility_snapshot_run`, `lifetime_offer_shown`, `lifetime_offer_clicked`, `plan_completed`.
 - **Tone**: Calm, advisory — no exclamation marks, no urgency, no legal assurance language.
 

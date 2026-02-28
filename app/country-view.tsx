@@ -7,6 +7,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Screen } from "@/components/Screen";
 import { useCountry } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { usePlan } from "@/src/contexts/PlanContext";
+import { PlanModule } from "@/src/components/PlanModule";
+import LifetimeOfferBanner from "@/src/components/LifetimeOfferBanner";
+import PlanCompletionCard from "@/src/components/PlanCompletionCard";
 import { getCountry, getPathways, getCountryCoverage, isDecisionReady, isLaunchCountry } from "@/src/data";
 import { COUNTRY_LIFETIME_PRICES } from "@/src/config/subscription";
 import { tokens } from "@/theme/tokens";
@@ -79,7 +83,8 @@ export default function CountryViewScreen() {
   const insets = useSafeAreaInsets();
   const { slug } = useLocalSearchParams<{ slug?: string }>();
   const { setSelectedCountrySlug } = useCountry();
-  const { hasFullAccess, hasCountryAccess, accessType, decisionPassDaysLeft } = useSubscription();
+  const { hasActiveSubscription, hasFullAccess, hasCountryAccess, accessType, decisionPassDaysLeft } = useSubscription();
+  const { activeCountrySlug: planCountrySlug, startPlan } = usePlan();
 
   const countrySlug = typeof slug === "string" ? slug : "";
 
@@ -102,6 +107,8 @@ export default function CountryViewScreen() {
 
   const hasAccess = hasFullAccess || hasCountryAccess(countrySlug);
   const countryPrice = COUNTRY_LIFETIME_PRICES[countrySlug] ?? "$19.99";
+  const hasPlanForThisCountry = planCountrySlug === countrySlug;
+  const isPaidUser = hasActiveSubscription;
 
   const go = (leaf: string) => {
     if (!countrySlug) return;
@@ -174,6 +181,14 @@ export default function CountryViewScreen() {
             </View>
             <Ionicons name="chevron-forward" size={16} color={tokens.color.primary} />
           </Pressable>
+        ) : null}
+
+        {hasPlanForThisCountry ? (
+          <View style={styles.planSection}>
+            <PlanCompletionCard />
+            <PlanModule />
+            <LifetimeOfferBanner />
+          </View>
         ) : null}
 
         {!isLaunch ? (
@@ -257,6 +272,33 @@ export default function CountryViewScreen() {
                 );
               })}
             </View>
+          </View>
+        ) : null}
+
+        {isPaidUser && isLaunch && !hasPlanForThisCountry && pathways.length > 0 ? (
+          <View style={styles.focusSection}>
+            <View style={styles.focusIconRow}>
+              <View style={styles.focusIconCircle}>
+                <Ionicons name="flag-outline" size={20} color={tokens.color.primary} />
+              </View>
+            </View>
+            <Text style={styles.focusTitle}>Turn this into a structured plan</Text>
+            <Text style={styles.focusBody}>
+              If this country feels like a strong option, you can focus here and walk through the process step by step.
+            </Text>
+            <Pressable
+              style={styles.focusButton}
+              onPress={() => {
+                const firstPathway = pathways[0];
+                if (firstPathway) {
+                  startPlan(countrySlug, firstPathway.key);
+                }
+              }}
+            >
+              <Ionicons name="flag" size={16} color="#fff" />
+              <Text style={styles.focusButtonText}>Focus on {countryName}</Text>
+            </Pressable>
+            <Text style={styles.focusMicrocopy}>You can switch your focus at any time.</Text>
           </View>
         ) : null}
       </ScrollView>
@@ -612,6 +654,71 @@ const styles = {
     fontSize: tokens.text.body,
     color: "#4b5563",
     lineHeight: 20,
+    textAlign: "center" as const,
+  },
+
+  planSection: {
+    gap: tokens.space.lg,
+  },
+
+  focusSection: {
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    padding: tokens.space.xl,
+    alignItems: "center" as const,
+    gap: tokens.space.sm,
+  },
+
+  focusIconRow: {
+    marginBottom: tokens.space.xs,
+  },
+
+  focusIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: tokens.color.primarySoft,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+
+  focusTitle: {
+    fontSize: tokens.text.h3,
+    fontWeight: tokens.weight.black,
+    color: tokens.color.text,
+    textAlign: "center" as const,
+  },
+
+  focusBody: {
+    fontSize: tokens.text.body,
+    color: tokens.color.subtext,
+    lineHeight: 20,
+    textAlign: "center" as const,
+  },
+
+  focusButton: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    gap: 8,
+    backgroundColor: tokens.color.primary,
+    borderRadius: tokens.radius.md,
+    paddingVertical: 12,
+    paddingHorizontal: tokens.space.xl,
+    marginTop: tokens.space.xs,
+  },
+
+  focusButtonText: {
+    fontSize: tokens.text.body,
+    fontWeight: tokens.weight.black,
+    color: "#fff",
+  },
+
+  focusMicrocopy: {
+    fontSize: tokens.text.small,
+    color: tokens.color.subtext,
     textAlign: "center" as const,
   },
 } as const;
