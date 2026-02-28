@@ -17,6 +17,7 @@ Preferred communication style: Simple, everyday language.
 - **Navigation**: Tab-based layout with nested Stack navigators for country details; subscription flow as a modal.
 - **Authentication**: JWT-based via `AuthContext` with `expathub.website` API. Uses `expo-secure-store` (native) or `AsyncStorage` (web) for token storage. Web authentication is proxied through an Express backend to handle CORS.
 - **Forgot Password**: Handled via `expathub.website` with email-based reset. Route at `/forgot-password` with calm UX, neutral success messaging (prevents account enumeration), and analytics events (`password_reset_opened`, `password_reset_submitted`, `password_reset_success`, `password_reset_error`).
+- **About Screen**: Route at `/about`, accessible from Account screen. Displays app version (via expo-constants), company (MagicElfDigital LLC), support email (mailto link), and legal links (Privacy Policy, Terms of Service, Delete Account). Presented as a modal.
 
 ### Backend (Express.js)
 - **Runtime**: Node.js with TypeScript and Express v5.

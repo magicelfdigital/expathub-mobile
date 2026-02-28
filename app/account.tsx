@@ -333,6 +333,17 @@ export default function AccountScreen() {
           <Text style={s.actionRowText}>Visit www.expathub.website</Text>
           <Ionicons name="open-outline" size={14} color={tokens.color.subtext} style={{ marginLeft: "auto" as any }} />
         </Pressable>
+
+        <View style={s.actionDivider} />
+
+        <Pressable
+          onPress={() => router.push("/about" as any)}
+          style={({ pressed }) => [s.actionRow, pressed && { opacity: 0.7 }]}
+        >
+          <Ionicons name="information-circle-outline" size={18} color={tokens.color.primary} />
+          <Text style={s.actionRowText}>About</Text>
+          <Ionicons name="chevron-forward" size={16} color={tokens.color.subtext} style={{ marginLeft: "auto" as any }} />
+        </Pressable>
       </View>
 
       <Pressable style={s.logoutBtn} onPress={handleLogout}>
