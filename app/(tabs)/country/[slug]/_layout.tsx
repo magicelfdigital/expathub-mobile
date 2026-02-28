@@ -28,7 +28,7 @@ function BackButton({ fallback }: { fallback?: string }) {
         }
       }}
       hitSlop={12}
-      style={{ paddingVertical: 4, paddingHorizontal: 8, marginLeft: -4 }}
+      style={{ padding: 8 }}
     >
       <Ionicons name="chevron-back" size={24} color={tokens.color.primary} />
     </Pressable>
@@ -46,6 +46,7 @@ export default function CountrySlugLayout() {
         headerShadowVisible: false,
         headerStyle: { backgroundColor: tokens.color.bg },
         headerLeft: () => <BackButton />,
+        headerLeftContainerStyle: { paddingLeft: 8 },
         title: "",
       }}
     >
