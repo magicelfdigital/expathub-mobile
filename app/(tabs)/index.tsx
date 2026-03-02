@@ -58,6 +58,18 @@ export default function HomeScreen() {
     const slug = lastViewedCountrySlug || selectedCountrySlug;
     if (!slug) return;
     setSelectedCountrySlug(slug);
+    if (lastViewedSection) {
+      const sectionRoutes: Record<string, string> = {
+        resources: "/(tabs)/country/[slug]/resources",
+        vendors: "/(tabs)/country/[slug]/vendors",
+        community: "/(tabs)/country/[slug]/community",
+      };
+      const route = sectionRoutes[lastViewedSection];
+      if (route) {
+        router.push({ pathname: route as any, params: { slug } } as any);
+        return;
+      }
+    }
     router.push({ pathname: "/country-view", params: { slug } } as any);
   };
 
