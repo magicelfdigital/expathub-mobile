@@ -69,6 +69,9 @@ const COUNTRY_LIFETIME_PRODUCT_IDS: Record<string, string> = {
   ecuador: "country_equadore_lifetime",
   malta: "country_malta_unlock",
   "united-kingdom": "country_lifetime_united_kingdom",
+  germany: "country_lifetime_germany",
+  ireland: "country_lifetime_ireland",
+  australia: "country_lifetime_australia",
 };
 
 export function getCountryLifetimeProductId(slug: string): string {
