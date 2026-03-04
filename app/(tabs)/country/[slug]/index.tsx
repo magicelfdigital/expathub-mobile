@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo } from "react";
-import { Alert, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/components/Screen";
 import { useCountry } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { usePlan, usePlanRef } from "@/src/contexts/PlanContext";
+import { usePlan } from "@/src/contexts/PlanContext";
 import { getCountry, getPathways, getCountryCoverage, isDecisionReady, isLaunchCountry } from "@/src/data";
 import { COUNTRY_LIFETIME_PRICES } from "@/src/config/subscription";
 import { PlanModule } from "@/src/components/PlanModule";
@@ -84,7 +84,6 @@ export default function CountryDetailScreen() {
   const { selectedCountrySlug, setSelectedCountrySlug } = useCountry();
   const { hasActiveSubscription, hasFullAccess, hasCountryAccess, accessType, decisionPassDaysLeft } = useSubscription();
   const { activeCountrySlug: planCountrySlug, startPlan } = usePlan();
-  const planRef = usePlanRef();
   const { recordView } = useContinue();
 
   const urlSlug = typeof slug === "string" ? slug : Array.isArray(slug) ? slug[0] : "";
@@ -297,28 +296,7 @@ export default function CountryDetailScreen() {
               onPress={() => {
                 const firstPathway = pathways[0];
                 if (!firstPathway) return;
-                const currentPlanSlug = planRef.current.activeCountrySlug;
-                const renderPlanSlug = planCountrySlug;
-                Alert.alert("DEBUG", `ref=${currentPlanSlug}, render=${renderPlanSlug}, this=${countrySlug}`);
-                if (currentPlanSlug && currentPlanSlug !== countrySlug) {
-                  const prevName = getCountry(currentPlanSlug)?.name ?? currentPlanSlug;
-                  Alert.alert(
-                    "Switch your focus?",
-                    `You have an active plan for ${prevName}. Switching will reset your progress and start fresh for ${countryName}.`,
-                    [
-                      { text: "Keep current plan", style: "cancel" },
-                      {
-                        text: `Focus on ${countryName}`,
-                        style: "destructive",
-                        onPress: () => {
-                          startPlan(countrySlug, firstPathway.key);
-                        },
-                      },
-                    ],
-                  );
-                } else {
-                  startPlan(countrySlug, firstPathway.key);
-                }
+                startPlan(countrySlug, firstPathway.key);
               }}
             >
               <Ionicons name="flag" size={16} color="#fff" />

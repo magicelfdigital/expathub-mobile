@@ -1,7 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Alert } from "react-native";
 import { trackEvent } from "@/src/lib/analytics";
 import { PLAN_STEPS } from "@/src/data/planSteps";
+import { getCountry } from "@/src/data";
 
 type PlanState = {
   activeCountrySlug: string | null;
@@ -31,8 +33,6 @@ const EMPTY: PlanState = {
 
 const PlanContext = createContext<PlanContextValue | undefined>(undefined);
 
-const PlanStateRefContext = createContext<React.RefObject<PlanState> | null>(null);
-
 export function PlanProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<PlanState>(EMPTY);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -60,7 +60,7 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     } catch {}
   }, []);
 
-  const startPlan = useCallback((countrySlug: string, pathwayId: string) => {
+  const doStartPlan = useCallback((countrySlug: string, pathwayId: string) => {
     const next: PlanState = {
       activeCountrySlug: countrySlug,
       activePathwayId: pathwayId,
@@ -71,6 +71,28 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     persist(next);
     trackEvent("plan_focus_started", { country: countrySlug, pathway: pathwayId });
   }, [persist]);
+
+  const startPlan = useCallback((countrySlug: string, pathwayId: string) => {
+    const current = stateRef.current;
+    if (current.activeCountrySlug && current.activeCountrySlug !== countrySlug) {
+      const prevName = getCountry(current.activeCountrySlug)?.name ?? current.activeCountrySlug;
+      const newName = getCountry(countrySlug)?.name ?? countrySlug;
+      Alert.alert(
+        "Switch your focus?",
+        `You have an active plan for ${prevName}. Switching will reset your progress and start fresh for ${newName}.`,
+        [
+          { text: "Keep current plan", style: "cancel" },
+          {
+            text: `Focus on ${newName}`,
+            style: "destructive",
+            onPress: () => doStartPlan(countrySlug, pathwayId),
+          },
+        ],
+      );
+    } else {
+      doStartPlan(countrySlug, pathwayId);
+    }
+  }, [doStartPlan]);
 
   const completeStep = useCallback((stepId: string) => {
     setState((prev) => {
@@ -133,23 +155,11 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     [state, isLoaded, startPlan, completeStep, uncompleteStep, resetPlan, setHasPets, isComplete]
   );
 
-  return (
-    <PlanContext.Provider value={value}>
-      <PlanStateRefContext.Provider value={stateRef}>
-        {children}
-      </PlanStateRefContext.Provider>
-    </PlanContext.Provider>
-  );
+  return <PlanContext.Provider value={value}>{children}</PlanContext.Provider>;
 }
 
 export function usePlan() {
   const ctx = useContext(PlanContext);
   if (!ctx) throw new Error("usePlan must be used within PlanProvider");
   return ctx;
-}
-
-export function usePlanRef() {
-  const ref = useContext(PlanStateRefContext);
-  if (!ref) throw new Error("usePlanRef must be used within PlanProvider");
-  return ref;
 }
