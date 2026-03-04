@@ -186,6 +186,11 @@ export function ProPaywall({
     let cancelled = false;
     const currentUser = user;
 
+    const closePurchaseModal = () => {
+      if (onClose) onClose();
+      else if (router.canGoBack()) router.back();
+    };
+
     (async () => {
       try {
         const raw = await AsyncStorage.getItem("pending_purchase");
@@ -195,70 +200,50 @@ export function ProPaywall({
         pendingPurchaseHandled.current = true;
         await clearPendingPurchase();
 
-        await new Promise((r) => setTimeout(r, 800));
-        if (cancelled) return;
+        if (Platform.OS !== "web") {
+          const productId =
+            pending.type === "decision_pass" ? RC_DECISION_PASS_PRODUCT
+            : pending.type === "country_lifetime" && pending.countrySlug ? getCountryLifetimeProductId(pending.countrySlug)
+            : pending.type === "monthly" ? RC_MONTHLY_PRODUCT
+            : null;
 
-        if (Platform.OS === "web") {
-          if (__DEV__) {
-            console.log(`[PURCHASE] DEV MODE: Simulating ${pending.type} after auth on web`);
-            trackEvent("purchase_success", { type: pending.type, platform: "web", status: "dev_simulated" });
-            await refresh();
-            if (onClose) onClose();
-            else router.back();
-          } else {
-            console.log(`[PURCHASE] Pending ${pending.type} resumed on web — user can tap the button now`);
-          }
-          return;
-        }
+          if (!productId) return;
 
-        const productId =
-          pending.type === "decision_pass" ? RC_DECISION_PASS_PRODUCT
-          : pending.type === "country_lifetime" && pending.countrySlug ? getCountryLifetimeProductId(pending.countrySlug)
-          : pending.type === "monthly" ? RC_MONTHLY_PRODUCT
-          : null;
+          await new Promise((r) => setTimeout(r, 500));
+          if (cancelled) return;
 
-        if (!productId) return;
+          const userId = currentUser.id.toString();
+          const orchestrator = getOrchestrator(() => token);
+          setError(null);
+          setBusy(true);
+          console.log(`[PURCHASE] Resuming ${pending.type} via orchestrator: productId=${productId}`);
 
-        const userId = currentUser.id.toString();
-        const orchestrator = getOrchestrator(() => token);
-        setError(null);
-        setBusy(true);
-        console.log(`[PURCHASE] Resuming ${pending.type} via orchestrator: productId=${productId}`);
-
-        try {
-          const result = await orchestrator.purchase(productId, userId);
-          if (result.status === "confirmed") {
-            trackEvent("purchase_success", { type: pending.type, platform: Platform.OS, status: "confirmed" });
-            await refresh();
-            if (onClose) onClose();
-            else router.back();
-          } else {
-            setError("Purchase is being processed. Please check back in a moment.");
-          }
-        } catch (purchaseErr: any) {
-          if (purchaseErr instanceof RevenueCatPurchaseError && purchaseErr.userCancelled) {
-            if (__DEV__) {
-              trackEvent("purchase_success", { type: pending.type, platform: Platform.OS, status: "dev_simulated" });
+          try {
+            const result = await orchestrator.purchase(productId, userId);
+            if (result.status === "confirmed") {
+              trackEvent("purchase_success", { type: pending.type, platform: Platform.OS, status: "confirmed" });
               await refresh();
-              if (onClose) onClose();
-              else router.back();
+              closePurchaseModal();
+            } else {
+              setError("Purchase is being processed. Please check back in a moment.");
+            }
+          } catch (purchaseErr: any) {
+            if (purchaseErr instanceof RevenueCatPurchaseError && purchaseErr.userCancelled) {
+              console.log(`[PURCHASE] ${pending.type}: user cancelled resumed purchase`);
+              setError(null);
               return;
             }
-            setError(null);
-            return;
+            if (purchaseErr instanceof EntitlementPollingTimeoutError) {
+              setError("Purchase received. Access will activate shortly. If not, tap Restore Purchases.");
+              return;
+            }
+            console.log(`[PURCHASE] Resume error: ${purchaseErr?.message}`);
+            setError("We couldn't complete your purchase. Please tap the button to try again.");
+          } finally {
+            setBusy(false);
           }
-          if (__DEV__) {
-            console.log(`[PURCHASE] DEV MODE: ${pending.type} error (${purchaseErr?.message}) — simulating success`);
-            trackEvent("purchase_success", { type: pending.type, platform: Platform.OS, status: "dev_simulated" });
-            await refresh();
-            if (onClose) onClose();
-            else router.back();
-            return;
-          }
-          console.log(`[PURCHASE] Resume error: ${purchaseErr?.message}`);
-          setError("We couldn't complete your purchase. Please tap the button to try again.");
-        } finally {
-          setBusy(false);
+        } else {
+          console.log(`[PURCHASE] Pending ${pending.type} on web — user can tap the button now`);
         }
       } catch (e) {
         console.log(`[PURCHASE] Error resuming pending purchase: ${e}`);
