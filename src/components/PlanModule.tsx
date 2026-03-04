@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
 
 import { COUNTRIES } from "@/data/countries";
 import { usePlan } from "@/src/contexts/PlanContext";
@@ -208,6 +208,22 @@ function PetChecklist({
       <Text style={s.disclaimer}>
         Pet import rules change frequently. Always confirm current requirements with the destination country's veterinary authority before travel.
       </Text>
+
+      {petData.sources.length > 0 && (
+        <View style={s.sourcesSection}>
+          <Text style={s.sourcesTitle}>Sources</Text>
+          {petData.sources.map((source, i) => (
+            <Pressable
+              key={i}
+              onPress={() => Linking.openURL(source.url)}
+              style={s.sourceRow}
+            >
+              <Ionicons name="open-outline" size={12} color={tokens.color.primary} />
+              <Text style={s.sourceLabel} numberOfLines={2}>{source.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -640,5 +656,29 @@ const s = {
   petDismissText: {
     fontSize: tokens.text.small,
     color: tokens.color.subtext,
+  },
+  sourcesSection: {
+    marginTop: tokens.space.md,
+    gap: tokens.space.xs,
+  },
+  sourcesTitle: {
+    fontSize: tokens.text.small,
+    fontWeight: tokens.weight.bold,
+    color: tokens.color.subtext,
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  sourceRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
+    paddingVertical: 4,
+  },
+  sourceLabel: {
+    flex: 1,
+    fontSize: tokens.text.small,
+    color: tokens.color.primary,
+    lineHeight: 16,
   },
 } as const;
