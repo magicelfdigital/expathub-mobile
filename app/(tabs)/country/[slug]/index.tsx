@@ -6,7 +6,7 @@ import { Alert, Platform, Pressable, ScrollView, Text, View } from "react-native
 import { Screen } from "@/components/Screen";
 import { useCountry } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { usePlan } from "@/src/contexts/PlanContext";
+import { usePlan, usePlanRef } from "@/src/contexts/PlanContext";
 import { getCountry, getPathways, getCountryCoverage, isDecisionReady, isLaunchCountry } from "@/src/data";
 import { COUNTRY_LIFETIME_PRICES } from "@/src/config/subscription";
 import { PlanModule } from "@/src/components/PlanModule";
@@ -84,6 +84,7 @@ export default function CountryDetailScreen() {
   const { selectedCountrySlug, setSelectedCountrySlug } = useCountry();
   const { hasActiveSubscription, hasFullAccess, hasCountryAccess, accessType, decisionPassDaysLeft } = useSubscription();
   const { activeCountrySlug: planCountrySlug, startPlan } = usePlan();
+  const planRef = usePlanRef();
   const { recordView } = useContinue();
 
   const urlSlug = typeof slug === "string" ? slug : Array.isArray(slug) ? slug[0] : "";
@@ -296,9 +297,9 @@ export default function CountryDetailScreen() {
               onPress={() => {
                 const firstPathway = pathways[0];
                 if (!firstPathway) return;
-                console.log(`[PLAN] Focus tapped: planCountrySlug=${planCountrySlug}, countrySlug=${countrySlug}`);
-                if (planCountrySlug && planCountrySlug !== countrySlug) {
-                  const prevName = getCountry(planCountrySlug)?.name ?? planCountrySlug;
+                const currentPlanSlug = planRef.current.activeCountrySlug;
+                if (currentPlanSlug && currentPlanSlug !== countrySlug) {
+                  const prevName = getCountry(currentPlanSlug)?.name ?? currentPlanSlug;
                   Alert.alert(
                     "Switch your focus?",
                     `You have an active plan for ${prevName}. Switching will reset your progress and start fresh for ${countryName}.`,

@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { trackEvent } from "@/src/lib/analytics";
 import { PLAN_STEPS } from "@/src/data/planSteps";
 
@@ -31,9 +31,13 @@ const EMPTY: PlanState = {
 
 const PlanContext = createContext<PlanContextValue | undefined>(undefined);
 
+const PlanStateRefContext = createContext<React.RefObject<PlanState> | null>(null);
+
 export function PlanProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<PlanState>(EMPTY);
   const [isLoaded, setIsLoaded] = useState(false);
+  const stateRef = useRef<PlanState>(state);
+  stateRef.current = state;
 
   useEffect(() => {
     let mounted = true;
@@ -129,11 +133,23 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     [state, isLoaded, startPlan, completeStep, uncompleteStep, resetPlan, setHasPets, isComplete]
   );
 
-  return <PlanContext.Provider value={value}>{children}</PlanContext.Provider>;
+  return (
+    <PlanContext.Provider value={value}>
+      <PlanStateRefContext.Provider value={stateRef}>
+        {children}
+      </PlanStateRefContext.Provider>
+    </PlanContext.Provider>
+  );
 }
 
 export function usePlan() {
   const ctx = useContext(PlanContext);
   if (!ctx) throw new Error("usePlan must be used within PlanProvider");
   return ctx;
+}
+
+export function usePlanRef() {
+  const ref = useContext(PlanStateRefContext);
+  if (!ref) throw new Error("usePlanRef must be used within PlanProvider");
+  return ref;
 }

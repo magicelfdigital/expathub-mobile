@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Screen } from "@/components/Screen";
 import { useCountry } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { usePlan } from "@/src/contexts/PlanContext";
+import { usePlan, usePlanRef } from "@/src/contexts/PlanContext";
 import { PlanModule } from "@/src/components/PlanModule";
 import LifetimeOfferBanner from "@/src/components/LifetimeOfferBanner";
 import PlanCompletionCard from "@/src/components/PlanCompletionCard";
@@ -85,6 +85,7 @@ export default function CountryViewScreen() {
   const { setSelectedCountrySlug } = useCountry();
   const { hasActiveSubscription, hasFullAccess, hasCountryAccess, accessType, decisionPassDaysLeft } = useSubscription();
   const { activeCountrySlug: planCountrySlug, startPlan } = usePlan();
+  const planRef = usePlanRef();
 
   const countrySlug = typeof slug === "string" ? slug : "";
 
@@ -291,8 +292,9 @@ export default function CountryViewScreen() {
               onPress={() => {
                 const firstPathway = pathways[0];
                 if (!firstPathway) return;
-                if (planCountrySlug && planCountrySlug !== countrySlug) {
-                  const prevName = getCountry(planCountrySlug)?.name ?? planCountrySlug;
+                const currentPlanSlug = planRef.current.activeCountrySlug;
+                if (currentPlanSlug && currentPlanSlug !== countrySlug) {
+                  const prevName = getCountry(currentPlanSlug)?.name ?? currentPlanSlug;
                   Alert.alert(
                     "Switch your focus?",
                     `You have an active plan for ${prevName}. Switching will reset your progress and start fresh for ${countryName}.`,
