@@ -298,6 +298,8 @@ export default function CountryDetailScreen() {
                 const firstPathway = pathways[0];
                 if (!firstPathway) return;
                 const currentPlanSlug = planRef.current.activeCountrySlug;
+                const renderPlanSlug = planCountrySlug;
+                Alert.alert("DEBUG", `ref=${currentPlanSlug}, render=${renderPlanSlug}, this=${countrySlug}`);
                 if (currentPlanSlug && currentPlanSlug !== countrySlug) {
                   const prevName = getCountry(currentPlanSlug)?.name ?? currentPlanSlug;
                   Alert.alert(
