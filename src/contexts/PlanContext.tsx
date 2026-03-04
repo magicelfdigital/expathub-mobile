@@ -61,6 +61,7 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
       activeCountrySlug: countrySlug,
       activePathwayId: pathwayId,
       completedSteps: [],
+      hasPets: false,
     };
     setState(next);
     persist(next);

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo } from "react";
-import { Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/components/Screen";
 import { useCountry } from "@/contexts/CountryContext";
@@ -295,7 +295,24 @@ export default function CountryDetailScreen() {
               style={styles.focusButton}
               onPress={() => {
                 const firstPathway = pathways[0];
-                if (firstPathway) {
+                if (!firstPathway) return;
+                if (planCountrySlug && planCountrySlug !== countrySlug) {
+                  const prevName = getCountry(planCountrySlug)?.name ?? planCountrySlug;
+                  Alert.alert(
+                    "Switch your focus?",
+                    `You have an active plan for ${prevName}. Switching will reset your progress and start fresh for ${countryName}.`,
+                    [
+                      { text: "Keep current plan", style: "cancel" },
+                      {
+                        text: `Focus on ${countryName}`,
+                        style: "destructive",
+                        onPress: () => {
+                          startPlan(countrySlug, firstPathway.key);
+                        },
+                      },
+                    ],
+                  );
+                } else {
                   startPlan(countrySlug, firstPathway.key);
                 }
               }}
