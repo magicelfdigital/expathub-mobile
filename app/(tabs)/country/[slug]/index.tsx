@@ -296,6 +296,7 @@ export default function CountryDetailScreen() {
               onPress={() => {
                 const firstPathway = pathways[0];
                 if (!firstPathway) return;
+                console.log(`[PLAN] Focus tapped: planCountrySlug=${planCountrySlug}, countrySlug=${countrySlug}`);
                 if (planCountrySlug && planCountrySlug !== countrySlug) {
                   const prevName = getCountry(planCountrySlug)?.name ?? planCountrySlug;
                   Alert.alert(
