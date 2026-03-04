@@ -7,6 +7,7 @@ type PlanState = {
   activeCountrySlug: string | null;
   activePathwayId: string | null;
   completedSteps: string[];
+  hasPets: boolean;
 };
 
 type PlanContextValue = PlanState & {
@@ -15,6 +16,7 @@ type PlanContextValue = PlanState & {
   completeStep: (stepId: string) => void;
   uncompleteStep: (stepId: string) => void;
   resetPlan: () => void;
+  setHasPets: (val: boolean) => void;
   isComplete: boolean;
 };
 
@@ -24,6 +26,7 @@ const EMPTY: PlanState = {
   activeCountrySlug: null,
   activePathwayId: null,
   completedSteps: [],
+  hasPets: false,
 };
 
 const PlanContext = createContext<PlanContextValue | undefined>(undefined);
@@ -100,6 +103,14 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
+  const setHasPets = useCallback((val: boolean) => {
+    setState((prev) => {
+      const next = { ...prev, hasPets: val };
+      persist(next);
+      return next;
+    });
+  }, [persist]);
+
   const allChecklistIds = PLAN_STEPS.flatMap((s) => s.checklist.map((c) => c.id));
   const isComplete = allChecklistIds.length > 0 && allChecklistIds.every((id) => state.completedSteps.includes(id));
 
@@ -111,9 +122,10 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
       completeStep,
       uncompleteStep,
       resetPlan,
+      setHasPets,
       isComplete,
     }),
-    [state, isLoaded, startPlan, completeStep, uncompleteStep, resetPlan, isComplete]
+    [state, isLoaded, startPlan, completeStep, uncompleteStep, resetPlan, setHasPets, isComplete]
   );
 
   return <PlanContext.Provider value={value}>{children}</PlanContext.Provider>;

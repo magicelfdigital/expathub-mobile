@@ -99,13 +99,20 @@ Preferred communication style: Simple, everyday language.
 ### Planner Layer (v1.1)
 - **Purpose**: Semi-linear 6-step relocation planning system for paid users.
 - **Context**: `PlanContext` (`src/contexts/PlanContext.tsx`) manages plan state with AsyncStorage persistence.
-- **State**: `activeCountrySlug`, `activePathwayId`, `completedSteps[]` — one active plan at a time.
+- **State**: `activeCountrySlug`, `activePathwayId`, `completedSteps[]`, `hasPets` — one active plan at a time.
 - **Steps**: Fixed 6-step structure in `src/data/planSteps.ts` (Confirm Pathway, Validate Finances, Prepare Docs, Execute Residency, Register Local, Post-Arrival Compliance).
+- **Step 3 Country-Specific**: `getStep3Checklist(countrySlug)` returns country-specific document items with two groups: "For your visa application" and "For your arrival". All 11 launch countries have custom checklists.
 - **Components**:
-  - `PlanModule` (`src/components/PlanModule.tsx`) — expandable step cards with checklists
+  - `PlanModule` (`src/components/PlanModule.tsx`) — expandable step cards with checklists, tab switcher for "Your Plan" / "Pet Checklist"
   - `EligibilitySnapshot` (`src/components/EligibilitySnapshot.tsx`) — bracket-based eligibility check inside Step 1
   - `LifetimeOfferBanner` (`src/components/LifetimeOfferBanner.tsx`) — inline upsell after 2+ steps completed
-  - `PlanCompletionCard` (`src/components/PlanCompletionCard.tsx`) — shown when all 6 steps done
+  - `PlanCompletionCard` (`src/components/PlanCompletionCard.tsx`) — structured "preparing to leave" preview with 4 next-phase items, vendor resources link
+- **Pet Requirements** (`src/data/petRequirements.ts`):
+  - Country-specific pet import checklists for all 11 countries (microchip, vaccinations, health certs, quarantine, breed restrictions)
+  - Activated via "Traveling with pets?" toggle in PlanModule, persisted in PlanContext (`hasPets`)
+  - Tab switcher between "Your Plan" and "Pet Checklist" when pets enabled
+  - Quarantine warnings (UK, Australia) and breed restriction notes displayed as amber alert cards
+  - Behind paywall (part of planner)
 - **Integration**: Both country pages show Focus Activation for paid users and PlanModule for active plans: tabbed page (`app/(tabs)/country/[slug]/index.tsx`) and standalone hub (`app/country-view.tsx`).
 - **Analytics Events**: `plan_focus_started`, `plan_step_completed`, `eligibility_snapshot_run`, `lifetime_offer_shown`, `lifetime_offer_clicked`, `plan_completed`.
 - **Tone**: Calm, advisory — no exclamation marks, no urgency, no legal assurance language.

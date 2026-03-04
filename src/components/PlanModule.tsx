@@ -5,6 +5,7 @@ import { Pressable, Text, View } from "react-native";
 import { COUNTRIES } from "@/data/countries";
 import { usePlan } from "@/src/contexts/PlanContext";
 import { PLAN_STEPS, getStep3Checklist, type PlanStep } from "@/src/data/planSteps";
+import { getPetRequirements } from "@/src/data/petRequirements";
 import { tokens } from "@/theme/tokens";
 import EligibilitySnapshot from "@/src/components/EligibilitySnapshot";
 
@@ -137,12 +138,90 @@ function StepCard({
   );
 }
 
+function PetChecklist({
+  countrySlug,
+  completedSteps,
+  onCompleteStep,
+  onUncompleteStep,
+}: {
+  countrySlug: string;
+  completedSteps: string[];
+  onCompleteStep: (id: string) => void;
+  onUncompleteStep: (id: string) => void;
+}) {
+  const petData = getPetRequirements(countrySlug);
+  if (!petData) return null;
+
+  const completedCount = petData.checklist.filter((item) =>
+    completedSteps.includes(item.id),
+  ).length;
+
+  let lastGroup: string | undefined;
+
+  return (
+    <View style={s.petContainer}>
+      <View style={s.petSummaryCard}>
+        <Ionicons name="paw-outline" size={20} color={tokens.color.primary} />
+        <Text style={s.petSummaryText}>{petData.summary}</Text>
+      </View>
+
+      {petData.quarantineNote && (
+        <View style={s.petWarningCard}>
+          <Ionicons name="warning-outline" size={16} color="#b45309" />
+          <Text style={s.petWarningText}>{petData.quarantineNote}</Text>
+        </View>
+      )}
+
+      {petData.breedNote && (
+        <View style={s.petWarningCard}>
+          <Ionicons name="alert-circle-outline" size={16} color="#b45309" />
+          <Text style={s.petWarningText}>{petData.breedNote}</Text>
+        </View>
+      )}
+
+      <Text style={s.petProgress}>
+        {completedCount} of {petData.checklist.length} items completed
+      </Text>
+
+      <View style={s.checklist}>
+        {petData.checklist.map((item) => {
+          const checked = completedSteps.includes(item.id);
+          const showGroupHeader = item.group && item.group !== lastGroup;
+          lastGroup = item.group;
+          return (
+            <React.Fragment key={item.id}>
+              {showGroupHeader && (
+                <Text style={s.groupHeader}>{item.group}</Text>
+              )}
+              <ChecklistItemRow
+                label={item.label}
+                checked={checked}
+                onToggle={() =>
+                  checked ? onUncompleteStep(item.id) : onCompleteStep(item.id)
+                }
+              />
+            </React.Fragment>
+          );
+        })}
+      </View>
+
+      <Text style={s.disclaimer}>
+        Pet import rules change frequently. Always confirm current requirements with the destination country's veterinary authority before travel.
+      </Text>
+    </View>
+  );
+}
+
 export function PlanModule() {
-  const { activeCountrySlug, activePathwayId, completedSteps, completeStep, uncompleteStep } =
-    usePlan();
+  const {
+    activeCountrySlug, activePathwayId, completedSteps,
+    completeStep, uncompleteStep, hasPets, setHasPets,
+  } = usePlan();
+  const [activeTab, setActiveTab] = useState<"plan" | "pets">("plan");
 
   const country = COUNTRIES.find((c) => c.slug === activeCountrySlug);
   const countryName = country?.name ?? "Your Country";
+  const petData = activeCountrySlug ? getPetRequirements(activeCountrySlug) : null;
 
   const resolvedSteps = PLAN_STEPS.map((step) => {
     if (step.id === "prepare_docs" && activeCountrySlug) {
@@ -176,44 +255,113 @@ export function PlanModule() {
         </View>
       </View>
 
-      {firstIncomplete && (
-        <View style={s.nextStepBanner}>
-          <Ionicons
-            name="arrow-forward-circle"
-            size={16}
-            color={tokens.color.primary}
-          />
-          <Text style={s.nextStepText}>
-            Recommended next step: {firstIncomplete.step.title}
-          </Text>
+      {hasPets && petData && (
+        <View style={s.tabRow}>
+          <Pressable
+            style={[s.tab, activeTab === "plan" && s.tabActive]}
+            onPress={() => setActiveTab("plan")}
+          >
+            <Ionicons
+              name="list-outline"
+              size={14}
+              color={activeTab === "plan" ? tokens.color.primary : tokens.color.subtext}
+            />
+            <Text style={[s.tabText, activeTab === "plan" && s.tabTextActive]}>
+              Your Plan
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[s.tab, activeTab === "pets" && s.tabActive]}
+            onPress={() => setActiveTab("pets")}
+          >
+            <Ionicons
+              name="paw-outline"
+              size={14}
+              color={activeTab === "pets" ? tokens.color.primary : tokens.color.subtext}
+            />
+            <Text style={[s.tabText, activeTab === "pets" && s.tabTextActive]}>
+              Pet Checklist
+            </Text>
+          </Pressable>
         </View>
       )}
 
-      <View style={s.progressBar}>
-        <View
-          style={[
-            s.progressFill,
-            {
-              width: `${(completedStepCount / PLAN_STEPS.length) * 100}%` as any,
-            },
-          ]}
-        />
-      </View>
+      {!hasPets && (
+        <Pressable
+          style={s.petToggleRow}
+          onPress={() => {
+            setHasPets(true);
+            if (petData) setActiveTab("pets");
+          }}
+        >
+          <Ionicons name="paw-outline" size={16} color={tokens.color.subtext} />
+          <Text style={s.petToggleText}>Traveling with pets?</Text>
+          <Ionicons name="add-circle-outline" size={16} color={tokens.color.primary} />
+        </Pressable>
+      )}
 
-      <View style={s.steps}>
-        {resolvedSteps.map((step) => (
-          <StepCard
-            key={step.id}
-            step={step}
-            isHighlighted={firstIncomplete?.step.id === step.id}
+      {activeTab === "plan" && (
+        <>
+          {firstIncomplete && (
+            <View style={s.nextStepBanner}>
+              <Ionicons
+                name="arrow-forward-circle"
+                size={16}
+                color={tokens.color.primary}
+              />
+              <Text style={s.nextStepText}>
+                Recommended next step: {firstIncomplete.step.title}
+              </Text>
+            </View>
+          )}
+
+          <View style={s.progressBar}>
+            <View
+              style={[
+                s.progressFill,
+                {
+                  width: `${(completedStepCount / PLAN_STEPS.length) * 100}%` as any,
+                },
+              ]}
+            />
+          </View>
+
+          <View style={s.steps}>
+            {resolvedSteps.map((step) => (
+              <StepCard
+                key={step.id}
+                step={step}
+                isHighlighted={firstIncomplete?.step.id === step.id}
+                completedSteps={completedSteps}
+                onCompleteStep={completeStep}
+                onUncompleteStep={uncompleteStep}
+                countrySlug={activeCountrySlug ?? undefined}
+                pathwayId={activePathwayId ?? undefined}
+              />
+            ))}
+          </View>
+        </>
+      )}
+
+      {activeTab === "pets" && hasPets && activeCountrySlug && (
+        <>
+          <PetChecklist
+            countrySlug={activeCountrySlug}
             completedSteps={completedSteps}
             onCompleteStep={completeStep}
             onUncompleteStep={uncompleteStep}
-            countrySlug={activeCountrySlug ?? undefined}
-            pathwayId={activePathwayId ?? undefined}
           />
-        ))}
-      </View>
+          <Pressable
+            style={s.petDismissRow}
+            onPress={() => {
+              setHasPets(false);
+              setActiveTab("plan");
+            }}
+          >
+            <Text style={s.petDismissText}>Not traveling with pets</Text>
+          </Pressable>
+        </>
+      )}
     </View>
   );
 }
@@ -403,5 +551,94 @@ const s = {
     fontStyle: "italic" as const,
     marginTop: tokens.space.md,
     lineHeight: 18,
+  },
+  tabRow: {
+    flexDirection: "row" as const,
+    gap: tokens.space.xs,
+    backgroundColor: tokens.color.border,
+    borderRadius: tokens.radius.md,
+    padding: 3,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    gap: 6,
+    paddingVertical: tokens.space.sm,
+    borderRadius: tokens.radius.sm,
+  },
+  tabActive: {
+    backgroundColor: tokens.color.surface,
+  },
+  tabText: {
+    fontSize: tokens.text.small,
+    fontWeight: tokens.weight.bold,
+    color: tokens.color.subtext,
+  },
+  tabTextActive: {
+    color: tokens.color.primary,
+  },
+  petToggleRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 8,
+    paddingVertical: tokens.space.sm,
+    paddingHorizontal: tokens.space.md,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    borderStyle: "dashed" as const,
+    backgroundColor: tokens.color.surface,
+  },
+  petToggleText: {
+    flex: 1,
+    fontSize: tokens.text.body,
+    color: tokens.color.subtext,
+  },
+  petContainer: {
+    gap: tokens.space.md,
+  },
+  petSummaryCard: {
+    flexDirection: "row" as const,
+    gap: tokens.space.sm,
+    backgroundColor: tokens.color.primarySoft,
+    borderRadius: tokens.radius.md,
+    padding: tokens.space.md,
+    borderWidth: 1,
+    borderColor: tokens.color.primaryBorder,
+  },
+  petSummaryText: {
+    flex: 1,
+    fontSize: tokens.text.body,
+    color: tokens.color.text,
+    lineHeight: 20,
+  },
+  petWarningCard: {
+    flexDirection: "row" as const,
+    gap: tokens.space.sm,
+    backgroundColor: "#fef3c7",
+    borderRadius: tokens.radius.md,
+    padding: tokens.space.md,
+    borderWidth: 1,
+    borderColor: "#fde68a",
+  },
+  petWarningText: {
+    flex: 1,
+    fontSize: tokens.text.small,
+    color: "#92400e",
+    lineHeight: 18,
+  },
+  petProgress: {
+    fontSize: tokens.text.small,
+    color: tokens.color.subtext,
+  },
+  petDismissRow: {
+    alignItems: "center" as const,
+    paddingVertical: tokens.space.sm,
+  },
+  petDismissText: {
+    fontSize: tokens.text.small,
+    color: tokens.color.subtext,
   },
 } as const;
