@@ -1,0 +1,97 @@
+Run a content pass on Step 3 ("Prepare Core Documentation") across
+all 11 supported countries in ExpatHub.
+
+Countries:
+Canada, Costa Rica, Malta, Panama, Ecuador,
+United Kingdom, Portugal, Spain, Germany, Ireland, Australia
+
+Context:
+- Step 3 currently has generic checklist items.
+- It needs to distinguish between two distinct document groups.
+- This is a content-only update. No structural or architectural changes.
+
+Constraints:
+- Do NOT modify PlanContext, step logic, or entitlement logic.
+- Do NOT add new step types or UI components.
+- Do NOT change billing or routing.
+- Reuse existing checklist item structure.
+- Tone: calm, specific, action-oriented. No exclamation marks.
+  No legal guarantees. No "you qualify" language.
+- Use neutral global language: "home country", "destination country".
+  Avoid US-centric terminology.
+
+Task:
+
+For each of the 11 countries, update the Step 3 checklist items
+to clearly separate into two groups:
+
+Group 1 — "For your visa application"
+Items required to submit the visa/residency application.
+These are submitted before approval.
+
+Group 2 — "For your arrival"
+Items needed on the ground after you arrive.
+These are obtained or activated in-country.
+
+Group labels should appear as subtle section headers within Step 3,
+not as new steps.
+
+Use country-specific items where they differ. Examples:
+
+Portugal:
+- Application: proof of income/pension, health insurance, criminal record certificate, passport photos
+- Arrival: NIF (tax number), proof of address for SEF/AIMA, NISS (social security number)
+
+Spain:
+- Application: proof of income, health insurance without public charge, criminal record, apostille
+- Arrival: NIE (foreigner identity number), empadronamiento (municipal registration), TIE (residency card appointment)
+
+UK:
+- Application: English language proof, financial evidence, sponsor letter (if applicable), biometric enrollment
+- Arrival: BRP collection, NHS surcharge confirmation, national insurance number application
+
+Germany:
+- Application: employment contract or Blue Card sponsorship, qualification recognition documents, health insurance proof
+- Arrival: Anmeldung (address registration), tax ID (Steuer-ID), residence permit appointment (Ausländerbehörde)
+
+Ireland:
+- Application: employment contract, skills permit documentation, proof of accommodation
+- Arrival: IRP card registration, PPS number, bank account setup documents
+
+Australia:
+- Application: skills assessment, health examination, English proficiency, police clearance
+- Arrival: TFN (tax file number), Medicare enrollment, address registration
+
+Canada:
+- Application: ECA (educational credential assessment), language test results, police certificate, medical exam
+- Arrival: SIN (social insurance number), provincial health enrollment, address confirmation to IRCC
+
+Costa Rica:
+- Application: proof of income, criminal background check, apostille, marriage/birth certificates (if applicable)
+- Arrival: DIMEX (residency card), CCSS (social security enrollment), cedula registration
+
+Panama:
+- Application: proof of income or pension, bank deposit confirmation, criminal record, apostille
+- Arrival: Cédula de identidad personal, social security registration (if applicable)
+
+Ecuador:
+- Application: proof of income, criminal record, apostille, passport validity confirmation
+- Arrival: cedula (national ID), SRI (tax authority registration), IESS (social security enrollment if working)
+
+Malta:
+- Application: proof of income, health insurance, accommodation proof, criminal record
+- Arrival: e-Residency card, TIN (tax identification), healthcare registration
+
+Add a disclaimer at the bottom of Step 3 for all countries:
+"Requirements may change. Always verify current criteria with official sources."
+
+QA:
+- Confirm all 11 countries have both groups populated.
+- Confirm no toggles, entitlements, or billing logic changed.
+- Confirm existing step structure (expand/collapse) still works.
+- Confirm TypeScript builds cleanly.
+
+Output:
+- Files modified.
+- Confirmation that all 11 countries were updated.
+- Any items that could not be country-specified and remained generic.

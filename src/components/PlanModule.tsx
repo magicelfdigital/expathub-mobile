@@ -4,7 +4,7 @@ import { Pressable, Text, View } from "react-native";
 
 import { COUNTRIES } from "@/data/countries";
 import { usePlan } from "@/src/contexts/PlanContext";
-import { PLAN_STEPS, type PlanStep } from "@/src/data/planSteps";
+import { PLAN_STEPS, getStep3Checklist, type PlanStep } from "@/src/data/planSteps";
 import { tokens } from "@/theme/tokens";
 import EligibilitySnapshot from "@/src/components/EligibilitySnapshot";
 
@@ -100,22 +100,34 @@ function StepCard({
         <View style={s.stepBody}>
           <Text style={s.stepDescription}>{step.description}</Text>
           <View style={s.checklist}>
-            {step.checklist.map((item) => {
-              const checked = completedSteps.includes(item.id);
-              return (
-                <ChecklistItemRow
-                  key={item.id}
-                  label={item.label}
-                  checked={checked}
-                  onToggle={() =>
-                    checked
-                      ? onUncompleteStep(item.id)
-                      : onCompleteStep(item.id)
-                  }
-                />
-              );
-            })}
+            {(() => {
+              let lastGroup: string | undefined;
+              return step.checklist.map((item) => {
+                const checked = completedSteps.includes(item.id);
+                const showGroupHeader = item.group && item.group !== lastGroup;
+                lastGroup = item.group;
+                return (
+                  <React.Fragment key={item.id}>
+                    {showGroupHeader && (
+                      <Text style={s.groupHeader}>{item.group}</Text>
+                    )}
+                    <ChecklistItemRow
+                      label={item.label}
+                      checked={checked}
+                      onToggle={() =>
+                        checked
+                          ? onUncompleteStep(item.id)
+                          : onCompleteStep(item.id)
+                      }
+                    />
+                  </React.Fragment>
+                );
+              });
+            })()}
           </View>
+          {step.disclaimer && (
+            <Text style={s.disclaimer}>{step.disclaimer}</Text>
+          )}
           {step.id === "confirm_pathway" && countrySlug && pathwayId ? (
             <EligibilitySnapshot countrySlug={countrySlug} pathwayId={pathwayId} />
           ) : null}
@@ -132,7 +144,15 @@ export function PlanModule() {
   const country = COUNTRIES.find((c) => c.slug === activeCountrySlug);
   const countryName = country?.name ?? "Your Country";
 
-  const stepsWithCompletion = PLAN_STEPS.map((step) => {
+  const resolvedSteps = PLAN_STEPS.map((step) => {
+    if (step.id === "prepare_docs" && activeCountrySlug) {
+      const countryChecklist = getStep3Checklist(activeCountrySlug);
+      return { ...step, checklist: countryChecklist };
+    }
+    return step;
+  });
+
+  const stepsWithCompletion = resolvedSteps.map((step) => {
     const done = step.checklist.every((item) =>
       completedSteps.includes(item.id),
     );
@@ -181,7 +201,7 @@ export function PlanModule() {
       </View>
 
       <View style={s.steps}>
-        {PLAN_STEPS.map((step) => (
+        {resolvedSteps.map((step) => (
           <StepCard
             key={step.id}
             step={step}
@@ -367,5 +387,21 @@ const s = {
   checklistLabelChecked: {
     color: tokens.color.subtext,
     textDecorationLine: "line-through" as const,
+  },
+  groupHeader: {
+    fontSize: tokens.text.small,
+    fontWeight: tokens.weight.bold,
+    color: tokens.color.primary,
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.5,
+    marginTop: tokens.space.md,
+    marginBottom: 2,
+  },
+  disclaimer: {
+    fontSize: tokens.text.small,
+    color: tokens.color.subtext,
+    fontStyle: "italic" as const,
+    marginTop: tokens.space.md,
+    lineHeight: 18,
   },
 } as const;
