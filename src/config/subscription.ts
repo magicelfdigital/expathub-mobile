@@ -6,7 +6,7 @@ export const ENTITLEMENT_COUNTRY_PREFIX = "country_";
 
 export const ENTITLEMENT_ID = "full_access_subscription";
 
-export const RC_DECISION_PASS_PRODUCT = "decision_pass_30d";
+export const RC_DECISION_PASS_PRODUCT = "30_day_pass";
 export const RC_MONTHLY_PRODUCT =
   process.env.EXPO_PUBLIC_RC_MONTHLY_PRODUCT ?? "expathub_pro_monthly:monthly";
 export const RC_ANNUAL_PRODUCT =
