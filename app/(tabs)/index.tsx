@@ -178,7 +178,7 @@ export default function HomeScreen() {
                   </View>
                 </Pressable>
 
-                <Pressable onPress={clearContinue} hitSlop={10}>
+                <Pressable onPress={() => { clearContinue(); setSelectedCountrySlug(null); }} hitSlop={10}>
                   <Text style={styles.clearText}>Clear</Text>
                 </Pressable>
               </View>
