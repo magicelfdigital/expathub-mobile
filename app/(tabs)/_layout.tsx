@@ -54,6 +54,7 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      sceneContainerStyle={{ backgroundColor: 'transparent' }}
       screenOptions={{
         ...sharedHeaderOptions,
         tabBarActiveTintColor: colors.teal,
