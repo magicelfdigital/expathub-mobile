@@ -13,16 +13,7 @@ import { tokens } from "@/theme/tokens";
 import { testCrash, isNativeBuild } from "@/utils/crashlytics";
 import { trackEvent } from "@/src/lib/analytics";
 import { FREE_TIER_DISPLAY_NAME, PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
-
-async function loadPurchasesModule() {
-  if (Platform.OS === "web") return null;
-  try {
-    const mod = await import("react-native-purchases");
-    return mod.default;
-  } catch {
-    return null;
-  }
-}
+import { getOrchestrator, clearRefreshCooldown } from "@/src/billing";
 
 function getCountryName(slug: string): string {
   return COUNTRIES.find((c) => c.slug === slug)?.name ?? slug;
@@ -42,6 +33,7 @@ export default function AccountScreen() {
     unlockedCountries,
     sandboxMode,
     setSandboxOverride,
+    refresh,
   } = useSubscription();
 
   const [deleting, setDeleting] = useState(false);
@@ -74,22 +66,22 @@ export default function AccountScreen() {
   };
 
   const handleRestore = async () => {
-    setRestoring(true);
-    setStatusMsg(null);
-    const rc = await loadPurchasesModule();
-    if (!rc) {
-      setStatusMsg("Purchase system not available on this platform.");
-      setRestoring(false);
+    if (!user) {
+      setStatusMsg("Please sign in first to restore purchases.");
       return;
     }
+    setRestoring(true);
+    setStatusMsg(null);
     try {
-      const result = await rc.restorePurchases();
-      const activeCount = Object.values(result.entitlements.active).length;
-      setStatusMsg(
-        activeCount > 0
-          ? `Restored ${activeCount} purchase(s) successfully.`
-          : "No previous purchases found."
-      );
+      clearRefreshCooldown(user.id.toString());
+      const orchestrator = getOrchestrator(() => token);
+      const result = await orchestrator.restore(user.id.toString());
+      await refresh();
+      if (result.status === "confirmed") {
+        setStatusMsg("Purchases restored successfully.");
+      } else {
+        setStatusMsg("No active purchases found for your account.");
+      }
     } catch {
       setStatusMsg("Restore failed. Please try again later.");
     } finally {

@@ -448,7 +448,7 @@ export function ProPaywall({
       const orchestrator = getOrchestrator(() => token);
       const result = await orchestrator.restore(user.id.toString());
       await refresh();
-      if (result.status === "confirmed" && result.entitlements.hasFullAccess) {
+      if (result.status === "confirmed") {
         trackEvent("restore_success", { platform: Platform.OS });
       } else {
         trackEvent("restore_not_found", { platform: Platform.OS });

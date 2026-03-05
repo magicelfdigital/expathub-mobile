@@ -53,13 +53,14 @@ export class BillingOrchestrator {
   }
 
   async restore(userId: string): Promise<OrchestratorResult> {
+    const entitlements = await this.backendClient.getEntitlements(userId);
+    if (hasEntitlement(entitlements)) {
+      return { entitlements, status: "confirmed" };
+    }
+
     try {
       await this.rcClient.restorePurchases();
-    } catch (err: any) {
-      throw new RevenueCatPurchaseError(
-        err?.message ?? "Restore failed",
-        { cause: err },
-      );
+    } catch (_err: any) {
     }
 
     try {
@@ -75,7 +76,11 @@ export class BillingOrchestrator {
       );
     }
 
-    return this.pollEntitlements(userId);
+    const refreshed = await this.backendClient.getEntitlements(userId);
+    return {
+      entitlements: refreshed,
+      status: hasEntitlement(refreshed) ? "confirmed" : "pending",
+    };
   }
 
   async syncOnLogin(userId: string): Promise<OrchestratorResult> {
