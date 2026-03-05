@@ -104,7 +104,7 @@ export default function CountryResourcesScreen() {
   const { selectedCountrySlug } = useCountry();
   const { recordView } = useContinue();
   const urlSlug = typeof slug === "string" ? slug : undefined;
-  const countrySlug = urlSlug || selectedCountrySlug || undefined;
+  const countrySlug = urlSlug || undefined;
 
   React.useEffect(() => {
     if (countrySlug) {
