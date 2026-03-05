@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, ScrollView, Text, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 
@@ -118,11 +118,12 @@ export default function PathwayScreen() {
     }
     return (
       <Screen>
-        <ProPaywall
+        <PathwayPreview
+          pathway={pathway}
+          countryName={countryName}
+          brief={brief}
           countrySlug={resolvedSlug}
           pathwayKey={pathwayKey}
-          entryPoint="pathway"
-          showClose
           onClose={() => router.back()}
         />
       </Screen>
@@ -160,6 +161,125 @@ export default function PathwayScreen() {
     <Screen>
       <PathwayContent pathway={pathway} countryName={countryName} openInApp={openInApp} brief={brief} countrySlug={countrySlug} pathwayKey={pathwayKey} />
     </Screen>
+  );
+}
+
+type PathwayPreviewProps = {
+  pathway: NonNullable<ReturnType<typeof getPathways>[number]>;
+  countryName: string;
+  brief: ReturnType<typeof getDecisionBrief>;
+  countrySlug: string;
+  pathwayKey: string;
+  onClose: () => void;
+};
+
+function PathwayPreview({ pathway, countryName, brief, countrySlug, pathwayKey, onClose }: PathwayPreviewProps) {
+  const [showPaywall, setShowPaywall] = useState(false);
+
+  return showPaywall ? (
+    <ProPaywall
+      countrySlug={countrySlug}
+      pathwayKey={pathwayKey}
+      entryPoint="pathway"
+      showClose
+      onClose={() => setShowPaywall(false)}
+    />
+  ) : (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, Platform.OS === "web" && { paddingTop: WEB_TOP_INSET + tokens.space.xl }]}
+      showsVerticalScrollIndicator={false}
+    >
+      {brief ? (
+        <>
+          <View style={previewStyles.briefHeader}>
+            <View style={styles.evidenceLabel}>
+              <Ionicons name="shield-checkmark" size={14} color={tokens.color.primary} />
+              <Text style={styles.evidenceLabelText}>Decision Brief</Text>
+            </View>
+            <Text style={styles.h1}>{brief.headline}</Text>
+            <Text style={styles.lead}>{brief.decisionSummary}</Text>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recommended for</Text>
+            <View style={styles.bullets}>
+              {brief.recommendedFor.map((item) => (
+                <View key={item} style={styles.bulletRow}>
+                  <Ionicons name="checkmark-circle" size={16} color={tokens.color.teal} />
+                  <Text style={styles.bulletText}>{item}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Not recommended for</Text>
+            <View style={styles.bullets}>
+              {brief.notRecommendedFor.map((item) => (
+                <View key={item} style={styles.bulletRow}>
+                  <Ionicons name="close-circle" size={16} color="rgba(200,60,60,0.7)" />
+                  <Text style={styles.bulletText}>{item}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </>
+      ) : (
+        <>
+          <View style={styles.headerSection}>
+            <Text style={styles.h1}>{pathway.title}</Text>
+            <View style={styles.countryTag}>
+              <Ionicons name="location" size={12} color={tokens.color.primary} />
+              <Text style={styles.contextText}>{countryName}</Text>
+            </View>
+            <Text style={styles.lead}>{pathway.summary}</Text>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Typically suitable for</Text>
+            <View style={styles.bullets}>
+              {pathway.whoFor.map((w) => (
+                <View key={w} style={styles.bulletRow}>
+                  <Ionicons name="checkmark-circle" size={16} color={tokens.color.teal} />
+                  <Text style={styles.bulletText}>{w}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Typically not suitable for</Text>
+            <View style={styles.bullets}>
+              {pathway.notFor.map((n) => (
+                <View key={n} style={styles.bulletRow}>
+                  <Ionicons name="close-circle" size={16} color="rgba(200,60,60,0.7)" />
+                  <Text style={styles.bulletText}>{n}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </>
+      )}
+
+      <View style={previewStyles.divider} />
+
+      <Pressable
+        onPress={() => setShowPaywall(true)}
+        style={({ pressed }) => [previewStyles.unlockCard, pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] }]}
+      >
+        <View style={previewStyles.unlockIconCircle}>
+          <Ionicons name="lock-closed" size={20} color={tokens.color.gold} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={previewStyles.unlockTitle}>Unlock the full Decision Brief</Text>
+          <Text style={previewStyles.unlockSub}>
+            Detailed requirements, financial reality, timelines, risk flags, and more
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={tokens.color.gold} />
+      </Pressable>
+    </ScrollView>
   );
 }
 
@@ -487,6 +607,48 @@ const styles = {
     fontFamily: tokens.font.body,
     color: tokens.color.teal,
     marginTop: 2,
+  },
+} as const;
+
+const previewStyles = {
+  briefHeader: {
+    gap: tokens.space.xs,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: tokens.color.border,
+    marginVertical: tokens.space.xs,
+  },
+  unlockCard: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    padding: tokens.space.lg,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.gold,
+    backgroundColor: tokens.color.goldLight,
+    gap: 12,
+  },
+  unlockIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: tokens.color.surface,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  unlockTitle: {
+    fontSize: tokens.text.body,
+    fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.text,
+  },
+  unlockSub: {
+    fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
+    marginTop: 2,
+    lineHeight: 16,
   },
 } as const;
 
