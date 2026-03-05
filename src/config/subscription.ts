@@ -66,15 +66,15 @@ export const COUNTRY_LIFETIME_PRICES: Record<string, string> = {
 const COUNTRY_LIFETIME_PRODUCT_IDS: Record<string, string> = {
   portugal: "country_lifetime_portugal",
   spain: "country_lifetime_spain",
-  canada: "canada_lifetime_unlock",
-  "costa-rica": "CR_Llifetime_unlock",
+  canada: "country_lifetime_canada",
+  "costa-rica": "country_costa_rica_unlock",
   panama: "panama_lifetime_unlock",
   ecuador: "country_equadore_lifetime",
   malta: "country_malta_unlock",
   "united-kingdom": "country_lifetime_united_kingdom",
-  germany: "germany_lifetime_unlock",
-  ireland: "ireland_lifetime_unlock",
-  australia: "australia_lifetime_unlock",
+  germany: "country_lifetime_germany",
+  ireland: "country_lifetime_ireland",
+  australia: "country_lifetime_australia",
 };
 
 export function getCountryLifetimeProductId(slug: string): string {
