@@ -1,0 +1,158 @@
+You are updating the ExpatHub mobile app (Expo SDK 54,
+expo-router, React Native) as part of the v1.1 release.
+I am providing all required asset files. Make all changes
+exactly as specified. Confirm completion of each step
+before proceeding to the next.
+
+ASSETS PROVIDED — place these in assets/images/:
+  expathub-map-1x.png   (375x160px  — mobile 1x)
+  expathub-map-2x.png   (750x320px  — mobile 2x)
+  expathub-map-3x.png   (1125x480px — mobile 3x)
+
+─────────────────────────────────────────
+STEP 1 — COLOR CONSTANTS FILE
+─────────────────────────────────────────
+Create or replace constants/colors.ts with:
+
+export const colors = {
+  blue:       '#3E81DD',  // Hub blue — primary buttons, pills
+  teal:       '#33C4DC',  // Expat teal — active tabs, accents
+  tealLight:  '#E8F9FC',  // Teal tint — table headers, surfaces
+  gold:       '#E8991A',  // Sun gold — Pathfinder, upgrade CTAs
+  goldLight:  '#FEF4E2',  // Gold tint — badges, disclaimers
+  cream:      '#EEEEE4',  // App background — matches logo
+  surface:    '#FFFFFF',  // Cards, nav bar, logo bar
+  navy:       '#1C2B5E',  // Primary text, headlines
+  textMid:    '#5A6785',  // Body text, descriptions
+  textSoft:   '#9BA8C0',  // Labels, placeholders, meta
+  border:     'rgba(62,129,221,0.11)',
+  shadow:     'rgba(28,43,94,0.08)',
+};
+
+Confirm: constants/colors.ts created. Do not proceed until confirmed.
+
+─────────────────────────────────────────
+STEP 2 — APP BACKGROUND
+─────────────────────────────────────────
+Set the root app background color to colors.cream (#EEEEE4)
+in the root layout file (app/_layout.tsx or equivalent).
+This applies globally to all screens.
+
+Confirm: root background updated to #EEEEE4.
+
+─────────────────────────────────────────
+STEP 3 — LOGO BAR
+─────────────────────────────────────────
+Update the top navigation/header bar on ALL screens:
+- Background: colors.surface (#FFFFFF) — NOT cream, NOT blue
+- Logo image: render at natural colors, no tinting, no inversion
+- Height: 46px
+- Border bottom: 1px, color rgba(62,129,221,0.11)
+- On detail screens only: show Pathfinder badge on the right
+  (gold text #E8991A on goldLight #FEF4E2 background,
+   border rgba(232,153,26,0.25), border-radius 20, padding 4/10)
+
+Confirm: logo bar updated on all screens.
+
+─────────────────────────────────────────
+STEP 4 — MAP HERO (HOME SCREEN ONLY)
+─────────────────────────────────────────
+On the home screen, add a map hero image between the
+subtitle text and the feature list card:
+
+  <Image
+    source={require('../assets/images/expathub-map-1x.png')}
+    style={{
+      width: '100%',
+      height: 160,
+      borderRadius: 18,
+      marginBottom: 16,
+    }}
+    resizeMode='cover'
+  />
+
+Expo handles @2x/@3x resolution automatically from the
+assets/images/ folder. Reference only the 1x file in code.
+
+Confirm: map hero image added to home screen.
+
+─────────────────────────────────────────
+STEP 5 — ACTIVE TAB (FILLED TEAL PILL)
+─────────────────────────────────────────
+On any screen that has a horizontal tab/filter bar
+(e.g. Visa & Residency, Countries, Compare):
+- Active tab: backgroundColor colors.teal (#33C4DC),
+  color white, borderRadius 20, paddingHorizontal 14,
+  paddingVertical 7, fontWeight '600'
+- Inactive tab: backgroundColor transparent,
+  color colors.textMid, no border
+
+Replace any existing outlined or underline active tab style.
+
+Confirm: active tab updated to filled teal pill on all tab bars.
+
+─────────────────────────────────────────
+STEP 6 — COMPARISON TABLE HEADERS
+─────────────────────────────────────────
+On the comparison/table screen, update the country column
+header cells (the cells containing flag + country name):
+- backgroundColor: colors.tealLight (#E8F9FC)
+- borderRadius: 10 on top corners (10,10,0,0)
+- marginHorizontal: 3
+- flag font size: 24
+- country name: fontWeight '700', color colors.navy
+
+The row label column (left side) stays white/transparent.
+Alternate data rows with backgroundColor rgba(62,129,221,0.03)
+on every other row for subtle zebra striping.
+
+Confirm: comparison table headers updated.
+
+─────────────────────────────────────────
+STEP 7 — TYPOGRAPHY
+─────────────────────────────────────────
+Install font packages if not already present:
+  npx expo install @expo-google-fonts/lora
+  npx expo install @expo-google-fonts/dm-sans
+
+Import in root layout:
+  import { useFonts, Lora_600SemiBold } from '@expo-google-fonts/lora';
+  import { DMSans_400Regular, DMSans_500Medium,
+    DMSans_600SemiBold, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
+
+Apply fonts:
+- All display headlines and country names: fontFamily 'Lora_600SemiBold'
+- All body text, labels, buttons, nav: fontFamily 'DMSans_400Regular'
+  or DMSans_500Medium / DMSans_600SemiBold / DMSans_700Bold as appropriate
+- Default fallback for any unstyled text: DMSans_400Regular
+
+Confirm: fonts installed and applied throughout the app.
+
+─────────────────────────────────────────
+STEP 8 — REMOVE OLD COLORS
+─────────────────────────────────────────
+Search the entire codebase for hardcoded color values
+that are NOT in the new colors.ts file. Replace all of them
+with the appropriate value from colors.ts.
+Pay special attention to:
+- Any old blue/teal/navy hex values
+- Any StyleSheet.create() blocks with inline color strings
+- Any color props on Text, View, TouchableOpacity components
+
+Confirm: list every file modified in steps 1-8.
+
+─────────────────────────────────────────
+ICON LIBRARY NOTE
+─────────────────────────────────────────
+Do NOT change any icon components. Leave all existing
+icon usage exactly as-is — only colors and layout are
+being updated in this prompt.
+
+─────────────────────────────────────────
+DO NOT:
+- Modify any Supabase queries or data logic
+- Modify any RevenueCat or entitlement logic
+- Modify any payment or subscription code
+- Auto-deploy or publish without being asked
+- Change any database field names or API calls
+

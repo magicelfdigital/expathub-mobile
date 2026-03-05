@@ -103,7 +103,7 @@ export default function CommunityScreen() {
             style={({ pressed }) => [styles.ctaButton, pressed && styles.ctaButtonPressed]}
           >
             <Text style={styles.ctaButtonText}>Start your 30-day decision window</Text>
-            <Ionicons name="arrow-forward" size={14} color={tokens.color.white} />
+            <Ionicons name="arrow-forward" size={14} color={tokens.color.text} />
           </Pressable>
         </View>
 

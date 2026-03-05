@@ -42,15 +42,17 @@ function MatrixRow({
   row,
   slugs,
   isPro,
+  isOdd,
 }: {
   row: CompareRow;
   slugs: string[];
   isPro: boolean;
+  isOdd: boolean;
 }) {
   const locked = row.proOnly && !isPro;
 
   return (
-    <View style={s.row}>
+    <View style={[s.row, isOdd && s.rowOdd]}>
       <View style={s.labelCell}>
         <Text style={s.labelText}>{row.label}</Text>
         {row.proOnly && (
@@ -161,6 +163,7 @@ export function CompareMatrix({
               row={row}
               slugs={countrySlugs}
               isPro={hasActiveSubscription}
+              isOdd={idx % 2 === 1}
             />
           </React.Fragment>
         ))}
@@ -207,14 +210,24 @@ const s = {
     flexDirection: "row" as const,
     alignItems: "center" as const,
     gap: 4,
+    backgroundColor: tokens.color.tealLight,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    marginHorizontal: 3,
+  },
+
+  colHeaderFlag: {
+    fontSize: 24,
   },
 
   colHeaderText: {
     flex: 1,
     fontSize: tokens.text.small,
-    fontWeight: tokens.weight.black,
+    fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.primary,
+    color: tokens.color.text,
   },
 
   removeBtn: {
@@ -252,6 +265,10 @@ const s = {
 
   row: {
     flexDirection: "row" as const,
+  },
+
+  rowOdd: {
+    backgroundColor: "rgba(62,129,221,0.03)",
   },
 
   rowDivider: {
