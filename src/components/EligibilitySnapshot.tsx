@@ -40,6 +40,38 @@ const EMPLOYMENT_TYPES = [
   "Other",
 ];
 
+const PATHWAY_LABELS: Record<string, string> = {
+  d7: "D7 Passive Income Visa",
+  d8: "D8 Digital Nomad Visa",
+  nlv: "Non-Lucrative Visa",
+  dnv: "Digital Nomad Visa",
+  "elective-residency": "Elective Residency",
+  "talent-passport": "Talent Passport",
+  visitor: "Long-Stay Visitor Visa",
+  "express-entry": "Express Entry",
+  "skilled-worker": "Skilled Worker Visa",
+  "global-talent": "Global Talent Visa",
+  "innovator-founder": "Innovator Founder Visa",
+  grp: "Global Residence Programme",
+  "digital-nomad": "Digital Nomad Visa",
+  retirement: "Retirement Visa",
+  pensionado: "Pensionado Visa",
+  jubilado: "Jubilado Visa",
+  rentista: "Rentista Visa",
+  "self-economic-solvency": "Self-Economic Solvency Visa",
+  "friendly-nations": "Friendly Nations Visa",
+  "temporary-resident": "Temporary Resident Visa",
+  "permanent-resident": "Permanent Resident Visa",
+  "eu-blue-card": "EU Blue Card",
+  "skilled-worker-residence": "Skilled Worker Residence Permit",
+  "critical-skills": "Critical Skills Employment Permit",
+  "general-employment": "General Employment Permit",
+  "skilled-independent-189": "Skilled Independent (Subclass 189)",
+  "skilled-nominated-190": "Skilled Nominated (Subclass 190)",
+  ltr: "Long-Term Resident Visa",
+  student: "Student Visa",
+};
+
 type PathwayThreshold = {
   minimumIncomeIndex: number;
   minimumSavingsIndex: number;
@@ -230,6 +262,7 @@ function computeResult(
   pathwayId: string,
 ): EligibilityResult {
   const thresholds = PATHWAY_THRESHOLDS[pathwayId] ?? DEFAULT_THRESHOLD;
+  const pathwayName = PATHWAY_LABELS[pathwayId] ?? null;
   const incomeIndex = INCOME_BRACKETS.indexOf(income);
   const savingsIndex = SAVINGS_BRACKETS.indexOf(savings);
 
@@ -237,29 +270,31 @@ function computeResult(
   const cautions: string[] = [];
   const info: string[] = [];
 
+  const label = pathwayName ? `the ${pathwayName}` : "this pathway";
+
   if (incomeIndex >= thresholds.minimumIncomeIndex) {
-    strengths.push("Income bracket appears to meet typical thresholds for this pathway.");
+    strengths.push(`Income bracket appears to meet typical thresholds for ${label}.`);
   } else {
-    cautions.push("Income may fall below the typical threshold for this pathway.");
+    cautions.push(`Income may fall below the typical threshold for ${label}.`);
   }
 
   if (savingsIndex >= thresholds.minimumSavingsIndex) {
     strengths.push("Savings bracket appears sufficient for application and initial costs.");
   } else {
-    cautions.push("Savings may be lower than typically expected for this pathway.");
+    cautions.push(`Savings may be lower than typically expected for ${label}.`);
   }
 
   if (thresholds.excludedPassports?.includes(nationality)) {
-    cautions.push("This pathway is generally designed for non-EU nationals. EU/EEA citizens may have simpler options available.");
+    cautions.push(`${pathwayName ?? "This pathway"} is generally designed for non-EU nationals. EU/EEA citizens may have simpler options available.`);
   } else {
-    strengths.push("Your passport nationality is generally eligible for this pathway type.");
+    strengths.push(`Your passport nationality is generally eligible for ${label}.`);
   }
 
   if (thresholds.allowedEmployment) {
     if (thresholds.allowedEmployment.includes(employment)) {
       strengths.push("Your employment type aligns with the typical requirements.");
     } else {
-      cautions.push("This pathway may not be the best fit for your employment type.");
+      cautions.push(`${pathwayName ?? "This pathway"} may not be the best fit for your employment type.`);
     }
   } else {
     strengths.push("Employment type does not appear to be a limiting factor.");
@@ -515,8 +550,8 @@ export default function EligibilitySnapshot({
               />
               <Text style={styles.resultTitle}>
                 {result.alignmentLevel === "strong"
-                  ? "This pathway appears viable based on your inputs."
-                  : "This pathway may work, but a few areas need review."}
+                  ? `${pathwayId && PATHWAY_LABELS[pathwayId] ? PATHWAY_LABELS[pathwayId] : "This pathway"} appears viable based on your inputs.`
+                  : `${pathwayId && PATHWAY_LABELS[pathwayId] ? PATHWAY_LABELS[pathwayId] : "This pathway"} may work, but a few areas need review.`}
               </Text>
             </View>
           </View>
