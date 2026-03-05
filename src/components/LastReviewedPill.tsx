@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: tokens.radius.sm,
-    backgroundColor: tokens.color.primarySoft,
+    backgroundColor: 'rgba(51,196,220,0.12)',
     alignSelf: "flex-start",
   },
   pressed: {

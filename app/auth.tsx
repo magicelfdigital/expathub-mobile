@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useLocalSearchParams } from "expo-router";
+import { Screen } from "@/components/Screen";
 import { useAuth } from "@/contexts/AuthContext";
 import { tokens } from "@/theme/tokens";
 import { trackEvent } from "@/src/lib/analytics";
@@ -76,6 +77,7 @@ export default function AuthScreen() {
   };
 
   return (
+    <Screen>
     <KeyboardAvoidingView
       style={[s.flex, isLargeScreen && s.flexCentered]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -214,13 +216,14 @@ export default function AuthScreen() {
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
+    </Screen>
   );
 }
 
 const s = {
-  flex: { flex: 1, backgroundColor: 'rgba(15,25,60,0.95)' } as const,
+  flex: { flex: 1 } as const,
   flexCentered: { alignItems: "center" as const } as const,
-  scroll: { flex: 1, backgroundColor: 'rgba(15,25,60,0.95)' } as const,
+  scroll: { flex: 1 } as const,
   scrollLarge: { maxWidth: 900, width: "100%" as const } as const,
   scrollContent: {
     paddingHorizontal: 24,

@@ -400,7 +400,7 @@ const s = {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: tokens.color.primarySoft,
+    backgroundColor: 'rgba(51,196,220,0.12)',
     alignItems: "center" as const,
     justifyContent: "center" as const,
   },
@@ -423,12 +423,12 @@ const s = {
     flexDirection: "row" as const,
     alignItems: "center" as const,
     gap: 8,
-    backgroundColor: tokens.color.primarySoft,
+    backgroundColor: 'rgba(51,196,220,0.08)',
     borderRadius: tokens.radius.md,
     paddingHorizontal: tokens.space.md,
     paddingVertical: tokens.space.sm,
     borderWidth: 1,
-    borderColor: tokens.color.primaryBorder,
+    borderColor: 'rgba(51,196,220,0.30)',
   },
   nextStepText: {
     flex: 1,
@@ -456,12 +456,12 @@ const s = {
     overflow: "hidden" as const,
   },
   stepCardHighlighted: {
-    borderColor: tokens.color.primaryBorder,
-    backgroundColor: tokens.color.tealLight,
+    borderColor: 'rgba(51,196,220,0.30)',
+    backgroundColor: 'rgba(51,196,220,0.08)',
   },
   stepCardDone: {
-    borderColor: tokens.color.teal,
-    backgroundColor: tokens.color.tealLight,
+    borderColor: 'rgba(51,196,220,0.30)',
+    backgroundColor: 'rgba(51,196,220,0.08)',
   },
   stepHeader: {
     flexDirection: "row" as const,
@@ -484,7 +484,7 @@ const s = {
     justifyContent: "center" as const,
   },
   stepNumberHighlighted: {
-    backgroundColor: tokens.color.primarySoft,
+    backgroundColor: 'rgba(51,196,220,0.12)',
     borderWidth: 1.5,
     borderColor: tokens.color.primary,
   },
@@ -542,7 +542,7 @@ const s = {
     borderRadius: 6,
     borderWidth: 1.5,
     borderColor: tokens.color.teal,
-    backgroundColor: tokens.color.surface,
+    backgroundColor: 'rgba(255,255,255,0.5)',
     alignItems: "center" as const,
     justifyContent: "center" as const,
     marginTop: 1,
@@ -597,7 +597,7 @@ const s = {
     borderRadius: tokens.radius.sm,
   },
   tabActive: {
-    backgroundColor: tokens.color.surface,
+    backgroundColor: 'rgba(255,255,255,0.6)',
   },
   tabText: {
     fontSize: tokens.text.small,
@@ -616,9 +616,9 @@ const s = {
     paddingHorizontal: tokens.space.md,
     borderRadius: tokens.radius.md,
     borderWidth: 1,
-    borderColor: tokens.color.border,
+    borderColor: 'rgba(255,255,255,0.50)',
     borderStyle: "dashed" as const,
-    backgroundColor: tokens.color.surface,
+    backgroundColor: 'rgba(255,255,255,0.5)',
   },
   petToggleText: {
     flex: 1,
@@ -632,11 +632,11 @@ const s = {
   petSummaryCard: {
     flexDirection: "row" as const,
     gap: tokens.space.sm,
-    backgroundColor: tokens.color.primarySoft,
+    backgroundColor: 'rgba(51,196,220,0.08)',
     borderRadius: tokens.radius.md,
     padding: tokens.space.md,
     borderWidth: 1,
-    borderColor: tokens.color.primaryBorder,
+    borderColor: 'rgba(51,196,220,0.30)',
   },
   petSummaryText: {
     flex: 1,
@@ -648,11 +648,11 @@ const s = {
   petWarningCard: {
     flexDirection: "row" as const,
     gap: tokens.space.sm,
-    backgroundColor: tokens.color.goldLight,
+    backgroundColor: 'rgba(232,153,26,0.08)',
     borderRadius: tokens.radius.md,
     padding: tokens.space.md,
     borderWidth: 1,
-    borderColor: tokens.color.gold,
+    borderColor: 'rgba(232,153,26,0.30)',
   },
   petWarningText: {
     flex: 1,

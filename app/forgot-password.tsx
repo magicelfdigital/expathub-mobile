@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Screen } from "@/components/Screen";
 import { getApiUrl } from "@/lib/query-client";
 import { tokens } from "@/theme/tokens";
 import { trackEvent } from "@/src/lib/analytics";
@@ -85,6 +86,7 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
+    <Screen>
     <KeyboardAvoidingView
       style={s.flex}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -193,12 +195,13 @@ export default function ForgotPasswordScreen() {
         ) : null}
       </ScrollView>
     </KeyboardAvoidingView>
+    </Screen>
   );
 }
 
 const s = {
-  flex: { flex: 1, backgroundColor: 'rgba(15,25,60,0.95)' } as const,
-  scroll: { flex: 1, backgroundColor: 'rgba(15,25,60,0.95)' } as const,
+  flex: { flex: 1 } as const,
+  scroll: { flex: 1 } as const,
   scrollContent: {
     paddingHorizontal: 24,
     paddingBottom: 60,

@@ -207,7 +207,7 @@ const s = {
     flexDirection: "row" as const,
     alignItems: "center" as const,
     gap: 4,
-    backgroundColor: tokens.color.tealLight,
+    backgroundColor: 'rgba(51,196,220,0.12)',
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
     borderBottomLeftRadius: 0,
@@ -296,7 +296,7 @@ const s = {
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 4,
-    backgroundColor: tokens.color.primarySoft,
+    backgroundColor: 'rgba(51,196,220,0.12)',
   },
 
   proBadgeText: {
@@ -370,7 +370,7 @@ const s = {
     paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: tokens.color.border,
-    backgroundColor: tokens.color.primarySoft,
+    backgroundColor: 'rgba(51,196,220,0.08)',
   },
 
   proFooterText: {

@@ -4,6 +4,7 @@ import React, { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Switch, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Screen } from "@/components/Screen";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { getBackendBase } from "@/src/billing/backendClient";
@@ -185,6 +186,7 @@ export default function AccountScreen() {
 
   if (deletedSuccess) {
     return (
+      <Screen>
       <View style={[s.container, { justifyContent: "center", alignItems: "center", paddingHorizontal: 32 }]}>
         <Ionicons name="checkmark-circle" size={64} color={tokens.color.teal} />
         <Text style={{ fontSize: 22, fontWeight: "700" as const, fontFamily: tokens.font.bodyBold, color: tokens.color.onDark, marginTop: 16, textAlign: "center" as const }}>
@@ -194,10 +196,12 @@ export default function AccountScreen() {
           Your account has been successfully deleted.
         </Text>
       </View>
+      </Screen>
     );
   }
 
   return (
+    <Screen>
     <ScrollView
       style={[s.container, { paddingTop: (Platform.OS === "web" ? WEB_TOP : insets.top) + 16 }]}
       contentContainerStyle={[s.scrollContent, isLargeScreen && s.scrollContentLarge]}
@@ -415,13 +419,13 @@ export default function AccountScreen() {
         <Text style={s.versionText}>ExpatHub v1.0.0</Text>
       </Pressable>
     </ScrollView>
+    </Screen>
   );
 }
 
 const s = {
   container: {
     flex: 1,
-    backgroundColor: 'rgba(15,25,60,0.95)',
   } as const,
 
   scrollContent: {

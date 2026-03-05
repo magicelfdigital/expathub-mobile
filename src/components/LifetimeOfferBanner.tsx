@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: tokens.color.white,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: "center" as const,
     justifyContent: "center" as const,
   },

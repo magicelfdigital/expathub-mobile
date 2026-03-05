@@ -29,7 +29,7 @@ function BackButton() {
       hitSlop={10}
       style={{ padding: 4 }}
     >
-      <Ionicons name="chevron-back" size={24} color={tokens.color.primary} />
+      <Ionicons name="chevron-back" size={24} color={colors.onDark} />
     </Pressable>
   );
 }
