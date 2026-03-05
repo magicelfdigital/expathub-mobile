@@ -162,8 +162,8 @@ const TOPICS: TopicCard[] = [
     subtitle:
       "Remote work rules vary. Start with options that explicitly allow it.",
     icon: "laptop-outline",
-    accentColor: "#2D7A5F",
-    accentBg: "#EDF5F0",
+    accentColor: tokens.color.primary,
+    accentBg: tokens.color.primarySoft,
   },
   {
     key: "sponsorship",
@@ -171,8 +171,8 @@ const TOPICS: TopicCard[] = [
     subtitle:
       "Employer sponsorship is often the real gate. Learn what's realistic.",
     icon: "briefcase-outline",
-    accentColor: "#1A6B6B",
-    accentBg: "#E8F4F2",
+    accentColor: tokens.color.teal,
+    accentBg: tokens.color.tealLight,
   },
   {
     key: "flexibility",

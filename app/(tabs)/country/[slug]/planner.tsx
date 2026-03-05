@@ -78,7 +78,7 @@ export default function PlannerScreen() {
                 startPlan(countrySlug, firstPathway.key, countryName);
               }}
             >
-              <Ionicons name="flag" size={16} color="#fff" />
+              <Ionicons name="flag" size={16} color={tokens.color.white} />
               <Text style={styles.focusButtonText}>Focus on {countryName}</Text>
             </Pressable>
             <Text style={styles.focusMicrocopy}>You can switch your focus at any time.</Text>
@@ -186,7 +186,7 @@ const styles = {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodyBold,
-    color: "#fff",
+    color: tokens.color.white,
   },
   focusMicrocopy: {
     fontSize: tokens.text.small,

@@ -318,21 +318,21 @@ const s = {
     height: 8,
     width: "90%" as const,
     borderRadius: 4,
-    backgroundColor: "rgba(0,0,0,0.06)",
+    backgroundColor: tokens.color.border,
   },
 
   blurLine2: {
     height: 8,
     width: "70%" as const,
     borderRadius: 4,
-    backgroundColor: "rgba(0,0,0,0.05)",
+    backgroundColor: tokens.color.border,
   },
 
   blurLine3: {
     height: 8,
     width: "50%" as const,
     borderRadius: 4,
-    backgroundColor: "rgba(0,0,0,0.04)",
+    backgroundColor: tokens.color.border,
   },
 
   lockRow: {

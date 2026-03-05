@@ -64,6 +64,27 @@ export const COMMUNITY: CountryCommunity = {
     { name: "Reddit: r/MoveToIreland", type: "Forums", url: "https://www.reddit.com/r/MoveToIreland/" },
     { name: "InterNations Ireland", type: "Expat groups", url: "https://www.internations.org/ireland-expats", note: "Events and networking" },
   ],
+  "united-kingdom": [
+    { name: "Meetup: UK expat groups", type: "Meetups", url: "https://www.meetup.com/find/?keywords=UK%20expat", note: "London, Manchester, Edinburgh and more" },
+    { name: "Reddit: r/UKvisa", type: "Forums", url: "https://www.reddit.com/r/ukvisa/" },
+    { name: "InterNations United Kingdom", type: "Expat groups", url: "https://www.internations.org/united-kingdom-expats", note: "Events and networking" },
+    { name: "Expat Forum UK", type: "Forums", url: "https://www.expatforum.com/forums/britain-expat-forum.10/", note: "Long-running expat community" },
+  ],
+  panama: [
+    { name: "Meetup: Panama expat groups", type: "Meetups", url: "https://www.meetup.com/find/?keywords=Panama%20expat" },
+    { name: "Reddit: r/Panama", type: "Forums", url: "https://www.reddit.com/r/Panama/" },
+    { name: "Expat Exchange Panama", type: "Forums", url: "https://www.expatexchange.com/panama/liveinpanama.html", note: "Expat advice and community" },
+  ],
+  ecuador: [
+    { name: "Meetup: Ecuador expat groups", type: "Meetups", url: "https://www.meetup.com/find/?keywords=Ecuador%20expat" },
+    { name: "Reddit: r/Ecuador", type: "Forums", url: "https://www.reddit.com/r/Ecuador/" },
+    { name: "GringoTree", type: "General", url: "https://gringotree.com", note: "English-language community board for expats in Ecuador" },
+  ],
+  malta: [
+    { name: "Meetup: Malta expat groups", type: "Meetups", url: "https://www.meetup.com/find/?keywords=Malta%20expat" },
+    { name: "Reddit: r/Malta", type: "Forums", url: "https://www.reddit.com/r/malta/" },
+    { name: "Expats in Malta", type: "Facebook", url: "https://www.facebook.com/search/groups/?q=expats%20Malta", note: "Community groups for expats living in Malta" },
+  ],
   australia: [
     { name: "Meetup: Australia expat groups", type: "Meetups", url: "https://www.meetup.com/find/?keywords=Australia%20expat", note: "Sydney, Melbourne, Brisbane and more" },
     { name: "Reddit: r/AusVisa", type: "Forums", url: "https://www.reddit.com/r/AusVisa/" },

@@ -113,10 +113,10 @@ export default function PlanCompletionCard({ onReviewPlan }: Props) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#EDF5F0",
+    backgroundColor: tokens.color.tealLight,
     borderRadius: tokens.radius.lg,
     borderWidth: 1,
-    borderColor: "#D4ECEA",
+    borderColor: tokens.color.teal,
     padding: tokens.space.xl,
     marginBottom: tokens.space.lg,
   },

@@ -284,7 +284,7 @@ const s = StyleSheet.create({
     fontSize: 13,
     fontWeight: tokens.weight.black as any,
     fontFamily: tokens.font.bodyBold,
-    color: "#fff",
+    color: tokens.color.white,
     letterSpacing: 0.5,
   },
 

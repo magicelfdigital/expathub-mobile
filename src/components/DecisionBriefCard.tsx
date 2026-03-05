@@ -13,7 +13,7 @@ type DecisionBriefCardProps = {
 };
 
 const confidenceColors: Record<DisplayConfidenceLevel, { bg: string; border: string; text: string }> = {
-  High: { bg: "#EDF5F0", border: "#D4ECEA", text: "#2D7A5F" },
+  High: { bg: tokens.color.tealLight, border: tokens.color.teal, text: tokens.color.teal },
   Medium: { bg: tokens.color.goldLight, border: tokens.color.gold, text: tokens.color.gold },
   Conditional: { bg: "#fef2f2", border: "#fecaca", text: "#991b1b" },
 };
@@ -142,7 +142,7 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
       <View style={s.twoColumn}>
         <View style={s.columnCard}>
           <Text style={s.columnTitle}>Recommended for</Text>
-          <BulletList items={brief.recommendedFor} icon="checkmark" iconColor="#2D7A5F" iconBg="#EDF5F0" />
+          <BulletList items={brief.recommendedFor} icon="checkmark" iconColor={tokens.color.teal} iconBg={tokens.color.tealLight} />
         </View>
         <View style={[s.columnCard, s.columnCardRed]}>
           <Text style={s.columnTitleRed}>Not recommended for</Text>
@@ -230,8 +230,8 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
       <CollapsibleSection
         title="Lifestyle & culture"
         icon="globe"
-        iconColor="#2D7A5F"
-        iconBg="#EDF5F0"
+        iconColor={tokens.color.teal}
+        iconBg={tokens.color.tealLight}
         items={brief.lifestyleAndCulture ?? []}
         sectionId="lifestyle"
         onOpen={trackSection}
@@ -308,10 +308,10 @@ const s = {
     gap: tokens.space.sm,
   },
   columnCard: {
-    backgroundColor: "#EDF5F0",
+    backgroundColor: tokens.color.tealLight,
     borderRadius: tokens.radius.lg,
     borderWidth: 1,
-    borderColor: "#D4ECEA",
+    borderColor: tokens.color.teal,
     padding: tokens.space.lg,
     gap: tokens.space.sm,
   },
@@ -323,7 +323,7 @@ const s = {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodyBold,
-    color: "#2D7A5F",
+    color: tokens.color.teal,
   },
   columnTitleRed: {
     fontSize: tokens.text.h3,

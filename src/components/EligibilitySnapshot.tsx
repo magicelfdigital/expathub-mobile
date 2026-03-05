@@ -572,7 +572,7 @@ export default function EligibilitySnapshot({
               <Ionicons
                 name={result.alignmentLevel === "strong" ? "checkmark-circle" : "alert-circle"}
                 size={24}
-                color={result.alignmentLevel === "strong" ? "#2E7D32" : "#E65100"}
+                color={result.alignmentLevel === "strong" ? tokens.color.teal : tokens.color.gold}
               />
               <Text style={styles.resultTitle}>
                 {result.alignmentLevel === "strong"
@@ -586,7 +586,7 @@ export default function EligibilitySnapshot({
             <View style={styles.findingsSection}>
               {result.strengths.map((s, i) => (
                 <View key={`s-${i}`} style={styles.findingRow}>
-                  <Ionicons name="checkmark-circle" size={16} color="#2E7D32" />
+                  <Ionicons name="checkmark-circle" size={16} color={tokens.color.teal} />
                   <Text style={styles.findingText}>{s}</Text>
                 </View>
               ))}
@@ -597,7 +597,7 @@ export default function EligibilitySnapshot({
             <View style={styles.findingsSection}>
               {result.cautions.map((c, i) => (
                 <View key={`c-${i}`} style={styles.findingRow}>
-                  <Ionicons name="information-circle" size={16} color="#E65100" />
+                  <Ionicons name="information-circle" size={16} color={tokens.color.gold} />
                   <Text style={styles.findingText}>{c}</Text>
                 </View>
               ))}
@@ -692,15 +692,15 @@ const styles = StyleSheet.create({
     gap: tokens.space.md,
   },
   resultCard: {
-    backgroundColor: "rgba(46, 125, 50, 0.08)",
+    backgroundColor: tokens.color.tealLight,
     borderRadius: tokens.radius.sm,
     borderWidth: 1,
-    borderColor: "rgba(46, 125, 50, 0.2)",
+    borderColor: tokens.color.teal,
     padding: tokens.space.md,
   },
   resultCardModerate: {
-    backgroundColor: "rgba(230, 81, 0, 0.08)",
-    borderColor: "rgba(230, 81, 0, 0.2)",
+    backgroundColor: tokens.color.goldLight,
+    borderColor: tokens.color.gold,
   },
   resultIconRow: {
     flexDirection: "row",

@@ -73,7 +73,7 @@ export default function TabsLayout() {
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: "700" as const,
+          fontWeight: "600" as const,
           fontFamily: tokens.font.bodySemiBold,
         },
       }}

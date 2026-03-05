@@ -22,7 +22,7 @@ function ChecklistItemRow({
   return (
     <Pressable onPress={onToggle} style={s.checklistRow}>
       <View style={[s.checkbox, checked && s.checkboxChecked]}>
-        {checked && <Ionicons name="checkmark" size={13} color="#fff" />}
+        {checked && <Ionicons name="checkmark" size={13} color={tokens.color.white} />}
       </View>
       <Text style={[s.checklistLabel, checked && s.checklistLabelChecked]}>
         {label}
@@ -72,7 +72,7 @@ function StepCard({
             ]}
           >
             {allDone ? (
-              <Ionicons name="checkmark" size={14} color="#fff" />
+              <Ionicons name="checkmark" size={14} color={tokens.color.white} />
             ) : (
               <Text
                 style={[
@@ -460,11 +460,11 @@ const s = {
   },
   stepCardHighlighted: {
     borderColor: tokens.color.primaryBorder,
-    backgroundColor: "#F8FCFC",
+    backgroundColor: tokens.color.tealLight,
   },
   stepCardDone: {
-    borderColor: "#D4ECEA",
-    backgroundColor: "#F5FAF8",
+    borderColor: tokens.color.teal,
+    backgroundColor: tokens.color.tealLight,
   },
   stepHeader: {
     flexDirection: "row" as const,
