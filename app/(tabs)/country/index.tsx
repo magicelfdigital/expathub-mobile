@@ -5,6 +5,7 @@ import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-na
 
 import { Screen } from "@/components/Screen";
 import { useCountry } from "@/contexts/CountryContext";
+import { useLayout } from "@/src/hooks/useLayout";
 import { getCountries, REGION_ORDER, sortCountriesAlpha, isLaunchCountry } from "@/src/data";
 import { tokens } from "@/theme/tokens";
 
@@ -13,6 +14,7 @@ const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
 export default function CountryIndexScreen() {
   const router = useRouter();
   const { selectedCountrySlug, setSelectedCountrySlug, isLoaded } = useCountry();
+  const { isTablet } = useLayout();
   const [search, setSearch] = useState("");
 
   const grouped = useMemo(() => {
@@ -78,7 +80,7 @@ export default function CountryIndexScreen() {
           grouped.map(({ region, countries }) => (
             <View key={region} style={styles.regionSection}>
               <Text style={styles.regionTitle}>{region}</Text>
-              <View style={styles.listGap}>
+              <View style={[styles.listGap, isTablet && styles.listGrid]}>
                 {countries.map((c) => {
                   const isSelected = selectedCountrySlug === c.slug;
                   const isLaunch = isLaunchCountry(c.slug);
@@ -90,7 +92,7 @@ export default function CountryIndexScreen() {
                         setSelectedCountrySlug(c.slug);
                         router.push({ pathname: "/(tabs)/country/[slug]", params: { slug: c.slug } } as any);
                       }}
-                      style={[styles.rowCard, isSelected ? styles.rowCardSelected : null]}
+                      style={[styles.rowCard, isTablet && styles.rowCardTablet, isSelected ? styles.rowCardSelected : null]}
                     >
                       <View style={{ flex: 1 }}>
                         <Text style={styles.rowTitle}>{c.name}</Text>
@@ -102,7 +104,7 @@ export default function CountryIndexScreen() {
                       )}
                     </Pressable>
                   ) : (
-                    <View key={c.slug} style={styles.rowCardMuted}>
+                    <View key={c.slug} style={[styles.rowCardMuted, isTablet && styles.rowCardTablet]}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.rowTitleMuted}>{c.name}</Text>
                       </View>
@@ -179,6 +181,12 @@ const styles = {
 
   listGap: { gap: 6 },
 
+  listGrid: {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    gap: 6,
+  },
+
   rowCard: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
@@ -191,6 +199,10 @@ const styles = {
     paddingVertical: 14,
     paddingHorizontal: tokens.space.lg,
   },
+  rowCardTablet: {
+    width: "48.5%" as any,
+  },
+
   rowCardSelected: {
     borderColor: tokens.color.primaryBorder,
     backgroundColor: tokens.color.primarySoft,

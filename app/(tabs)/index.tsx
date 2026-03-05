@@ -8,6 +8,7 @@ import { Screen } from "@/components/Screen";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
 import { useContinue } from "@/src/contexts/ContinueContext";
+import { useLayout } from "@/src/hooks/useLayout";
 import { getCountries, getCountry, getPopularCountries } from "@/src/data";
 import { COVERAGE_SUMMARY } from "@/src/data";
 import { getApiUrl } from "@/lib/query-client";
@@ -21,6 +22,7 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const { selectedCountrySlug, setSelectedCountrySlug, isLoaded } = useCountry();
   const { lastViewedCountrySlug, lastViewedSection, clearContinue } = useContinue();
+  const { isTablet } = useLayout();
 
   const selected = useMemo(() => {
     if (!selectedCountrySlug) return null;
@@ -182,7 +184,7 @@ export default function HomeScreen() {
                 ) : null}
               </View>
 
-              <View style={styles.listGap}>
+              <View style={[styles.listGap, isTablet && styles.listGrid]}>
                 {popular.map((c) => (
                   <Pressable
                     key={c.slug}
@@ -190,7 +192,7 @@ export default function HomeScreen() {
                       setSelectedCountrySlug(c.slug);
                       goCountryHub(c.slug);
                     }}
-                    style={({ pressed }) => [styles.rowCard, pressed && styles.rowCardPressed]}
+                    style={({ pressed }) => [styles.rowCard, isTablet && styles.rowCardTablet, pressed && styles.rowCardPressed]}
                   >
                     <View style={{ flex: 1 }}>
                       <Text style={styles.rowTitle}>{c.name}</Text>
@@ -456,6 +458,12 @@ const styles = {
 
   listGap: { gap: tokens.space.sm },
 
+  listGrid: {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    gap: tokens.space.sm,
+  },
+
   rowCard: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
@@ -466,6 +474,10 @@ const styles = {
     borderWidth: 1,
     borderColor: tokens.color.border,
     padding: tokens.space.lg,
+  },
+
+  rowCardTablet: {
+    width: "48.5%" as any,
   },
 
   rowCardPressed: {

@@ -119,6 +119,13 @@ Preferred communication style: Simple, everyday language.
 - **Analytics Events**: `plan_focus_started`, `plan_step_completed`, `eligibility_snapshot_run`, `lifetime_offer_shown`, `lifetime_offer_clicked`, `plan_completed`.
 - **Tone**: Calm, advisory — no exclamation marks, no urgency, no legal assurance language.
 
+### Tablet Support (v1.1)
+- **Hook**: `useLayout()` from `src/hooks/useLayout.ts` — returns `{ width, isTablet }` (breakpoint: 768px).
+- **Screen Component**: `components/Screen.tsx` centers content at 960px max width on tablets.
+- **Grid Layouts**: Key screens use 2-column flex-wrap grids on tablets via `listGrid` / `cardGrid` + `cardTablet` (width: 48.5%) styles.
+- **Affected Screens**: Home (popular countries), Country List (country cards), Country Detail (nav cards, pathway cards), Explore (topic cards, expanding countries), Resources, Vendors, Community.
+- **Pattern**: `<View style={[styles.listGap, isTablet && styles.listGrid]}>` with `style={[styles.card, isTablet && styles.cardTablet]}` on each item.
+
 ## External Dependencies
 
 ### Core Runtime

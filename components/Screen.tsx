@@ -1,10 +1,11 @@
 import { tokens } from "@/theme/tokens";
+import { useLayout } from "@/src/hooks/useLayout";
 import React from "react";
-import { StyleSheet, View, ViewStyle, useWindowDimensions } from "react-native";
+import { StyleSheet, View, ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const LARGE_SCREEN = 768;
 const MAX_CONTENT_WIDTH = 900;
+const MAX_CONTENT_WIDTH_TABLET = 960;
 
 export function Screen({
   children,
@@ -15,18 +16,17 @@ export function Screen({
   style?: ViewStyle;
   maxWidth?: number;
 }) {
-  const { width } = useWindowDimensions();
-  const isLarge = width >= LARGE_SCREEN;
+  const { isTablet } = useLayout();
 
   return (
     <SafeAreaView
-      style={[styles.safe, isLarge && styles.safeCentered]}
+      style={[styles.safe, isTablet && styles.safeCentered]}
       edges={["left", "right"]}
     >
       <View
         style={[
           styles.content,
-          isLarge && { maxWidth: maxWidth ?? MAX_CONTENT_WIDTH, width: "100%" },
+          isTablet && { maxWidth: maxWidth ?? MAX_CONTENT_WIDTH_TABLET, width: "100%" },
           style,
         ]}
       >

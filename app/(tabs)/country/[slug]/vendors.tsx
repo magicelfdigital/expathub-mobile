@@ -6,6 +6,7 @@ import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { Screen } from "@/components/Screen";
 import { AvailabilityGate } from "@/src/components/AvailabilityGate";
 import { useCountry } from "@/contexts/CountryContext";
+import { useLayout } from "@/src/hooks/useLayout";
 import { useContinue } from "@/src/contexts/ContinueContext";
 import { getCountry, getVendors } from "@/src/data";
 import { openExternal } from "@/lib/openExternal";
@@ -36,6 +37,7 @@ export default function CountryVendorsScreen() {
 }
 
 function VendorsContent({ countrySlug }: { countrySlug: string }) {
+  const { isTablet } = useLayout();
   const countryName = useMemo(() => {
     if (!countrySlug) return "this country";
     return getCountry(countrySlug)?.name ?? "this country";
@@ -72,12 +74,12 @@ function VendorsContent({ countrySlug }: { countrySlug: string }) {
         </View>
       </View>
 
-      <View style={styles.listGap}>
+      <View style={[styles.listGap, isTablet && styles.listGrid]}>
         {vendors.map((v) => (
           <Pressable
             key={v.url}
             onPress={() => openExternal(v.url)}
-            style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+            style={({ pressed }) => [styles.card, isTablet && styles.cardTablet, pressed && styles.cardPressed]}
           >
             <View style={styles.cardTop}>
               <Text style={styles.cardTitle}>{v.name}</Text>
@@ -134,6 +136,16 @@ const styles = {
   context: { fontSize: tokens.text.small, color: tokens.color.primary, fontWeight: tokens.weight.bold, fontFamily: tokens.font.bodyBold },
 
   listGap: { gap: tokens.space.sm },
+
+  listGrid: {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    gap: tokens.space.sm,
+  },
+
+  cardTablet: {
+    width: "48.5%" as any,
+  },
 
   card: {
     backgroundColor: tokens.color.surface,
