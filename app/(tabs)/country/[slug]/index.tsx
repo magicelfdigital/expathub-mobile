@@ -87,13 +87,7 @@ export default function CountryDetailScreen() {
   const { recordView } = useContinue();
 
   const urlSlug = typeof slug === "string" ? slug : Array.isArray(slug) ? slug[0] : "";
-  const countrySlug = selectedCountrySlug || urlSlug || "";
-
-  React.useEffect(() => {
-    if (urlSlug && urlSlug !== selectedCountrySlug) {
-      setSelectedCountrySlug(urlSlug);
-    }
-  }, []);
+  const countrySlug = urlSlug || selectedCountrySlug || "";
 
   React.useEffect(() => {
     if (countrySlug && countrySlug !== selectedCountrySlug) {
