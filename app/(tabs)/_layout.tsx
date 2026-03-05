@@ -29,7 +29,7 @@ function AccountButton() {
       <Ionicons
         name={user ? "person-circle" : "person-circle-outline"}
         size={28}
-        color={user ? tokens.color.primary : tokens.color.textSoft}
+        color={user ? tokens.color.primary : colors.onDarkMid}
       />
     </Pressable>
   );
@@ -41,9 +41,9 @@ const sharedHeaderOptions = {
   headerTitleAlign: "center" as const,
   headerShadowVisible: false,
   headerStyle: {
-    backgroundColor: colors.cream,
+    backgroundColor: colors.glassDark,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.borderDark,
   },
   headerRight: () => <AccountButton />,
 };

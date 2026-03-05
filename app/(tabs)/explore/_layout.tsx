@@ -48,10 +48,11 @@ export default function ExploreLayout() {
         headerTitleAlign: "center",
         headerShadowVisible: false,
         headerStyle: {
-          backgroundColor: colors.cream,
+          backgroundColor: colors.glassDark,
           borderBottomWidth: 1,
-          borderBottomColor: colors.border,
+          borderBottomColor: colors.borderDark,
         },
+        headerTintColor: colors.onDark,
         title: "",
         contentStyle: { backgroundColor: 'transparent' },
         navigationBarColor: 'transparent',
