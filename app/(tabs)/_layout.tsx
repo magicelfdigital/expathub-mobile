@@ -79,7 +79,6 @@ export default function TabsLayout() {
         options={{
           title: "Home",
           tabBarLabel: "Home",
-          headerShown: false,
           tabBarIcon: ({ color, focused, size }) => (
             <Ionicons name={focused ? "home" : "home-outline"} size={size} color={color} />
           ),

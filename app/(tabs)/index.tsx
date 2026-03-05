@@ -1,9 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
-import { Image, Linking, Platform, Pressable, ScrollView, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import { Image, Linking, Pressable, ScrollView, Text, View } from "react-native";
 import { Screen } from "@/components/Screen";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
@@ -14,11 +12,8 @@ import { COVERAGE_SUMMARY } from "@/src/data";
 import { getApiUrl } from "@/lib/query-client";
 import { tokens } from "@/theme/tokens";
 
-const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
-
 export default function HomeScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { selectedCountrySlug, setSelectedCountrySlug, isLoaded } = useCountry();
   const { lastViewedCountrySlug, lastViewedSection, clearContinue } = useContinue();
@@ -73,23 +68,9 @@ export default function HomeScreen() {
     <Screen>
       <ScrollView
         style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: (Platform.OS === "web" ? WEB_TOP_INSET : insets.top) + tokens.space.sm }]}
+        contentContainerStyle={[styles.content, { paddingTop: tokens.space.lg }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.topBar}>
-          <View style={{ width: 28 }} />
-          <View style={{ flex: 1 }} />
-          <Pressable
-            onPress={() => router.push(user ? "/account" : ("/auth?mode=register" as any))}
-            hitSlop={12}
-          >
-            <Ionicons
-              name={user ? "person-circle" : "person-circle-outline"}
-              size={28}
-              color={user ? tokens.color.primary : tokens.color.onDarkMid}
-            />
-          </Pressable>
-        </View>
 
         {!isLoaded ? (
           <View style={styles.loadingCard}>
@@ -111,11 +92,6 @@ export default function HomeScreen() {
                   ExpatHub helps you understand visa options, work authorization rules, and residency pathways so you can make confident decisions about relocating internationally.
                 </Text>
 
-                <Image
-                  source={require('../../assets/images/expathub-map.png')}
-                  style={{ width: '100%' as any, height: 160, borderRadius: 18, marginBottom: 16 }}
-                  resizeMode='cover'
-                />
 
                 <View style={styles.valueProps}>
                   <View style={styles.valuePropRow}>
