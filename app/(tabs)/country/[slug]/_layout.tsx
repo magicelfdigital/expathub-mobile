@@ -31,7 +31,7 @@ function BackButton({ fallback }: { fallback?: string }) {
       hitSlop={12}
       style={{ padding: 8 }}
     >
-      <Ionicons name="chevron-back" size={24} color={tokens.color.primary} />
+      <Ionicons name="chevron-back" size={24} color={colors.onDark} />
     </Pressable>
   );
 }
@@ -53,7 +53,7 @@ function CountryBackButton() {
       hitSlop={12}
       style={{ padding: 8 }}
     >
-      <Ionicons name="chevron-back" size={24} color={tokens.color.primary} />
+      <Ionicons name="chevron-back" size={24} color={colors.onDark} />
     </Pressable>
   );
 }
@@ -82,9 +82,9 @@ function PathfinderBadge() {
 }
 
 const glassHeader = {
-  backgroundColor: colors.cream,
+  backgroundColor: colors.glassDark,
   borderBottomWidth: 1,
-  borderBottomColor: colors.border,
+  borderBottomColor: colors.borderDark,
 };
 
 const detailScreenOptions = {

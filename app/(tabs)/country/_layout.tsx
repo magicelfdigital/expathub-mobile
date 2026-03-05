@@ -30,9 +30,9 @@ export default function CountryLayout() {
           headerTitleAlign: "center",
           headerShadowVisible: false,
           headerStyle: {
-            backgroundColor: colors.cream,
+            backgroundColor: colors.glassDark,
             borderBottomWidth: 1,
-            borderBottomColor: colors.border,
+            borderBottomColor: colors.borderDark,
           },
           title: "",
         }}
