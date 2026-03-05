@@ -179,8 +179,8 @@ const TOPICS: TopicCard[] = [
     subtitle:
       "Choose paths that preserve options and buy time legally.",
     icon: "options-outline",
-    accentColor: "#0D8A8A",
-    accentBg: "#FBF7EF",
+    accentColor: tokens.color.teal,
+    accentBg: tokens.color.tealLight,
   },
   {
     key: "pr",
@@ -188,8 +188,8 @@ const TOPICS: TopicCard[] = [
     subtitle:
       "Some visas are dead ends. Start with options aligned to permanent residency pathways.",
     icon: "shield-checkmark-outline",
-    accentColor: "#b45309",
-    accentBg: "#fef3c7",
+    accentColor: tokens.color.gold,
+    accentBg: tokens.color.goldLight,
   },
 ];
 
@@ -281,7 +281,7 @@ export default function ExploreScreen() {
           testID="glossary-link"
         >
           <View style={s.glossaryIconCircle}>
-            <Ionicons name="book-outline" size={20} color="#0D8A8A" />
+            <Ionicons name="book-outline" size={20} color={tokens.color.teal} />
           </View>
           <View style={s.compareBody}>
             <Text style={s.glossaryTitle}>Visa Glossary</Text>
@@ -289,7 +289,7 @@ export default function ExploreScreen() {
               Look up abbreviations like D7, NLV, ILR, and more
             </Text>
           </View>
-          <Ionicons name="chevron-forward" size={16} color="#0D8A8A" />
+          <Ionicons name="chevron-forward" size={16} color={tokens.color.teal} />
         </Pressable>
 
         <Pressable
@@ -349,11 +349,13 @@ const s = StyleSheet.create({
   h1: {
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black as any,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
   },
   lead: {
     fontSize: tokens.text.body,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
     lineHeight: 20,
   },
 
@@ -382,11 +384,13 @@ const s = StyleSheet.create({
   compareTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black as any,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
   compareSub: {
     fontSize: tokens.text.small,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
     lineHeight: 17,
   },
 
@@ -400,6 +404,7 @@ const s = StyleSheet.create({
   sectionHeading: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black as any,
+    fontFamily: tokens.font.bodySemiBold,
     color: tokens.color.text,
   },
   cardList: { gap: tokens.space.sm },
@@ -429,11 +434,13 @@ const s = StyleSheet.create({
   cardTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black as any,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
   cardSub: {
     fontSize: tokens.text.small,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
     lineHeight: 17,
   },
 
@@ -456,8 +463,8 @@ const s = StyleSheet.create({
     padding: tokens.space.lg,
     borderRadius: tokens.radius.lg,
     borderWidth: 1,
-    borderColor: "#E8DCC8",
-    backgroundColor: "#FBF7EF",
+    borderColor: tokens.color.border,
+    backgroundColor: tokens.color.primarySoft,
     gap: 12,
   },
   glossaryCardPressed: { opacity: 0.85, transform: [{ scale: 0.99 }] },
@@ -467,20 +474,22 @@ const s = StyleSheet.create({
     borderRadius: 22,
     backgroundColor: tokens.color.surface,
     borderWidth: 1,
-    borderColor: "#E8DCC8",
+    borderColor: tokens.color.border,
     alignItems: "center",
     justifyContent: "center",
   },
   glossaryTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black as any,
-    color: "#0D8A8A",
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.teal,
   },
 
   browseLinkPressed: { opacity: 0.8 },
   browseLinkText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold as any,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
@@ -488,6 +497,7 @@ const s = StyleSheet.create({
   expandingSub: {
     fontSize: tokens.text.small,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
     lineHeight: 17,
   },
 
@@ -505,18 +515,20 @@ const s = StyleSheet.create({
   expandingCardName: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black as any,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
   },
   expandingCardNote: {
     fontSize: tokens.text.small,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
     lineHeight: 16,
   },
 
   waitlistBtn: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: tokens.radius.pill,
+    borderRadius: tokens.radius.sm,
     borderWidth: 1,
     borderColor: tokens.color.primaryBorder,
     backgroundColor: tokens.color.primarySoft,
@@ -525,6 +537,7 @@ const s = StyleSheet.create({
   waitlistBtnText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black as any,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
@@ -551,12 +564,14 @@ const s = StyleSheet.create({
   modalTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black as any,
+    fontFamily: tokens.font.bodySemiBold,
     color: tokens.color.text,
   },
   modalBody: { gap: tokens.space.md },
   modalLabel: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold as any,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
   modalInput: {
@@ -566,6 +581,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
     backgroundColor: tokens.color.bg,
   },
@@ -575,6 +591,7 @@ const s = StyleSheet.create({
   },
   modalError: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: "#dc2626",
   },
   modalButton: {
@@ -588,11 +605,13 @@ const s = StyleSheet.create({
   modalButtonText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black as any,
-    color: "#ffffff",
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.white,
   },
   modalConfirmText: {
     fontSize: tokens.text.body,
     color: tokens.color.text,
+    fontFamily: tokens.font.body,
     lineHeight: 20,
     textAlign: "center" as any,
   },

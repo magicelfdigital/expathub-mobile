@@ -127,9 +127,10 @@ const styles = {
   h1: {
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
   },
-  lead: { fontSize: tokens.text.body, color: tokens.color.subtext, lineHeight: 18 },
+  lead: { fontSize: tokens.text.body, fontFamily: tokens.font.body, color: tokens.color.subtext, lineHeight: 18 },
 
   searchWrap: {
     flexDirection: "row" as const,
@@ -146,6 +147,7 @@ const styles = {
     paddingVertical: 12,
     paddingHorizontal: 8,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
   },
 
@@ -154,6 +156,7 @@ const styles = {
   regionTitle: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
     textTransform: "uppercase" as const,
     letterSpacing: 1,
@@ -169,6 +172,7 @@ const styles = {
   },
   cardSubtitle: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 18,
   },
@@ -195,6 +199,7 @@ const styles = {
   rowTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
 
@@ -215,17 +220,19 @@ const styles = {
   rowTitleMuted: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
   },
 
   comingSoonTag: {
     fontSize: 10,
     fontWeight: tokens.weight.black,
-    color: "#6b7280",
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.subtext,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: tokens.radius.pill,
-    backgroundColor: "#f3f4f6",
+    borderRadius: tokens.radius.sm,
+    backgroundColor: tokens.color.bg,
     overflow: "hidden" as const,
   },
 } as const;

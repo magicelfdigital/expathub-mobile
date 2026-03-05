@@ -172,14 +172,14 @@ function PetChecklist({
 
       {petData.quarantineNote && (
         <View style={s.petWarningCard}>
-          <Ionicons name="warning-outline" size={16} color="#b45309" />
+          <Ionicons name="warning-outline" size={16} color={tokens.color.gold} />
           <Text style={s.petWarningText}>{petData.quarantineNote}</Text>
         </View>
       )}
 
       {petData.breedNote && (
         <View style={s.petWarningCard}>
-          <Ionicons name="alert-circle-outline" size={16} color="#b45309" />
+          <Ionicons name="alert-circle-outline" size={16} color={tokens.color.gold} />
           <Text style={s.petWarningText}>{petData.breedNote}</Text>
         </View>
       )}
@@ -411,10 +411,12 @@ const s = {
   headerTitle: {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
   },
   headerProgress: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   },
   nextStepBanner: {
@@ -433,6 +435,7 @@ const s = {
     fontSize: tokens.text.body,
     color: tokens.color.primary,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
   },
   progressBar: {
     height: 6,
@@ -494,6 +497,7 @@ const s = {
   stepNumberText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
   },
   stepNumberTextHighlighted: {
@@ -506,10 +510,12 @@ const s = {
   stepTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
   stepProgress: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   },
   stepBody: {
@@ -519,6 +525,7 @@ const s = {
   },
   stepDescription: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 20,
   },
@@ -537,19 +544,20 @@ const s = {
     height: 22,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: tokens.color.border,
+    borderColor: tokens.color.teal,
     backgroundColor: tokens.color.surface,
     alignItems: "center" as const,
     justifyContent: "center" as const,
     marginTop: 1,
   },
   checkboxChecked: {
-    backgroundColor: tokens.color.primary,
-    borderColor: tokens.color.primary,
+    backgroundColor: tokens.color.teal,
+    borderColor: tokens.color.teal,
   },
   checklistLabel: {
     flex: 1,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
     lineHeight: 20,
   },
@@ -560,6 +568,7 @@ const s = {
   groupHeader: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
@@ -568,6 +577,7 @@ const s = {
   },
   disclaimer: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     fontStyle: "italic" as const,
     marginTop: tokens.space.md,
@@ -595,6 +605,7 @@ const s = {
   tabText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
   },
   tabTextActive: {
@@ -615,6 +626,7 @@ const s = {
   petToggleText: {
     flex: 1,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   },
   petContainer: {
@@ -632,26 +644,29 @@ const s = {
   petSummaryText: {
     flex: 1,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
     lineHeight: 20,
   },
   petWarningCard: {
     flexDirection: "row" as const,
     gap: tokens.space.sm,
-    backgroundColor: "#fef3c7",
+    backgroundColor: tokens.color.goldLight,
     borderRadius: tokens.radius.md,
     padding: tokens.space.md,
     borderWidth: 1,
-    borderColor: "#fde68a",
+    borderColor: tokens.color.gold,
   },
   petWarningText: {
     flex: 1,
     fontSize: tokens.text.small,
-    color: "#92400e",
+    fontFamily: tokens.font.body,
+    color: tokens.color.gold,
     lineHeight: 18,
   },
   petProgress: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   },
   petDismissRow: {
@@ -660,6 +675,7 @@ const s = {
   },
   petDismissText: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   },
   sourcesSection: {
@@ -669,6 +685,7 @@ const s = {
   sourcesTitle: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
@@ -683,6 +700,7 @@ const s = {
   sourceLabel: {
     flex: 1,
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.primary,
     lineHeight: 16,
   },

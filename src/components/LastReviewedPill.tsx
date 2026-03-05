@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingVertical: 5,
     paddingHorizontal: 10,
-    borderRadius: tokens.radius.pill,
+    borderRadius: tokens.radius.sm,
     backgroundColor: "rgba(0,0,0,0.04)",
     alignSelf: "flex-start",
   },
@@ -102,6 +102,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 11,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     letterSpacing: 0.2,
   },
   dot: {
@@ -132,14 +133,17 @@ const styles = StyleSheet.create({
   tooltipTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
   },
   tooltipBody: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 20,
   },
   tooltipDate: {
     fontSize: 11,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     opacity: 0.7,
   },

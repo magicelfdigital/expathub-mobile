@@ -125,7 +125,7 @@ export default function ForgotPasswordScreen() {
                 value={email}
                 onChangeText={(t) => { setEmail(t); setError(null); }}
                 placeholder="you@example.com"
-                placeholderTextColor="rgba(11,18,32,0.3)"
+                placeholderTextColor={tokens.color.textSoft}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -215,12 +215,14 @@ const s = {
   heading: {
     fontSize: 28,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
     marginBottom: 8,
   } as const,
 
   subtitle: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 22,
     marginBottom: 24,
@@ -246,6 +248,7 @@ const s = {
   infoText: {
     flex: 1,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
     lineHeight: 20,
   } as const,
@@ -255,6 +258,7 @@ const s = {
   label: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
     marginBottom: 4,
     marginTop: 12,
@@ -268,11 +272,13 @@ const s = {
     paddingHorizontal: 14,
     paddingVertical: 14,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
   } as const,
 
   errorText: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: "#b91c1c",
     marginTop: 8,
   } as const,
@@ -292,6 +298,7 @@ const s = {
   submitText: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.white,
   } as const,
 
@@ -302,11 +309,13 @@ const s = {
 
   toggleText: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   } as const,
 
   toggleLink: {
     color: tokens.color.primary,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
   } as const,
 } as const;

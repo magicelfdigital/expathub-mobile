@@ -145,11 +145,13 @@ const styles = {
   title: {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
   },
 
   subtitle: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 18,
   },
@@ -189,10 +191,12 @@ const styles = {
     minWidth: 0,
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
 
   cardSubtitle: {
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 18,
   },
@@ -206,6 +210,7 @@ const styles = {
 
   cardCta: {
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
@@ -236,8 +241,8 @@ const styles = {
   emptyText: {
     color: tokens.color.subtext,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     textAlign: "center" as const,
     lineHeight: 20,
   },
 } as const;
-

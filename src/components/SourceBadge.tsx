@@ -17,7 +17,7 @@ export function SourceBadge({ sourceType }: { sourceType: SourceType }) {
       style={{
         paddingHorizontal: 7,
         paddingVertical: 3,
-        borderRadius: tokens.radius.pill,
+        borderRadius: tokens.radius.sm,
         borderWidth: 1,
         backgroundColor: tokens.color.surface,
         borderColor: tokens.color.border,
@@ -28,6 +28,7 @@ export function SourceBadge({ sourceType }: { sourceType: SourceType }) {
         style={{
           fontSize: 10,
           fontWeight: tokens.weight.bold,
+          fontFamily: tokens.font.bodyBold,
           color: tokens.color.subtext,
           textTransform: "uppercase",
           letterSpacing: 0.5,

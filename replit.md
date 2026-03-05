@@ -13,7 +13,7 @@ Preferred communication style: Simple, everyday language.
 - **Routing**: `expo-router` v6, using file-based routing and typed routes.
 - **State Management**: React Context for global state and React Query for server-side data.
 - **Persistence**: `AsyncStorage` for user preferences.
-- **UI Design**: Custom component library with a design token system (`theme/tokens.ts`) and `StyleSheet.create` for styling.
+- **UI Design**: Custom component library with a design token system (`theme/tokens.ts`) and `StyleSheet.create` for styling. v1.1 color system: headerBlue (#364F9A), primary blue (#4A64B8), teal (#18A8AE), gold (#E8991A), bg (#F9F7F4). Fonts: Lora 600 for display headlines, DM Sans for all UI text (400/500/600/700). Pills use borderRadius 6, cards borderRadius 14.
 - **Navigation**: Tab-based layout with nested Stack navigators for country details; subscription flow as a modal.
 - **Authentication**: JWT-based via `AuthContext` with `expathub.website` API. Uses `expo-secure-store` (native) or `AsyncStorage` (web) for token storage. Web authentication is proxied through an Express backend to handle CORS.
 - **Forgot Password**: Handled via `expathub.website` with email-based reset. Route at `/forgot-password` with calm UX, neutral success messaging (prevents account enumeration), and analytics events (`password_reset_opened`, `password_reset_submitted`, `password_reset_success`, `password_reset_error`).
@@ -145,6 +145,8 @@ Preferred communication style: Simple, everyday language.
 - react-native-keyboard-controller
 - @expo/vector-icons / Ionicons
 - expo-web-browser
+- @expo-google-fonts/lora
+- @expo-google-fonts/dm-sans
 
 ### Subscription & Payments
 - react-native-purchases (RevenueCat SDK)

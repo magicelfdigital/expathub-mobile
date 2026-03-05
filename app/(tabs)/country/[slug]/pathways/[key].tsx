@@ -82,11 +82,11 @@ export default function PathwayScreen() {
     return (
       <Screen>
         <View style={{ flex: 1, padding: tokens.space.xl, justifyContent: "center", alignItems: "center" }}>
-          <Text style={{ fontSize: tokens.text.h3, fontWeight: tokens.weight.black, color: tokens.color.text }}>
+          <Text style={{ fontSize: tokens.text.h3, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodySemiBold, color: tokens.color.text }}>
             Pathway not found
           </Text>
           <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
-            <Text style={{ color: tokens.color.primary, fontWeight: tokens.weight.black }}>Go back</Text>
+            <Text style={{ color: tokens.color.primary, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodyBold }}>Go back</Text>
           </Pressable>
         </View>
       </Screen>
@@ -243,7 +243,7 @@ function PathwayContent({ pathway, countryName, openInApp, brief, countrySlug, p
         <View style={styles.bullets}>
           {pathway.whoFor.map((w) => (
             <View key={w} style={styles.bulletRow}>
-              <Ionicons name="checkmark-circle" size={16} color={tokens.color.primary} />
+              <Ionicons name="checkmark-circle" size={16} color={tokens.color.teal} />
               <Text style={styles.bulletText}>{w}</Text>
             </View>
           ))}
@@ -311,13 +311,13 @@ function PathwayContent({ pathway, countryName, openInApp, brief, countrySlug, p
           style={({ pressed }) => [styles.passportCard, pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] }]}
         >
           <View style={styles.passportCardLeft}>
-            <Ionicons name="earth" size={20} color="#0D8A8A" />
+            <Ionicons name="earth" size={20} color={tokens.color.teal} />
             <View style={{ flex: 1 }}>
               <Text style={styles.passportCardTitle}>Passport Notes</Text>
               <Text style={styles.passportCardSub}>{passportNotes.length} nationalities covered</Text>
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={18} color="#0D8A8A" />
+          <Ionicons name="chevron-forward" size={18} color={tokens.color.teal} />
         </Pressable>
       ) : null}
 
@@ -348,22 +348,23 @@ const styles = {
   evidenceLabelText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
   },
 
   headerSection: { gap: tokens.space.xs },
-  h1: { fontSize: tokens.text.h1, fontWeight: tokens.weight.black, color: tokens.color.text },
+  h1: { fontSize: tokens.text.h1, fontWeight: tokens.weight.black, fontFamily: tokens.font.display, color: tokens.color.text },
 
   countryTag: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
     gap: 4,
   },
-  contextText: { fontSize: tokens.text.small, color: tokens.color.primary, fontWeight: tokens.weight.bold },
+  contextText: { fontSize: tokens.text.small, color: tokens.color.primary, fontWeight: tokens.weight.bold, fontFamily: tokens.font.bodyBold },
 
-  lead: { fontSize: tokens.text.body, color: tokens.color.subtext, lineHeight: 20 },
+  lead: { fontSize: tokens.text.body, fontFamily: tokens.font.body, color: tokens.color.subtext, lineHeight: 20 },
 
   infoRow: {
     flexDirection: "row" as const,
@@ -385,18 +386,20 @@ const styles = {
     fontSize: tokens.text.small,
     color: tokens.color.subtext,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     textAlign: "center" as const,
   },
 
   infoValue: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
     textAlign: "center" as const,
     lineHeight: 16,
   },
 
   section: { gap: tokens.space.sm },
-  sectionTitle: { fontSize: tokens.text.h3, fontWeight: tokens.weight.black, color: tokens.color.text },
+  sectionTitle: { fontSize: tokens.text.h3, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodySemiBold, color: tokens.color.text },
 
   bullets: { gap: 8 },
   bulletRow: {
@@ -404,7 +407,7 @@ const styles = {
     alignItems: "flex-start" as const,
     gap: 8,
   },
-  bulletText: { flex: 1, color: tokens.color.text, lineHeight: 20 },
+  bulletText: { flex: 1, fontFamily: tokens.font.body, color: tokens.color.text, lineHeight: 20 },
 
   stepsContainer: { gap: 12 },
   stepRow: {
@@ -423,10 +426,12 @@ const styles = {
   stepNumberText: {
     color: tokens.color.white,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     fontSize: tokens.text.small,
   },
   stepText: {
     flex: 1,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
     lineHeight: 20,
     paddingTop: 4,
@@ -448,12 +453,12 @@ const styles = {
     opacity: 0.9,
     transform: [{ scale: 0.99 }],
   },
-  linkTitle: { fontSize: tokens.text.body, fontWeight: tokens.weight.black, color: tokens.color.text },
-  linkSubtitle: { color: tokens.color.subtext, marginTop: 2, fontSize: tokens.text.small },
+  linkTitle: { fontSize: tokens.text.body, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodyBold, color: tokens.color.text },
+  linkSubtitle: { fontFamily: tokens.font.body, color: tokens.color.subtext, marginTop: 2, fontSize: tokens.text.small },
 
-  note: { marginTop: 2, color: tokens.color.subtext, lineHeight: 18 },
+  note: { marginTop: 2, fontFamily: tokens.font.body, color: tokens.color.subtext, lineHeight: 18 },
 
-  disclaimer: { marginTop: 4, fontSize: tokens.text.small, color: tokens.color.subtext, lineHeight: 16 },
+  disclaimer: { marginTop: 4, fontSize: tokens.text.small, fontFamily: tokens.font.body, color: tokens.color.subtext, lineHeight: 16 },
 
   passportCard: {
     flexDirection: "row" as const,
@@ -462,8 +467,8 @@ const styles = {
     padding: tokens.space.lg,
     borderRadius: tokens.radius.lg,
     borderWidth: 1,
-    borderColor: "#E8DCC8",
-    backgroundColor: "#FBF7EF",
+    borderColor: tokens.color.teal,
+    backgroundColor: tokens.color.tealLight,
   },
   passportCardLeft: {
     flexDirection: "row" as const,
@@ -474,11 +479,13 @@ const styles = {
   passportCardTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
-    color: "#1A5C5C",
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.text,
   },
   passportCardSub: {
     fontSize: tokens.text.small,
-    color: "#0D8A8A",
+    fontFamily: tokens.font.body,
+    color: tokens.color.teal,
     marginTop: 2,
   },
 } as const;
@@ -517,11 +524,13 @@ const authGateStyles = {
   title: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodySemiBold,
     color: tokens.color.text,
     textAlign: "center" as const,
   },
   sub: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     textAlign: "center" as const,
     lineHeight: 20,
@@ -539,5 +548,6 @@ const authGateStyles = {
     color: tokens.color.white,
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
   },
 } as const;

@@ -128,19 +128,21 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "rgba(0,156,156,0.12)",
+    backgroundColor: tokens.color.tealLight,
     alignItems: "center",
     justifyContent: "center",
   },
   header: {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
     textAlign: "center",
     marginBottom: tokens.space.xs,
   },
   subtext: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     textAlign: "center",
     lineHeight: 22,
@@ -149,6 +151,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
     marginBottom: tokens.space.md,
   },
@@ -164,7 +167,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "rgba(0,156,156,0.08)",
+    backgroundColor: tokens.color.tealLight,
     alignItems: "center",
     justifyContent: "center",
     marginTop: 2,
@@ -176,15 +179,18 @@ const styles = StyleSheet.create({
   listTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
   listBody: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 20,
   },
   comingText: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     textAlign: "center",
     marginBottom: tokens.space.xl,
@@ -206,6 +212,7 @@ const styles = StyleSheet.create({
   primaryText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.white,
   },
   secondaryButton: {
@@ -222,6 +229,7 @@ const styles = StyleSheet.create({
   secondaryText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 });

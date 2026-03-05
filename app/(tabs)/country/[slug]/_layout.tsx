@@ -66,7 +66,7 @@ export default function CountrySlugLayout() {
         headerTitleAlign: "center",
         headerBackTitle: "",
         headerShadowVisible: false,
-        headerStyle: { backgroundColor: tokens.color.bg },
+        headerStyle: { backgroundColor: tokens.color.surface },
         headerLeft: () => <BackButton />,
         headerLeftContainerStyle: { paddingLeft: 8 },
         title: "",

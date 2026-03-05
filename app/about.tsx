@@ -152,18 +152,21 @@ const s = {
   headerTitle: {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
   } as const,
 
   title: {
     fontSize: 24,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
     marginBottom: 12,
   } as const,
 
   description: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 22,
     marginBottom: 32,
@@ -172,6 +175,7 @@ const s = {
   sectionHeader: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
     textTransform: "uppercase" as const,
     letterSpacing: 1,
@@ -202,17 +206,20 @@ const s = {
 
   rowLabel: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   } as const,
 
   rowValue: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   } as const,
 
   buildText: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     marginTop: 2,
   } as const,
@@ -226,6 +233,7 @@ const s = {
   linkText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   } as const,
 
@@ -246,6 +254,7 @@ const s = {
   actionRowText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   } as const,
 
@@ -264,12 +273,14 @@ const s = {
   privacyNoteText: {
     flex: 1,
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 18,
   } as const,
 
   copyright: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     opacity: 0.5,
     textAlign: "center" as const,

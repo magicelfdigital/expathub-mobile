@@ -212,6 +212,7 @@ const s = {
     flex: 1,
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
@@ -235,12 +236,14 @@ const s = {
   addColText: {
     fontSize: 10,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
   cornerText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
@@ -268,6 +271,7 @@ const s = {
   labelText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
     lineHeight: 16,
   },
@@ -283,6 +287,7 @@ const s = {
   proBadgeText: {
     fontSize: 8,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
     letterSpacing: 0.5,
   },
@@ -295,6 +300,7 @@ const s = {
 
   valueText: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
     lineHeight: 17,
   },
@@ -337,6 +343,7 @@ const s = {
   lockText: {
     fontSize: 10,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
@@ -354,6 +361,7 @@ const s = {
   proFooterText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
@@ -365,6 +373,7 @@ const s = {
 
   emptyText: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     textAlign: "center" as const,
   },

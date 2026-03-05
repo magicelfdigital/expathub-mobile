@@ -51,7 +51,7 @@ function CoverageBadge({ status }: { status: "decision-ready" | "coming-soon" })
     </View>
   ) : (
     <View style={styles.soonBadge}>
-      <Ionicons name="time-outline" size={10} color="#6b7280" />
+      <Ionicons name="time-outline" size={10} color={tokens.color.subtext} />
       <Text style={styles.soonBadgeText}>In Progress</Text>
     </View>
   );
@@ -65,7 +65,7 @@ function CoverageRow({ label, status }: { label: string; status: "decision-ready
       <Ionicons
         name={isReady ? "checkmark-circle" : "time-outline"}
         size={16}
-        color={isReady ? tokens.color.primary : "#6b7280"}
+        color={isReady ? tokens.color.primary : tokens.color.subtext}
       />
       <Text style={isReady ? styles.coverageReadyText : styles.coverageSoonText}>{label}</Text>
       <Text style={isReady ? styles.coverageTag : styles.coverageSoonTag}>
@@ -140,7 +140,7 @@ export default function CountryViewScreen() {
           </Text>
           {isLaunch ? (
             <View style={styles.passportNotice}>
-              <Ionicons name="earth" size={12} color="#0D8A8A" />
+              <Ionicons name="earth" size={12} color={tokens.color.teal} />
               <Text style={styles.passportNoticeText}>
                 Passport Notes on each pathway cover 7 nationality groups
               </Text>
@@ -168,7 +168,7 @@ export default function CountryViewScreen() {
             onPress={() => router.push({ pathname: "/subscribe" as any, params: { country: countrySlug } })}
           >
             <View style={styles.unlockBannerLeft}>
-              <Ionicons name="lock-open" size={18} color={tokens.color.primary} />
+              <Ionicons name="lock-open" size={18} color={tokens.color.gold} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.unlockBannerTitle}>Make a confident relocation decision</Text>
                 <Text style={styles.unlockBannerSub}>
@@ -176,7 +176,7 @@ export default function CountryViewScreen() {
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={16} color={tokens.color.primary} />
+            <Ionicons name="chevron-forward" size={16} color={tokens.color.gold} />
           </Pressable>
         ) : null}
 
@@ -193,7 +193,7 @@ export default function CountryViewScreen() {
           <View style={styles.comingSoonCard}>
             <View style={styles.comingSoonIconRow}>
               <View style={styles.comingSoonIconCircle}>
-                <Ionicons name="time-outline" size={24} color="#6b7280" />
+                <Ionicons name="time-outline" size={24} color={tokens.color.subtext} />
               </View>
             </View>
             <Text style={styles.comingSoonTitle}>Coming Soon</Text>
@@ -255,7 +255,7 @@ export default function CountryViewScreen() {
                     <View style={styles.pathwayRight}>
                       {p.premium && !hasAccess ? (
                         <View style={styles.lockedBadge}>
-                          <Ionicons name="lock-closed" size={10} color="#92400e" />
+                          <Ionicons name="lock-closed" size={10} color={tokens.color.gold} />
                           <Text style={styles.lockedText}>PRO</Text>
                         </View>
                       ) : p.premium && hasAccess ? (
@@ -296,6 +296,7 @@ const styles = {
     fontSize: tokens.text.body,
     color: tokens.color.primary,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
   },
 
   header: {
@@ -306,11 +307,13 @@ const styles = {
   title: {
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
   },
 
   subtitle: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 18,
   },
@@ -323,7 +326,8 @@ const styles = {
   passportNoticeText: {
     flex: 1,
     fontSize: 11,
-    color: "#0D8A8A",
+    fontFamily: tokens.font.body,
+    color: tokens.color.teal,
     lineHeight: 15,
   },
 
@@ -342,6 +346,7 @@ const styles = {
   accessBannerText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
@@ -352,9 +357,9 @@ const styles = {
     paddingHorizontal: tokens.space.lg,
     paddingVertical: tokens.space.md,
     borderRadius: tokens.radius.lg,
-    backgroundColor: "#FBF7EF",
+    backgroundColor: tokens.color.goldLight,
     borderWidth: 1,
-    borderColor: "#E8DCC8",
+    borderColor: tokens.color.gold,
   },
 
   unlockBannerLeft: {
@@ -367,12 +372,14 @@ const styles = {
   unlockBannerTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
-    color: "#1A5C5C",
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.text,
   },
 
   unlockBannerSub: {
     fontSize: tokens.text.small,
-    color: "#0D8A8A",
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
     marginTop: 1,
   },
 
@@ -398,6 +405,7 @@ const styles = {
   coverageReadyText: {
     flex: 1,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
     fontWeight: tokens.weight.bold,
   },
@@ -405,10 +413,11 @@ const styles = {
   coverageTag: {
     fontSize: 10,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: tokens.radius.pill,
+    borderRadius: tokens.radius.sm,
     backgroundColor: tokens.color.primarySoft,
     overflow: "hidden" as const,
   },
@@ -416,17 +425,19 @@ const styles = {
   coverageSoonText: {
     flex: 1,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   },
 
   coverageSoonTag: {
     fontSize: 10,
     fontWeight: tokens.weight.black,
-    color: "#6b7280",
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.subtext,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: tokens.radius.pill,
-    backgroundColor: "#f3f4f6",
+    borderRadius: tokens.radius.sm,
+    backgroundColor: tokens.color.bg,
     overflow: "hidden" as const,
   },
 
@@ -469,11 +480,13 @@ const styles = {
   cardTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
 
   cardSub: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 16,
     marginTop: 2,
@@ -486,6 +499,7 @@ const styles = {
   sectionTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodySemiBold,
     color: tokens.color.text,
   },
 
@@ -510,11 +524,13 @@ const styles = {
   pathwayTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
 
   pathwaySub: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 16,
     marginTop: 2,
@@ -531,13 +547,14 @@ const styles = {
     gap: 3,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: tokens.radius.pill,
+    borderRadius: tokens.radius.sm,
     backgroundColor: tokens.color.primarySoft,
   },
 
   readyBadgeText: {
     fontSize: 9,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
@@ -547,14 +564,15 @@ const styles = {
     gap: 3,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: tokens.radius.pill,
-    backgroundColor: "#f3f4f6",
+    borderRadius: tokens.radius.sm,
+    backgroundColor: tokens.color.bg,
   },
 
   soonBadgeText: {
     fontSize: 9,
     fontWeight: tokens.weight.black,
-    color: "#6b7280",
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.subtext,
   },
 
   premiumBadge: {
@@ -563,7 +581,7 @@ const styles = {
     gap: 3,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: tokens.radius.pill,
+    borderRadius: tokens.radius.sm,
     backgroundColor: tokens.color.primarySoft,
     borderWidth: 1,
     borderColor: tokens.color.primaryBorder,
@@ -572,6 +590,7 @@ const styles = {
   premiumText: {
     fontSize: 9,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
@@ -581,24 +600,25 @@ const styles = {
     gap: 3,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: tokens.radius.pill,
-    backgroundColor: "#fef3c7",
+    borderRadius: tokens.radius.sm,
+    backgroundColor: tokens.color.goldLight,
     borderWidth: 1,
-    borderColor: "#fcd34d",
+    borderColor: tokens.color.gold,
   },
 
   lockedText: {
     fontSize: 9,
     fontWeight: tokens.weight.black,
-    color: "#92400e",
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.gold,
   },
 
   comingSoonCard: {
     padding: tokens.space.xl,
     borderRadius: tokens.radius.lg,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: tokens.color.bg,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: tokens.color.border,
     alignItems: "center" as const,
     gap: tokens.space.sm,
   },
@@ -611,7 +631,7 @@ const styles = {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#e5e7eb",
+    backgroundColor: tokens.color.primarySoft,
     alignItems: "center" as const,
     justifyContent: "center" as const,
   },
@@ -619,12 +639,14 @@ const styles = {
   comingSoonTitle: {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
-    color: "#6b7280",
+    fontFamily: tokens.font.display,
+    color: tokens.color.subtext,
   },
 
   comingSoonBody: {
     fontSize: tokens.text.body,
-    color: "#4b5563",
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
     lineHeight: 20,
     textAlign: "center" as const,
   },

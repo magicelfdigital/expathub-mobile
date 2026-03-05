@@ -194,10 +194,10 @@ export default function AccountScreen() {
     return (
       <View style={[s.container, { justifyContent: "center", alignItems: "center", paddingHorizontal: 32 }]}>
         <Ionicons name="checkmark-circle" size={64} color={tokens.color.primary} />
-        <Text style={{ fontSize: 22, fontWeight: "700", color: tokens.color.text, marginTop: 16, textAlign: "center" }}>
+        <Text style={{ fontSize: 22, fontWeight: "700", fontFamily: tokens.font.bodyBold, color: tokens.color.text, marginTop: 16, textAlign: "center" }}>
           Account Deleted
         </Text>
-        <Text style={{ fontSize: 15, color: tokens.color.subtext, marginTop: 8, textAlign: "center" }}>
+        <Text style={{ fontSize: 15, fontFamily: tokens.font.body, color: tokens.color.subtext, marginTop: 8, textAlign: "center" }}>
           Your account has been successfully deleted.
         </Text>
       </View>
@@ -291,8 +291,8 @@ export default function AccountScreen() {
           <Switch
             value={hasActiveSubscription && accessType === "sandbox"}
             onValueChange={(val) => setSandboxOverride(val)}
-            trackColor={{ false: "#d1d5db", true: tokens.color.primaryBorder }}
-            thumbColor={hasActiveSubscription && accessType === "sandbox" ? tokens.color.primary : "#f4f4f5"}
+            trackColor={{ false: tokens.color.textSoft, true: tokens.color.primaryBorder }}
+            thumbColor={hasActiveSubscription && accessType === "sandbox" ? tokens.color.primary : tokens.color.bg}
           />
         </View>
       ) : null}
@@ -413,7 +413,7 @@ export default function AccountScreen() {
             }
           }}
         >
-          <Ionicons name="bug-outline" size={20} color="#92400e" />
+          <Ionicons name="bug-outline" size={20} color={tokens.color.gold} />
           <Text style={s.crashTestText}>Test Crashlytics (Dev Only)</Text>
         </Pressable>
       ) : null}
@@ -452,6 +452,7 @@ const s = {
   headerTitle: {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
   } as const,
 
@@ -475,6 +476,7 @@ const s = {
   email: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   } as const,
 
@@ -496,12 +498,14 @@ const s = {
 
   rowLabel: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   } as const,
 
   rowValue: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
     flexShrink: 1,
     textAlign: "right" as const,
@@ -510,13 +514,13 @@ const s = {
   badge: {
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: tokens.radius.sm,
   } as const,
 
   badgePro: { backgroundColor: tokens.color.primary } as const,
   badgeFree: { backgroundColor: tokens.color.border } as const,
 
-  badgeText: { fontSize: tokens.text.small, fontWeight: tokens.weight.black } as const,
+  badgeText: { fontSize: tokens.text.small, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodyBold } as const,
   badgeTextPro: { color: tokens.color.white } as const,
   badgeTextFree: { color: tokens.color.subtext } as const,
 
@@ -527,6 +531,7 @@ const s = {
   countryLabel: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
   } as const,
 
@@ -542,7 +547,7 @@ const s = {
     gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: tokens.radius.pill,
+    borderRadius: tokens.radius.sm,
     backgroundColor: tokens.color.primarySoft,
     borderWidth: 1,
     borderColor: tokens.color.primaryBorder,
@@ -551,6 +556,7 @@ const s = {
   countryChipText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   } as const,
 
@@ -559,7 +565,7 @@ const s = {
     alignItems: "center" as const,
     justifyContent: "center" as const,
     gap: 8,
-    backgroundColor: tokens.color.primary,
+    backgroundColor: tokens.color.gold,
     borderRadius: tokens.radius.md,
     paddingVertical: 14,
     marginTop: 4,
@@ -568,7 +574,8 @@ const s = {
   upgradeBtnText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
-    color: tokens.color.white,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.text,
   } as const,
 
   statusBox: {
@@ -582,6 +589,7 @@ const s = {
 
   statusText: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.primary,
     textAlign: "center" as const,
   } as const,
@@ -606,6 +614,7 @@ const s = {
   actionRowText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   } as const,
 
@@ -630,12 +639,14 @@ const s = {
   logoutText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: "#b91c1c",
   } as const,
 
   dangerHeader: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: "#991b1b",
     textTransform: "uppercase" as const,
     letterSpacing: 1,
@@ -660,6 +671,7 @@ const s = {
   deleteText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: "#991b1b",
   } as const,
 
@@ -679,11 +691,13 @@ const s = {
   sandboxToggleTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: "#166534",
   } as const,
 
   sandboxToggleSub: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: "#4ade80",
     marginTop: 1,
   } as const,
@@ -704,6 +718,7 @@ const s = {
   debugBillingText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: "#1e40af",
   } as const,
 
@@ -715,15 +730,16 @@ const s = {
     paddingVertical: 16,
     borderRadius: tokens.radius.md,
     borderWidth: 1,
-    borderColor: "#fde68a",
-    backgroundColor: "#fffbeb",
+    borderColor: tokens.color.gold,
+    backgroundColor: tokens.color.goldLight,
     marginTop: 16,
   } as const,
 
   crashTestText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
-    color: "#92400e",
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.gold,
   } as const,
 
   versionLabel: {
@@ -734,6 +750,7 @@ const s = {
 
   versionText: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     opacity: 0.5,
   } as const,

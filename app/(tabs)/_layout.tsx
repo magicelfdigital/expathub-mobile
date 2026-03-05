@@ -49,7 +49,7 @@ const sharedHeaderOptions = {
   headerTitle: () => <FullLogoNoTag />,
   headerTitleAlign: "center" as const,
   headerShadowVisible: false,
-  headerStyle: { backgroundColor: tokens.color.bg },
+  headerStyle: { backgroundColor: tokens.color.surface },
   headerRight: () => <AccountButton />,
 };
 
@@ -62,7 +62,7 @@ export default function TabsLayout() {
       screenOptions={{
         ...sharedHeaderOptions,
         tabBarActiveTintColor: tokens.color.primary,
-        tabBarInactiveTintColor: "rgba(11,18,32,0.4)",
+        tabBarInactiveTintColor: "rgba(42,58,106,0.4)",
         tabBarStyle: {
           backgroundColor: tokens.color.surface,
           borderTopColor: tokens.color.border,
@@ -74,6 +74,7 @@ export default function TabsLayout() {
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "700" as const,
+          fontFamily: tokens.font.bodySemiBold,
         },
       }}
     >

@@ -15,6 +15,13 @@ import { SavedProvider } from "@/src/contexts/SavedContext";
 import { ContinueProvider } from "@/src/contexts/ContinueContext";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
+import { Lora_600SemiBold } from "@expo-google-fonts/lora";
+import {
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+  DMSans_700Bold,
+} from "@expo-google-fonts/dm-sans";
 import { initCrashlytics } from "@/utils/crashlytics";
 import { tokens } from "@/theme/tokens";
 
@@ -37,22 +44,27 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     ...Ionicons.font,
     ...Feather.font,
+    Lora_600SemiBold,
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_600SemiBold,
+    DMSans_700Bold,
   });
 
   useEffect(() => {
-    if (fontsLoaded) {
+    if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, fontError]);
 
   useEffect(() => {
     initCrashlytics();
   }, []);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !fontError) {
     return null;
   }
 

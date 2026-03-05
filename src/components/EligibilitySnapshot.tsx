@@ -372,6 +372,7 @@ const dropStyles = StyleSheet.create({
     color: tokens.color.subtext,
     marginBottom: 4,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
   },
@@ -391,6 +392,7 @@ const dropStyles = StyleSheet.create({
   },
   triggerText: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
     flex: 1,
   },
@@ -414,11 +416,13 @@ const dropStyles = StyleSheet.create({
   },
   optionText: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
   },
   optionTextActive: {
     color: tokens.color.primary,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
   },
 });
 
@@ -643,6 +647,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
   privacyNote: {
@@ -657,6 +662,7 @@ const styles = StyleSheet.create({
   },
   privacyText: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     flex: 1,
   },
@@ -676,6 +682,7 @@ const styles = StyleSheet.create({
   runButtonText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.white,
   },
   runButtonTextDisabled: {
@@ -703,6 +710,7 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
     flex: 1,
     lineHeight: 20,
@@ -717,12 +725,14 @@ const styles = StyleSheet.create({
   },
   findingText: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
     flex: 1,
     lineHeight: 20,
   },
   findingTextMuted: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     flex: 1,
     lineHeight: 18,
@@ -730,6 +740,7 @@ const styles = StyleSheet.create({
   },
   disclaimer: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 16,
   },
@@ -743,5 +754,6 @@ const styles = StyleSheet.create({
     fontSize: tokens.text.small,
     color: tokens.color.primary,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
   },
 });

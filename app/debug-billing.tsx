@@ -393,12 +393,14 @@ const s = {
   headerTitle: {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
   } as const,
 
   sectionTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
     marginBottom: 8,
     marginTop: 16,
@@ -428,11 +430,13 @@ const s = {
     fontSize: tokens.text.small,
     color: tokens.color.subtext,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     minWidth: 90,
   } as const,
 
   rowValue: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
     flexShrink: 1,
     textAlign: "right" as const,
@@ -450,6 +454,7 @@ const s = {
   monoLabel: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
   } as const,
 
@@ -479,6 +484,7 @@ const s = {
   actionBtnText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
     flexShrink: 1,
   } as const,
@@ -495,10 +501,12 @@ const s = {
     fontSize: tokens.text.small,
     color: "#b91c1c",
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
   } as const,
 
   logEmpty: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     fontStyle: "italic" as const,
   } as const,
@@ -522,6 +530,7 @@ const s = {
   logAction: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   } as const,
 

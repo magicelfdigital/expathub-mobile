@@ -520,13 +520,13 @@ export function ProPaywall({
   if (!isLaunch && resolvedCountrySlug) {
     return (
       <View style={s.loadingContainer}>
-        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: "#e5e7eb", alignItems: "center" as const, justifyContent: "center" as const, marginBottom: 8 }}>
-          <Ionicons name="time-outline" size={28} color="#6b7280" />
+        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: tokens.color.bg, alignItems: "center" as const, justifyContent: "center" as const, marginBottom: 8 }}>
+          <Ionicons name="time-outline" size={28} color={tokens.color.textSoft} />
         </View>
-        <Text style={{ fontSize: 22, fontWeight: "700", color: tokens.color.text, textAlign: "center", marginBottom: 8 }}>
+        <Text style={{ fontSize: 22, fontWeight: "700", fontFamily: tokens.font.display, color: tokens.color.text, textAlign: "center", marginBottom: 8 }}>
           Coming Soon
         </Text>
-        <Text style={{ fontSize: 15, color: tokens.color.subtext, textAlign: "center", lineHeight: 22, paddingHorizontal: 24 }}>
+        <Text style={{ fontSize: 15, fontFamily: tokens.font.body, color: tokens.color.subtext, textAlign: "center", lineHeight: 22, paddingHorizontal: 24 }}>
           Full Decision Briefs for {countryName} are being built. Complete guides with detailed advice will be available here soon.
         </Text>
         {showClose ? (
@@ -534,7 +534,7 @@ export function ProPaywall({
             onPress={handleClose}
             style={{ marginTop: 24, paddingVertical: 12, paddingHorizontal: 24, borderRadius: tokens.radius.lg, backgroundColor: tokens.color.primary }}
           >
-            <Text style={{ fontSize: 15, fontWeight: "700", color: tokens.color.white }}>Browse available countries</Text>
+            <Text style={{ fontSize: 15, fontWeight: "700", fontFamily: tokens.font.bodyBold, color: tokens.color.white }}>Browse available countries</Text>
           </Pressable>
         ) : null}
       </View>
@@ -583,7 +583,7 @@ export function ProPaywall({
 
         {error ? (
           <View style={s.errorCard}>
-            <Ionicons name="information-circle" size={18} color="#b45309" />
+            <Ionicons name="information-circle" size={18} color={tokens.color.gold} />
             <Text style={s.errorText}>{error}</Text>
           </View>
         ) : null}
@@ -677,7 +677,7 @@ export function ProPaywall({
                   {offer.mistakesAvoided.map((m) => (
                     <View key={m} style={s.bulletRow}>
                       <View style={s.warningIcon}>
-                        <Ionicons name="alert" size={14} color="#b45309" />
+                        <Ionicons name="alert" size={14} color={tokens.color.gold} />
                       </View>
                       <Text style={s.bulletText}>{m}</Text>
                     </View>
@@ -903,6 +903,7 @@ const s = {
   },
   loadingText: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   },
   scroll: {
@@ -933,6 +934,7 @@ const s = {
   h1: {
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
     textAlign: "center" as const,
   },
@@ -940,12 +942,14 @@ const s = {
     fontSize: tokens.text.body,
     color: tokens.color.text,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     lineHeight: 22,
     textAlign: "center" as const,
   },
   subLead: {
     fontSize: tokens.text.small,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
     lineHeight: 18,
     textAlign: "center" as const,
   },
@@ -960,12 +964,14 @@ const s = {
   ruledOutTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: "#991b1b",
     marginBottom: 2,
   },
   ruledOutText: {
     flex: 1,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: "#7f1d1d",
     lineHeight: 20,
   },
@@ -980,6 +986,7 @@ const s = {
   cardTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
     marginBottom: 2,
   },
@@ -1001,7 +1008,7 @@ const s = {
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: "#fef3c7",
+    backgroundColor: tokens.color.goldLight,
     alignItems: "center" as const,
     justifyContent: "center" as const,
     marginTop: 1,
@@ -1009,21 +1016,23 @@ const s = {
   bulletText: {
     flex: 1,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
     lineHeight: 20,
   },
   mistakeCard: {
-    backgroundColor: "#fffbeb",
+    backgroundColor: tokens.color.goldLight,
     borderRadius: tokens.radius.lg,
     borderWidth: 1,
-    borderColor: "#fde68a",
+    borderColor: tokens.color.gold,
     padding: tokens.space.lg,
     gap: 10,
   },
   mistakeTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
-    color: "#92400e",
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.gold,
     marginBottom: 2,
   },
   errorCard: {
@@ -1032,14 +1041,15 @@ const s = {
     gap: 8,
     padding: tokens.space.md,
     borderRadius: tokens.radius.lg,
-    backgroundColor: "#fef3c7",
+    backgroundColor: tokens.color.goldLight,
     borderWidth: 1,
-    borderColor: "#fcd34d",
+    borderColor: tokens.color.gold,
   },
   errorText: {
     flex: 1,
     fontSize: tokens.text.small,
-    color: "#92400e",
+    fontFamily: tokens.font.body,
+    color: tokens.color.gold,
     lineHeight: 16,
   },
   pricingSection: {
@@ -1063,12 +1073,13 @@ const s = {
     right: 16,
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: tokens.radius.pill,
+    borderRadius: tokens.radius.sm,
     backgroundColor: tokens.color.primary,
   },
   recommendedText: {
     fontSize: 10,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.white,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
@@ -1081,10 +1092,12 @@ const s = {
   pricingTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
   pricingDesc: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 18,
   },
@@ -1097,10 +1110,12 @@ const s = {
   priceAmount: {
     fontSize: 28,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
   priceUnit: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   },
   pricingBullets: {
@@ -1114,6 +1129,7 @@ const s = {
   },
   pricingBulletText: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
     lineHeight: 18,
   },
@@ -1128,19 +1144,21 @@ const s = {
   primaryCtaText: {
     color: tokens.color.white,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     fontSize: tokens.text.body,
   },
   countryUnlockCta: {
     width: "100%" as const,
-    backgroundColor: "#009C9C",
+    backgroundColor: tokens.color.gold,
     paddingVertical: 14,
     borderRadius: tokens.radius.lg,
     alignItems: "center" as const,
     marginTop: tokens.space.sm,
   },
   countryUnlockCtaText: {
-    color: tokens.color.white,
+    color: tokens.color.text,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     fontSize: tokens.text.body,
   },
   secondaryCta: {
@@ -1157,6 +1175,7 @@ const s = {
   secondaryCtaText: {
     color: tokens.color.text,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     fontSize: tokens.text.body,
   },
   restoreButton: {
@@ -1166,6 +1185,7 @@ const s = {
   restoreText: {
     color: tokens.color.primary,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     fontSize: tokens.text.body,
   },
   ctaPressed: {
@@ -1184,23 +1204,26 @@ const s = {
   activeText: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
   sourceText: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     textAlign: "center" as const,
   },
   expirationText: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   },
   sandboxCard: {
     padding: tokens.space.lg,
     borderRadius: tokens.radius.lg,
     borderWidth: 1,
-    borderColor: "#fcd34d",
-    backgroundColor: "#fef3c7",
+    borderColor: tokens.color.gold,
+    backgroundColor: tokens.color.goldLight,
   },
   sandboxRow: {
     flexDirection: "row" as const,
@@ -1210,11 +1233,13 @@ const s = {
   sandboxTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
-    color: "#92400e",
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.gold,
   },
   sandboxSub: {
     fontSize: tokens.text.small,
-    color: "#b45309",
+    fontFamily: tokens.font.body,
+    color: tokens.color.gold,
     marginTop: 2,
   },
   coverageNote: {
@@ -1230,12 +1255,14 @@ const s = {
   coverageNoteText: {
     flex: 1,
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 18,
   },
   promoLinkText: {
     color: tokens.color.subtext,
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     textDecorationLine: "underline" as const,
   },
   promoCard: {
@@ -1249,6 +1276,7 @@ const s = {
   promoLabel: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
   promoInputRow: {
@@ -1280,10 +1308,12 @@ const s = {
   },
   promoErrorText: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: "#dc2626",
   },
   promoSuccessText: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
     fontWeight: tokens.weight.bold,
   },
@@ -1303,14 +1333,17 @@ const s = {
   monthlyTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
   monthlyMeta: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   },
   disclaimer: {
     fontSize: 10,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     textAlign: "center" as const,
     lineHeight: 14,
@@ -1327,10 +1360,12 @@ const s = {
     fontSize: tokens.text.small,
     color: tokens.color.primary,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     textDecorationLine: "underline" as const,
   },
   legalSeparator: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   },
   tabRow: {
@@ -1342,7 +1377,7 @@ const s = {
   tabPill: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: tokens.radius.pill,
+    borderRadius: tokens.radius.sm,
     backgroundColor: tokens.color.surface,
     borderWidth: 1,
     borderColor: tokens.color.border,
@@ -1354,6 +1389,7 @@ const s = {
   tabPillText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
   },
   tabPillTextActive: {
@@ -1380,11 +1416,13 @@ const s = {
     flex: 1,
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
     lineHeight: 20,
   },
   faqAnswer: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 20,
   },
@@ -1409,6 +1447,7 @@ const s = {
   bottomCtaText: {
     color: tokens.color.white,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     fontSize: tokens.text.body,
   },
 };

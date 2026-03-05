@@ -121,21 +121,22 @@ const styles = {
   evidenceLabelText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
   },
 
   header: { gap: tokens.space.xs },
-  h1: { fontSize: tokens.text.h1, fontWeight: tokens.weight.black, color: tokens.color.text },
-  lead: { fontSize: tokens.text.body, color: tokens.color.subtext, lineHeight: 18 },
+  h1: { fontSize: tokens.text.h1, fontWeight: tokens.weight.black, fontFamily: tokens.font.display, color: tokens.color.text },
+  lead: { fontSize: tokens.text.body, fontFamily: tokens.font.body, color: tokens.color.subtext, lineHeight: 18 },
   countryTag: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
     gap: 4,
     marginTop: 2,
   },
-  context: { fontSize: tokens.text.small, color: tokens.color.primary, fontWeight: tokens.weight.bold },
+  context: { fontSize: tokens.text.small, color: tokens.color.primary, fontWeight: tokens.weight.bold, fontFamily: tokens.font.bodyBold },
 
   listGap: { gap: 8 },
 
@@ -158,19 +159,20 @@ const styles = {
   cardTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
-  cardSubtitle: { marginTop: 2, color: tokens.color.subtext, lineHeight: 18, fontSize: tokens.text.small },
+  cardSubtitle: { marginTop: 2, fontFamily: tokens.font.body, color: tokens.color.subtext, lineHeight: 18, fontSize: tokens.text.small },
 
   badge: {
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: tokens.radius.pill,
+    borderRadius: tokens.radius.sm,
     backgroundColor: tokens.color.primarySoft,
     borderWidth: 1,
     borderColor: tokens.color.primaryBorder,
   },
-  badgeText: { fontSize: 10, fontWeight: tokens.weight.black, color: tokens.color.primary },
+  badgeText: { fontSize: 10, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodyBold, color: tokens.color.primary },
 
-  disclaimer: { marginTop: 8, fontSize: tokens.text.small, color: tokens.color.subtext, lineHeight: 16 },
+  disclaimer: { marginTop: 8, fontSize: tokens.text.small, fontFamily: tokens.font.body, color: tokens.color.subtext, lineHeight: 16 },
 } as const;

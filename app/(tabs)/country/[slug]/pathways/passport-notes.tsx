@@ -38,11 +38,11 @@ export default function PassportNotesScreen() {
     return (
       <Screen>
         <View style={{ flex: 1, padding: tokens.space.xl, justifyContent: "center", alignItems: "center" }}>
-          <Text style={{ fontSize: tokens.text.h3, fontWeight: tokens.weight.black, color: tokens.color.text }}>
+          <Text style={{ fontSize: tokens.text.h3, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodySemiBold, color: tokens.color.text }}>
             No passport notes available
           </Text>
           <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
-            <Text style={{ color: tokens.color.primary, fontWeight: tokens.weight.black }}>Go back</Text>
+            <Text style={{ color: tokens.color.primary, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodyBold }}>Go back</Text>
           </Pressable>
         </View>
       </Screen>
@@ -58,7 +58,7 @@ export default function PassportNotesScreen() {
       >
         <View style={styles.headerSection}>
           <View style={styles.headerRow}>
-            <Ionicons name="earth" size={22} color="#0D8A8A" />
+            <Ionicons name="earth" size={22} color={tokens.color.teal} />
             <Text style={styles.h1}>Passport Notes</Text>
           </View>
           <Text style={styles.subtitle}>
@@ -106,17 +106,20 @@ const styles = {
   h1: {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
-    color: "#1A5C5C",
+    fontFamily: tokens.font.display,
+    color: tokens.color.text,
   },
   subtitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
     marginTop: 2,
   },
   lead: {
     fontSize: tokens.text.small,
-    color: "#0D8A8A",
+    fontFamily: tokens.font.body,
+    color: tokens.color.teal,
     lineHeight: 18,
     marginTop: 2,
   },
@@ -125,9 +128,9 @@ const styles = {
   noteCard: {
     padding: 14,
     borderRadius: tokens.radius.lg,
-    backgroundColor: "#FBF7EF",
+    backgroundColor: tokens.color.tealLight,
     borderWidth: 1,
-    borderColor: "#E8DCC8",
+    borderColor: tokens.color.teal,
     gap: 8,
   },
   noteLabelRow: {
@@ -139,29 +142,33 @@ const styles = {
     width: 32,
     height: 22,
     borderRadius: 4,
-    backgroundColor: "#009C9C",
+    backgroundColor: tokens.color.teal,
     alignItems: "center" as const,
     justifyContent: "center" as const,
   },
   noteFlagText: {
     fontSize: 11,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.white,
     letterSpacing: 0.5,
   },
   noteLabelText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
   noteText: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
     lineHeight: 22,
   },
 
   disclaimer: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 16,
     marginTop: 4,

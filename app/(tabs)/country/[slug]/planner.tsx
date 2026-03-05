@@ -124,10 +124,12 @@ const styles = {
   title: {
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
   },
   subtitle: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 18,
   },
@@ -157,11 +159,13 @@ const styles = {
   focusTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodySemiBold,
     color: tokens.color.text,
     textAlign: "center" as const,
   },
   focusBody: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 20,
     textAlign: "center" as const,
@@ -180,10 +184,12 @@ const styles = {
   focusButtonText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: "#fff",
   },
   focusMicrocopy: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     textAlign: "center" as const,
   },
@@ -199,11 +205,13 @@ const styles = {
   lockedTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodySemiBold,
     color: tokens.color.text,
     textAlign: "center" as const,
   },
   lockedBody: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 20,
     textAlign: "center" as const,
