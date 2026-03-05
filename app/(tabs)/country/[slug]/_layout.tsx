@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { tokens } from "@/theme/tokens";
-import { colors } from "@/constants/colors";
 import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import React from "react";
 import { Image, Pressable, Text, View } from "react-native";
@@ -31,7 +30,7 @@ function BackButton({ fallback }: { fallback?: string }) {
       hitSlop={12}
       style={{ padding: 8 }}
     >
-      <Ionicons name="chevron-back" size={24} color={colors.onDark} />
+      <Ionicons name="chevron-back" size={24} color={tokens.color.primary} />
     </Pressable>
   );
 }
@@ -53,7 +52,7 @@ function CountryBackButton() {
       hitSlop={12}
       style={{ padding: 8 }}
     >
-      <Ionicons name="chevron-back" size={24} color={colors.onDark} />
+      <Ionicons name="chevron-back" size={24} color={tokens.color.primary} />
     </Pressable>
   );
 }
@@ -81,12 +80,6 @@ function PathfinderBadge() {
   );
 }
 
-const glassHeader = {
-  backgroundColor: colors.glassDark,
-  borderBottomWidth: 1,
-  borderBottomColor: colors.borderDark,
-};
-
 const detailScreenOptions = {
   title: "",
   headerBackTitle: "",
@@ -103,12 +96,10 @@ export default function CountrySlugLayout() {
         headerTitleAlign: "center",
         headerBackTitle: "",
         headerShadowVisible: false,
-        headerStyle: glassHeader,
+        headerStyle: { backgroundColor: tokens.color.surface, borderBottomWidth: 1, borderBottomColor: tokens.color.border },
         headerLeft: () => <BackButton />,
         headerLeftContainerStyle: { paddingLeft: 8 },
         title: "",
-        contentStyle: { backgroundColor: 'transparent' },
-        navigationBarColor: 'transparent',
       }}
     >
       <Stack.Screen

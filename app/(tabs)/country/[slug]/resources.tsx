@@ -201,7 +201,7 @@ function ResourcesContent({ countrySlug }: { countrySlug?: string }) {
     >
       <View style={styles.evidenceHeader}>
         <View style={styles.evidenceLabel}>
-          <Ionicons name="document-text" size={12} color={tokens.color.onDarkMid} />
+          <Ionicons name="document-text" size={12} color={tokens.color.subtext} />
           <Text style={styles.evidenceLabelText}>Supporting resources</Text>
         </View>
         <View style={styles.titleRow}>
@@ -212,7 +212,7 @@ function ResourcesContent({ countrySlug }: { countrySlug?: string }) {
             accessibilityRole="button"
             accessibilityLabel="Source type information"
           >
-            <Ionicons name="information-circle-outline" size={20} color={tokens.color.onDarkSoft} />
+            <Ionicons name="information-circle-outline" size={20} color={tokens.color.subtext} />
           </Pressable>
         </View>
         <Text style={styles.subtitle}>Trusted government and expert sources for {countryName}.</Text>
@@ -264,7 +264,7 @@ function ResourcesContent({ countrySlug }: { countrySlug?: string }) {
 }
 
 const styles = {
-  scrollContainer: { flex: 1, backgroundColor: 'transparent' },
+  scrollContainer: { flex: 1, backgroundColor: tokens.color.bg },
   content: {
     padding: tokens.space.xl,
     paddingBottom: tokens.space.xxl,
@@ -285,7 +285,7 @@ const styles = {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.onDarkMid,
+    color: tokens.color.subtext,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
   },
@@ -294,27 +294,27 @@ const styles = {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.onDark,
+    color: tokens.color.text,
   },
 
   subtitle: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.onDarkMid,
+    color: tokens.color.subtext,
     lineHeight: 18,
   },
 
   stateText: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.onDarkMid,
+    color: tokens.color.subtext,
   },
 
   countText: {
     marginTop: tokens.space.xs,
     fontSize: tokens.text.small,
     fontFamily: tokens.font.body,
-    color: tokens.color.onDarkSoft,
+    color: tokens.color.subtext,
   },
 
   chipRow: {
@@ -331,7 +331,7 @@ const styles = {
   },
 
   chipIdle: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'transparent',
   },
 
   chipActive: {
@@ -349,7 +349,7 @@ const styles = {
   },
 
   chipTextIdle: {
-    color: 'rgba(255,255,255,0.60)',
+    color: tokens.color.subtext,
   },
 
   chipTextActive: {
@@ -371,8 +371,11 @@ const styles = {
   },
 
   card: {
-    ...tokens.card,
     padding: tokens.space.lg,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    backgroundColor: tokens.color.surface,
     gap: 8,
   },
 
@@ -427,8 +430,11 @@ const styles = {
   },
 
   emptyCard: {
-    ...tokens.card,
     padding: tokens.space.xl,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    backgroundColor: tokens.color.surface,
     alignItems: "center" as const,
   },
 
@@ -447,9 +453,12 @@ const styles = {
   },
 
   legendCard: {
-    ...tokens.card,
     marginTop: tokens.space.sm,
     padding: tokens.space.lg,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    backgroundColor: tokens.color.surface,
     gap: 10,
   },
 

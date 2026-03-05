@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: tokens.radius.sm,
-    backgroundColor: 'rgba(51,196,220,0.12)',
+    backgroundColor: tokens.color.primarySoft,
     alignSelf: "flex-start",
   },
   pressed: {
@@ -118,7 +118,8 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   tooltip: {
-    ...tokens.card,
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.lg,
     padding: 20,
     maxWidth: 340,
     width: "100%",

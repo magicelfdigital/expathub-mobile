@@ -16,7 +16,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useLocalSearchParams } from "expo-router";
-import { Screen } from "@/components/Screen";
 import { useAuth } from "@/contexts/AuthContext";
 import { tokens } from "@/theme/tokens";
 import { trackEvent } from "@/src/lib/analytics";
@@ -77,7 +76,6 @@ export default function AuthScreen() {
   };
 
   return (
-    <Screen>
     <KeyboardAvoidingView
       style={[s.flex, isLargeScreen && s.flexCentered]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -111,7 +109,7 @@ export default function AuthScreen() {
 
         {error ? (
           <View style={s.errorBox}>
-            <Ionicons name="alert-circle" size={16} color="#fca5a5" />
+            <Ionicons name="alert-circle" size={16} color="#b91c1c" />
             <Text style={s.errorText}>{error}</Text>
           </View>
         ) : null}
@@ -216,14 +214,13 @@ export default function AuthScreen() {
         </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
-    </Screen>
   );
 }
 
 const s = {
-  flex: { flex: 1 } as const,
+  flex: { flex: 1, backgroundColor: tokens.color.bg } as const,
   flexCentered: { alignItems: "center" as const } as const,
-  scroll: { flex: 1 } as const,
+  scroll: { flex: 1, backgroundColor: tokens.color.bg } as const,
   scrollLarge: { maxWidth: 900, width: "100%" as const } as const,
   scrollContent: {
     paddingHorizontal: 24,
@@ -237,14 +234,14 @@ const s = {
     fontSize: 28,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.onDark,
+    color: tokens.color.text,
     marginBottom: 8,
   } as const,
 
   subtitle: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.onDarkMid,
+    color: tokens.color.subtext,
     lineHeight: 22,
     marginBottom: 24,
   } as const,
@@ -253,9 +250,9 @@ const s = {
     flexDirection: "row" as const,
     alignItems: "center" as const,
     gap: 8,
-    backgroundColor: "rgba(185,28,28,0.15)",
+    backgroundColor: "#fef2f2",
     borderWidth: 1,
-    borderColor: "rgba(185,28,28,0.30)",
+    borderColor: "#fecaca",
     borderRadius: tokens.radius.md,
     padding: 12,
     marginBottom: 16,
@@ -265,15 +262,11 @@ const s = {
     flex: 1,
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: "#fca5a5",
+    color: "#b91c1c",
     lineHeight: 20,
   } as const,
 
-  form: {
-    ...tokens.card,
-    padding: 20,
-    gap: 4,
-  } as const,
+  form: { gap: 4 } as const,
 
   label: {
     fontSize: tokens.text.small,
@@ -319,7 +312,7 @@ const s = {
   fieldError: {
     fontSize: tokens.text.small,
     fontFamily: tokens.font.body,
-    color: "#fca5a5",
+    color: "#b91c1c",
     marginTop: 4,
   } as const,
 
@@ -349,11 +342,11 @@ const s = {
   toggleText: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.onDarkMid,
+    color: tokens.color.subtext,
   } as const,
 
   toggleLink: {
-    color: tokens.color.teal,
+    color: tokens.color.primary,
     fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
   } as const,
@@ -365,7 +358,7 @@ const s = {
 
   forgotText: {
     fontSize: tokens.text.body,
-    color: tokens.color.teal,
+    color: tokens.color.primary,
     fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
   } as const,

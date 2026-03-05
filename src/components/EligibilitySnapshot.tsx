@@ -381,11 +381,11 @@ const dropStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.50)',
+    borderColor: tokens.color.border,
     borderRadius: tokens.radius.sm,
     paddingHorizontal: tokens.space.md,
     paddingVertical: tokens.space.sm + 2,
-    backgroundColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: tokens.color.surface,
   },
   triggerActive: {
     borderColor: tokens.color.primary,
@@ -402,9 +402,9 @@ const dropStyles = StyleSheet.create({
   menu: {
     marginTop: 4,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.50)',
+    borderColor: tokens.color.border,
     borderRadius: tokens.radius.sm,
-    backgroundColor: tokens.color.cardBg,
+    backgroundColor: tokens.color.surface,
     overflow: "hidden" as const,
   },
   option: {
@@ -412,7 +412,7 @@ const dropStyles = StyleSheet.create({
     paddingVertical: tokens.space.sm,
   },
   optionActive: {
-    backgroundColor: 'rgba(51,196,220,0.12)',
+    backgroundColor: tokens.color.primarySoft,
   },
   optionText: {
     fontSize: tokens.text.body,
@@ -631,7 +631,10 @@ export default function EligibilitySnapshot({
 
 const styles = StyleSheet.create({
   container: {
-    ...tokens.card,
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
     padding: tokens.space.lg,
     marginTop: tokens.space.md,
   },
@@ -651,7 +654,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: 'rgba(51,196,220,0.08)',
+    backgroundColor: tokens.color.primarySoft,
     borderRadius: tokens.radius.sm,
     paddingHorizontal: tokens.space.sm,
     paddingVertical: tokens.space.xs,
@@ -674,7 +677,7 @@ const styles = StyleSheet.create({
     marginTop: tokens.space.xs,
   },
   runButtonDisabled: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: tokens.color.border,
   },
   runButtonText: {
     fontSize: tokens.text.body,
@@ -689,15 +692,15 @@ const styles = StyleSheet.create({
     gap: tokens.space.md,
   },
   resultCard: {
-    backgroundColor: 'rgba(51,196,220,0.08)',
+    backgroundColor: tokens.color.tealLight,
     borderRadius: tokens.radius.sm,
     borderWidth: 1,
-    borderColor: 'rgba(51,196,220,0.30)',
+    borderColor: tokens.color.teal,
     padding: tokens.space.md,
   },
   resultCardModerate: {
-    backgroundColor: 'rgba(232,153,26,0.08)',
-    borderColor: 'rgba(232,153,26,0.30)',
+    backgroundColor: tokens.color.goldLight,
+    borderColor: tokens.color.gold,
   },
   resultIconRow: {
     flexDirection: "row",

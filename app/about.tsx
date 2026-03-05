@@ -5,7 +5,6 @@ import React from "react";
 import { Linking, Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Screen } from "@/components/Screen";
 import { PRIVACY_URL, TERMS_URL } from "@/src/config/subscription";
 import { tokens } from "@/theme/tokens";
 
@@ -30,7 +29,6 @@ export default function AboutScreen() {
   };
 
   return (
-    <Screen>
     <ScrollView
       style={[s.container, { paddingTop: (Platform.OS === "web" ? WEB_TOP : insets.top) + 16 }]}
       contentContainerStyle={[s.scrollContent, isLargeScreen && s.scrollContentLarge]}
@@ -38,7 +36,7 @@ export default function AboutScreen() {
     >
       <View style={s.header}>
         <Pressable onPress={handleBack} hitSlop={12}>
-          <Ionicons name="close" size={28} color={tokens.color.onDark} />
+          <Ionicons name="close" size={28} color={tokens.color.text} />
         </Pressable>
         <Text style={s.headerTitle}>About</Text>
         <View style={{ width: 28 }} />
@@ -124,13 +122,13 @@ export default function AboutScreen() {
 
       <Text style={s.copyright}>{"\u00A9"} 2026 MagicElfDigital LLC</Text>
     </ScrollView>
-    </Screen>
   );
 }
 
 const s = {
   container: {
     flex: 1,
+    backgroundColor: tokens.color.bg,
   } as const,
 
   scrollContent: {
@@ -155,21 +153,21 @@ const s = {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.onDark,
+    color: tokens.color.text,
   } as const,
 
   title: {
     fontSize: 24,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.onDark,
+    color: tokens.color.text,
     marginBottom: 12,
   } as const,
 
   description: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.onDarkMid,
+    color: tokens.color.subtext,
     lineHeight: 22,
     marginBottom: 32,
   } as const,
@@ -178,7 +176,7 @@ const s = {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.onDarkSoft,
+    color: tokens.color.subtext,
     textTransform: "uppercase" as const,
     letterSpacing: 1,
     marginBottom: 8,
@@ -186,7 +184,10 @@ const s = {
   } as const,
 
   card: {
-    ...tokens.card,
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
     marginBottom: 24,
     overflow: "hidden" as const,
   } as const,
@@ -273,14 +274,14 @@ const s = {
     flex: 1,
     fontSize: tokens.text.small,
     fontFamily: tokens.font.body,
-    color: tokens.color.onDarkSoft,
+    color: tokens.color.subtext,
     lineHeight: 18,
   } as const,
 
   copyright: {
     fontSize: tokens.text.small,
     fontFamily: tokens.font.body,
-    color: tokens.color.onDarkSoft,
+    color: tokens.color.subtext,
     opacity: 0.5,
     textAlign: "center" as const,
     marginTop: 16,

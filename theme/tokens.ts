@@ -3,10 +3,9 @@ import { colors } from "@/constants/colors";
 export const tokens = {
   color: {
     headerBlue: colors.navy,
-    bg: 'transparent',
+    bg: colors.cream,
     surface: colors.surface,
     border: colors.border,
-    borderDark: colors.borderDark,
     shadow: colors.shadow,
     text: colors.navy,
     subtext: colors.textMid,
@@ -18,15 +17,8 @@ export const tokens = {
     tealLight: colors.tealLight,
     gold: colors.gold,
     goldLight: colors.goldLight,
-    white: '#FFFFFF',
+    white: colors.surface,
     dark: colors.navy,
-    cream: colors.cream,
-    onDark: colors.onDark,
-    onDarkMid: colors.onDarkMid,
-    onDarkSoft: colors.onDarkSoft,
-    cardBg: colors.cardBg,
-    glassDark: colors.glassDark,
-    glassLight: colors.glassLight,
   },
 
   space: {
@@ -41,7 +33,7 @@ export const tokens = {
   radius: {
     sm: 6,
     md: 12,
-    lg: 16,
+    lg: 14,
     pill: 999,
   },
 
@@ -67,17 +59,5 @@ export const tokens = {
     bodyMedium: "DMSans_500Medium",
     bodySemiBold: "DMSans_600SemiBold",
     bodyBold: "DMSans_700Bold",
-  },
-
-  card: {
-    backgroundColor: colors.cardBg,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.50)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
   },
 } as const;

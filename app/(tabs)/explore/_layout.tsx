@@ -3,7 +3,6 @@ import { Stack, useRouter } from "expo-router";
 import React from "react";
 import { Image, Pressable } from "react-native";
 import { tokens } from "@/theme/tokens";
-import { colors } from "@/constants/colors";
 
 function AppHeaderTitle() {
   return (
@@ -29,7 +28,7 @@ function BackButton() {
       hitSlop={10}
       style={{ padding: 4 }}
     >
-      <Ionicons name="chevron-back" size={24} color={colors.onDark} />
+      <Ionicons name="chevron-back" size={24} color={tokens.color.primary} />
     </Pressable>
   );
 }
@@ -47,15 +46,8 @@ export default function ExploreLayout() {
         headerTitle: () => <AppHeaderTitle />,
         headerTitleAlign: "center",
         headerShadowVisible: false,
-        headerStyle: {
-          backgroundColor: colors.glassDark,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.borderDark,
-        },
-        headerTintColor: colors.onDark,
+        headerStyle: { backgroundColor: tokens.color.surface, borderBottomWidth: 1, borderBottomColor: tokens.color.border },
         title: "",
-        contentStyle: { backgroundColor: 'transparent' },
-        navigationBarColor: 'transparent',
       }}
     >
       <Stack.Screen name="index" options={{ title: "" }} />

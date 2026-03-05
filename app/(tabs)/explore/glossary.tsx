@@ -93,13 +93,13 @@ export default function GlossaryScreen() {
           <Ionicons
             name="search"
             size={16}
-            color="rgba(255,255,255,0.50)"
+            color={tokens.color.subtext}
             style={s.searchIcon}
           />
           <TextInput
             style={s.searchInput}
             placeholder="Search abbreviations..."
-            placeholderTextColor="rgba(255,255,255,0.45)"
+            placeholderTextColor={tokens.color.subtext}
             value={search}
             onChangeText={setSearch}
             autoCorrect={false}
@@ -111,7 +111,7 @@ export default function GlossaryScreen() {
               <Ionicons
                 name="close-circle"
                 size={18}
-                color="rgba(255,255,255,0.50)"
+                color={tokens.color.subtext}
               />
             </Pressable>
           )}
@@ -186,7 +186,7 @@ export default function GlossaryScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
+  container: { flex: 1, backgroundColor: tokens.color.bg },
   content: {
     padding: tokens.space.xl,
     paddingBottom: tokens.space.xxl + 40,
@@ -198,11 +198,11 @@ const s = StyleSheet.create({
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black as any,
     fontFamily: tokens.font.display,
-    color: tokens.color.onDark,
+    color: tokens.color.text,
   },
   lead: {
     fontSize: tokens.text.body,
-    color: tokens.color.onDarkMid,
+    color: tokens.color.subtext,
     fontFamily: tokens.font.body,
     lineHeight: 20,
   },
@@ -210,9 +210,9 @@ const s = StyleSheet.create({
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: tokens.color.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.20)',
+    borderColor: tokens.color.border,
     borderRadius: tokens.radius.md,
     paddingHorizontal: 12,
     paddingVertical: Platform.OS === "web" ? 10 : 8,
@@ -223,7 +223,7 @@ const s = StyleSheet.create({
     flex: 1,
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.onDark,
+    color: tokens.color.text,
     padding: 0,
   },
 
@@ -233,7 +233,7 @@ const s = StyleSheet.create({
   },
   emptyText: {
     fontSize: tokens.text.body,
-    color: tokens.color.onDarkMid,
+    color: tokens.color.subtext,
     fontFamily: tokens.font.body,
   },
 
@@ -247,18 +247,22 @@ const s = StyleSheet.create({
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.bold as any,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.onDark,
+    color: tokens.color.text,
   },
 
   entriesList: { gap: 6 },
 
   entryCard: {
-    ...tokens.card,
     padding: 12,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    backgroundColor: tokens.color.surface,
     gap: 8,
   },
   entryCardOpen: {
-    borderColor: tokens.color.primary,
+    borderColor: tokens.color.primaryBorder,
+    backgroundColor: tokens.color.primarySoft,
   },
   entryCardPressed: { opacity: 0.9 },
 
@@ -306,7 +310,7 @@ const s = StyleSheet.create({
   },
   footerText: {
     fontSize: tokens.text.small,
-    color: tokens.color.onDarkSoft,
+    color: tokens.color.subtext,
     fontFamily: tokens.font.body,
   },
 });
