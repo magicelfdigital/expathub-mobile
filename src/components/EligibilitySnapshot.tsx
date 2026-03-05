@@ -381,11 +381,11 @@ const dropStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: tokens.color.border,
+    borderColor: 'rgba(255,255,255,0.50)',
     borderRadius: tokens.radius.sm,
     paddingHorizontal: tokens.space.md,
     paddingVertical: tokens.space.sm + 2,
-    backgroundColor: tokens.color.surface,
+    backgroundColor: 'rgba(255,255,255,0.5)',
   },
   triggerActive: {
     borderColor: tokens.color.primary,
@@ -402,9 +402,9 @@ const dropStyles = StyleSheet.create({
   menu: {
     marginTop: 4,
     borderWidth: 1,
-    borderColor: tokens.color.border,
+    borderColor: 'rgba(255,255,255,0.50)',
     borderRadius: tokens.radius.sm,
-    backgroundColor: tokens.color.surface,
+    backgroundColor: tokens.color.cardBg,
     overflow: "hidden" as const,
   },
   option: {
@@ -412,7 +412,7 @@ const dropStyles = StyleSheet.create({
     paddingVertical: tokens.space.sm,
   },
   optionActive: {
-    backgroundColor: tokens.color.primarySoft,
+    backgroundColor: 'rgba(51,196,220,0.12)',
   },
   optionText: {
     fontSize: tokens.text.body,
@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: tokens.color.primarySoft,
+    backgroundColor: 'rgba(51,196,220,0.08)',
     borderRadius: tokens.radius.sm,
     paddingHorizontal: tokens.space.sm,
     paddingVertical: tokens.space.xs,
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
     marginTop: tokens.space.xs,
   },
   runButtonDisabled: {
-    backgroundColor: tokens.color.border,
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
   runButtonText: {
     fontSize: tokens.text.body,
@@ -689,15 +689,15 @@ const styles = StyleSheet.create({
     gap: tokens.space.md,
   },
   resultCard: {
-    backgroundColor: tokens.color.tealLight,
+    backgroundColor: 'rgba(51,196,220,0.08)',
     borderRadius: tokens.radius.sm,
     borderWidth: 1,
-    borderColor: tokens.color.teal,
+    borderColor: 'rgba(51,196,220,0.30)',
     padding: tokens.space.md,
   },
   resultCardModerate: {
-    backgroundColor: tokens.color.goldLight,
-    borderColor: tokens.color.gold,
+    backgroundColor: 'rgba(232,153,26,0.08)',
+    borderColor: 'rgba(232,153,26,0.30)',
   },
   resultIconRow: {
     flexDirection: "row",

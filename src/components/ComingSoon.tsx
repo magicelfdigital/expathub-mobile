@@ -50,7 +50,7 @@ const s = {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: tokens.color.primarySoft,
+    backgroundColor: 'rgba(51,196,220,0.12)',
     alignItems: "center" as const,
     justifyContent: "center" as const,
     marginBottom: tokens.space.xs,

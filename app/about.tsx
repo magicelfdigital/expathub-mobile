@@ -5,6 +5,7 @@ import React from "react";
 import { Linking, Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Screen } from "@/components/Screen";
 import { PRIVACY_URL, TERMS_URL } from "@/src/config/subscription";
 import { tokens } from "@/theme/tokens";
 
@@ -29,6 +30,7 @@ export default function AboutScreen() {
   };
 
   return (
+    <Screen>
     <ScrollView
       style={[s.container, { paddingTop: (Platform.OS === "web" ? WEB_TOP : insets.top) + 16 }]}
       contentContainerStyle={[s.scrollContent, isLargeScreen && s.scrollContentLarge]}
@@ -122,13 +124,13 @@ export default function AboutScreen() {
 
       <Text style={s.copyright}>{"\u00A9"} 2026 MagicElfDigital LLC</Text>
     </ScrollView>
+    </Screen>
   );
 }
 
 const s = {
   container: {
     flex: 1,
-    backgroundColor: 'rgba(15,25,60,0.95)',
   } as const,
 
   scrollContent: {
