@@ -126,7 +126,7 @@ export default function TabsLayout() {
             const onCountryIndex = inCountryTab && segments.length <= 2;
             if (!onCountryIndex) {
               e.preventDefault();
-              router.replace("/(tabs)/country" as any);
+              router.navigate("/(tabs)/country" as any);
             }
           },
         }}

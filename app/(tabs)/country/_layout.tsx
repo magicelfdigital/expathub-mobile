@@ -31,7 +31,11 @@ export default function CountryLayout() {
           title: "",
         }}
       />
-      <Stack.Screen name="[slug]" options={{ headerShown: false, title: "" }} />
+      <Stack.Screen
+        name="[slug]"
+        options={{ headerShown: false, title: "" }}
+        getId={({ params }) => params?.slug as string}
+      />
     </Stack>
   );
 }

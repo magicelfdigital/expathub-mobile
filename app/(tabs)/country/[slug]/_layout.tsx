@@ -19,10 +19,10 @@ function BackButton({ fallback }: { fallback?: string }) {
   return (
     <Pressable
       onPress={() => {
-        if (fallback) {
-          router.replace(fallback as any);
-        } else if (router.canGoBack()) {
+        if (router.canGoBack()) {
           router.back();
+        } else if (fallback) {
+          router.replace(fallback as any);
         } else {
           router.replace("/(tabs)" as any);
         }
