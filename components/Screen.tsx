@@ -1,6 +1,6 @@
 import { useLayout } from "@/src/hooks/useLayout";
 import React from "react";
-import { ImageBackground, StyleSheet, View, ViewStyle } from "react-native";
+import { Image, StyleSheet, View, ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const MAX_CONTENT_WIDTH = 900;
@@ -20,12 +20,13 @@ export function Screen({
   const { isTablet } = useLayout();
 
   return (
-    <ImageBackground
-      source={mapImage}
-      style={styles.bg}
-      resizeMode="cover"
-    >
-      <View style={styles.overlay} />
+    <View style={styles.bg}>
+      <Image
+        source={mapImage}
+        style={styles.mapImage}
+        resizeMode="cover"
+      />
+      <View style={styles.mapFade} />
       <SafeAreaView
         style={[styles.safe, isTablet && styles.safeCentered]}
         edges={["left", "right"]}
@@ -40,17 +41,29 @@ export function Screen({
           {children}
         </View>
       </SafeAreaView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   bg: {
     flex: 1,
+    backgroundColor: 'rgba(15,25,60,1)',
   },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15,25,60,0.50)',
+  mapImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 280,
+    opacity: 0.45,
+  },
+  mapFade: {
+    position: 'absolute',
+    top: 200,
+    left: 0,
+    right: 0,
+    height: 80,
   },
   safe: {
     flex: 1,
