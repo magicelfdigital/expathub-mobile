@@ -198,7 +198,7 @@ export default function DebugBillingScreen() {
     >
       <View style={s.header}>
         <Pressable onPress={() => router.back()} hitSlop={12}>
-          <Ionicons name="close" size={28} color={tokens.color.text} />
+          <Ionicons name="close" size={28} color={tokens.color.onDark} />
         </Pressable>
         <Text style={s.headerTitle}>Billing Debug</Text>
         <Pressable onPress={refreshState} hitSlop={12}>
@@ -375,7 +375,7 @@ function ActionButton({
 const s = {
   container: {
     flex: 1,
-    backgroundColor: tokens.color.bg,
+    backgroundColor: 'rgba(15,25,60,0.95)',
   } as const,
 
   scrollContent: {
@@ -394,24 +394,21 @@ const s = {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
   } as const,
 
   sectionTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
     marginBottom: 8,
     marginTop: 16,
   } as const,
 
   card: {
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.md,
+    ...tokens.card,
     padding: 14,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
     gap: 10,
   } as const,
 
@@ -499,7 +496,7 @@ const s = {
 
   clearLog: {
     fontSize: tokens.text.small,
-    color: "#b91c1c",
+    color: "#fca5a5",
     fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
   } as const,

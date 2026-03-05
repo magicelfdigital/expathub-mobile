@@ -112,7 +112,7 @@ export default function PlannerScreen() {
 }
 
 const styles = {
-  container: { flex: 1, backgroundColor: tokens.color.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   content: {
     padding: tokens.space.xl,
     paddingBottom: tokens.space.xxl,
@@ -126,22 +126,19 @@ const styles = {
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
   },
   subtitle: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkMid,
     lineHeight: 18,
   },
   planSection: {
     gap: tokens.space.lg,
   },
   focusSection: {
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
+    ...tokens.card,
     padding: tokens.space.xl,
     alignItems: "center" as const,
     gap: tokens.space.sm,
@@ -195,10 +192,7 @@ const styles = {
     textAlign: "center" as const,
   },
   lockedSection: {
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
+    ...tokens.card,
     padding: tokens.space.xl,
     alignItems: "center" as const,
     gap: tokens.space.sm,

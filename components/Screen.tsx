@@ -1,4 +1,3 @@
-import { tokens } from "@/theme/tokens";
 import { useLayout } from "@/src/hooks/useLayout";
 import React from "react";
 import { StyleSheet, View, ViewStyle } from "react-native";
@@ -39,13 +38,13 @@ export function Screen({
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: tokens.color.bg,
+    backgroundColor: 'transparent',
   },
   safeCentered: {
     alignItems: "center",
   },
   content: {
     flex: 1,
-    backgroundColor: tokens.color.bg,
+    backgroundColor: 'transparent',
   },
 });

@@ -82,7 +82,7 @@ export default function PathwayScreen() {
     return (
       <Screen>
         <View style={{ flex: 1, padding: tokens.space.xl, justifyContent: "center", alignItems: "center" }}>
-          <Text style={{ fontSize: tokens.text.h3, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodySemiBold, color: tokens.color.text }}>
+          <Text style={{ fontSize: tokens.text.h3, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodySemiBold, color: tokens.color.onDark }}>
             Pathway not found
           </Text>
           <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
@@ -135,7 +135,7 @@ export default function PathwayScreen() {
       <Screen>
         <View style={authGateStyles.container}>
           <Pressable onPress={() => router.back()} hitSlop={12} style={authGateStyles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={tokens.color.text} />
+            <Ionicons name="arrow-back" size={24} color={tokens.color.onDark} />
           </Pressable>
           <View style={authGateStyles.card}>
             <View style={authGateStyles.iconCircle}>
@@ -328,7 +328,7 @@ function PathwayContent({ pathway, countryName, openInApp, brief, countrySlug, p
 
       <View style={styles.headerSection}>
         <View style={styles.evidenceLabel}>
-          <Ionicons name="document-text" size={12} color={tokens.color.subtext} />
+          <Ionicons name="document-text" size={12} color={tokens.color.onDarkMid} />
           <Text style={styles.evidenceLabelText}>Pathway details</Text>
         </View>
         <Text style={styles.h1}>{pathway.title}</Text>
@@ -450,12 +450,12 @@ function PathwayContent({ pathway, countryName, openInApp, brief, countrySlug, p
 }
 
 const styles = {
-  container: { flex: 1, backgroundColor: tokens.color.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: tokens.space.xl, paddingBottom: tokens.space.xxl, gap: tokens.space.lg },
 
   divider: {
     height: 1,
-    backgroundColor: tokens.color.border,
+    backgroundColor: tokens.color.borderDark,
     marginVertical: tokens.space.xs,
   },
 
@@ -469,13 +469,13 @@ const styles = {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkMid,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
   },
 
   headerSection: { gap: tokens.space.xs },
-  h1: { fontSize: tokens.text.h1, fontWeight: tokens.weight.black, fontFamily: tokens.font.display, color: tokens.color.text },
+  h1: { fontSize: tokens.text.h1, fontWeight: tokens.weight.black, fontFamily: tokens.font.display, color: tokens.color.onDark },
 
   countryTag: {
     flexDirection: "row" as const,
@@ -484,7 +484,7 @@ const styles = {
   },
   contextText: { fontSize: tokens.text.small, color: tokens.color.primary, fontWeight: tokens.weight.bold, fontFamily: tokens.font.bodyBold },
 
-  lead: { fontSize: tokens.text.body, fontFamily: tokens.font.body, color: tokens.color.subtext, lineHeight: 20 },
+  lead: { fontSize: tokens.text.body, fontFamily: tokens.font.body, color: tokens.color.onDarkMid, lineHeight: 20 },
 
   infoRow: {
     flexDirection: "row" as const,
@@ -492,12 +492,9 @@ const styles = {
   },
 
   infoCard: {
+    ...tokens.card,
     flex: 1,
     padding: tokens.space.lg,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    backgroundColor: tokens.color.surface,
     gap: 4,
     alignItems: "center" as const,
   },
@@ -519,7 +516,7 @@ const styles = {
   },
 
   section: { gap: tokens.space.sm },
-  sectionTitle: { fontSize: tokens.text.h3, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodySemiBold, color: tokens.color.text },
+  sectionTitle: { fontSize: tokens.text.h3, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodySemiBold, color: tokens.color.onDark },
 
   bullets: { gap: 8 },
   bulletRow: {
@@ -527,7 +524,7 @@ const styles = {
     alignItems: "flex-start" as const,
     gap: 8,
   },
-  bulletText: { flex: 1, fontFamily: tokens.font.body, color: tokens.color.text, lineHeight: 20 },
+  bulletText: { flex: 1, fontFamily: tokens.font.body, color: tokens.color.onDarkMid, lineHeight: 20 },
 
   stepsContainer: { gap: 12 },
   stepRow: {
@@ -552,7 +549,7 @@ const styles = {
   stepText: {
     flex: 1,
     fontFamily: tokens.font.body,
-    color: tokens.color.text,
+    color: tokens.color.onDarkMid,
     lineHeight: 20,
     paddingTop: 4,
   },
@@ -560,12 +557,9 @@ const styles = {
   listGap: { gap: tokens.space.sm },
 
   linkCard: {
+    ...tokens.card,
     flexDirection: "row" as const,
     alignItems: "center" as const,
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
     padding: tokens.space.lg,
     gap: tokens.space.sm,
   },
@@ -576,17 +570,16 @@ const styles = {
   linkTitle: { fontSize: tokens.text.body, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodyBold, color: tokens.color.text },
   linkSubtitle: { fontFamily: tokens.font.body, color: tokens.color.subtext, marginTop: 2, fontSize: tokens.text.small },
 
-  note: { marginTop: 2, fontFamily: tokens.font.body, color: tokens.color.subtext, lineHeight: 18 },
+  note: { marginTop: 2, fontFamily: tokens.font.body, color: tokens.color.onDarkSoft, lineHeight: 18 },
 
-  disclaimer: { marginTop: 4, fontSize: tokens.text.small, fontFamily: tokens.font.body, color: tokens.color.subtext, lineHeight: 16 },
+  disclaimer: { marginTop: 4, fontSize: tokens.text.small, fontFamily: tokens.font.body, color: tokens.color.onDarkSoft, lineHeight: 16 },
 
   passportCard: {
+    ...tokens.card,
     flexDirection: "row" as const,
     alignItems: "center" as const,
     justifyContent: "space-between" as const,
     padding: tokens.space.lg,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
     borderColor: tokens.color.teal,
     backgroundColor: tokens.color.tealLight,
   },
@@ -616,15 +609,14 @@ const previewStyles = {
   },
   divider: {
     height: 1,
-    backgroundColor: tokens.color.border,
+    backgroundColor: tokens.color.borderDark,
     marginVertical: tokens.space.xs,
   },
   unlockCard: {
+    ...tokens.card,
     flexDirection: "row" as const,
     alignItems: "center" as const,
     padding: tokens.space.lg,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
     borderColor: tokens.color.gold,
     backgroundColor: tokens.color.goldLight,
     gap: 12,
@@ -655,7 +647,7 @@ const previewStyles = {
 const authGateStyles = {
   container: {
     flex: 1,
-    backgroundColor: tokens.color.bg,
+    backgroundColor: 'transparent',
     padding: tokens.space.xl,
     justifyContent: "center" as const,
   },
@@ -667,8 +659,7 @@ const authGateStyles = {
     padding: 4,
   },
   card: {
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
+    ...tokens.card,
     borderWidth: 2,
     borderColor: tokens.color.primary,
     padding: tokens.space.xl,

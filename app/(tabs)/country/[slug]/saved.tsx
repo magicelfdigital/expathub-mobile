@@ -131,7 +131,7 @@ export default function SavedResourcesScreen() {
 }
 
 const styles = {
-  scrollContainer: { flex: 1, backgroundColor: tokens.color.bg },
+  scrollContainer: { flex: 1, backgroundColor: 'transparent' },
   content: {
     padding: tokens.space.xl,
     paddingBottom: tokens.space.xxl,
@@ -146,13 +146,13 @@ const styles = {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
   },
 
   subtitle: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkMid,
     lineHeight: 18,
   },
 
@@ -161,11 +161,8 @@ const styles = {
   },
 
   card: {
+    ...tokens.card,
     padding: tokens.space.lg,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    backgroundColor: tokens.color.surface,
     gap: 8,
   },
 
@@ -220,11 +217,8 @@ const styles = {
   },
 
   emptyCard: {
+    ...tokens.card,
     padding: tokens.space.xl,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    backgroundColor: tokens.color.surface,
     alignItems: "center" as const,
     gap: tokens.space.md,
   },

@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 import React from "react";
 import { Image } from "react-native";
-import { tokens } from "@/theme/tokens";
+import { colors } from "@/constants/colors";
 
 function AppHeaderTitle() {
   return (
@@ -18,6 +18,7 @@ export default function CountryLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
+        contentStyle: { backgroundColor: 'transparent' },
       }}
     >
       <Stack.Screen
@@ -27,7 +28,11 @@ export default function CountryLayout() {
           headerTitle: () => <AppHeaderTitle />,
           headerTitleAlign: "center",
           headerShadowVisible: false,
-          headerStyle: { backgroundColor: tokens.color.surface, borderBottomWidth: 1, borderBottomColor: tokens.color.border },
+          headerStyle: {
+            backgroundColor: colors.glassLight,
+            borderBottomWidth: 1,
+            borderBottomColor: colors.borderDark,
+          },
           title: "",
         }}
       />

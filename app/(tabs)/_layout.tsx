@@ -1,19 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs, useRouter, useSegments } from "expo-router";
 import React from "react";
-import { Image, Platform, Pressable } from "react-native";
+import { Image, Platform, Pressable, View } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { tokens } from "@/theme/tokens";
-
-function FullLogoWithTag() {
-  return (
-    <Image
-      source={require("../../assets/brand/fulllogo_transparent_nobuffer.png")}
-      resizeMode="contain"
-      style={{ height: 56, width: 240 }}
-    />
-  );
-}
+import { colors } from "@/constants/colors";
 
 function FullLogoNoTag() {
   return (
@@ -38,7 +29,7 @@ function AccountButton() {
       <Ionicons
         name={user ? "person-circle" : "person-circle-outline"}
         size={28}
-        color={user ? tokens.color.primary : tokens.color.subtext}
+        color={user ? tokens.color.primary : colors.onDarkSoft}
       />
     </Pressable>
   );
@@ -49,7 +40,11 @@ const sharedHeaderOptions = {
   headerTitle: () => <FullLogoNoTag />,
   headerTitleAlign: "center" as const,
   headerShadowVisible: false,
-  headerStyle: { backgroundColor: tokens.color.surface, borderBottomWidth: 1, borderBottomColor: tokens.color.border },
+  headerStyle: {
+    backgroundColor: colors.glassLight,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderDark,
+  },
   headerRight: () => <AccountButton />,
 };
 
@@ -61,11 +56,11 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         ...sharedHeaderOptions,
-        tabBarActiveTintColor: tokens.color.teal,
-        tabBarInactiveTintColor: "rgba(28,43,94,0.4)",
+        tabBarActiveTintColor: colors.teal,
+        tabBarInactiveTintColor: colors.onDarkSoft,
         tabBarStyle: {
-          backgroundColor: tokens.color.surface,
-          borderTopColor: tokens.color.border,
+          backgroundColor: colors.glassDark,
+          borderTopColor: colors.borderDark,
           borderTopWidth: 1,
           height: Platform.OS === "web" ? 84 : 88,
           paddingBottom: Platform.OS === "web" ? 34 : undefined,
@@ -84,8 +79,8 @@ export default function TabsLayout() {
           title: "Home",
           tabBarLabel: "Home",
           headerShown: false,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
+          tabBarIcon: ({ color, focused, size }) => (
+            <Ionicons name={focused ? "home" : "home-outline"} size={size} color={color} />
           ),
         }}
       />
@@ -95,8 +90,8 @@ export default function TabsLayout() {
           headerShown: false,
           title: "Explore",
           tabBarLabel: "Explore",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="compass" size={size} color={color} />
+          tabBarIcon: ({ color, focused, size }) => (
+            <Ionicons name={focused ? "compass" : "compass-outline"} size={size} color={color} />
           ),
         }}
       />
@@ -105,8 +100,8 @@ export default function TabsLayout() {
         options={{
           title: "Community",
           tabBarLabel: "Community",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="people" size={size} color={color} />
+          tabBarIcon: ({ color, focused, size }) => (
+            <Ionicons name={focused ? "people" : "people-outline"} size={size} color={color} />
           ),
         }}
       />
@@ -116,8 +111,8 @@ export default function TabsLayout() {
           headerShown: false,
           title: "Countries",
           tabBarLabel: "Countries",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="earth" size={size} color={color} />
+          tabBarIcon: ({ color, focused, size }) => (
+            <Ionicons name={focused ? "earth" : "earth-outline"} size={size} color={color} />
           ),
         }}
         listeners={{

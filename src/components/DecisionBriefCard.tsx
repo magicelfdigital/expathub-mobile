@@ -344,10 +344,7 @@ const s = {
     marginBottom: 2,
   },
   accordion: {
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    backgroundColor: tokens.color.surface,
+    ...tokens.card,
     overflow: "hidden" as const,
   },
   accordionHeader: {

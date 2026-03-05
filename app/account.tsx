@@ -186,11 +186,11 @@ export default function AccountScreen() {
   if (deletedSuccess) {
     return (
       <View style={[s.container, { justifyContent: "center", alignItems: "center", paddingHorizontal: 32 }]}>
-        <Ionicons name="checkmark-circle" size={64} color={tokens.color.primary} />
-        <Text style={{ fontSize: 22, fontWeight: "700", fontFamily: tokens.font.bodyBold, color: tokens.color.text, marginTop: 16, textAlign: "center" }}>
+        <Ionicons name="checkmark-circle" size={64} color={tokens.color.teal} />
+        <Text style={{ fontSize: 22, fontWeight: "700" as const, fontFamily: tokens.font.bodyBold, color: tokens.color.onDark, marginTop: 16, textAlign: "center" as const }}>
           Account Deleted
         </Text>
-        <Text style={{ fontSize: 15, fontFamily: tokens.font.body, color: tokens.color.subtext, marginTop: 8, textAlign: "center" }}>
+        <Text style={{ fontSize: 15, fontFamily: tokens.font.body, color: tokens.color.onDarkMid, marginTop: 8, textAlign: "center" as const }}>
           Your account has been successfully deleted.
         </Text>
       </View>
@@ -205,7 +205,7 @@ export default function AccountScreen() {
     >
       <View style={s.header}>
         <Pressable onPress={() => { if (router.canGoBack()) router.back(); else router.replace("/"); }} hitSlop={12}>
-          <Ionicons name="close" size={28} color={tokens.color.text} />
+          <Ionicons name="close" size={28} color={tokens.color.onDark} />
         </Pressable>
         <Text style={s.headerTitle}>Account</Text>
         <View style={{ width: 28 }} />
@@ -421,7 +421,7 @@ export default function AccountScreen() {
 const s = {
   container: {
     flex: 1,
-    backgroundColor: tokens.color.bg,
+    backgroundColor: 'rgba(15,25,60,0.95)',
   } as const,
 
   scrollContent: {
@@ -446,7 +446,7 @@ const s = {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
   } as const,
 
   section: {
@@ -458,7 +458,7 @@ const s = {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: tokens.color.surface,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderWidth: 2,
     borderColor: tokens.color.primary,
     alignItems: "center" as const,
@@ -470,15 +470,12 @@ const s = {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
   } as const,
 
   card: {
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
+    ...tokens.card,
     padding: 20,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
     gap: 16,
     marginBottom: 24,
   } as const,
@@ -588,10 +585,7 @@ const s = {
   } as const,
 
   actionsGroup: {
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
+    ...tokens.card,
     marginBottom: 24,
     overflow: "hidden" as const,
   } as const,
@@ -640,7 +634,7 @@ const s = {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodyBold,
-    color: "#991b1b",
+    color: "#fca5a5",
     textTransform: "uppercase" as const,
     letterSpacing: 1,
     marginTop: 32,
@@ -744,7 +738,7 @@ const s = {
   versionText: {
     fontSize: tokens.text.small,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkSoft,
     opacity: 0.5,
   } as const,
 } as const;

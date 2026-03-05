@@ -118,8 +118,7 @@ const styles = StyleSheet.create({
     padding: 32,
   },
   tooltip: {
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
+    ...tokens.card,
     padding: 20,
     maxWidth: 340,
     width: "100%",
