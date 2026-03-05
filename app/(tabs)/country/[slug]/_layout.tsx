@@ -82,9 +82,9 @@ function PathfinderBadge() {
 }
 
 const glassHeader = {
-  backgroundColor: colors.glassLight,
+  backgroundColor: colors.cream,
   borderBottomWidth: 1,
-  borderBottomColor: colors.borderDark,
+  borderBottomColor: colors.border,
 };
 
 const detailScreenOptions = {
