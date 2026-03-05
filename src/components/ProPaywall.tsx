@@ -37,6 +37,7 @@ import {
   PRIVACY_URL,
 } from "@/src/config/subscription";
 import { COVERAGE_SUMMARY } from "@/src/data";
+import { PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
 import { trackEvent } from "@/src/lib/analytics";
 import { tokens } from "@/theme/tokens";
 import { COUNTRIES } from "@/data/countries";
@@ -591,7 +592,7 @@ export function ProPaywall({
         {hasFullAccess ? (
           <View style={s.activeCard}>
             <Ionicons name="checkmark-circle" size={24} color={tokens.color.primary} />
-            <Text style={s.activeText}>You have full access</Text>
+            <Text style={s.activeText}>{PAID_TIER_DISPLAY_NAME} — full access</Text>
             <Text style={s.sourceText}>
               {accessType === "decision_pass"
                 ? `Decision Pass — ${decisionPassDaysLeft ?? 0} days left`
@@ -845,7 +846,7 @@ export function ProPaywall({
             <View style={s.sandboxRow}>
               <View style={{ flex: 1 }}>
                 <Text style={s.sandboxTitle}>Sandbox Mode</Text>
-                <Text style={s.sandboxSub}>Toggle Pro access for testing</Text>
+                <Text style={s.sandboxSub}>Toggle {PAID_TIER_DISPLAY_NAME} access for testing</Text>
               </View>
               <Switch
                 value={hasActiveSubscription}

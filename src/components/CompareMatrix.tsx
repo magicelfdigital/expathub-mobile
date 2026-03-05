@@ -7,6 +7,7 @@ import { getCompareMatrix, type CompareRow } from "@/src/data/compareMatrix";
 import { getCountry } from "@/src/data";
 import { trackEvent } from "@/src/lib/analytics";
 import { tokens } from "@/theme/tokens";
+import { PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
 
 type Props = {
   countrySlugs: string[];
@@ -54,7 +55,7 @@ function MatrixRow({
         <Text style={s.labelText}>{row.label}</Text>
         {row.proOnly && (
           <View style={s.proBadge}>
-            <Text style={s.proBadgeText}>PRO</Text>
+            <Text style={s.proBadgeText}>{PAID_TIER_DISPLAY_NAME}</Text>
           </View>
         )}
       </View>
@@ -168,7 +169,7 @@ export function CompareMatrix({
           <View style={s.proFooter}>
             <Ionicons name="lock-closed" size={14} color={tokens.color.primary} />
             <Text style={s.proFooterText}>
-              Unlock 5 more factors with ExpatHub Pro
+              Unlock 5 more factors with ExpatHub {PAID_TIER_DISPLAY_NAME}
             </Text>
           </View>
         )}

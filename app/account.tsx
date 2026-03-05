@@ -12,6 +12,7 @@ import { COUNTRIES } from "@/data/countries";
 import { tokens } from "@/theme/tokens";
 import { testCrash, isNativeBuild } from "@/utils/crashlytics";
 import { trackEvent } from "@/src/lib/analytics";
+import { FREE_TIER_DISPLAY_NAME, PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
 
 async function loadPurchasesModule() {
   if (Platform.OS === "web") return null;
@@ -176,15 +177,15 @@ export default function AccountScreen() {
   const accessLabel = (() => {
     switch (accessType) {
       case "decision_pass":
-        return "Decision Pass";
+        return PAID_TIER_DISPLAY_NAME;
       case "country_lifetime":
-        return "Country Unlock";
+        return PAID_TIER_DISPLAY_NAME;
       case "subscription":
-        return "Monthly";
+        return PAID_TIER_DISPLAY_NAME;
       case "sandbox":
         return "Sandbox";
       default:
-        return "Free";
+        return FREE_TIER_DISPLAY_NAME;
     }
   })();
 

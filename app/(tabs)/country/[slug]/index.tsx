@@ -11,6 +11,7 @@ import { getCountry, getPathways, getCountryCoverage, isDecisionReady, isLaunchC
 import { COUNTRY_LIFETIME_PRICES } from "@/src/config/subscription";
 import { useContinue } from "@/src/contexts/ContinueContext";
 import { tokens } from "@/theme/tokens";
+import { PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
 
 const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
 
@@ -255,12 +256,12 @@ export default function CountryDetailScreen() {
                       {p.premium && !hasAccess ? (
                         <View style={styles.lockedBadge}>
                           <Ionicons name="lock-closed" size={10} color={tokens.color.gold} />
-                          <Text style={styles.lockedText}>PRO</Text>
+                          <Text style={styles.lockedText}>{PAID_TIER_DISPLAY_NAME}</Text>
                         </View>
                       ) : p.premium && hasAccess ? (
                         <View style={styles.premiumBadge}>
                           <Ionicons name="checkmark" size={10} color={tokens.color.primary} />
-                          <Text style={styles.premiumText}>PRO</Text>
+                          <Text style={styles.premiumText}>{PAID_TIER_DISPLAY_NAME}</Text>
                         </View>
                       ) : null}
                       <Ionicons name="chevron-forward" size={16} color={tokens.color.primary} />

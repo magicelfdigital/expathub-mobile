@@ -7,6 +7,7 @@ import { CompareMatrix } from "@/src/components/CompareMatrix";
 import { getCompareCountrySlugs, getCountries } from "@/src/data";
 import { trackEvent } from "@/src/lib/analytics";
 import { tokens } from "@/theme/tokens";
+import { PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
 
 const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
 
@@ -75,7 +76,7 @@ export default function CompareScreen() {
         <View style={s.header}>
           <Text style={s.h1}>Compare Countries</Text>
           <Text style={s.lead}>
-            Pick up to 3 countries. Free rows show at a glance; Pro rows reveal the nuanced details.
+            Pick up to 3 countries. Basic rows show at a glance; {PAID_TIER_DISPLAY_NAME} rows reveal the nuanced details.
           </Text>
         </View>
 

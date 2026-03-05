@@ -8,6 +8,7 @@ import { useCountry } from "@/contexts/CountryContext";
 import { trackEvent } from "@/src/lib/analytics";
 import { getApiUrl } from "@/lib/query-client";
 import { tokens } from "@/theme/tokens";
+import { PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
 
 const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
 
@@ -238,7 +239,7 @@ export default function ExploreScreen() {
           <View style={s.compareBody}>
             <Text style={s.compareTitle}>Compare countries</Text>
             <Text style={s.compareSub}>
-              Side-by-side on key decision factors — free and Pro rows
+              Side-by-side on key decision factors — basic and {PAID_TIER_DISPLAY_NAME} rows
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color={tokens.color.primary} />

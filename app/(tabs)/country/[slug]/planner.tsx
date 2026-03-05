@@ -12,6 +12,7 @@ import LifetimeOfferBanner from "@/src/components/LifetimeOfferBanner";
 import PlanCompletionCard from "@/src/components/PlanCompletionCard";
 import { getCountry, getPathways, isLaunchCountry } from "@/src/data";
 import { tokens } from "@/theme/tokens";
+import { PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
 
 const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
 
@@ -85,7 +86,7 @@ export default function PlannerScreen() {
         ) : !isPaidUser && isLaunch ? (
           <View style={styles.lockedSection}>
             <Ionicons name="lock-closed-outline" size={28} color={tokens.color.subtext} />
-            <Text style={styles.lockedTitle}>Available with Pro access</Text>
+            <Text style={styles.lockedTitle}>Available with {PAID_TIER_DISPLAY_NAME} access</Text>
             <Text style={styles.lockedBody}>
               The relocation planner helps you walk through each stage of moving to {countryName}. Unlock access to get started.
             </Text>

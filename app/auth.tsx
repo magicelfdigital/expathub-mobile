@@ -103,7 +103,7 @@ export default function AuthScreen() {
         </Text>
         <Text style={s.subtitle}>
           {mode === "login"
-            ? "Sign in to access your saved countries and Pro subscription"
+            ? "Sign in to access your saved countries and subscription"
             : "Sign up to sync your progress across devices"}
         </Text>
 
