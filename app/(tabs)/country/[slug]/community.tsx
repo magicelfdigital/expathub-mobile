@@ -6,6 +6,7 @@ import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { Screen } from "@/components/Screen";
 import { AvailabilityGate } from "@/src/components/AvailabilityGate";
 import { useCountry } from "@/contexts/CountryContext";
+import { useLayout } from "@/src/hooks/useLayout";
 import { useContinue } from "@/src/contexts/ContinueContext";
 import { getCountry, getCommunityLinks, getDefaultCommunityLinks } from "@/src/data";
 import { openExternal } from "@/lib/openExternal";
@@ -46,6 +47,7 @@ export default function CountryCommunityScreen() {
 }
 
 function CommunityContent({ countrySlug }: { countrySlug: string }) {
+  const { isTablet } = useLayout();
   const countryName = useMemo(() => {
     if (!countrySlug) return "this country";
     return getCountry(countrySlug)?.name ?? "this country";
@@ -75,12 +77,12 @@ function CommunityContent({ countrySlug }: { countrySlug: string }) {
         </View>
       </View>
 
-      <View style={styles.listGap}>
+      <View style={[styles.listGap, isTablet && styles.listGrid]}>
         {links.map((c) => (
           <Pressable
             key={c.url}
             onPress={() => openExternal(c.url)}
-            style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+            style={({ pressed }) => [styles.card, isTablet && styles.cardTablet, pressed && styles.cardPressed]}
           >
             <View style={styles.cardTop}>
               <Ionicons
@@ -139,6 +141,16 @@ const styles = {
   context: { fontSize: tokens.text.small, color: tokens.color.primary, fontWeight: tokens.weight.bold, fontFamily: tokens.font.bodyBold },
 
   listGap: { gap: 8 },
+
+  listGrid: {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    gap: 8,
+  },
+
+  cardTablet: {
+    width: "48.5%" as any,
+  },
 
   card: {
     backgroundColor: tokens.color.surface,

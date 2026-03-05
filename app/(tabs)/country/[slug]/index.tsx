@@ -7,6 +7,7 @@ import { Screen } from "@/components/Screen";
 import { useCountry } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { usePlan } from "@/src/contexts/PlanContext";
+import { useLayout } from "@/src/hooks/useLayout";
 import { getCountry, getPathways, getCountryCoverage, isDecisionReady, isLaunchCountry } from "@/src/data";
 import { COUNTRY_LIFETIME_PRICES } from "@/src/config/subscription";
 import { useContinue } from "@/src/contexts/ContinueContext";
@@ -20,13 +21,14 @@ type NavItem = {
   subtitle: string;
   icon: string;
   onPress: () => void;
+  tablet?: boolean;
 };
 
-function NavCard({ title, subtitle, icon, onPress }: NavItem) {
+function NavCard({ title, subtitle, icon, onPress, tablet }: NavItem) {
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      style={({ pressed }) => [styles.card, tablet && styles.cardTablet, pressed && styles.cardPressed]}
     >
       <View style={styles.cardLeft}>
         <View style={styles.iconCircle}>
@@ -83,6 +85,7 @@ export default function CountryDetailScreen() {
   const { hasActiveSubscription, hasFullAccess, hasCountryAccess, accessType, decisionPassDaysLeft } = useSubscription();
   const { activeCountrySlug: planCountrySlug, startPlan } = usePlan();
   const { recordView } = useContinue();
+  const { isTablet } = useLayout();
 
   const urlSlug = typeof slug === "string" ? slug : Array.isArray(slug) ? slug[0] : "";
   const countrySlug = urlSlug || "";
@@ -223,17 +226,17 @@ export default function CountryDetailScreen() {
           </View>
         ) : null}
 
-        <View style={styles.listGap}>
-          <NavCard title="Resources" subtitle="Guides, official links, checklists" icon="document-text-outline" onPress={() => go("resources")} />
-          <NavCard title="Vendors" subtitle="Licensed professionals and services" icon="briefcase-outline" onPress={() => go("vendors")} />
-          <NavCard title="Community" subtitle="Groups, forums, meetups" icon="people-outline" onPress={() => go("community")} />
-          <NavCard title="Saved" subtitle="Your bookmarked resources" icon="bookmark-outline" onPress={() => go("saved")} />
+        <View style={[styles.listGap, isTablet && styles.listGrid]}>
+          <NavCard title="Resources" subtitle="Guides, official links, checklists" icon="document-text-outline" onPress={() => go("resources")} tablet={isTablet} />
+          <NavCard title="Vendors" subtitle="Licensed professionals and services" icon="briefcase-outline" onPress={() => go("vendors")} tablet={isTablet} />
+          <NavCard title="Community" subtitle="Groups, forums, meetups" icon="people-outline" onPress={() => go("community")} tablet={isTablet} />
+          <NavCard title="Saved" subtitle="Your bookmarked resources" icon="bookmark-outline" onPress={() => go("saved")} tablet={isTablet} />
         </View>
 
         {pathways.length > 0 ? (
           <View style={styles.pathwaySection}>
             <Text style={styles.sectionTitle}>Residency Pathways</Text>
-            <View style={styles.listGap}>
+            <View style={[styles.listGap, isTablet && styles.listGrid]}>
               {pathways.map((p) => {
                 const ready = isDecisionReady(countrySlug, p.key);
                 const showCoverageBadge = p.premium;
@@ -241,7 +244,7 @@ export default function CountryDetailScreen() {
                   <Pressable
                     key={p.key}
                     onPress={() => goPathway(p.key)}
-                    style={({ pressed }) => [styles.pathwayCard, pressed && styles.cardPressed]}
+                    style={({ pressed }) => [styles.pathwayCard, isTablet && styles.cardTablet, pressed && styles.cardPressed]}
                   >
                     <View style={{ flex: 1 }}>
                       <View style={styles.pathwayTitleRow}>
@@ -432,6 +435,12 @@ const styles = {
     gap: tokens.space.sm,
   },
 
+  listGrid: {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    gap: tokens.space.sm,
+  },
+
   card: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
@@ -441,6 +450,10 @@ const styles = {
     borderWidth: 1,
     borderColor: tokens.color.border,
     backgroundColor: tokens.color.surface,
+  },
+
+  cardTablet: {
+    width: "48.5%" as any,
   },
 
   cardPressed: {

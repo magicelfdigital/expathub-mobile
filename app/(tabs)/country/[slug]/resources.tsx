@@ -7,6 +7,7 @@ import { Screen } from "@/components/Screen";
 import { SourceBadge } from "@/src/components/SourceBadge";
 import { AvailabilityGate } from "@/src/components/AvailabilityGate";
 import { useCountry } from "@/contexts/CountryContext";
+import { useLayout } from "@/src/hooks/useLayout";
 import { useSaved } from "@/src/contexts/SavedContext";
 import { useContinue } from "@/src/contexts/ContinueContext";
 import { getCountry, getResources, type ResourceCategory, type SourceType } from "@/src/data";
@@ -49,6 +50,7 @@ const ResourceCard = memo(function ResourceCard({
   onPress,
   bookmarked,
   onToggleBookmark,
+  tablet,
 }: {
   title: string;
   subtitle?: string;
@@ -56,12 +58,13 @@ const ResourceCard = memo(function ResourceCard({
   onPress: () => void;
   bookmarked: boolean;
   onToggleBookmark: () => void;
+  tablet?: boolean;
 }) {
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      style={({ pressed }) => [styles.card, tablet && styles.cardTablet, pressed && styles.cardPressed]}
     >
       <View style={styles.cardTop}>
         <Text style={styles.cardTitle} numberOfLines={2}>
@@ -149,6 +152,7 @@ function SourceLegend({ visible, onClose }: { visible: boolean; onClose: () => v
 
 function ResourcesContent({ countrySlug }: { countrySlug?: string }) {
   const { toggleSavedResource, isSaved } = useSaved();
+  const { isTablet } = useLayout();
   const [showLegend, setShowLegend] = useState(false);
 
   const countryName = useMemo(() => {
@@ -241,7 +245,7 @@ function ResourcesContent({ countrySlug }: { countrySlug?: string }) {
         </View>
       ) : null}
 
-      <View style={styles.resourceList}>
+      <View style={[styles.resourceList, isTablet && styles.resourceGrid]}>
         {filtered.map((item) => (
           <ResourceCard
             key={item.url}
@@ -251,6 +255,7 @@ function ResourcesContent({ countrySlug }: { countrySlug?: string }) {
             onPress={() => openInApp(item.url)}
             bookmarked={countrySlug ? isSaved(countrySlug, item.url) : false}
             onToggleBookmark={() => countrySlug && toggleSavedResource(countrySlug, item.url)}
+            tablet={isTablet}
           />
         ))}
       </View>
@@ -356,6 +361,16 @@ const styles = {
 
   resourceList: {
     gap: tokens.space.sm,
+  },
+
+  resourceGrid: {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    gap: tokens.space.sm,
+  },
+
+  cardTablet: {
+    width: "48.5%" as any,
   },
 
   card: {

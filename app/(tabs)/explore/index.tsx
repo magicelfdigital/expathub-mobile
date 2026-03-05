@@ -5,6 +5,7 @@ import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, Vi
 
 import { Screen } from "@/components/Screen";
 import { useCountry } from "@/contexts/CountryContext";
+import { useLayout } from "@/src/hooks/useLayout";
 import { trackEvent } from "@/src/lib/analytics";
 import { getApiUrl } from "@/lib/query-client";
 import { tokens } from "@/theme/tokens";
@@ -197,6 +198,7 @@ const TOPICS: TopicCard[] = [
 export default function ExploreScreen() {
   const router = useRouter();
   const { setSelectedCountrySlug } = useCountry();
+  const { isTablet } = useLayout();
   const exploredRef = useRef(false);
   const [waitlistCountry, setWaitlistCountry] = useState<ExpandingCountry | null>(null);
 
@@ -249,12 +251,12 @@ export default function ExploreScreen() {
 
         <View style={s.topicSection}>
           <Text style={s.sectionHeading}>Explore by situation</Text>
-          <View style={s.cardList}>
+          <View style={[s.cardList, isTablet && s.cardGrid]}>
             {TOPICS.map((t) => (
               <Pressable
                 key={t.key}
                 onPress={() => goTopic(t.key)}
-                style={({ pressed }) => [s.card, pressed && s.cardPressed]}
+                style={({ pressed }) => [s.card, isTablet && s.cardTablet, pressed && s.cardPressed]}
               >
                 <View style={[s.iconCircle, { backgroundColor: t.accentBg }]}>
                   <Ionicons name={t.icon} size={20} color={t.accentColor} />
@@ -309,9 +311,9 @@ export default function ExploreScreen() {
           <Text style={s.expandingSub}>
             We're building structured planning support for additional destinations.
           </Text>
-          <View style={s.cardList}>
+          <View style={[s.cardList, isTablet && s.cardGrid]}>
             {EXPANDING_COUNTRIES.map((c) => (
-              <View key={c.slug} style={s.expandingCard}>
+              <View key={c.slug} style={[s.expandingCard, isTablet && s.cardTablet]}>
                 <View style={s.expandingCardBody}>
                   <Text style={s.expandingCardName}>{c.name}</Text>
                   <Text style={s.expandingCardNote}>Planning support in development.</Text>
@@ -409,6 +411,16 @@ const s = StyleSheet.create({
     color: tokens.color.text,
   },
   cardList: { gap: tokens.space.sm },
+
+  cardGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: tokens.space.sm,
+  },
+
+  cardTablet: {
+    width: "48.5%" as any,
+  },
 
   card: {
     flexDirection: "row",
