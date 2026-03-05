@@ -15,7 +15,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Screen } from "@/components/Screen";
 import { getApiUrl } from "@/lib/query-client";
 import { tokens } from "@/theme/tokens";
 import { trackEvent } from "@/src/lib/analytics";
@@ -86,7 +85,6 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <Screen>
     <KeyboardAvoidingView
       style={s.flex}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -102,7 +100,7 @@ export default function ForgotPasswordScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Pressable onPress={handleBack} hitSlop={12} style={s.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={tokens.color.onDark} />
+          <Ionicons name="arrow-back" size={24} color={tokens.color.text} />
         </Pressable>
 
         <View style={s.logoWrap}>
@@ -195,13 +193,12 @@ export default function ForgotPasswordScreen() {
         ) : null}
       </ScrollView>
     </KeyboardAvoidingView>
-    </Screen>
   );
 }
 
 const s = {
-  flex: { flex: 1 } as const,
-  scroll: { flex: 1 } as const,
+  flex: { flex: 1, backgroundColor: tokens.color.bg } as const,
+  scroll: { flex: 1, backgroundColor: tokens.color.bg } as const,
   scrollContent: {
     paddingHorizontal: 24,
     paddingBottom: 60,
@@ -219,14 +216,14 @@ const s = {
     fontSize: 28,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.onDark,
+    color: tokens.color.text,
     marginBottom: 8,
   } as const,
 
   subtitle: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.onDarkMid,
+    color: tokens.color.subtext,
     lineHeight: 22,
     marginBottom: 24,
   } as const,
@@ -237,10 +234,13 @@ const s = {
   } as const,
 
   infoBox: {
-    ...tokens.card,
     flexDirection: "row" as const,
     alignItems: "flex-start" as const,
     gap: 10,
+    backgroundColor: tokens.color.primarySoft,
+    borderWidth: 1,
+    borderColor: tokens.color.primaryBorder,
+    borderRadius: tokens.radius.md,
     padding: 14,
     marginBottom: 20,
   } as const,
@@ -253,11 +253,7 @@ const s = {
     lineHeight: 20,
   } as const,
 
-  form: {
-    ...tokens.card,
-    padding: 20,
-    gap: 4,
-  } as const,
+  form: { gap: 4 } as const,
 
   label: {
     fontSize: tokens.text.small,
@@ -283,7 +279,7 @@ const s = {
   errorText: {
     fontSize: tokens.text.small,
     fontFamily: tokens.font.body,
-    color: "#fca5a5",
+    color: "#b91c1c",
     marginTop: 8,
   } as const,
 
@@ -314,11 +310,11 @@ const s = {
   toggleText: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.onDarkMid,
+    color: tokens.color.subtext,
   } as const,
 
   toggleLink: {
-    color: tokens.color.teal,
+    color: tokens.color.primary,
     fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
   } as const,

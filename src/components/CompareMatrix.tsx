@@ -119,7 +119,7 @@ export function CompareMatrix({
   if (countrySlugs.length === 0) {
     return (
       <View style={s.emptyState}>
-        <Ionicons name="git-compare-outline" size={32} color={tokens.color.onDarkSoft} />
+        <Ionicons name="git-compare-outline" size={32} color={tokens.color.subtext} />
         <Text style={s.emptyText}>
           Select countries above to compare side by side
         </Text>
@@ -189,13 +189,16 @@ const s = {
   scrollContent: { paddingBottom: 4 },
 
   table: {
-    ...tokens.card,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    borderRadius: tokens.radius.lg,
+    backgroundColor: tokens.color.surface,
     overflow: "hidden" as const,
   },
 
   headerRow: {
     flexDirection: "row" as const,
-    backgroundColor: tokens.color.cardBg,
+    backgroundColor: tokens.color.bg,
     borderBottomWidth: 1,
     borderBottomColor: tokens.color.border,
   },
@@ -207,7 +210,7 @@ const s = {
     flexDirection: "row" as const,
     alignItems: "center" as const,
     gap: 4,
-    backgroundColor: 'rgba(51,196,220,0.12)',
+    backgroundColor: tokens.color.tealLight,
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
     borderBottomLeftRadius: 0,
@@ -277,7 +280,7 @@ const s = {
     width: LABEL_WIDTH,
     paddingHorizontal: 10,
     paddingVertical: 10,
-    backgroundColor: tokens.color.cardBg,
+    backgroundColor: tokens.color.bg,
     borderRightWidth: 1,
     borderRightColor: tokens.color.border,
     gap: 4,
@@ -296,7 +299,7 @@ const s = {
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 4,
-    backgroundColor: 'rgba(51,196,220,0.12)',
+    backgroundColor: tokens.color.primarySoft,
   },
 
   proBadgeText: {
@@ -370,7 +373,7 @@ const s = {
     paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: tokens.color.border,
-    backgroundColor: 'rgba(51,196,220,0.08)',
+    backgroundColor: tokens.color.primarySoft,
   },
 
   proFooterText: {
@@ -389,7 +392,7 @@ const s = {
   emptyText: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.onDarkMid,
+    color: tokens.color.subtext,
     textAlign: "center" as const,
   },
 } as const;

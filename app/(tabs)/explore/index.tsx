@@ -114,7 +114,7 @@ function WaitlistModal({
               <TextInput
                 style={s.modalInput}
                 placeholder="you@example.com"
-                placeholderTextColor={tokens.color.textSoft}
+                placeholderTextColor={tokens.color.subtext}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -126,7 +126,7 @@ function WaitlistModal({
               <TextInput
                 style={[s.modalInput, s.modalTextArea]}
                 placeholder="e.g. visa options, cost of living..."
-                placeholderTextColor={tokens.color.textSoft}
+                placeholderTextColor={tokens.color.subtext}
                 value={note}
                 onChangeText={setNote}
                 multiline
@@ -299,9 +299,9 @@ export default function ExploreScreen() {
           onPress={() => router.push("/(tabs)/country" as any)}
           style={({ pressed }) => [s.browseLink, pressed && s.browseLinkPressed]}
         >
-          <Ionicons name="globe-outline" size={18} color={tokens.color.onDark} />
+          <Ionicons name="globe-outline" size={18} color={tokens.color.primary} />
           <Text style={s.browseLinkText}>Browse all countries</Text>
-          <Ionicons name="chevron-forward" size={14} color={tokens.color.onDark} />
+          <Ionicons name="chevron-forward" size={14} color={tokens.color.primary} />
         </Pressable>
 
         <View style={s.divider} />
@@ -341,7 +341,7 @@ export default function ExploreScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
+  container: { flex: 1, backgroundColor: tokens.color.bg },
   content: {
     padding: tokens.space.xl,
     paddingBottom: tokens.space.xxl,
@@ -353,20 +353,23 @@ const s = StyleSheet.create({
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black as any,
     fontFamily: tokens.font.display,
-    color: tokens.color.onDark,
+    color: tokens.color.text,
   },
   lead: {
     fontSize: tokens.text.body,
-    color: tokens.color.onDarkMid,
+    color: tokens.color.subtext,
     fontFamily: tokens.font.body,
     lineHeight: 20,
   },
 
   compareCard: {
-    ...tokens.card,
     flexDirection: "row",
     alignItems: "center",
     padding: tokens.space.lg,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.primaryBorder,
+    backgroundColor: tokens.color.primarySoft,
     gap: 12,
   },
   compareCardPressed: { opacity: 0.85, transform: [{ scale: 0.99 }] },
@@ -374,7 +377,9 @@ const s = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: tokens.color.primarySoft,
+    backgroundColor: tokens.color.surface,
+    borderWidth: 1,
+    borderColor: tokens.color.primaryBorder,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -394,7 +399,7 @@ const s = StyleSheet.create({
 
   divider: {
     height: 1,
-    backgroundColor: tokens.color.borderDark,
+    backgroundColor: tokens.color.border,
     marginVertical: tokens.space.xs,
   },
 
@@ -403,7 +408,7 @@ const s = StyleSheet.create({
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black as any,
     fontFamily: tokens.font.bodySemiBold,
-    color: tokens.color.onDark,
+    color: tokens.color.text,
   },
   cardList: { gap: tokens.space.sm },
 
@@ -418,10 +423,13 @@ const s = StyleSheet.create({
   },
 
   card: {
-    ...tokens.card,
     flexDirection: "row",
     alignItems: "flex-start",
     padding: tokens.space.lg,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    backgroundColor: tokens.color.surface,
     gap: 12,
   },
   cardPressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
@@ -457,16 +465,19 @@ const s = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     paddingVertical: 14,
-    borderRadius: 20,
+    borderRadius: tokens.radius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.20)',
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderColor: tokens.color.primaryBorder,
+    backgroundColor: tokens.color.primarySoft,
   },
   glossaryCard: {
-    ...tokens.card,
     flexDirection: "row",
     alignItems: "center",
     padding: tokens.space.lg,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    backgroundColor: tokens.color.primarySoft,
     gap: 12,
   },
   glossaryCardPressed: { opacity: 0.85, transform: [{ scale: 0.99 }] },
@@ -474,7 +485,9 @@ const s = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: tokens.color.tealLight,
+    backgroundColor: tokens.color.surface,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -490,22 +503,25 @@ const s = StyleSheet.create({
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold as any,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.onDark,
+    color: tokens.color.primary,
   },
 
   expandingSection: { gap: tokens.space.sm },
   expandingSub: {
     fontSize: tokens.text.small,
-    color: tokens.color.onDarkMid,
+    color: tokens.color.subtext,
     fontFamily: tokens.font.body,
     lineHeight: 17,
   },
 
   expandingCard: {
-    ...tokens.card,
     flexDirection: "row",
     alignItems: "center",
     padding: tokens.space.lg,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    backgroundColor: tokens.color.surface,
     gap: 12,
   },
   expandingCardBody: { flex: 1, gap: 2 },
@@ -513,7 +529,7 @@ const s = StyleSheet.create({
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black as any,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.text,
+    color: tokens.color.subtext,
   },
   expandingCardNote: {
     fontSize: tokens.text.small,
@@ -526,14 +542,16 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: tokens.radius.sm,
-    backgroundColor: tokens.color.primary,
+    borderWidth: 1,
+    borderColor: tokens.color.primaryBorder,
+    backgroundColor: tokens.color.primarySoft,
   },
   waitlistBtnPressed: { opacity: 0.8 },
   waitlistBtnText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black as any,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.white,
+    color: tokens.color.primary,
   },
 
   modalOverlay: {
@@ -544,9 +562,10 @@ const s = StyleSheet.create({
     padding: tokens.space.xl,
   },
   modalCard: {
-    ...tokens.card,
     width: "100%",
     maxWidth: 400,
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.lg,
     padding: tokens.space.xl,
     gap: tokens.space.md,
   },
@@ -577,7 +596,7 @@ const s = StyleSheet.create({
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
     color: tokens.color.text,
-    backgroundColor: tokens.color.white,
+    backgroundColor: tokens.color.bg,
   },
   modalTextArea: {
     minHeight: 72,

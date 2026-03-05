@@ -63,7 +63,7 @@ function VendorsContent({ countrySlug }: { countrySlug: string }) {
     >
       <View style={styles.header}>
         <View style={styles.evidenceLabel}>
-          <Ionicons name="briefcase" size={12} color={tokens.color.onDarkMid} />
+          <Ionicons name="briefcase" size={12} color={tokens.color.subtext} />
           <Text style={styles.evidenceLabelText}>Supporting vendors</Text>
         </View>
         <Text style={styles.h1}>Vendors</Text>
@@ -106,7 +106,7 @@ function VendorsContent({ countrySlug }: { countrySlug: string }) {
 }
 
 const styles = {
-  container: { flex: 1, backgroundColor: 'transparent' },
+  container: { flex: 1, backgroundColor: tokens.color.bg },
   content: { padding: tokens.space.xl, paddingBottom: tokens.space.xxl, gap: tokens.space.lg },
 
   evidenceLabel: {
@@ -119,14 +119,14 @@ const styles = {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.onDarkMid,
+    color: tokens.color.subtext,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
   },
 
   header: { gap: tokens.space.xs },
-  h1: { fontSize: tokens.text.h1, fontWeight: tokens.weight.black, fontFamily: tokens.font.display, color: tokens.color.onDark },
-  lead: { fontSize: tokens.text.body, fontFamily: tokens.font.body, color: tokens.color.onDarkMid, lineHeight: 18 },
+  h1: { fontSize: tokens.text.h1, fontWeight: tokens.weight.black, fontFamily: tokens.font.display, color: tokens.color.text },
+  lead: { fontSize: tokens.text.body, fontFamily: tokens.font.body, color: tokens.color.subtext, lineHeight: 18 },
   countryTag: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
@@ -148,7 +148,10 @@ const styles = {
   },
 
   card: {
-    ...tokens.card,
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
     padding: tokens.space.lg,
     gap: 8,
   },
@@ -189,5 +192,5 @@ const styles = {
   },
   badgeText: { fontSize: tokens.text.small, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodyBold, color: tokens.color.primary },
 
-  disclaimer: { marginTop: 8, fontSize: tokens.text.small, fontFamily: tokens.font.body, color: tokens.color.onDarkSoft, lineHeight: 16 },
+  disclaimer: { marginTop: 8, fontSize: tokens.text.small, fontFamily: tokens.font.body, color: tokens.color.subtext, lineHeight: 16 },
 } as const;

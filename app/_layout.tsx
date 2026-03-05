@@ -2,7 +2,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
-import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
@@ -24,12 +23,13 @@ import {
   DMSans_700Bold,
 } from "@expo-google-fonts/dm-sans";
 import { initCrashlytics } from "@/utils/crashlytics";
+import { tokens } from "@/theme/tokens";
 
 SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#F5F6FA' } }}>
+    <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="subscribe/index" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="auth" options={{ headerShown: false, presentation: "modal" }} />
@@ -71,7 +71,7 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#F5F6FA' }}>
+        <GestureHandlerRootView style={{ flex: 1, backgroundColor: tokens.color.bg }}>
           <KeyboardProvider>
             <AuthProvider>
               <CountryProvider>

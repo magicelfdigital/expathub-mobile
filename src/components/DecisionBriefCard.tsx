@@ -13,9 +13,9 @@ type DecisionBriefCardProps = {
 };
 
 const confidenceColors: Record<DisplayConfidenceLevel, { bg: string; border: string; text: string }> = {
-  High: { bg: 'rgba(51,196,220,0.08)', border: 'rgba(51,196,220,0.30)', text: tokens.color.teal },
-  Medium: { bg: 'rgba(232,153,26,0.08)', border: 'rgba(232,153,26,0.30)', text: tokens.color.gold },
-  Conditional: { bg: 'rgba(254,226,226,0.6)', border: 'rgba(254,202,202,0.6)', text: "#991b1b" },
+  High: { bg: tokens.color.tealLight, border: tokens.color.teal, text: tokens.color.teal },
+  Medium: { bg: tokens.color.goldLight, border: tokens.color.gold, text: tokens.color.gold },
+  Conditional: { bg: "#fef2f2", border: "#fecaca", text: "#991b1b" },
 };
 
 function BulletList({
@@ -308,16 +308,16 @@ const s = {
     gap: tokens.space.sm,
   },
   columnCard: {
-    backgroundColor: 'rgba(51,196,220,0.08)',
+    backgroundColor: tokens.color.tealLight,
     borderRadius: tokens.radius.lg,
     borderWidth: 1,
-    borderColor: 'rgba(51,196,220,0.30)',
+    borderColor: tokens.color.teal,
     padding: tokens.space.lg,
     gap: tokens.space.sm,
   },
   columnCardRed: {
-    backgroundColor: 'rgba(254,226,226,0.6)',
-    borderColor: 'rgba(254,202,202,0.6)',
+    backgroundColor: "#fef2f2",
+    borderColor: "#fecaca",
   },
   columnTitle: {
     fontSize: tokens.text.h3,
@@ -344,7 +344,10 @@ const s = {
     marginBottom: 2,
   },
   accordion: {
-    ...tokens.card,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    backgroundColor: tokens.color.surface,
     overflow: "hidden" as const,
   },
   accordionHeader: {
@@ -371,15 +374,15 @@ const s = {
     paddingBottom: tokens.space.lg,
   },
   riskAccordion: {
-    backgroundColor: 'rgba(254,226,226,0.6)',
-    borderColor: 'rgba(254,202,202,0.6)',
+    backgroundColor: "#fef2f2",
+    borderColor: "#fecaca",
   },
   riskAccordionTitle: {
     color: "#991b1b",
   },
   mistakeAccordion: {
-    backgroundColor: 'rgba(232,153,26,0.08)',
-    borderColor: 'rgba(232,153,26,0.30)',
+    backgroundColor: tokens.color.goldLight,
+    borderColor: tokens.color.gold,
   },
   mistakeAccordionTitle: {
     color: tokens.color.gold,

@@ -1,7 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
-import { Image, Linking, Pressable, ScrollView, Text, View } from "react-native";
+import { Image, Linking, Platform, Pressable, ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { Screen } from "@/components/Screen";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
@@ -12,8 +14,11 @@ import { COVERAGE_SUMMARY } from "@/src/data";
 import { getApiUrl } from "@/lib/query-client";
 import { tokens } from "@/theme/tokens";
 
+const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
+
 export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { selectedCountrySlug, setSelectedCountrySlug, isLoaded } = useCountry();
   const { lastViewedCountrySlug, lastViewedSection, clearContinue } = useContinue();
@@ -68,9 +73,23 @@ export default function HomeScreen() {
     <Screen>
       <ScrollView
         style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: tokens.space.lg }]}
+        contentContainerStyle={[styles.content, { paddingTop: (Platform.OS === "web" ? WEB_TOP_INSET : insets.top) + tokens.space.sm }]}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.topBar}>
+          <View style={{ width: 28 }} />
+          <View style={{ flex: 1 }} />
+          <Pressable
+            onPress={() => router.push(user ? "/account" : ("/auth?mode=register" as any))}
+            hitSlop={12}
+          >
+            <Ionicons
+              name={user ? "person-circle" : "person-circle-outline"}
+              size={28}
+              color={user ? tokens.color.primary : tokens.color.subtext}
+            />
+          </Pressable>
+        </View>
 
         {!isLoaded ? (
           <View style={styles.loadingCard}>
@@ -92,6 +111,11 @@ export default function HomeScreen() {
                   ExpatHub helps you understand visa options, work authorization rules, and residency pathways so you can make confident decisions about relocating internationally.
                 </Text>
 
+                <Image
+                  source={require('../../assets/images/expathub-map.png')}
+                  style={{ width: '100%' as any, height: 160, borderRadius: 18, marginBottom: 16 }}
+                  resizeMode='cover'
+                />
 
                 <View style={styles.valueProps}>
                   <View style={styles.valuePropRow}>
@@ -120,7 +144,7 @@ export default function HomeScreen() {
                 </Pressable>
 
                 <View style={styles.coverageNote}>
-                  <Ionicons name="checkmark-circle" size={14} color={tokens.color.teal} />
+                  <Ionicons name="checkmark-circle" size={14} color={tokens.color.primary} />
                   <Text style={styles.coverageNoteText}>
                     Decision-ready: {COVERAGE_SUMMARY.ready}
                   </Text>
@@ -229,7 +253,7 @@ export default function HomeScreen() {
 }
 
 const styles = {
-  container: { flex: 1, backgroundColor: 'transparent' as const },
+  container: { flex: 1, backgroundColor: tokens.color.bg },
   content: { paddingBottom: tokens.space.xxl },
 
   topBar: {
@@ -243,7 +267,10 @@ const styles = {
   loadingCard: {
     padding: tokens.space.xl,
     margin: tokens.space.xl,
-    ...tokens.card,
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
     alignItems: "center" as const,
   },
   loadingText: {
@@ -264,23 +291,20 @@ const styles = {
     height: 64,
     width: 260,
     marginBottom: tokens.space.sm,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 16,
-    padding: 8,
   },
 
   welcomeTitle: {
     fontSize: 28,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.onDark,
+    color: tokens.color.text,
     textAlign: "center" as const,
     lineHeight: 34,
   },
 
   welcomeBody: {
     fontSize: tokens.text.body,
-    color: tokens.color.onDarkMid,
+    color: tokens.color.subtext,
     fontFamily: tokens.font.body,
     textAlign: "center" as const,
     lineHeight: 22,
@@ -292,7 +316,10 @@ const styles = {
     gap: tokens.space.sm,
     marginTop: tokens.space.sm,
     padding: tokens.space.lg,
-    ...tokens.card,
+    borderRadius: tokens.radius.lg,
+    backgroundColor: tokens.color.surface,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
   },
 
   valuePropRow: {
@@ -346,7 +373,7 @@ const styles = {
 
   coverageNoteText: {
     fontSize: tokens.text.small,
-    color: tokens.color.onDarkSoft,
+    color: tokens.color.subtext,
     fontFamily: tokens.font.body,
     lineHeight: 16,
   },
@@ -362,7 +389,7 @@ const styles = {
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.onDark,
+    color: tokens.color.text,
   },
 
   continueCard: {
@@ -403,7 +430,7 @@ const styles = {
 
   clearText: {
     fontSize: tokens.text.small,
-    color: tokens.color.onDarkSoft,
+    color: tokens.color.subtext,
     fontFamily: tokens.font.body,
     textAlign: "center" as const,
     marginTop: 2,
@@ -424,15 +451,15 @@ const styles = {
   sectionTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
-    fontFamily: tokens.font.display,
-    color: tokens.color.onDark,
+    fontFamily: tokens.font.bodySemiBold,
+    color: tokens.color.text,
   },
 
   sectionLink: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.teal,
+    color: tokens.color.primary,
   },
 
   listGap: { gap: tokens.space.sm },
@@ -448,7 +475,10 @@ const styles = {
     alignItems: "center" as const,
     justifyContent: "space-between" as const,
     gap: tokens.space.sm,
-    ...tokens.card,
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
     padding: tokens.space.lg,
   },
 
@@ -511,7 +541,10 @@ const styles = {
     alignItems: "center" as const,
     paddingVertical: 10,
     paddingHorizontal: tokens.space.lg,
-    ...tokens.card,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    backgroundColor: tokens.color.surface,
     gap: 6,
   },
   websiteCtaText: {
@@ -533,7 +566,7 @@ const styles = {
   footerDivider: {
     width: "100%" as const,
     height: 1,
-    backgroundColor: tokens.color.borderDark,
+    backgroundColor: tokens.color.border,
     marginBottom: tokens.space.sm,
   },
   footerLinks: {
@@ -543,18 +576,18 @@ const styles = {
   },
   footerLinkText: {
     fontSize: tokens.text.small,
-    color: tokens.color.onDarkMid,
+    color: tokens.color.primary,
     fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
   },
   footerDot: {
     fontSize: tokens.text.small,
-    color: tokens.color.onDarkSoft,
+    color: tokens.color.subtext,
     fontFamily: tokens.font.body,
   },
   footerCopy: {
     fontSize: 11,
-    color: tokens.color.onDarkSoft,
+    color: tokens.color.subtext,
     fontFamily: tokens.font.body,
   },
 } as const;

@@ -164,7 +164,7 @@ export default function CompareScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
+  container: { flex: 1, backgroundColor: tokens.color.bg },
   content: {
     padding: tokens.space.xl,
     paddingBottom: tokens.space.xxl,
@@ -176,11 +176,11 @@ const s = StyleSheet.create({
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black as any,
     fontFamily: tokens.font.display,
-    color: tokens.color.onDark,
+    color: tokens.color.text,
   },
   lead: {
     fontSize: tokens.text.body,
-    color: tokens.color.onDarkMid,
+    color: tokens.color.subtext,
     fontFamily: tokens.font.body,
     lineHeight: 20,
   },
@@ -190,7 +190,7 @@ const s = StyleSheet.create({
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold as any,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.onDarkSoft,
+    color: tokens.color.subtext,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -203,7 +203,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: 'transparent',
   },
   presetChipActive: {
     backgroundColor: tokens.color.teal,
@@ -212,7 +212,7 @@ const s = StyleSheet.create({
     fontSize: tokens.text.small,
     fontWeight: '600' as const,
     fontFamily: tokens.font.bodySemiBold,
-    color: 'rgba(255,255,255,0.60)',
+    color: tokens.color.subtext,
   },
   presetChipTextActive: {
     color: '#FFFFFF',
@@ -227,11 +227,9 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.45)",
   },
   modalSheet: {
-    ...tokens.card,
+    backgroundColor: tokens.color.surface,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
     paddingBottom: Platform.OS === "web" ? 34 : 40,
     height: Math.round(Dimensions.get("window").height * 0.6),
   },
