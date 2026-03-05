@@ -12,7 +12,7 @@ export const colors = {
   onDark:     '#FFFFFF',
   onDarkMid:  'rgba(255,255,255,0.75)',
   onDarkSoft: 'rgba(255,255,255,0.45)',
-  cardBg:     'rgba(255,255,255,0.92)',
+  cardBg:     'rgba(255,255,255,0.80)',
   glassDark:  'rgba(15,25,60,0.65)',
   glassLight: 'rgba(238,238,228,0.88)',
   border:     'rgba(62,129,221,0.11)',
