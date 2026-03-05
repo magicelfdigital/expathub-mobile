@@ -53,14 +53,14 @@ export default function HomeScreen() {
 
   const goCountryHub = (slug: string) => {
     setSelectedCountrySlug(slug);
-    router.push({ pathname: "/(tabs)/country/[slug]" as any, params: { slug } });
+    router.navigate({ pathname: "/(tabs)/country/[slug]" as any, params: { slug } });
   };
 
   const goContinue = () => {
     const slug = lastViewedCountrySlug || selectedCountrySlug;
     if (!slug) return;
     setSelectedCountrySlug(slug);
-    router.push({ pathname: "/(tabs)/country/[slug]" as any, params: { slug } });
+    router.navigate({ pathname: "/(tabs)/country/[slug]" as any, params: { slug } });
   };
 
   const goBrowseCountries = () => {
