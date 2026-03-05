@@ -37,6 +37,7 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const stateRef = useRef<PlanState>(state);
   stateRef.current = state;
+  const pendingClear = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -45,19 +46,31 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw && mounted) {
           const parsed = JSON.parse(raw) as PlanState;
-          setState(parsed);
+          if (parsed.activeCountrySlug && Array.isArray(parsed.completedSteps)) {
+            setState(parsed);
+          }
         }
-      } catch {}
+      } catch (e) {
+        console.warn("[PlanContext] Failed to load plan state:", e);
+      }
       if (mounted) setIsLoaded(true);
     })();
     return () => { mounted = false; };
   }, []);
 
-  const persist = useCallback(async (next: PlanState) => {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {}
-  }, []);
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (pendingClear.current) {
+      pendingClear.current = false;
+      AsyncStorage.removeItem(STORAGE_KEY).catch((e) =>
+        console.warn("[PlanContext] Failed to clear plan state:", e)
+      );
+      return;
+    }
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state)).catch((e) =>
+      console.warn("[PlanContext] Failed to persist plan state:", e)
+    );
+  }, [state, isLoaded]);
 
   const doStartPlan = useCallback((countrySlug: string, pathwayId: string) => {
     const next: PlanState = {
@@ -67,9 +80,8 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
       hasPets: false,
     };
     setState(next);
-    persist(next);
     trackEvent("plan_focus_started", { country: countrySlug, pathway: pathwayId });
-  }, [persist]);
+  }, []);
 
   const startPlan = useCallback((countrySlug: string, pathwayId: string, countryName?: string) => {
     const current = stateRef.current;
@@ -99,7 +111,6 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
       if (prev.completedSteps.includes(stepId)) return prev;
       const completedSteps = [...prev.completedSteps, stepId];
       const next = { ...prev, completedSteps };
-      persist(next);
       trackEvent("plan_step_completed", {
         step: stepId,
         country: prev.activeCountrySlug ?? "",
@@ -111,32 +122,24 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
       }
       return next;
     });
-  }, [persist]);
+  }, []);
 
   const uncompleteStep = useCallback((stepId: string) => {
     setState((prev) => {
       if (!prev.completedSteps.includes(stepId)) return prev;
       const completedSteps = prev.completedSteps.filter((s) => s !== stepId);
-      const next = { ...prev, completedSteps };
-      persist(next);
-      return next;
+      return { ...prev, completedSteps };
     });
-  }, [persist]);
+  }, []);
 
   const resetPlan = useCallback(() => {
+    pendingClear.current = true;
     setState(EMPTY);
-    (async () => {
-      try { await AsyncStorage.removeItem(STORAGE_KEY); } catch {}
-    })();
   }, []);
 
   const setHasPets = useCallback((val: boolean) => {
-    setState((prev) => {
-      const next = { ...prev, hasPets: val };
-      persist(next);
-      return next;
-    });
-  }, [persist]);
+    setState((prev) => ({ ...prev, hasPets: val }));
+  }, []);
 
   const allChecklistIds = PLAN_STEPS.flatMap((s) => s.checklist.map((c) => c.id));
   const isComplete = allChecklistIds.length > 0 && allChecklistIds.every((id) => state.completedSteps.includes(id));

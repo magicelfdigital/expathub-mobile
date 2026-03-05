@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 type SavedState = Record<string, string[]>;
 
@@ -26,32 +26,33 @@ export function SavedProvider({ children }: { children: React.ReactNode }) {
         if (raw && mounted) {
           setState(JSON.parse(raw) as SavedState);
         }
-      } catch {}
+      } catch (e) {
+        console.warn("[SavedContext] Failed to load state:", e);
+      }
       if (mounted) setIsLoaded(true);
     })();
     return () => { mounted = false; };
   }, []);
 
-  const persist = useCallback(async (next: SavedState) => {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {}
-  }, []);
+  useEffect(() => {
+    if (!isLoaded) return;
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state)).catch((e) =>
+      console.warn("[SavedContext] Failed to persist state:", e)
+    );
+  }, [state, isLoaded]);
 
   const toggleSavedResource = useCallback((countrySlug: string, resourceId: string) => {
     setState((prev) => {
       const list = prev[countrySlug] ?? [];
       const exists = list.includes(resourceId);
-      const next = {
+      return {
         ...prev,
         [countrySlug]: exists
           ? list.filter((id) => id !== resourceId)
           : [...list, resourceId],
       };
-      persist(next);
-      return next;
     });
-  }, [persist]);
+  }, []);
 
   const isSaved = useCallback((countrySlug: string, resourceId: string): boolean => {
     return (state[countrySlug] ?? []).includes(resourceId);
@@ -65,14 +66,12 @@ export function SavedProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => {
       const list = prev[countrySlug] ?? [];
       if (!list.includes(resourceId)) return prev;
-      const next = {
+      return {
         ...prev,
         [countrySlug]: list.filter((id) => id !== resourceId),
       };
-      persist(next);
-      return next;
     });
-  }, [persist]);
+  }, []);
 
   const value = useMemo<SavedContextValue>(
     () => ({ toggleSavedResource, isSaved, getSavedResources, removeSavedResource }),
