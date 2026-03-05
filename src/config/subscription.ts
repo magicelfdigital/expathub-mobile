@@ -58,6 +58,9 @@ export const COUNTRY_LIFETIME_PRICES: Record<string, string> = {
   ecuador: "$69",
   malta: "$69",
   "united-kingdom": "$69",
+  germany: "$69",
+  ireland: "$69",
+  australia: "$69",
 };
 
 const COUNTRY_LIFETIME_PRODUCT_IDS: Record<string, string> = {

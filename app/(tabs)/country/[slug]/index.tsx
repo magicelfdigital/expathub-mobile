@@ -111,7 +111,7 @@ export default function CountryDetailScreen() {
   const isLaunch = useMemo(() => isLaunchCountry(countrySlug), [countrySlug]);
 
   const hasAccess = hasFullAccess || hasCountryAccess(countrySlug);
-  const countryPrice = COUNTRY_LIFETIME_PRICES[countrySlug] ?? "$19.99";
+  const countryPrice = COUNTRY_LIFETIME_PRICES[countrySlug] ?? "$69";
   const hasPlanForThisCountry = planCountrySlug === countrySlug;
   const isPaidUser = hasActiveSubscription;
 
