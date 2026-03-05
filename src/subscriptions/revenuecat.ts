@@ -338,13 +338,25 @@ export async function purchasePackage(
       throw new Error("No products available. Please try again later.");
     }
 
-    const pkg = offerings.current.availablePackages.find(
-      (p) => p.product.identifier === productId,
-    );
-
+    const allPkgs = offerings.current.availablePackages;
+    let pkg = allPkgs.find((p) => p.product.identifier === productId);
     if (!pkg) {
-      throw new Error(`Product "${productId}" not found in current offering.`);
+      rcLog(`purchasePackage: exact match failed for "${productId}", trying case-insensitive...`);
+      const lower = productId.toLowerCase();
+      pkg = allPkgs.find((p) => p.product.identifier.toLowerCase() === lower);
     }
+    if (!pkg) {
+      rcLog(`purchasePackage: trying partial match for "${productId}"...`);
+      pkg = allPkgs.find(
+        (p) => p.product.identifier.includes(productId) || productId.includes(p.product.identifier),
+      );
+    }
+    if (!pkg) {
+      const available = allPkgs.map((p) => p.product.identifier).join(", ");
+      rcLog(`purchasePackage: no match found. Available: [${available}]`);
+      throw new Error(`Product "${productId}" not found. Available: ${available}`);
+    }
+    rcLog(`purchasePackage: matched "${productId}" → package ${pkg.identifier} (${pkg.product.identifier})`);
 
     rcLog(`purchasePackage: native purchase dialog opening for ${productId}`);
     const result = await rc.purchasePackage(pkg);
