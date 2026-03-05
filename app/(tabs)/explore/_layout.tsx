@@ -54,6 +54,7 @@ export default function ExploreLayout() {
         },
         title: "",
         contentStyle: { backgroundColor: 'transparent' },
+        navigationBarColor: 'transparent',
       }}
     >
       <Stack.Screen name="index" options={{ title: "" }} />

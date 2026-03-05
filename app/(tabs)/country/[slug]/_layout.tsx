@@ -108,6 +108,7 @@ export default function CountrySlugLayout() {
         headerLeftContainerStyle: { paddingLeft: 8 },
         title: "",
         contentStyle: { backgroundColor: 'transparent' },
+        navigationBarColor: 'transparent',
       }}
     >
       <Stack.Screen

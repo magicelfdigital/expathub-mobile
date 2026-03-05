@@ -19,6 +19,7 @@ export default function CountryLayout() {
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: 'transparent' },
+        navigationBarColor: 'transparent',
       }}
     >
       <Stack.Screen
