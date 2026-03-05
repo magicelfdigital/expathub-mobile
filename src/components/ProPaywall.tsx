@@ -550,7 +550,7 @@ export function ProPaywall({
     );
   }
 
-  const showBottomCta = !hasFullAccess && !alreadyHasCountry;
+  const showBottomCta = false;
 
   return (
     <View style={{ flex: 1, backgroundColor: tokens.color.bg }}>
