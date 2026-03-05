@@ -278,6 +278,14 @@ export default function CountryDetailScreen() {
           </View>
         ) : null}
 
+        {__DEV__ ? (
+          <View style={{ margin: 16, padding: 12, backgroundColor: "#fff3cd", borderRadius: 8, borderWidth: 1, borderColor: "#ffc107" }}>
+            <Text style={{ fontSize: 11, fontFamily: "monospace", color: "#856404" }}>
+              {`DEBUG(tabs): slug=${countrySlug}\npaid=${isPaidUser}, launch=${isLaunch}\nplanSlug=${planCountrySlug ?? "null"}\nhasPlanHere=${hasPlanForThisCountry}\nshowFocus=${isPaidUser && isLaunch && !hasPlanForThisCountry && pathways.length > 0}`}
+            </Text>
+          </View>
+        ) : null}
+
         {isPaidUser && isLaunch && !hasPlanForThisCountry && pathways.length > 0 ? (
           <View style={styles.focusSection}>
             <View style={styles.focusIconRow}>
