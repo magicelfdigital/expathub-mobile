@@ -74,24 +74,36 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
 
   const startPlan = useCallback((countrySlug: string, pathwayId: string) => {
     const current = stateRef.current;
-    if (current.activeCountrySlug && current.activeCountrySlug !== countrySlug) {
-      const prevName = getCountry(current.activeCountrySlug)?.name ?? current.activeCountrySlug;
-      const newName = getCountry(countrySlug)?.name ?? countrySlug;
-      Alert.alert(
-        "Switch your focus?",
-        `You have an active plan for ${prevName}. Switching will reset your progress and start fresh for ${newName}.`,
-        [
-          { text: "Keep current plan", style: "cancel" },
-          {
-            text: `Focus on ${newName}`,
-            style: "destructive",
-            onPress: () => doStartPlan(countrySlug, pathwayId),
+    const existingSlug = current.activeCountrySlug;
+    Alert.alert(
+      "DEBUG startPlan",
+      `existing=${existingSlug}, new=${countrySlug}, same=${existingSlug === countrySlug}`,
+      [
+        {
+          text: "Continue",
+          onPress: () => {
+            if (existingSlug && existingSlug !== countrySlug) {
+              const prevName = getCountry(existingSlug)?.name ?? existingSlug;
+              const newName = getCountry(countrySlug)?.name ?? countrySlug;
+              Alert.alert(
+                "Switch your focus?",
+                `You have an active plan for ${prevName}. Switching will reset your progress and start fresh for ${newName}.`,
+                [
+                  { text: "Keep current plan", style: "cancel" },
+                  {
+                    text: `Focus on ${newName}`,
+                    style: "destructive",
+                    onPress: () => doStartPlan(countrySlug, pathwayId),
+                  },
+                ],
+              );
+            } else {
+              doStartPlan(countrySlug, pathwayId);
+            }
           },
-        ],
-      );
-    } else {
-      doStartPlan(countrySlug, pathwayId);
-    }
+        },
+      ],
+    );
   }, [doStartPlan]);
 
   const completeStep = useCallback((stepId: string) => {
