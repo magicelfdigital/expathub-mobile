@@ -1,10 +1,12 @@
 export type ResourceCategory = "visa" | "tax" | "housing" | "healthcare" | "work";
 
+export type SourceType = "official" | "authoritative" | "community";
+
 export type Resource = {
   label: string;
   note?: string;
   url: string;
-  sourceType?: "official" | "community" | "expert";
+  sourceType: SourceType;
   category?: ResourceCategory;
 };
 
@@ -25,14 +27,14 @@ export const RESOURCES: CountryResources = {
       label: "Portuguese Tax Authority",
       note: "Income tax, NIF, and residency tax obligations.",
       url: "https://www.portaldasfinancas.gov.pt",
-      sourceType: "official",
+      sourceType: "authoritative",
       category: "tax",
     },
     {
       label: "SNS (National Health Service)",
       note: "Public healthcare information and access pathways.",
       url: "https://www.sns.gov.pt",
-      sourceType: "official",
+      sourceType: "authoritative",
       category: "healthcare",
     },
     {
@@ -46,7 +48,7 @@ export const RESOURCES: CountryResources = {
       label: "IEFP (Employment Institute)",
       note: "Job market information and employment services.",
       url: "https://www.iefp.pt",
-      sourceType: "official",
+      sourceType: "authoritative",
       category: "work",
     },
   ],
@@ -62,14 +64,14 @@ export const RESOURCES: CountryResources = {
       label: "Agencia Tributaria",
       note: "Spanish tax authority -- income tax, NIE, and residency obligations.",
       url: "https://sede.agenciatributaria.gob.es",
-      sourceType: "official",
+      sourceType: "authoritative",
       category: "tax",
     },
     {
       label: "Spanish National Health System",
       note: "Public healthcare and social security enrollment.",
       url: "https://www.sanidad.gob.es",
-      sourceType: "official",
+      sourceType: "authoritative",
       category: "healthcare",
     },
     {
@@ -92,14 +94,14 @@ export const RESOURCES: CountryResources = {
       label: "French Tax Authority",
       note: "Income tax declarations, fiscal residence rules.",
       url: "https://www.impots.gouv.fr",
-      sourceType: "official",
+      sourceType: "authoritative",
       category: "tax",
     },
     {
       label: "Ameli (Health Insurance)",
       note: "French social security and health insurance enrollment.",
       url: "https://www.ameli.fr",
-      sourceType: "official",
+      sourceType: "authoritative",
       category: "healthcare",
     },
     {
@@ -122,14 +124,14 @@ export const RESOURCES: CountryResources = {
       label: "Agenzia delle Entrate",
       note: "Italian revenue agency -- tax codes and fiscal obligations.",
       url: "https://www.agenziaentrate.gov.it",
-      sourceType: "official",
+      sourceType: "authoritative",
       category: "tax",
     },
     {
       label: "SSN (National Health Service)",
       note: "Public healthcare enrollment for residents.",
       url: "https://www.salute.gov.it",
-      sourceType: "official",
+      sourceType: "authoritative",
       category: "healthcare",
     },
     {
@@ -152,7 +154,7 @@ export const RESOURCES: CountryResources = {
       label: "Bundeszentralamt fur Steuern",
       note: "German federal tax office.",
       url: "https://www.bzst.de",
-      sourceType: "official",
+      sourceType: "authoritative",
       category: "tax",
     },
     {
@@ -161,6 +163,20 @@ export const RESOURCES: CountryResources = {
       url: "https://www.krankenkassen.de",
       sourceType: "community",
       category: "healthcare",
+    },
+    {
+      label: "ImmobilienScout24",
+      note: "Leading property search platform for rentals and purchases in Germany.",
+      url: "https://www.immobilienscout24.de",
+      sourceType: "community",
+      category: "housing",
+    },
+    {
+      label: "Make it in Germany",
+      note: "Official government portal for skilled worker immigration.",
+      url: "https://www.make-it-in-germany.com",
+      sourceType: "official",
+      category: "work",
     },
   ],
   thailand: [
@@ -182,7 +198,7 @@ export const RESOURCES: CountryResources = {
       label: "Thai Revenue Department",
       note: "Tax information for residents and workers.",
       url: "https://www.rd.go.th",
-      sourceType: "official",
+      sourceType: "authoritative",
       category: "tax",
     },
   ],
@@ -198,7 +214,7 @@ export const RESOURCES: CountryResources = {
       label: "CCSS (Social Security)",
       note: "Public healthcare and social security enrollment.",
       url: "https://www.ccss.sa.cr",
-      sourceType: "official",
+      sourceType: "authoritative",
       category: "healthcare",
     },
     {
@@ -221,14 +237,14 @@ export const RESOURCES: CountryResources = {
       label: "SAT (Tax Administration)",
       note: "Mexican tax authority -- RFC and fiscal obligations.",
       url: "https://www.sat.gob.mx",
-      sourceType: "official",
+      sourceType: "authoritative",
       category: "tax",
     },
     {
       label: "IMSS (Social Security)",
       note: "Public health insurance for residents.",
       url: "https://www.imss.gob.mx",
-      sourceType: "official",
+      sourceType: "authoritative",
       category: "healthcare",
     },
     {
@@ -251,15 +267,223 @@ export const RESOURCES: CountryResources = {
       label: "CRA (Canada Revenue Agency)",
       note: "Tax obligations for new residents.",
       url: "https://www.canada.ca/en/revenue-agency.html",
-      sourceType: "official",
+      sourceType: "authoritative",
       category: "tax",
     },
     {
       label: "Provincial Health Insurance",
       note: "Health coverage varies by province -- check your destination.",
       url: "https://www.canada.ca/en/health-canada.html",
-      sourceType: "official",
+      sourceType: "authoritative",
       category: "healthcare",
+    },
+  ],
+  ireland: [
+    {
+      label: "DETE -- Employment Permits",
+      note: "Official portal for employment permit applications and eligibility.",
+      url: "https://enterprise.gov.ie/en/what-we-do/workplace-and-skills/employment-permits/",
+      sourceType: "official",
+      category: "visa",
+    },
+    {
+      label: "Revenue Commissioners",
+      note: "Irish tax authority -- PPSN, income tax, and residency obligations.",
+      url: "https://www.revenue.ie",
+      sourceType: "authoritative",
+      category: "tax",
+    },
+    {
+      label: "HSE (Health Service Executive)",
+      note: "Public healthcare system and medical card eligibility.",
+      url: "https://www.hse.ie",
+      sourceType: "authoritative",
+      category: "healthcare",
+    },
+    {
+      label: "Daft.ie",
+      note: "Leading property search platform for rentals and sales in Ireland.",
+      url: "https://www.daft.ie",
+      sourceType: "community",
+      category: "housing",
+    },
+    {
+      label: "ISD (Immigration Service Delivery)",
+      note: "Residence permits, IRP registration, and visa information.",
+      url: "https://www.irishimmigration.ie",
+      sourceType: "official",
+      category: "visa",
+    },
+  ],
+  "united-kingdom": [
+    {
+      label: "UK Visas and Immigration",
+      note: "Official government portal for visa applications and immigration status.",
+      url: "https://www.gov.uk/browse/visas-immigration",
+      sourceType: "official",
+      category: "visa",
+    },
+    {
+      label: "HMRC (Tax Authority)",
+      note: "Income tax, National Insurance, and tax residency obligations.",
+      url: "https://www.gov.uk/government/organisations/hm-revenue-customs",
+      sourceType: "authoritative",
+      category: "tax",
+    },
+    {
+      label: "NHS (National Health Service)",
+      note: "Public healthcare registration and GP enrolment for residents.",
+      url: "https://www.nhs.uk",
+      sourceType: "authoritative",
+      category: "healthcare",
+    },
+    {
+      label: "Rightmove",
+      note: "Largest property search platform for rentals and purchases in the UK.",
+      url: "https://www.rightmove.co.uk",
+      sourceType: "community",
+      category: "housing",
+    },
+    {
+      label: "GOV.UK -- Working in the UK",
+      note: "Official guidance on work permits, right to work, and sponsorship.",
+      url: "https://www.gov.uk/browse/working",
+      sourceType: "official",
+      category: "work",
+    },
+  ],
+  panama: [
+    {
+      label: "Panama Immigration (SNM)",
+      note: "Official migration authority for residency and visa applications.",
+      url: "https://www.migracion.gob.pa",
+      sourceType: "official",
+      category: "visa",
+    },
+    {
+      label: "DGI (Tax Authority)",
+      note: "Panama's tax administration -- territorial tax system information.",
+      url: "https://dgi.mef.gob.pa",
+      sourceType: "authoritative",
+      category: "tax",
+    },
+    {
+      label: "CSS (Social Security)",
+      note: "Public healthcare and social security enrolment.",
+      url: "https://www.css.gob.pa",
+      sourceType: "authoritative",
+      category: "healthcare",
+    },
+    {
+      label: "Encuentra24 Panama",
+      note: "Property listings for rentals and purchases across Panama.",
+      url: "https://www.encuentra24.com/panama",
+      sourceType: "community",
+      category: "housing",
+    },
+  ],
+  ecuador: [
+    {
+      label: "Ecuador Ministry of Foreign Affairs",
+      note: "Official visa and immigration procedures.",
+      url: "https://www.cancilleria.gob.ec",
+      sourceType: "official",
+      category: "visa",
+    },
+    {
+      label: "SRI (Tax Authority)",
+      note: "Tax obligations, RUC registration, and residency rules.",
+      url: "https://www.sri.gob.ec",
+      sourceType: "authoritative",
+      category: "tax",
+    },
+    {
+      label: "IESS (Social Security)",
+      note: "Public healthcare and social security for residents.",
+      url: "https://www.iess.gob.ec",
+      sourceType: "authoritative",
+      category: "healthcare",
+    },
+    {
+      label: "Plusvalia",
+      note: "Property search platform for rentals and sales in Ecuador.",
+      url: "https://www.plusvalia.com",
+      sourceType: "community",
+      category: "housing",
+    },
+  ],
+  malta: [
+    {
+      label: "Identity Malta",
+      note: "Official authority for residence permits and visa applications.",
+      url: "https://identitymalta.com",
+      sourceType: "official",
+      category: "visa",
+    },
+    {
+      label: "Commissioner for Revenue",
+      note: "Maltese tax authority -- income tax and fiscal obligations.",
+      url: "https://cfr.gov.mt",
+      sourceType: "authoritative",
+      category: "tax",
+    },
+    {
+      label: "Malta Health System",
+      note: "Public healthcare services and entitlement card information.",
+      url: "https://deputyprimeminister.gov.mt/en/health",
+      sourceType: "authoritative",
+      category: "healthcare",
+    },
+    {
+      label: "Malta Property Search",
+      note: "Property listings for rentals and purchases in Malta.",
+      url: "https://www.maltapark.com",
+      sourceType: "community",
+      category: "housing",
+    },
+    {
+      label: "Residency Malta Agency",
+      note: "Official agency managing residency programmes including GRP and Nomad Permit.",
+      url: "https://residencymalta.gov.mt",
+      sourceType: "official",
+      category: "visa",
+    },
+  ],
+  australia: [
+    {
+      label: "Department of Home Affairs -- Visas",
+      note: "Official Australian visa and immigration portal.",
+      url: "https://immi.homeaffairs.gov.au",
+      sourceType: "official",
+      category: "visa",
+    },
+    {
+      label: "ATO (Australian Taxation Office)",
+      note: "Tax file numbers, income tax, and residency obligations.",
+      url: "https://www.ato.gov.au",
+      sourceType: "authoritative",
+      category: "tax",
+    },
+    {
+      label: "Medicare",
+      note: "Public healthcare enrollment and eligibility for residents.",
+      url: "https://www.servicesaustralia.gov.au/medicare",
+      sourceType: "authoritative",
+      category: "healthcare",
+    },
+    {
+      label: "Domain.com.au",
+      note: "Property search for rentals and purchases across Australia.",
+      url: "https://www.domain.com.au",
+      sourceType: "community",
+      category: "housing",
+    },
+    {
+      label: "SkillSelect",
+      note: "Expression of Interest portal for skilled migration.",
+      url: "https://immi.homeaffairs.gov.au/visas/working-in-australia/skillselect",
+      sourceType: "official",
+      category: "work",
     },
   ],
 };

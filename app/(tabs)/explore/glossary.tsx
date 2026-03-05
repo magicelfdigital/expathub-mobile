@@ -197,11 +197,13 @@ const s = StyleSheet.create({
   h1: {
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black as any,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
   },
   lead: {
     fontSize: tokens.text.body,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
     lineHeight: 20,
   },
 
@@ -220,6 +222,7 @@ const s = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
     padding: 0,
   },
@@ -231,6 +234,7 @@ const s = StyleSheet.create({
   emptyText: {
     fontSize: tokens.text.body,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
   },
 
   countrySection: { gap: tokens.space.sm },
@@ -242,6 +246,7 @@ const s = StyleSheet.create({
   countryName: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.bold as any,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
 
@@ -278,7 +283,8 @@ const s = StyleSheet.create({
   abbrText: {
     fontSize: 13,
     fontWeight: tokens.weight.black as any,
-    color: "#fff",
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.white,
     letterSpacing: 0.5,
   },
 
@@ -286,12 +292,14 @@ const s = StyleSheet.create({
     flex: 1,
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.medium as any,
+    fontFamily: tokens.font.bodyMedium,
     color: tokens.color.text,
   },
 
   description: {
     fontSize: tokens.text.small,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
     lineHeight: 19,
     paddingLeft: 54,
   },
@@ -303,5 +311,6 @@ const s = StyleSheet.create({
   footerText: {
     fontSize: tokens.text.small,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
   },
 });

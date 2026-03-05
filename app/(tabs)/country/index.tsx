@@ -5,7 +5,7 @@ import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-na
 
 import { Screen } from "@/components/Screen";
 import { useCountry } from "@/contexts/CountryContext";
-import { getCountries, REGION_ORDER, sortCountriesAlpha } from "@/src/data";
+import { getCountries, REGION_ORDER, sortCountriesAlpha, isLaunchCountry } from "@/src/data";
 import { tokens } from "@/theme/tokens";
 
 const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
@@ -81,7 +81,8 @@ export default function CountryIndexScreen() {
               <View style={styles.listGap}>
                 {countries.map((c) => {
                   const isSelected = selectedCountrySlug === c.slug;
-                  return (
+                  const isLaunch = isLaunchCountry(c.slug);
+                  return isLaunch ? (
                     <Pressable
                       key={c.slug}
                       onPress={() => {
@@ -94,13 +95,19 @@ export default function CountryIndexScreen() {
                       <View style={{ flex: 1 }}>
                         <Text style={styles.rowTitle}>{c.name}</Text>
                       </View>
-
                       {isSelected ? (
                         <Ionicons name="checkmark-circle" size={20} color={tokens.color.primary} />
                       ) : (
                         <Ionicons name="chevron-forward" size={16} color={tokens.color.primary} />
                       )}
                     </Pressable>
+                  ) : (
+                    <View key={c.slug} style={styles.rowCardMuted}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.rowTitleMuted}>{c.name}</Text>
+                      </View>
+                      <Text style={styles.comingSoonTag}>Coming soon</Text>
+                    </View>
                   );
                 })}
               </View>
@@ -120,9 +127,10 @@ const styles = {
   h1: {
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
   },
-  lead: { fontSize: tokens.text.body, color: tokens.color.subtext, lineHeight: 18 },
+  lead: { fontSize: tokens.text.body, fontFamily: tokens.font.body, color: tokens.color.subtext, lineHeight: 18 },
 
   searchWrap: {
     flexDirection: "row" as const,
@@ -139,6 +147,7 @@ const styles = {
     paddingVertical: 12,
     paddingHorizontal: 8,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
   },
 
@@ -147,6 +156,7 @@ const styles = {
   regionTitle: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
     textTransform: "uppercase" as const,
     letterSpacing: 1,
@@ -162,6 +172,7 @@ const styles = {
   },
   cardSubtitle: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 18,
   },
@@ -188,6 +199,40 @@ const styles = {
   rowTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
+  },
+
+  rowCardMuted: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    gap: tokens.space.sm,
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    paddingVertical: 14,
+    paddingHorizontal: tokens.space.lg,
+    opacity: 0.6,
+  },
+
+  rowTitleMuted: {
+    fontSize: tokens.text.body,
+    fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.subtext,
+  },
+
+  comingSoonTag: {
+    fontSize: 10,
+    fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.subtext,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: tokens.radius.sm,
+    backgroundColor: tokens.color.bg,
+    overflow: "hidden" as const,
   },
 } as const;

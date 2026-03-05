@@ -13,8 +13,8 @@ type DecisionBriefCardProps = {
 };
 
 const confidenceColors: Record<DisplayConfidenceLevel, { bg: string; border: string; text: string }> = {
-  High: { bg: "#EDF5F0", border: "#D4ECEA", text: "#2D7A5F" },
-  Medium: { bg: "#fffbeb", border: "#fde68a", text: "#92400e" },
+  High: { bg: tokens.color.tealLight, border: tokens.color.teal, text: tokens.color.teal },
+  Medium: { bg: tokens.color.goldLight, border: tokens.color.gold, text: tokens.color.gold },
   Conditional: { bg: "#fef2f2", border: "#fecaca", text: "#991b1b" },
 };
 
@@ -142,7 +142,7 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
       <View style={s.twoColumn}>
         <View style={s.columnCard}>
           <Text style={s.columnTitle}>Recommended for</Text>
-          <BulletList items={brief.recommendedFor} icon="checkmark" iconColor="#2D7A5F" iconBg="#EDF5F0" />
+          <BulletList items={brief.recommendedFor} icon="checkmark" iconColor={tokens.color.teal} iconBg={tokens.color.tealLight} />
         </View>
         <View style={[s.columnCard, s.columnCardRed]}>
           <Text style={s.columnTitleRed}>Not recommended for</Text>
@@ -166,8 +166,8 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
       <CollapsibleSection
         title="Financial reality"
         icon="card"
-        iconColor="#b45309"
-        iconBg="#fef3c7"
+        iconColor={tokens.color.gold}
+        iconBg={tokens.color.goldLight}
         items={brief.financialReality}
         sectionId="financial"
         onOpen={trackSection}
@@ -176,8 +176,8 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
       <CollapsibleSection
         title="Timeline reality"
         icon="time"
-        iconColor="#0D8A8A"
-        iconBg="#FBF7EF"
+        iconColor={tokens.color.teal}
+        iconBg={tokens.color.tealLight}
         items={brief.timelineReality}
         sectionId="timeline"
         onOpen={trackSection}
@@ -198,8 +198,8 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
       <CollapsibleSection
         title="Common mistakes"
         icon="alert"
-        iconColor="#92400e"
-        iconBg="#fef3c7"
+        iconColor={tokens.color.gold}
+        iconBg={tokens.color.goldLight}
         items={brief.commonMistakes}
         sectionId="mistakes"
         onOpen={trackSection}
@@ -220,8 +220,8 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
       <CollapsibleSection
         title="Family & dependents"
         icon="people"
-        iconColor="#0D8A8A"
-        iconBg="#FBF7EF"
+        iconColor={tokens.color.teal}
+        iconBg={tokens.color.tealLight}
         items={brief.familyAndDependents ?? []}
         sectionId="family"
         onOpen={trackSection}
@@ -230,8 +230,8 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
       <CollapsibleSection
         title="Lifestyle & culture"
         icon="globe"
-        iconColor="#2D7A5F"
-        iconBg="#EDF5F0"
+        iconColor={tokens.color.teal}
+        iconBg={tokens.color.tealLight}
         items={brief.lifestyleAndCulture ?? []}
         sectionId="lifestyle"
         onOpen={trackSection}
@@ -270,6 +270,7 @@ const s = {
   briefLabelText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
@@ -277,11 +278,13 @@ const s = {
   headline: {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
     lineHeight: 26,
   },
   summary: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 20,
     marginTop: 4,
@@ -293,21 +296,22 @@ const s = {
     gap: 6,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: tokens.radius.pill,
+    borderRadius: tokens.radius.sm,
     borderWidth: 1,
   },
   confidenceText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
   },
   twoColumn: {
     gap: tokens.space.sm,
   },
   columnCard: {
-    backgroundColor: "#EDF5F0",
+    backgroundColor: tokens.color.tealLight,
     borderRadius: tokens.radius.lg,
     borderWidth: 1,
-    borderColor: "#D4ECEA",
+    borderColor: tokens.color.teal,
     padding: tokens.space.lg,
     gap: tokens.space.sm,
   },
@@ -318,11 +322,13 @@ const s = {
   columnTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
-    color: "#2D7A5F",
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.teal,
   },
   columnTitleRed: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: "#991b1b",
   },
   divider: {
@@ -332,6 +338,7 @@ const s = {
   },
   detailsHint: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     textAlign: "center" as const,
     marginBottom: 2,
@@ -358,6 +365,7 @@ const s = {
   accordionTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
     flex: 1,
   },
@@ -373,11 +381,11 @@ const s = {
     color: "#991b1b",
   },
   mistakeAccordion: {
-    backgroundColor: "#fffbeb",
-    borderColor: "#fde68a",
+    backgroundColor: tokens.color.goldLight,
+    borderColor: tokens.color.gold,
   },
   mistakeAccordionTitle: {
-    color: "#92400e",
+    color: tokens.color.gold,
   },
   bulletList: {
     gap: 8,
@@ -398,11 +406,13 @@ const s = {
   bulletText: {
     flex: 1,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
     lineHeight: 20,
   },
   reviewedAt: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     fontStyle: "italic" as const,
     marginTop: tokens.space.xs,

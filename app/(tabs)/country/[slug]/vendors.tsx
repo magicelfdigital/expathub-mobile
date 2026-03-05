@@ -6,6 +6,7 @@ import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 import { Screen } from "@/components/Screen";
 import { AvailabilityGate } from "@/src/components/AvailabilityGate";
 import { useCountry } from "@/contexts/CountryContext";
+import { useContinue } from "@/src/contexts/ContinueContext";
 import { getCountry, getVendors } from "@/src/data";
 import { openExternal } from "@/lib/openExternal";
 import { tokens } from "@/theme/tokens";
@@ -15,8 +16,15 @@ const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
 export default function CountryVendorsScreen() {
   const { slug } = useLocalSearchParams<{ slug?: string }>();
   const { selectedCountrySlug } = useCountry();
+  const { recordView } = useContinue();
   const urlSlug = typeof slug === "string" ? slug : "";
-  const countrySlug = selectedCountrySlug || urlSlug || "";
+  const countrySlug = urlSlug || "";
+
+  React.useEffect(() => {
+    if (countrySlug) {
+      recordView(countrySlug, "vendors");
+    }
+  }, [countrySlug]);
 
   return (
     <Screen>
@@ -108,21 +116,22 @@ const styles = {
   evidenceLabelText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
   },
 
   header: { gap: tokens.space.xs },
-  h1: { fontSize: tokens.text.h1, fontWeight: tokens.weight.black, color: tokens.color.text },
-  lead: { fontSize: tokens.text.body, color: tokens.color.subtext, lineHeight: 18 },
+  h1: { fontSize: tokens.text.h1, fontWeight: tokens.weight.black, fontFamily: tokens.font.display, color: tokens.color.text },
+  lead: { fontSize: tokens.text.body, fontFamily: tokens.font.body, color: tokens.color.subtext, lineHeight: 18 },
   countryTag: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
     gap: 4,
     marginTop: 2,
   },
-  context: { fontSize: tokens.text.small, color: tokens.color.primary, fontWeight: tokens.weight.bold },
+  context: { fontSize: tokens.text.small, color: tokens.color.primary, fontWeight: tokens.weight.bold, fontFamily: tokens.font.bodyBold },
 
   listGap: { gap: tokens.space.sm },
 
@@ -148,27 +157,28 @@ const styles = {
     flex: 1,
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
-  cardSubtitle: { color: tokens.color.subtext, lineHeight: 18 },
+  cardSubtitle: { fontFamily: tokens.font.body, color: tokens.color.subtext, lineHeight: 18 },
   ctaRow: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
     gap: 4,
     marginTop: 2,
   },
-  cardCta: { fontWeight: tokens.weight.black, color: tokens.color.primary },
+  cardCta: { fontWeight: tokens.weight.black, fontFamily: tokens.font.bodyBold, color: tokens.color.primary },
   cardCtaChevron: { fontSize: 14, color: tokens.color.primary },
 
   badge: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: tokens.radius.pill,
+    borderRadius: tokens.radius.sm,
     backgroundColor: tokens.color.primarySoft,
     borderWidth: 1,
     borderColor: tokens.color.primaryBorder,
   },
-  badgeText: { fontSize: tokens.text.small, fontWeight: tokens.weight.black, color: tokens.color.primary },
+  badgeText: { fontSize: tokens.text.small, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodyBold, color: tokens.color.primary },
 
-  disclaimer: { marginTop: 8, fontSize: tokens.text.small, color: tokens.color.subtext, lineHeight: 16 },
+  disclaimer: { marginTop: 8, fontSize: tokens.text.small, fontFamily: tokens.font.body, color: tokens.color.subtext, lineHeight: 16 },
 } as const;

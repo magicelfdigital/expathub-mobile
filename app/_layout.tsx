@@ -10,8 +10,18 @@ import { queryClient } from "@/lib/query-client";
 import { CountryProvider } from "@/contexts/CountryContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { PlanProvider } from "@/src/contexts/PlanContext";
+import { SavedProvider } from "@/src/contexts/SavedContext";
+import { ContinueProvider } from "@/src/contexts/ContinueContext";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
+import { Lora_600SemiBold } from "@expo-google-fonts/lora";
+import {
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+  DMSans_700Bold,
+} from "@expo-google-fonts/dm-sans";
 import { initCrashlytics } from "@/utils/crashlytics";
 import { tokens } from "@/theme/tokens";
 
@@ -24,6 +34,7 @@ function RootLayoutNav() {
       <Stack.Screen name="subscribe/index" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="auth" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="account" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="about" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="country-view" options={{ headerShown: false }} />
       {__DEV__ && (
         <Stack.Screen name="debug-billing" options={{ headerShown: false, presentation: "modal" }} />
@@ -33,22 +44,27 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     ...Ionicons.font,
     ...Feather.font,
+    Lora_600SemiBold,
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_600SemiBold,
+    DMSans_700Bold,
   });
 
   useEffect(() => {
-    if (fontsLoaded) {
+    if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, fontError]);
 
   useEffect(() => {
     initCrashlytics();
   }, []);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !fontError) {
     return null;
   }
 
@@ -60,7 +76,13 @@ export default function RootLayout() {
             <AuthProvider>
               <CountryProvider>
                 <SubscriptionProvider>
-                  <RootLayoutNav />
+                  <PlanProvider>
+                    <ContinueProvider>
+                      <SavedProvider>
+                        <RootLayoutNav />
+                      </SavedProvider>
+                    </ContinueProvider>
+                  </PlanProvider>
                 </SubscriptionProvider>
               </CountryProvider>
             </AuthProvider>

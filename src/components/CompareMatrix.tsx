@@ -7,6 +7,7 @@ import { getCompareMatrix, type CompareRow } from "@/src/data/compareMatrix";
 import { getCountry } from "@/src/data";
 import { trackEvent } from "@/src/lib/analytics";
 import { tokens } from "@/theme/tokens";
+import { PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
 
 type Props = {
   countrySlugs: string[];
@@ -54,7 +55,7 @@ function MatrixRow({
         <Text style={s.labelText}>{row.label}</Text>
         {row.proOnly && (
           <View style={s.proBadge}>
-            <Text style={s.proBadgeText}>PRO</Text>
+            <Text style={s.proBadgeText}>{PAID_TIER_DISPLAY_NAME}</Text>
           </View>
         )}
       </View>
@@ -168,7 +169,7 @@ export function CompareMatrix({
           <View style={s.proFooter}>
             <Ionicons name="lock-closed" size={14} color={tokens.color.primary} />
             <Text style={s.proFooterText}>
-              Unlock 5 more factors with ExpatHub Pro
+              Unlock 5 more factors with ExpatHub {PAID_TIER_DISPLAY_NAME}
             </Text>
           </View>
         )}
@@ -212,6 +213,7 @@ const s = {
     flex: 1,
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
@@ -235,12 +237,14 @@ const s = {
   addColText: {
     fontSize: 10,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
   cornerText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
@@ -268,6 +272,7 @@ const s = {
   labelText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
     lineHeight: 16,
   },
@@ -283,6 +288,7 @@ const s = {
   proBadgeText: {
     fontSize: 8,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
     letterSpacing: 0.5,
   },
@@ -295,6 +301,7 @@ const s = {
 
   valueText: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
     lineHeight: 17,
   },
@@ -311,21 +318,21 @@ const s = {
     height: 8,
     width: "90%" as const,
     borderRadius: 4,
-    backgroundColor: "rgba(0,0,0,0.06)",
+    backgroundColor: tokens.color.border,
   },
 
   blurLine2: {
     height: 8,
     width: "70%" as const,
     borderRadius: 4,
-    backgroundColor: "rgba(0,0,0,0.05)",
+    backgroundColor: tokens.color.border,
   },
 
   blurLine3: {
     height: 8,
     width: "50%" as const,
     borderRadius: 4,
-    backgroundColor: "rgba(0,0,0,0.04)",
+    backgroundColor: tokens.color.border,
   },
 
   lockRow: {
@@ -337,6 +344,7 @@ const s = {
   lockText: {
     fontSize: 10,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
@@ -354,6 +362,7 @@ const s = {
   proFooterText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
@@ -365,6 +374,7 @@ const s = {
 
   emptyText: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     textAlign: "center" as const,
   },

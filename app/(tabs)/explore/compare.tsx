@@ -7,6 +7,7 @@ import { CompareMatrix } from "@/src/components/CompareMatrix";
 import { getCompareCountrySlugs, getCountries } from "@/src/data";
 import { trackEvent } from "@/src/lib/analytics";
 import { tokens } from "@/theme/tokens";
+import { PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
 
 const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
 
@@ -75,7 +76,7 @@ export default function CompareScreen() {
         <View style={s.header}>
           <Text style={s.h1}>Compare Countries</Text>
           <Text style={s.lead}>
-            Pick up to 3 countries. Free rows show at a glance; Pro rows reveal the nuanced details.
+            Pick up to 3 countries. Basic rows show at a glance; {PAID_TIER_DISPLAY_NAME} rows reveal the nuanced details.
           </Text>
         </View>
 
@@ -174,11 +175,13 @@ const s = StyleSheet.create({
   h1: {
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black as any,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
   },
   lead: {
     fontSize: tokens.text.body,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
     lineHeight: 20,
   },
 
@@ -186,6 +189,7 @@ const s = StyleSheet.create({
   presetLabel: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold as any,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
     textTransform: "uppercase",
     letterSpacing: 0.5,
@@ -198,7 +202,7 @@ const s = StyleSheet.create({
   presetChip: {
     paddingHorizontal: 14,
     paddingVertical: 7,
-    borderRadius: 100,
+    borderRadius: tokens.radius.sm,
     borderWidth: 1,
     borderColor: tokens.color.border,
     backgroundColor: tokens.color.surface,
@@ -210,6 +214,7 @@ const s = StyleSheet.create({
   presetChipText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold as any,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
   },
   presetChipTextActive: {
@@ -254,6 +259,7 @@ const s = StyleSheet.create({
   modalTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black as any,
+    fontFamily: tokens.font.bodySemiBold,
     color: tokens.color.text,
   },
   modalList: {
@@ -273,6 +279,7 @@ const s = StyleSheet.create({
   modalRowName: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold as any,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
   addBtnCircle: {
@@ -290,6 +297,7 @@ const s = StyleSheet.create({
   emptyPickerText: {
     fontSize: tokens.text.body,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
     textAlign: "center",
   },
 });

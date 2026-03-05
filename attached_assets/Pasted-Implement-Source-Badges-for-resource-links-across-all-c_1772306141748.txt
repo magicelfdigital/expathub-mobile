@@ -1,0 +1,84 @@
+Implement “Source Badges” for resource links across all countries.
+
+Goal:
+Display a small badge next to each resource title indicating source type:
+OFFICIAL / AUTHORITATIVE / COMMUNITY
+
+Constraints:
+- Resources are defined in ONE central file (e.g., resources.ts).
+- Do NOT modify entitlements, billing, paywall logic, or routing.
+- Do NOT change Planner logic.
+- No web browsing. No invented sources. Only classify based on URL domain patterns and existing knowledge of the site type.
+
+---------------------------------------------
+1) Data Model Update
+---------------------------------------------
+
+In the central resources file (resources.ts), add a required field to each resource item:
+
+sourceType: "official" | "authoritative" | "community"
+
+Rules for classification:
+- official:
+  government domains and official agencies (e.g., .gov, gov.uk, europa.eu official portals when appropriate, ministries, immigration authorities)
+- authoritative:
+  recognized institutions/portals that are not direct government agencies but widely authoritative (e.g., major public institutions, EU informational portals if not strictly government-run pages, national health services, etc.)
+- community:
+  blogs, forums, expat sites, aggregators, commercial advisory content
+
+If uncertain, default to "community" (conservative).
+
+---------------------------------------------
+2) UI Component
+---------------------------------------------
+
+Create a reusable component:
+src/components/SourceBadge.tsx
+
+Props:
+- sourceType: "official" | "authoritative" | "community"
+
+Display text mapping:
+- official -> "OFFICIAL"
+- authoritative -> "AUTHORITATIVE"
+- community -> "COMMUNITY"
+
+UX styling requirements:
+- small pill badge
+- subtle neutral background and border (use existing theme tokens)
+- uppercase label
+- minimal visual weight (no bright colors, no heavy outlines)
+- consistent spacing from title
+
+---------------------------------------------
+3) Render Badges in Resource List
+---------------------------------------------
+
+Find the component that renders resource items (where resources.ts is consumed).
+Update the list item layout:
+
+Resource Title  [SourceBadge]
+
+- Badge should appear inline on the same row as title when space allows.
+- If wrapping occurs on small screens, badge can drop to next line but remain close to title.
+- Ensure accessibility: add an accessibilityLabel like:
+  "Source: OFFICIAL" / "Source: AUTHORITATIVE" / "Source: COMMUNITY"
+
+---------------------------------------------
+4) QA / Safety
+---------------------------------------------
+
+- Ensure TypeScript passes.
+- Ensure every resource item has sourceType (no undefined).
+- Verify several countries render resources correctly.
+- Confirm no changes to any entitlement or billing files.
+- Confirm paywall behavior unchanged.
+
+---------------------------------------------
+5) Output
+---------------------------------------------
+
+After implementing, output:
+- Count of resources updated per sourceType
+- List of any resources defaulted to "community" due to uncertainty
+- The file(s) changed

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { tokens } from "@/theme/tokens";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import React from "react";
 import { Image, Pressable } from "react-native";
 
@@ -19,16 +19,38 @@ function BackButton({ fallback }: { fallback?: string }) {
   return (
     <Pressable
       onPress={() => {
-        if (router.canGoBack()) {
-          router.back();
-        } else if (fallback) {
+        if (fallback) {
           router.replace(fallback as any);
+        } else if (router.canGoBack()) {
+          router.back();
         } else {
-          router.replace("/(tabs)/country" as any);
+          router.replace("/(tabs)" as any);
         }
       }}
-      hitSlop={10}
-      style={{ padding: 4 }}
+      hitSlop={12}
+      style={{ padding: 8 }}
+    >
+      <Ionicons name="chevron-back" size={24} color={tokens.color.primary} />
+    </Pressable>
+  );
+}
+
+function CountryBackButton() {
+  const router = useRouter();
+  const { slug } = useLocalSearchParams<{ slug?: string }>();
+  return (
+    <Pressable
+      onPress={() => {
+        if (router.canGoBack()) {
+          router.back();
+        } else if (slug) {
+          router.replace({ pathname: "/(tabs)/country/[slug]" as any, params: { slug } });
+        } else {
+          router.replace("/(tabs)" as any);
+        }
+      }}
+      hitSlop={12}
+      style={{ padding: 8 }}
     >
       <Ionicons name="chevron-back" size={24} color={tokens.color.primary} />
     </Pressable>
@@ -44,15 +66,16 @@ export default function CountrySlugLayout() {
         headerTitleAlign: "center",
         headerBackTitle: "",
         headerShadowVisible: false,
-        headerStyle: { backgroundColor: tokens.color.bg },
+        headerStyle: { backgroundColor: tokens.color.surface },
         headerLeft: () => <BackButton />,
+        headerLeftContainerStyle: { paddingLeft: 8 },
         title: "",
       }}
     >
       <Stack.Screen
         name="index"
         options={{
-          headerLeft: () => <BackButton />,
+          headerLeft: () => <BackButton fallback="/(tabs)" />,
           title: "",
           headerBackTitle: "",
         }}
@@ -62,6 +85,7 @@ export default function CountrySlugLayout() {
         options={{
           title: "",
           headerBackTitle: "",
+          headerLeft: () => <CountryBackButton />,
         }}
       />
       <Stack.Screen
@@ -69,6 +93,7 @@ export default function CountrySlugLayout() {
         options={{
           title: "",
           headerBackTitle: "",
+          headerLeft: () => <CountryBackButton />,
         }}
       />
       <Stack.Screen
@@ -76,6 +101,23 @@ export default function CountrySlugLayout() {
         options={{
           title: "",
           headerBackTitle: "",
+          headerLeft: () => <CountryBackButton />,
+        }}
+      />
+      <Stack.Screen
+        name="saved"
+        options={{
+          title: "",
+          headerBackTitle: "",
+          headerLeft: () => <CountryBackButton />,
+        }}
+      />
+      <Stack.Screen
+        name="planner"
+        options={{
+          title: "",
+          headerBackTitle: "",
+          headerLeft: () => <CountryBackButton />,
         }}
       />
       <Stack.Screen
@@ -83,6 +125,7 @@ export default function CountrySlugLayout() {
         options={{
           title: "",
           headerBackTitle: "",
+          headerLeft: () => <CountryBackButton />,
         }}
       />
       <Stack.Screen
@@ -90,6 +133,7 @@ export default function CountrySlugLayout() {
         options={{
           title: "",
           headerBackTitle: "",
+          headerLeft: () => <CountryBackButton />,
         }}
       />
     </Stack>

@@ -1,9 +1,9 @@
 entrypoint = "README.md"
-modules = ["nodejs-22"]
+modules = ["nodejs-22", "postgresql-16"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["glib", "nspr", "nss", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXrandr", "mesa", "alsa-lib", "at-spi2-atk", "cups", "xorg.libXext", "xorg.libX11", "xorg.libxcb", "xorg.libXfixes", "xorg.libXi", "xorg.libXrender", "xorg.libXtst", "expat", "dbus", "pango", "cairo", "gtk3", "libxkbcommon"]
+packages = ["glib", "nspr", "nss", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXrandr", "mesa", "alsa-lib", "at-spi2-atk", "cups", "xorg.libXext", "xorg.libX11", "xorg.libxcb", "xorg.libXfixes", "xorg.libXi", "xorg.libXrender", "xorg.libXtst", "expat", "dbus", "pango", "cairo", "gtk3", "libxkbcommon", "zulu17"]
 
 [deployment]
 deploymentTarget = "cloudrun"
@@ -85,7 +85,7 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "EXPO_NO_PROMPT=1 EXPO_PACKAGER_PROXY_URL=https://$REPLIT_DEV_DOMAIN REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN:5000 npx expo start --localhost --clear"
+args = "EXPO_OFFLINE=1 EXPO_NO_PROMPT=1 EXPO_PACKAGER_PROXY_URL=https://$REPLIT_DEV_DOMAIN REACT_NATIVE_PACKAGER_HOSTNAME=$REPLIT_DEV_DOMAIN EXPO_PUBLIC_DOMAIN=$REPLIT_DEV_DOMAIN:5000 npx expo start --localhost --clear"
 waitForPort = 8081
 
 [userenv]

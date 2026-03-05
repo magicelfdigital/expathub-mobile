@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { getApiUrl } from "@/lib/query-client";
 import { tokens } from "@/theme/tokens";
+import { trackEvent } from "@/src/lib/analytics";
 
 const EXTERNAL_BASE = "https://www.expathub.website";
 
@@ -42,10 +43,15 @@ export default function ForgotPasswordScreen() {
   const WEB_TOP = Platform.OS === "web" ? 67 : 0;
   const canSubmit = email.trim().length > 0 && email.includes("@");
 
+  React.useEffect(() => {
+    trackEvent("password_reset_opened", { platform: Platform.OS });
+  }, []);
+
   const handleSubmit = async () => {
     if (!canSubmit || busy) return;
     setBusy(true);
     setError(null);
+    trackEvent("password_reset_submitted", { platform: Platform.OS });
     try {
       const res = await fetch(getForgotPasswordUrl(), {
         method: "POST",
@@ -54,12 +60,14 @@ export default function ForgotPasswordScreen() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.error || "Something went wrong. Please try again.");
+        throw new Error(data?.error || "We couldn't send the reset email. Please try again.");
       }
       setSubmitted(true);
+      trackEvent("password_reset_success", { platform: Platform.OS });
     } catch (err: any) {
-      const msg = err?.message || "Could not connect. Please check your internet and try again.";
+      const msg = err?.message || "We couldn't send the reset email. Please try again.";
       setError(msg);
+      trackEvent("password_reset_error", { platform: Platform.OS });
       if (Platform.OS !== "web") {
         Alert.alert("Error", msg);
       }
@@ -105,9 +113,9 @@ export default function ForgotPasswordScreen() {
 
         {!submitted ? (
           <>
-            <Text style={s.heading}>Reset your password</Text>
+            <Text style={s.heading}>Reset password</Text>
             <Text style={s.subtitle}>
-              Enter the email address associated with your account and we'll send you instructions to reset your password.
+              We'll email you a link to reset your password.
             </Text>
 
             <View style={s.form}>
@@ -117,7 +125,7 @@ export default function ForgotPasswordScreen() {
                 value={email}
                 onChangeText={(t) => { setEmail(t); setError(null); }}
                 placeholder="you@example.com"
-                placeholderTextColor="rgba(11,18,32,0.3)"
+                placeholderTextColor={tokens.color.textSoft}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -142,7 +150,7 @@ export default function ForgotPasswordScreen() {
                 {busy ? (
                   <ActivityIndicator color={tokens.color.white} size="small" />
                 ) : (
-                  <Text style={s.submitText}>Send Reset Link</Text>
+                  <Text style={s.submitText}>Send reset link</Text>
                 )}
               </Pressable>
             </View>
@@ -155,13 +163,13 @@ export default function ForgotPasswordScreen() {
 
             <Text style={s.heading}>Check your email</Text>
             <Text style={s.subtitle}>
-              If an account exists for that email, we've sent password reset instructions. Check your spam folder if you don't see it.
+              If an account exists for that email, you'll receive a reset link shortly.
             </Text>
 
             <View style={s.infoBox}>
               <Ionicons name="information-circle" size={20} color={tokens.color.primary} />
               <Text style={s.infoText}>
-                The reset link will expire in 1 hour. After resetting your password on the web page, return here to sign in.
+                After resetting your password in the browser, return here to sign in.
               </Text>
             </View>
 
@@ -207,12 +215,14 @@ const s = {
   heading: {
     fontSize: 28,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
     marginBottom: 8,
   } as const,
 
   subtitle: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 22,
     marginBottom: 24,
@@ -238,6 +248,7 @@ const s = {
   infoText: {
     flex: 1,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
     lineHeight: 20,
   } as const,
@@ -247,6 +258,7 @@ const s = {
   label: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
     marginBottom: 4,
     marginTop: 12,
@@ -260,11 +272,13 @@ const s = {
     paddingHorizontal: 14,
     paddingVertical: 14,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.text,
   } as const,
 
   errorText: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: "#b91c1c",
     marginTop: 8,
   } as const,
@@ -284,6 +298,7 @@ const s = {
   submitText: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.white,
   } as const,
 
@@ -294,11 +309,13 @@ const s = {
 
   toggleText: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   } as const,
 
   toggleLink: {
     color: tokens.color.primary,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
   } as const,
 } as const;

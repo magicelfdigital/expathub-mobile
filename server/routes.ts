@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "node:http";
 import Stripe from "stripe";
+import pg from "pg";
 
 const AUTH_API_URL = "https://www.expathub.website";
 const PASSWORD_API_URL = "https://www.expathub.website";
@@ -256,6 +257,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/stripe/status", async (_req: Request, res: Response) => {
     res.json({ hasProAccess: false });
+  });
+
+  app.post("/api/waitlist", async (req: Request, res: Response) => {
+    const { countrySlug, email, note } = req.body as {
+      countrySlug?: string;
+      email?: string;
+      note?: string;
+    };
+
+    if (!countrySlug || typeof countrySlug !== "string") {
+      res.status(400).json({ error: "countrySlug is required" });
+      return;
+    }
+
+    if (!email || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400).json({ error: "A valid email is required" });
+      return;
+    }
+
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) {
+      res.status(503).json({ error: "Database not configured" });
+      return;
+    }
+
+    let pool: pg.Pool | null = null;
+    try {
+      pool = new pg.Pool({ connectionString: dbUrl });
+      await pool.query(
+        "INSERT INTO waitlist (country_slug, email, note) VALUES ($1, $2, $3)",
+        [countrySlug, email, note || null]
+      );
+      res.json({ ok: true });
+    } catch (err: any) {
+      console.error("Waitlist insert error:", err);
+      res.status(500).json({ error: "Failed to join waitlist" });
+    } finally {
+      if (pool) await pool.end();
+    }
   });
 
   const httpServer = createServer(app);

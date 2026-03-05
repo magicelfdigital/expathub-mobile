@@ -4,9 +4,12 @@ import React, { memo, useMemo, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/components/Screen";
+import { SourceBadge } from "@/src/components/SourceBadge";
 import { AvailabilityGate } from "@/src/components/AvailabilityGate";
 import { useCountry } from "@/contexts/CountryContext";
-import { getCountry, getResources, type ResourceCategory } from "@/src/data";
+import { useSaved } from "@/src/contexts/SavedContext";
+import { useContinue } from "@/src/contexts/ContinueContext";
+import { getCountry, getResources, type ResourceCategory, type SourceType } from "@/src/data";
 import { openInApp } from "@/lib/openInApp";
 import { tokens } from "@/theme/tokens";
 
@@ -42,13 +45,17 @@ const Chip = memo(function Chip({
 const ResourceCard = memo(function ResourceCard({
   title,
   subtitle,
-  sourceType = "official",
+  sourceType,
   onPress,
+  bookmarked,
+  onToggleBookmark,
 }: {
   title: string;
   subtitle?: string;
-  sourceType?: "official" | "community" | "expert";
+  sourceType: SourceType;
   onPress: () => void;
+  bookmarked: boolean;
+  onToggleBookmark: () => void;
 }) {
   return (
     <Pressable
@@ -61,10 +68,20 @@ const ResourceCard = memo(function ResourceCard({
           {title}
         </Text>
 
-        <View style={[styles.badge, badgeStyles[sourceType]]}>
-          <Text style={[styles.badgeText, badgeTextStyles[sourceType]]} numberOfLines={1}>
-            {sourceType === "official" ? "Official" : sourceType === "community" ? "Community" : "Expert"}
-          </Text>
+        <View style={styles.cardTopRight}>
+          <SourceBadge sourceType={sourceType} />
+          <Pressable
+            onPress={(e) => { e.stopPropagation(); onToggleBookmark(); }}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={bookmarked ? "Remove bookmark" : "Add bookmark"}
+          >
+            <Ionicons
+              name={bookmarked ? "bookmark" : "bookmark-outline"}
+              size={20}
+              color={bookmarked ? tokens.color.primary : tokens.color.subtext}
+            />
+          </Pressable>
         </View>
       </View>
 
@@ -85,8 +102,15 @@ const ResourceCard = memo(function ResourceCard({
 export default function CountryResourcesScreen() {
   const { slug } = useLocalSearchParams<{ slug?: string }>();
   const { selectedCountrySlug } = useCountry();
+  const { recordView } = useContinue();
   const urlSlug = typeof slug === "string" ? slug : undefined;
-  const countrySlug = selectedCountrySlug || urlSlug || undefined;
+  const countrySlug = urlSlug || undefined;
+
+  React.useEffect(() => {
+    if (countrySlug) {
+      recordView(countrySlug, "resources");
+    }
+  }, [countrySlug]);
 
   return (
     <Screen>
@@ -97,7 +121,36 @@ export default function CountryResourcesScreen() {
   );
 }
 
+function SourceLegend({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  if (!visible) return null;
+  return (
+    <View style={styles.legendCard}>
+      <View style={styles.legendHeader}>
+        <Text style={styles.legendTitle}>Source types</Text>
+        <Pressable onPress={onClose} hitSlop={12} accessibilityRole="button" accessibilityLabel="Close">
+          <Ionicons name="close" size={18} color={tokens.color.subtext} />
+        </Pressable>
+      </View>
+      <View style={styles.legendRow}>
+        <Text style={styles.legendLabel}>OFFICIAL</Text>
+        <Text style={styles.legendDesc}>Government or immigration authority</Text>
+      </View>
+      <View style={styles.legendRow}>
+        <Text style={styles.legendLabel}>AUTHORITATIVE</Text>
+        <Text style={styles.legendDesc}>Trusted public institution or portal</Text>
+      </View>
+      <View style={styles.legendRow}>
+        <Text style={styles.legendLabel}>COMMUNITY</Text>
+        <Text style={styles.legendDesc}>Helpful third-party guidance</Text>
+      </View>
+    </View>
+  );
+}
+
 function ResourcesContent({ countrySlug }: { countrySlug?: string }) {
+  const { toggleSavedResource, isSaved } = useSaved();
+  const [showLegend, setShowLegend] = useState(false);
+
   const countryName = useMemo(() => {
     if (!countrySlug) return "this country";
     return getCountry(countrySlug)?.name ?? "this country";
@@ -147,8 +200,19 @@ function ResourcesContent({ countrySlug }: { countrySlug?: string }) {
           <Ionicons name="document-text" size={12} color={tokens.color.subtext} />
           <Text style={styles.evidenceLabelText}>Supporting resources</Text>
         </View>
-        <Text style={styles.title}>Resources</Text>
+        <View style={styles.titleRow}>
+          <Text style={styles.title}>Resources</Text>
+          <Pressable
+            onPress={() => setShowLegend((v) => !v)}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Source type information"
+          >
+            <Ionicons name="information-circle-outline" size={20} color={tokens.color.subtext} />
+          </Pressable>
+        </View>
         <Text style={styles.subtitle}>Trusted government and expert sources for {countryName}.</Text>
+        <SourceLegend visible={showLegend} onClose={() => setShowLegend(false)} />
 
         <View style={styles.chipRow}>
           <Chip label="All" active={selected.size === 0} onPress={clearFilters} />
@@ -185,6 +249,8 @@ function ResourcesContent({ countrySlug }: { countrySlug?: string }) {
             subtitle={item.note}
             sourceType={item.sourceType}
             onPress={() => openInApp(item.url)}
+            bookmarked={countrySlug ? isSaved(countrySlug, item.url) : false}
+            onToggleBookmark={() => countrySlug && toggleSavedResource(countrySlug, item.url)}
           />
         ))}
       </View>
@@ -213,6 +279,7 @@ const styles = {
   evidenceLabelText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
@@ -221,23 +288,27 @@ const styles = {
   title: {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
   },
 
   subtitle: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 18,
   },
 
   stateText: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   },
 
   countText: {
     marginTop: tokens.space.xs,
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   },
 
@@ -251,7 +322,7 @@ const styles = {
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: tokens.radius.pill,
+    borderRadius: tokens.radius.sm,
     borderWidth: 1,
   },
 
@@ -272,6 +343,7 @@ const styles = {
   chipText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
   },
 
   chipTextIdle: {
@@ -306,15 +378,23 @@ const styles = {
     gap: tokens.space.sm,
   },
 
+  cardTopRight: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: tokens.space.sm,
+  },
+
   cardTitle: {
     flex: 1,
     minWidth: 0,
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
 
   cardSubtitle: {
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 18,
   },
@@ -328,23 +408,13 @@ const styles = {
 
   cardCta: {
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
   cardCtaChevron: {
     fontSize: 14,
     color: tokens.color.primary,
-  },
-
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: tokens.radius.pill,
-  },
-
-  badgeText: {
-    fontSize: tokens.text.small,
-    fontWeight: tokens.weight.black,
   },
 
   emptyCard: {
@@ -359,31 +429,56 @@ const styles = {
   emptyText: {
     color: tokens.color.subtext,
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     textAlign: "center" as const,
     lineHeight: 20,
   },
-} as const;
 
-const badgeStyles = {
-  official: {
-    backgroundColor: tokens.color.primarySoft,
-    borderWidth: 1,
-    borderColor: tokens.color.primaryBorder,
+  titleRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 8,
   },
-  community: {
-    backgroundColor: tokens.color.surface,
+
+  legendCard: {
+    marginTop: tokens.space.sm,
+    padding: tokens.space.lg,
+    borderRadius: tokens.radius.lg,
     borderWidth: 1,
     borderColor: tokens.color.border,
-  },
-  expert: {
     backgroundColor: tokens.color.surface,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
+    gap: 10,
   },
-} as const;
 
-const badgeTextStyles = {
-  official: { color: tokens.color.primary },
-  community: { color: tokens.color.text },
-  expert: { color: tokens.color.text },
+  legendHeader: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+  },
+
+  legendTitle: {
+    fontSize: tokens.text.body,
+    fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.text,
+  },
+
+  legendRow: {
+    gap: 2,
+  },
+
+  legendLabel: {
+    fontSize: 10,
+    fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.subtext,
+    letterSpacing: 0.5,
+  },
+
+  legendDesc: {
+    fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
+    color: tokens.color.text,
+    lineHeight: 16,
+  },
 } as const;

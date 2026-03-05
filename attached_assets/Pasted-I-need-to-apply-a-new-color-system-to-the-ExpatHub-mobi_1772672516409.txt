@@ -1,0 +1,76 @@
+I need to apply a new color system to the ExpatHub mobile
+app (Expo Router + React Native) as part of the v1.1
+release. This mirrors the web color system exactly.
+
+STEP 1: Create or update the theme constants file at
+constants/colors.ts with these values:
+
+export const colors = {
+  headerBlue:   '#364F9A',
+  primaryBlue:  '#4A64B8',
+  blueLight:    '#EEF1FA',
+  teal:         '#18A8AE',
+  tealLight:    '#EAF7F8',
+  gold:         '#E8991A',
+  goldLight:    '#FEF4E2',
+  bg:           '#F9F7F4',
+  surface:      '#FFFFFF',
+  textDark:     '#2A3A6A',
+  textMid:      '#5A6785',
+  textSoft:     '#9BA8C0',
+  border:       'rgba(74,100,184,0.10)',
+  shadow:       'rgba(42,58,106,0.07)',
+};
+
+STEP 2: Update the app background color to #F9F7F4
+in the root layout.
+
+STEP 3: Update the header/navigation structure on
+every screen to a TWO-PART layout:
+Part A — Logo bar: white (#FFFFFF) background,
+logo image at natural colors (no tinting or inversion),
+height 46px, border-bottom 1px solid rgba(74,100,184,0.10).
+Part B — Hero zone: blue (#364F9A) background.
+
+STEP 4: Update all UI components:
+- Primary buttons: backgroundColor #4A64B8, color white
+- Upgrade buttons: backgroundColor #E8991A, color #2A3A6A
+- Pills: borderRadius 6, not 20
+  Teal: backgroundColor #18A8AE, color white
+  Gold: backgroundColor #E8991A, color white
+  Blue: backgroundColor #4A64B8, color white
+- Cards: backgroundColor white, borderRadius 14,
+  borderColor rgba(74,100,184,0.10), borderWidth 1
+- Checkboxes: unchecked borderColor #18A8AE,
+  checked backgroundColor #18A8AE
+- Active tab: color #4A64B8
+- Active tab indicator: backgroundColor #18A8AE
+
+STEP 5: Update fonts:
+- Install and import Lora_600SemiBold from
+  @expo-google-fonts/lora for display headlines
+- Install and import DMSans_400Regular,
+  DMSans_500Medium, DMSans_600SemiBold,
+  DMSans_700Bold from @expo-google-fonts/dm-sans
+  for all UI text
+
+STEP 6: Search for all remaining hardcoded color
+values from the previous design and replace with
+values from the colors constants file.
+
+STEP 7: Show me every file modified.
+Do not proceed past Step 1 without confirming the
+constants file was created successfully.
+After Applying — QA Checklist
+Before submitting v1.1 to either store, verify the following on both platforms:
+
+1. Logo bar is white on every screen — logo shows in natural colors
+2. Hero/header zone is blue #364F9A — not the old color
+3. App background is warm white #F9F7F4 — not pure white or baby blue
+4. All pills are rounded rectangles (border-radius 6) not capsules
+5. Teal checkboxes on checklist screens
+6. Gold Pathfinder badge on detail screens
+7. All body text is readable — minimum contrast on warm white backgrounds
+8. Bottom nav active state is blue #4A64B8 with teal pip
+9. No old pastel colors remain anywhere
+10. Upgrade banner uses gold #E8991A not teal

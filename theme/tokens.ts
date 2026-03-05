@@ -1,15 +1,22 @@
 export const tokens = {
   color: {
-    bg: "#F7F5F0",
+    headerBlue: "#3B4494",
+    bg: "#F9F7F4",
     surface: "#FFFFFF",
-    border: "rgba(0,0,0,0.10)",
-    text: "#0B1220",
-    subtext: "rgba(11,18,32,0.65)",
-    primary: "#009C9C",
-    primarySoft: "rgba(0,156,156,0.12)",
-    primaryBorder: "rgba(0,156,156,0.25)",
+    border: "rgba(59,68,148,0.10)",
+    shadow: "rgba(59,68,148,0.07)",
+    text: "#333A72",
+    subtext: "#636895",
+    textSoft: "#A0A3C4",
+    primary: "#4D5ABF",
+    primarySoft: "#EEEFFE",
+    primaryBorder: "rgba(77,90,191,0.20)",
+    teal: "#18A8AE",
+    tealLight: "#EAF7F8",
+    gold: "#E8991A",
+    goldLight: "#FEF4E2",
     white: "#FFFFFF",
-    dark: "#0B1220",
+    dark: "#333A72",
   },
 
   space: {
@@ -22,9 +29,9 @@ export const tokens = {
   },
 
   radius: {
-    sm: 10,
+    sm: 6,
     md: 12,
-    lg: 16,
+    lg: 14,
     pill: 999,
   },
 
@@ -38,7 +45,17 @@ export const tokens = {
 
   weight: {
     regular: "400" as const,
+    medium: "500" as const,
+    semibold: "600" as const,
     bold: "700" as const,
     black: "900" as const,
+  },
+
+  font: {
+    display: "Lora_600SemiBold",
+    body: "DMSans_400Regular",
+    bodyMedium: "DMSans_500Medium",
+    bodySemiBold: "DMSans_600SemiBold",
+    bodyBold: "DMSans_700Bold",
   },
 } as const;

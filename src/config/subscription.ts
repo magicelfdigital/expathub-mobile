@@ -6,9 +6,11 @@ export const ENTITLEMENT_COUNTRY_PREFIX = "country_";
 
 export const ENTITLEMENT_ID = "full_access_subscription";
 
-export const RC_DECISION_PASS_PRODUCT = "decision_pass_30d";
+export const RC_DECISION_PASS_PRODUCT =
+  Platform.OS === "ios" ? "30_day_pass" : "decision_pass_30d";
 export const RC_MONTHLY_PRODUCT =
-  process.env.EXPO_PUBLIC_RC_MONTHLY_PRODUCT ?? "expathub_pro_monthly:monthly";
+  process.env.EXPO_PUBLIC_RC_MONTHLY_PRODUCT ??
+  (Platform.OS === "ios" ? "monthly_subscription_all_access" : "expathub_pro_monthly:monthly");
 export const RC_ANNUAL_PRODUCT =
   process.env.EXPO_PUBLIC_RC_ANNUAL_PRODUCT ?? "yearly";
 
@@ -42,6 +44,9 @@ export const LAUNCH_COUNTRIES = [
   "ecuador",
   "malta",
   "united-kingdom",
+  "germany",
+  "ireland",
+  "australia",
 ] as const;
 
 export type LaunchCountrySlug = (typeof LAUNCH_COUNTRIES)[number];
@@ -55,18 +60,41 @@ export const COUNTRY_LIFETIME_PRICES: Record<string, string> = {
   ecuador: "$69",
   malta: "$69",
   "united-kingdom": "$69",
+  germany: "$69",
+  ireland: "$69",
+  australia: "$69",
 };
 
-const COUNTRY_LIFETIME_PRODUCT_IDS: Record<string, string> = {
+const COUNTRY_LIFETIME_PRODUCT_IDS_IOS: Record<string, string> = {
+  portugal: "portugal_lifetime_unlock",
+  spain: "spain_lifetime_unlock",
+  canada: "canada_lifetime_unlock",
+  "costa-rica": "CR_Llifetime_unlock",
+  panama: "Panama_lifetime_unlock",
+  ecuador: "equator_lifetime_unlock",
+  malta: "malta_lifetime_unlock",
+  "united-kingdom": "UK_lifetime_unlock",
+  germany: "germany_lifetime_unlock",
+  ireland: "ireland_lifetime_unlock",
+  australia: "australia_lifetime_unlock",
+};
+
+const COUNTRY_LIFETIME_PRODUCT_IDS_ANDROID: Record<string, string> = {
   portugal: "country_lifetime_portugal",
   spain: "country_lifetime_spain",
   canada: "country_lifetime_canada",
   "costa-rica": "country_costa_rica_unlock",
   panama: "panama_lifetime_unlock",
-  ecuador: "country_equadore_lifetime",
-  malta: "country_malta_unlock",
+  ecuador: "ecuador_lifetime",
+  malta: "country_lifetime_malta",
   "united-kingdom": "country_lifetime_united_kingdom",
+  germany: "germany_lifetime_unlock",
+  ireland: "ireland_lifetime_unlock",
+  australia: "australia_lifetime_unlock",
 };
+
+const COUNTRY_LIFETIME_PRODUCT_IDS =
+  Platform.OS === "ios" ? COUNTRY_LIFETIME_PRODUCT_IDS_IOS : COUNTRY_LIFETIME_PRODUCT_IDS_ANDROID;
 
 export function getCountryLifetimeProductId(slug: string): string {
   return COUNTRY_LIFETIME_PRODUCT_IDS[slug] ?? `${slug.replace(/-/g, "_")}_lifetime_unlock`;

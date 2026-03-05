@@ -93,7 +93,7 @@ export default function CommunityScreen() {
         </View>
 
         <View style={styles.ctaCard}>
-          <Ionicons name="lock-closed" size={20} color="#92400e" />
+          <Ionicons name="lock-closed" size={20} color={tokens.color.gold} />
           <Text style={styles.ctaTitle}>Community links are included with Decision Access</Text>
           <Text style={styles.ctaSubtitle}>
             Access vetted communities alongside Decision Briefs that explain what work is allowed, when sponsorship is required, and which visas close doors later.
@@ -205,11 +205,13 @@ const styles = {
   h1: {
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
     textAlign: "center" as const,
   },
   lead: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 20,
     textAlign: "center" as const,
@@ -225,12 +227,14 @@ const styles = {
     fontSize: tokens.text.small,
     color: tokens.color.primary,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
   },
 
   section: { gap: tokens.space.sm },
   sectionTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodySemiBold,
     color: tokens.color.text,
   },
 
@@ -258,20 +262,22 @@ const styles = {
   featureTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
   featureDesc: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 16,
     marginTop: 2,
   },
 
   ctaCard: {
-    backgroundColor: "#fef3c7",
+    backgroundColor: tokens.color.goldLight,
     borderRadius: tokens.radius.lg,
     borderWidth: 1,
-    borderColor: "#fde68a",
+    borderColor: tokens.color.gold,
     padding: tokens.space.xl,
     gap: tokens.space.sm,
     alignItems: "center" as const,
@@ -279,12 +285,14 @@ const styles = {
   ctaTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
-    color: "#92400e",
+    fontFamily: tokens.font.bodySemiBold,
+    color: tokens.color.text,
     textAlign: "center" as const,
   },
   ctaSubtitle: {
     fontSize: tokens.text.body,
-    color: "#78350f",
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
     textAlign: "center" as const,
     lineHeight: 20,
   },
@@ -295,16 +303,17 @@ const styles = {
     marginTop: tokens.space.sm,
     paddingHorizontal: 20,
     paddingVertical: 12,
-    borderRadius: tokens.radius.pill,
-    backgroundColor: tokens.color.primary,
+    borderRadius: tokens.radius.md,
+    backgroundColor: tokens.color.gold,
   },
   ctaButtonPressed: {
     opacity: 0.9,
     transform: [{ scale: 0.99 }],
   },
   ctaButtonText: {
-    color: tokens.color.white,
+    color: tokens.color.text,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     fontSize: tokens.text.body,
   },
 
@@ -327,10 +336,12 @@ const styles = {
   linkTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
   linkSubtitle: {
     marginTop: 2,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 18,
     fontSize: tokens.text.small,
@@ -338,7 +349,7 @@ const styles = {
   typeBadge: {
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: tokens.radius.pill,
+    borderRadius: tokens.radius.sm,
     backgroundColor: tokens.color.primarySoft,
     borderWidth: 1,
     borderColor: tokens.color.primaryBorder,
@@ -346,12 +357,14 @@ const styles = {
   typeBadgeText: {
     fontSize: 10,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
   disclaimer: {
     marginTop: 8,
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     textAlign: "center" as const,
     lineHeight: 16,

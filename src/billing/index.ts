@@ -32,12 +32,32 @@ function createRCClient(): RevenueCatClient {
 
       const offerings = await rc.getOfferings();
       if (!offerings.current?.availablePackages.length) {
+        console.log("[PURCHASE-DIAG] No packages in current offering. Check RevenueCat dashboard.");
         throw new Error("No products available");
       }
-      const pkg = offerings.current.availablePackages.find(
-        (p) => p.product.identifier === productId,
-      );
-      if (!pkg) throw new Error(`Product "${productId}" not found`);
+      const allPkgs = offerings.current.availablePackages;
+      const availableIds = allPkgs.map((p) => p.product.identifier);
+      const availablePkgIds = allPkgs.map((p) => p.identifier);
+      console.log(`[PURCHASE-DIAG] Looking for: "${productId}"`);
+      console.log(`[PURCHASE-DIAG] Available products: ${JSON.stringify(availableIds)}`);
+      console.log(`[PURCHASE-DIAG] Available packages: ${JSON.stringify(availablePkgIds)}`);
+      let pkg = allPkgs.find((p) => p.product.identifier === productId);
+      if (!pkg) {
+        console.log(`[PURCHASE-DIAG] Product ID not matched, trying case-insensitive match...`);
+        const lower = productId.toLowerCase();
+        pkg = allPkgs.find((p) => p.product.identifier.toLowerCase() === lower);
+      }
+      if (!pkg) {
+        console.log(`[PURCHASE-DIAG] Trying partial match on product identifier...`);
+        pkg = allPkgs.find(
+          (p) => p.product.identifier.includes(productId) || productId.includes(p.product.identifier),
+        );
+      }
+      if (!pkg) {
+        console.log(`[PURCHASE-DIAG] MISMATCH: "${productId}" not in [${availableIds.join(", ")}]`);
+        throw new Error(`Product "${productId}" not found. Available: ${availableIds.join(", ")}`);
+      }
+      console.log(`[PURCHASE-DIAG] Matched package: ${pkg.identifier} → ${pkg.product.identifier}`);
 
       const result = await rc.purchasePackage(pkg);
       return {

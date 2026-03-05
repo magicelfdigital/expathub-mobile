@@ -15,7 +15,7 @@ export function ComingSoon({ title, message, ctaLabel, onPressCta }: ComingSoonP
     <View style={s.wrapper}>
       <View style={s.card}>
         <View style={s.iconCircle}>
-          <Ionicons name="time-outline" size={28} color="#6b7280" />
+          <Ionicons name="time-outline" size={28} color={tokens.color.subtext} />
         </View>
         <Text style={s.title}>{title}</Text>
         <Text style={s.message}>{message}</Text>
@@ -43,9 +43,9 @@ const s = {
     width: "100%" as const,
     padding: tokens.space.xl,
     borderRadius: tokens.radius.lg,
-    backgroundColor: "#f3f4f6",
+    backgroundColor: tokens.color.surface,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
+    borderColor: tokens.color.border,
     alignItems: "center" as const,
     gap: tokens.space.sm,
   },
@@ -53,7 +53,7 @@ const s = {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: "#e5e7eb",
+    backgroundColor: tokens.color.primarySoft,
     alignItems: "center" as const,
     justifyContent: "center" as const,
     marginBottom: tokens.space.xs,
@@ -61,12 +61,14 @@ const s = {
   title: {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
-    color: "#6b7280",
+    fontFamily: tokens.font.display,
+    color: tokens.color.text,
     textAlign: "center" as const,
   },
   message: {
     fontSize: tokens.text.body,
-    color: "#4b5563",
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
     lineHeight: 22,
     textAlign: "center" as const,
   },
@@ -83,6 +85,7 @@ const s = {
   ctaText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.white,
   },
 } as const;

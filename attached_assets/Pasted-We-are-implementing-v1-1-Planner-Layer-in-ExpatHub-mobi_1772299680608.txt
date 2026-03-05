@@ -1,0 +1,202 @@
+We are implementing v1.1 Planner Layer in ExpatHub mobile app (Expo SDK 54, expo-router, React Context, AsyncStorage, EntitlementContext already exists).
+
+Goal:
+Add a semi-linear 6-step relocation planning system with calm, structured UX tone.
+
+Constraints:
+- No backend changes
+- Local persistence only (AsyncStorage)
+- Only paid users can activate plan
+- No pricing changes
+- No major layout redesign
+- Maintain current theme/tokens
+- Tone must remain calm, steady, advisory (no hype, no urgency language)
+
+-----------------------------------------
+1️⃣ PlanContext
+-----------------------------------------
+
+Create src/contexts/PlanContext.tsx
+
+State:
+- activeCountrySlug: string | null
+- activePathwayId: string | null
+- completedSteps: string[]
+
+Methods:
+- startPlan(countrySlug: string, pathwayId: string)
+- completeStep(stepId: string)
+- resetPlan()
+
+Persist state to AsyncStorage.
+
+Only allow one active plan at a time.
+
+-----------------------------------------
+2️⃣ Country Page Integration ([slug]/index.tsx)
+-----------------------------------------
+
+After pathway content, insert:
+
+Focus Activation Section (Paid Only)
+
+Title:
+"Turn this into a structured plan"
+
+Body:
+"If this country feels like a strong option, you can focus here and walk through the process step by step."
+
+Button:
+"Focus on {CountryName}"
+
+Microcopy:
+"You can switch your focus at any time."
+
+If activeCountrySlug === slug:
+Render PlanModule at top of page.
+
+-----------------------------------------
+3️⃣ PlanModule Component
+-----------------------------------------
+
+At top display:
+
+Title:
+"{CountryName} Plan"
+
+Subtext:
+"We’ll walk through this step by step."
+
+Progress:
+"{X} of 6 steps completed"
+
+Recommended next:
+"Recommended next step: {FirstIncompleteStepTitle}"
+
+All steps clickable (semi-linear).
+Highlight first incomplete step.
+
+No exclamation marks.
+No urgency language.
+
+-----------------------------------------
+4️⃣ 6-Step Structure
+-----------------------------------------
+
+Fixed steps:
+
+1. Confirm Your Legal Pathway
+   "Make sure this visa category fits your situation and long-term goals."
+
+2. Validate Financial Requirements
+   "Review income, savings, and cost thresholds to ensure the numbers work."
+
+3. Prepare Core Documentation
+   "Identify required documents and begin gathering them early."
+
+4. Execute the Residency Process
+   "Understand where and how to apply, including appointments and approvals."
+
+5. Register & Activate Local Systems
+   "Plan for tax registration, healthcare enrollment, and local requirements."
+
+6. Post-Arrival Compliance
+   "Stay aligned with renewal rules and residency obligations."
+
+Each step:
+- Expandable
+- Contains checklist items
+- Toggle completion
+- No dependency engine
+
+-----------------------------------------
+5️⃣ EligibilitySnapshot Component (Inside Step 1)
+-----------------------------------------
+
+Header:
+"Eligibility Snapshot"
+
+Privacy note:
+"Your answers are stored only on your device and are not shared."
+
+Inputs:
+- Passport nationality
+- Income bracket
+- Savings bracket
+- Employment type
+
+Bracket-based only.
+Local state only.
+
+Positive result header:
+"This pathway appears viable based on your inputs."
+
+Moderate result header:
+"This pathway may work, but a few areas need review."
+
+Do NOT use:
+- "You qualify"
+- "Guaranteed"
+- Legal assurance language
+
+-----------------------------------------
+6️⃣ LifetimeOfferBanner
+-----------------------------------------
+
+Trigger:
+completedSteps.length >= 2
+
+Inline banner only (not modal).
+
+Title:
+"Looks like {CountryName} is your focus"
+
+Body:
+"If you plan to concentrate here long term, you can convert to lifetime access and receive credit for your most recent subscription month."
+
+Button:
+"Convert to {CountryName} Lifetime"
+
+No urgency.
+No countdown.
+No aggressive upsell tone.
+
+-----------------------------------------
+7️⃣ Plan Completion State
+-----------------------------------------
+
+Header:
+"{CountryName} Plan Complete"
+
+Body:
+"You’ve structured your relocation path. Execution support tools are coming soon."
+
+Primary button:
+"Review Your Plan"
+
+Optional secondary:
+"Explore another country"
+
+-----------------------------------------
+8️⃣ Analytics Events
+-----------------------------------------
+
+Track:
+- plan_focus_started
+- plan_step_completed
+- eligibility_snapshot_run
+- lifetime_offer_shown
+- lifetime_offer_clicked
+- plan_completed
+
+-----------------------------------------
+Tone Rules (Critical)
+-----------------------------------------
+
+- Calm, steady, advisory tone
+- No exclamation marks
+- No hype language
+- No urgency timers
+- No guilt phrasing
+- Avoid US-centric terminology
+- Use neutral phrasing (home country / destination country)

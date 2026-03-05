@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Screen } from "@/components/Screen";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
+import { useContinue } from "@/src/contexts/ContinueContext";
 import { getCountries, getCountry, getPopularCountries } from "@/src/data";
 import { COVERAGE_SUMMARY } from "@/src/data";
 import { getApiUrl } from "@/lib/query-client";
@@ -19,11 +20,18 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { selectedCountrySlug, setSelectedCountrySlug, isLoaded } = useCountry();
+  const { lastViewedCountrySlug, lastViewedSection, clearContinue } = useContinue();
 
   const selected = useMemo(() => {
     if (!selectedCountrySlug) return null;
     return getCountry(selectedCountrySlug) ?? null;
   }, [selectedCountrySlug]);
+
+  const continueCountry = useMemo(() => {
+    const slug = lastViewedCountrySlug || selectedCountrySlug;
+    if (!slug) return null;
+    return getCountry(slug) ?? null;
+  }, [lastViewedCountrySlug, selectedCountrySlug]);
 
   const popular = useMemo(() => {
     const flagged = getPopularCountries();
@@ -31,16 +39,33 @@ export default function HomeScreen() {
     return list.slice(0, 6);
   }, []);
 
+  const sectionLabel = useMemo(() => {
+    if (!lastViewedSection) return null;
+    const labels: Record<string, string> = {
+      resources: "Resources",
+      vendors: "Vendors",
+      community: "Community",
+    };
+    return labels[lastViewedSection] ?? null;
+  }, [lastViewedSection]);
+
   const goCountryHub = (slug: string) => {
     setSelectedCountrySlug(slug);
-    router.push({ pathname: "/country-view", params: { slug } } as any);
+    router.push({ pathname: "/(tabs)/country/[slug]" as any, params: { slug } });
+  };
+
+  const goContinue = () => {
+    const slug = lastViewedCountrySlug || selectedCountrySlug;
+    if (!slug) return;
+    setSelectedCountrySlug(slug);
+    router.push({ pathname: "/(tabs)/country/[slug]" as any, params: { slug } });
   };
 
   const goBrowseCountries = () => {
     router.push("/(tabs)/country");
   };
 
-  const hasSelection = Boolean(selectedCountrySlug && selected);
+  const hasSelection = Boolean(continueCountry);
 
   return (
     <Screen>
@@ -126,19 +151,24 @@ export default function HomeScreen() {
                 />
                 <Text style={[styles.returningGreeting, { textAlign: "center" }]}>{user ? "Welcome back" : "Continue exploring"}</Text>
 
-                <Pressable onPress={() => goCountryHub(selectedCountrySlug!)} style={styles.continueCard}>
+                <Pressable onPress={goContinue} style={styles.continueCard}>
                   <View style={styles.continueRow}>
                     <View style={styles.continueFlagCircle}>
                       <Ionicons name="flag" size={18} color={tokens.color.white} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.continueTitle}>{selected!.name}</Text>
-                      <Text style={styles.continueSub}>Pick up where you left off</Text>
+                      <Text style={styles.continueTitle}>{continueCountry!.name}</Text>
+                      <Text style={styles.continueSub}>
+                        {sectionLabel ? sectionLabel : "Pick up where you left off"}
+                      </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={18} color={tokens.color.white} />
                   </View>
                 </Pressable>
 
+                <Pressable onPress={() => { clearContinue(); setSelectedCountrySlug(null); }} hitSlop={10}>
+                  <Text style={styles.clearText}>Clear</Text>
+                </Pressable>
               </View>
             )}
 
@@ -238,6 +268,7 @@ const styles = {
   loadingText: {
     fontSize: tokens.text.body,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
   },
 
   welcomeSection: {
@@ -257,6 +288,7 @@ const styles = {
   welcomeTitle: {
     fontSize: 28,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
     textAlign: "center" as const,
     lineHeight: 34,
@@ -265,6 +297,7 @@ const styles = {
   welcomeBody: {
     fontSize: tokens.text.body,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
     textAlign: "center" as const,
     lineHeight: 22,
     paddingHorizontal: tokens.space.sm,
@@ -301,6 +334,7 @@ const styles = {
     flex: 1,
     fontSize: tokens.text.body,
     color: tokens.color.text,
+    fontFamily: tokens.font.body,
     lineHeight: 20,
   },
 
@@ -319,6 +353,7 @@ const styles = {
   primaryButtonText: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.white,
   },
 
@@ -331,6 +366,7 @@ const styles = {
   coverageNoteText: {
     fontSize: tokens.text.small,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
     lineHeight: 16,
   },
 
@@ -344,6 +380,7 @@ const styles = {
   returningGreeting: {
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
   },
 
@@ -371,13 +408,23 @@ const styles = {
   continueTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.white,
   },
 
   continueSub: {
     fontSize: tokens.text.body,
     color: "rgba(255,255,255,0.8)",
+    fontFamily: tokens.font.body,
     lineHeight: 18,
+    marginTop: 2,
+  },
+
+  clearText: {
+    fontSize: tokens.text.small,
+    color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
+    textAlign: "center" as const,
     marginTop: 2,
   },
 
@@ -396,12 +443,14 @@ const styles = {
   sectionTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodySemiBold,
     color: tokens.color.text,
   },
 
   sectionLink: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
@@ -427,6 +476,7 @@ const styles = {
   rowTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
 
@@ -434,12 +484,13 @@ const styles = {
     marginTop: 2,
     fontSize: tokens.text.small,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
   },
 
   openPill: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: tokens.radius.pill,
+    borderRadius: tokens.radius.sm,
     backgroundColor: tokens.color.primarySoft,
     borderWidth: 1,
     borderColor: tokens.color.primaryBorder,
@@ -448,6 +499,7 @@ const styles = {
   openPillText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   },
 
@@ -462,6 +514,7 @@ const styles = {
   browseAllText: {
     color: tokens.color.white,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
   },
 
   websiteCta: {
@@ -479,6 +532,7 @@ const styles = {
   websiteCtaText: {
     fontSize: 12,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
   },
   websiteCtaLogo: {
     width: 140,
@@ -506,13 +560,16 @@ const styles = {
     fontSize: tokens.text.small,
     color: tokens.color.primary,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
   },
   footerDot: {
     fontSize: tokens.text.small,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
   },
   footerCopy: {
     fontSize: 11,
     color: tokens.color.subtext,
+    fontFamily: tokens.font.body,
   },
 } as const;

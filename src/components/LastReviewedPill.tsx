@@ -18,13 +18,13 @@ const CONFIDENCE_CONFIG = {
   },
   medium: {
     label: "Medium confidence",
-    color: "#D4880F",
+    color: tokens.color.gold,
     icon: "alert-circle" as const,
     explanation: "Some details in this brief may be outdated or partially verified. We recommend double-checking key requirements with official sources before making decisions.",
   },
   low: {
     label: "Low confidence",
-    color: "#C83C3C",
+    color: "#dc2626",
     icon: "warning" as const,
     explanation: "This brief needs a thorough review. Significant changes may have occurred since the last update. Please verify all information with official government sources.",
   },
@@ -92,8 +92,8 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingVertical: 5,
     paddingHorizontal: 10,
-    borderRadius: tokens.radius.pill,
-    backgroundColor: "rgba(0,0,0,0.04)",
+    borderRadius: tokens.radius.sm,
+    backgroundColor: tokens.color.primarySoft,
     alignSelf: "flex-start",
   },
   pressed: {
@@ -102,6 +102,7 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 11,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     letterSpacing: 0.2,
   },
   dot: {
@@ -111,13 +112,13 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(42,58,106,0.4)",
     justifyContent: "center",
     alignItems: "center",
     padding: 32,
   },
   tooltip: {
-    backgroundColor: "#fff",
+    backgroundColor: tokens.color.surface,
     borderRadius: tokens.radius.lg,
     padding: 20,
     maxWidth: 340,
@@ -132,14 +133,17 @@ const styles = StyleSheet.create({
   tooltipTitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
   },
   tooltipBody: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 20,
   },
   tooltipDate: {
     fontSize: 11,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     opacity: 0.7,
   },

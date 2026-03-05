@@ -1,5 +1,5 @@
 export type { Region, Country } from "@/data/countries";
-export type { ResourceCategory } from "@/data/resources";
+export type { ResourceCategory, SourceType } from "@/data/resources";
 export type { CommunityLinkType } from "@/data/community";
 
 export type {
@@ -18,7 +18,7 @@ export type Resource = {
   label: string;
   note?: string;
   url: string;
-  sourceType?: "official" | "community" | "expert";
+  sourceType: "official" | "authoritative" | "community";
   category?: "visa" | "tax" | "housing" | "healthcare" | "work";
   tags?: string[];
   lastReviewedAt?: string;

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Switch, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,16 +12,8 @@ import { COUNTRIES } from "@/data/countries";
 import { tokens } from "@/theme/tokens";
 import { testCrash, isNativeBuild } from "@/utils/crashlytics";
 import { trackEvent } from "@/src/lib/analytics";
-
-async function loadPurchasesModule() {
-  if (Platform.OS === "web") return null;
-  try {
-    const mod = await import("react-native-purchases");
-    return mod.default;
-  } catch {
-    return null;
-  }
-}
+import { FREE_TIER_DISPLAY_NAME, PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
+import { getOrchestrator, clearRefreshCooldown } from "@/src/billing";
 
 function getCountryName(slug: string): string {
   return COUNTRIES.find((c) => c.slug === slug)?.name ?? slug;
@@ -39,6 +31,9 @@ export default function AccountScreen() {
     decisionPassDaysLeft,
     decisionPassExpiresAt,
     unlockedCountries,
+    sandboxMode,
+    setSandboxOverride,
+    refresh,
   } = useSubscription();
 
   const [deleting, setDeleting] = useState(false);
@@ -71,22 +66,22 @@ export default function AccountScreen() {
   };
 
   const handleRestore = async () => {
-    setRestoring(true);
-    setStatusMsg(null);
-    const rc = await loadPurchasesModule();
-    if (!rc) {
-      setStatusMsg("Purchase system not available on this platform.");
-      setRestoring(false);
+    if (!user) {
+      setStatusMsg("Please sign in first to restore purchases.");
       return;
     }
+    setRestoring(true);
+    setStatusMsg(null);
     try {
-      const result = await rc.restorePurchases();
-      const activeCount = Object.values(result.entitlements.active).length;
-      setStatusMsg(
-        activeCount > 0
-          ? `Restored ${activeCount} purchase(s) successfully.`
-          : "No previous purchases found."
-      );
+      clearRefreshCooldown(user.id.toString());
+      const orchestrator = getOrchestrator(() => token);
+      const result = await orchestrator.restore(user.id.toString());
+      await refresh();
+      if (result.status === "confirmed") {
+        setStatusMsg("Purchases restored successfully.");
+      } else {
+        setStatusMsg("No active purchases found for your account.");
+      }
     } catch {
       setStatusMsg("Restore failed. Please try again later.");
     } finally {
@@ -174,15 +169,15 @@ export default function AccountScreen() {
   const accessLabel = (() => {
     switch (accessType) {
       case "decision_pass":
-        return "Decision Pass";
+        return PAID_TIER_DISPLAY_NAME;
       case "country_lifetime":
-        return "Country Unlock";
+        return PAID_TIER_DISPLAY_NAME;
       case "subscription":
-        return "Monthly";
+        return PAID_TIER_DISPLAY_NAME;
       case "sandbox":
         return "Sandbox";
       default:
-        return "Free";
+        return FREE_TIER_DISPLAY_NAME;
     }
   })();
 
@@ -192,10 +187,10 @@ export default function AccountScreen() {
     return (
       <View style={[s.container, { justifyContent: "center", alignItems: "center", paddingHorizontal: 32 }]}>
         <Ionicons name="checkmark-circle" size={64} color={tokens.color.primary} />
-        <Text style={{ fontSize: 22, fontWeight: "700", color: tokens.color.text, marginTop: 16, textAlign: "center" }}>
+        <Text style={{ fontSize: 22, fontWeight: "700", fontFamily: tokens.font.bodyBold, color: tokens.color.text, marginTop: 16, textAlign: "center" }}>
           Account Deleted
         </Text>
-        <Text style={{ fontSize: 15, color: tokens.color.subtext, marginTop: 8, textAlign: "center" }}>
+        <Text style={{ fontSize: 15, fontFamily: tokens.font.body, color: tokens.color.subtext, marginTop: 8, textAlign: "center" }}>
           Your account has been successfully deleted.
         </Text>
       </View>
@@ -280,6 +275,21 @@ export default function AccountScreen() {
 
       </View>
 
+      {__DEV__ ? (
+        <View style={s.sandboxToggleRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.sandboxToggleTitle}>Sandbox Mode</Text>
+            <Text style={s.sandboxToggleSub}>Bypass paywall for testing</Text>
+          </View>
+          <Switch
+            value={hasActiveSubscription && accessType === "sandbox"}
+            onValueChange={(val) => setSandboxOverride(val)}
+            trackColor={{ false: tokens.color.textSoft, true: tokens.color.primaryBorder }}
+            thumbColor={hasActiveSubscription && accessType === "sandbox" ? tokens.color.primary : tokens.color.bg}
+          />
+        </View>
+      ) : null}
+
       {statusMsg ? (
         <View style={s.statusBox}>
           <Text style={s.statusText}>{statusMsg}</Text>
@@ -333,6 +343,17 @@ export default function AccountScreen() {
           <Text style={s.actionRowText}>Visit www.expathub.website</Text>
           <Ionicons name="open-outline" size={14} color={tokens.color.subtext} style={{ marginLeft: "auto" as any }} />
         </Pressable>
+
+        <View style={s.actionDivider} />
+
+        <Pressable
+          onPress={() => router.push("/about" as any)}
+          style={({ pressed }) => [s.actionRow, pressed && { opacity: 0.7 }]}
+        >
+          <Ionicons name="information-circle-outline" size={18} color={tokens.color.primary} />
+          <Text style={s.actionRowText}>About</Text>
+          <Ionicons name="chevron-forward" size={16} color={tokens.color.subtext} style={{ marginLeft: "auto" as any }} />
+        </Pressable>
       </View>
 
       <Pressable style={s.logoutBtn} onPress={handleLogout}>
@@ -385,7 +406,7 @@ export default function AccountScreen() {
             }
           }}
         >
-          <Ionicons name="bug-outline" size={20} color="#92400e" />
+          <Ionicons name="bug-outline" size={20} color={tokens.color.gold} />
           <Text style={s.crashTestText}>Test Crashlytics (Dev Only)</Text>
         </Pressable>
       ) : null}
@@ -424,6 +445,7 @@ const s = {
   headerTitle: {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
     color: tokens.color.text,
   } as const,
 
@@ -447,6 +469,7 @@ const s = {
   email: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   } as const,
 
@@ -468,12 +491,14 @@ const s = {
 
   rowLabel: {
     fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   } as const,
 
   rowValue: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
     flexShrink: 1,
     textAlign: "right" as const,
@@ -482,13 +507,13 @@ const s = {
   badge: {
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: tokens.radius.sm,
   } as const,
 
   badgePro: { backgroundColor: tokens.color.primary } as const,
   badgeFree: { backgroundColor: tokens.color.border } as const,
 
-  badgeText: { fontSize: tokens.text.small, fontWeight: tokens.weight.black } as const,
+  badgeText: { fontSize: tokens.text.small, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodyBold } as const,
   badgeTextPro: { color: tokens.color.white } as const,
   badgeTextFree: { color: tokens.color.subtext } as const,
 
@@ -499,6 +524,7 @@ const s = {
   countryLabel: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.subtext,
   } as const,
 
@@ -514,7 +540,7 @@ const s = {
     gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: tokens.radius.pill,
+    borderRadius: tokens.radius.sm,
     backgroundColor: tokens.color.primarySoft,
     borderWidth: 1,
     borderColor: tokens.color.primaryBorder,
@@ -523,6 +549,7 @@ const s = {
   countryChipText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
   } as const,
 
@@ -531,7 +558,7 @@ const s = {
     alignItems: "center" as const,
     justifyContent: "center" as const,
     gap: 8,
-    backgroundColor: tokens.color.primary,
+    backgroundColor: tokens.color.gold,
     borderRadius: tokens.radius.md,
     paddingVertical: 14,
     marginTop: 4,
@@ -540,7 +567,8 @@ const s = {
   upgradeBtnText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.black,
-    color: tokens.color.white,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.text,
   } as const,
 
   statusBox: {
@@ -554,6 +582,7 @@ const s = {
 
   statusText: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.primary,
     textAlign: "center" as const,
   } as const,
@@ -578,6 +607,7 @@ const s = {
   actionRowText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   } as const,
 
@@ -602,12 +632,14 @@ const s = {
   logoutText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: "#b91c1c",
   } as const,
 
   dangerHeader: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
     color: "#991b1b",
     textTransform: "uppercase" as const,
     letterSpacing: 1,
@@ -632,7 +664,35 @@ const s = {
   deleteText: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: "#991b1b",
+  } as const,
+
+  sandboxToggleRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    borderColor: "#bbf7d0",
+    backgroundColor: "#f0fdf4",
+    marginTop: 16,
+  } as const,
+
+  sandboxToggleTitle: {
+    fontSize: tokens.text.body,
+    fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
+    color: "#166534",
+  } as const,
+
+  sandboxToggleSub: {
+    fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
+    color: "#4ade80",
+    marginTop: 1,
   } as const,
 
   debugBillingBtn: {
@@ -651,6 +711,7 @@ const s = {
   debugBillingText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
     color: "#1e40af",
   } as const,
 
@@ -662,15 +723,16 @@ const s = {
     paddingVertical: 16,
     borderRadius: tokens.radius.md,
     borderWidth: 1,
-    borderColor: "#fde68a",
-    backgroundColor: "#fffbeb",
+    borderColor: tokens.color.gold,
+    backgroundColor: tokens.color.goldLight,
     marginTop: 16,
   } as const,
 
   crashTestText: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.bold,
-    color: "#92400e",
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.gold,
   } as const,
 
   versionLabel: {
@@ -681,6 +743,7 @@ const s = {
 
   versionText: {
     fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     opacity: 0.5,
   } as const,
