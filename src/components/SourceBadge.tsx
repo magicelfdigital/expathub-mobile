@@ -19,8 +19,8 @@ export function SourceBadge({ sourceType }: { sourceType: SourceType }) {
         paddingVertical: 3,
         borderRadius: tokens.radius.sm,
         borderWidth: 1,
-        backgroundColor: tokens.color.surface,
-        borderColor: tokens.color.border,
+        backgroundColor: tokens.color.cardBg,
+        borderColor: 'rgba(255,255,255,0.50)',
       }}
       accessibilityLabel={`Source: ${LABEL[safe]}`}
     >

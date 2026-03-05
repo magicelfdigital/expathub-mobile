@@ -280,7 +280,7 @@ export default function CountryViewScreen() {
 }
 
 const styles = {
-  container: { flex: 1, backgroundColor: tokens.color.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   content: {
     padding: tokens.space.xl,
     paddingBottom: tokens.space.xxl,
@@ -309,13 +309,13 @@ const styles = {
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
   },
 
   subtitle: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkMid,
     lineHeight: 18,
   },
   passportNotice: {
@@ -333,14 +333,13 @@ const styles = {
   },
 
   accessBanner: {
+    ...tokens.card,
     flexDirection: "row" as const,
     alignItems: "center" as const,
     gap: 8,
     paddingHorizontal: tokens.space.lg,
     paddingVertical: tokens.space.md,
-    borderRadius: tokens.radius.lg,
     backgroundColor: tokens.color.primarySoft,
-    borderWidth: 1,
     borderColor: tokens.color.primaryBorder,
   },
 
@@ -352,14 +351,13 @@ const styles = {
   },
 
   unlockBanner: {
+    ...tokens.card,
     flexDirection: "row" as const,
     alignItems: "center" as const,
     justifyContent: "space-between" as const,
     paddingHorizontal: tokens.space.lg,
     paddingVertical: tokens.space.md,
-    borderRadius: tokens.radius.lg,
     backgroundColor: tokens.color.goldLight,
-    borderWidth: 1,
     borderColor: tokens.color.gold,
   },
 
@@ -385,12 +383,9 @@ const styles = {
   },
 
   coverageSection: {
+    ...tokens.card,
     gap: tokens.space.sm,
     padding: tokens.space.lg,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    backgroundColor: tokens.color.surface,
   },
 
   coverageGroup: {
@@ -438,7 +433,7 @@ const styles = {
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: tokens.radius.sm,
-    backgroundColor: tokens.color.bg,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     overflow: "hidden" as const,
   },
 
@@ -447,14 +442,11 @@ const styles = {
   },
 
   card: {
+    ...tokens.card,
     flexDirection: "row" as const,
     alignItems: "center" as const,
     justifyContent: "space-between" as const,
     padding: tokens.space.lg,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    backgroundColor: tokens.color.surface,
   },
 
   cardPressed: {
@@ -501,17 +493,14 @@ const styles = {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodySemiBold,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
   },
 
   pathwayCard: {
+    ...tokens.card,
     flexDirection: "row" as const,
     alignItems: "center" as const,
     padding: tokens.space.lg,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    backgroundColor: tokens.color.surface,
     gap: tokens.space.sm,
   },
 
@@ -566,7 +555,7 @@ const styles = {
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: tokens.radius.sm,
-    backgroundColor: tokens.color.bg,
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
 
   soonBadgeText: {
@@ -615,11 +604,8 @@ const styles = {
   },
 
   comingSoonCard: {
+    ...tokens.card,
     padding: tokens.space.xl,
-    borderRadius: tokens.radius.lg,
-    backgroundColor: tokens.color.bg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
     alignItems: "center" as const,
     gap: tokens.space.sm,
   },

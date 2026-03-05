@@ -119,7 +119,7 @@ export function CompareMatrix({
   if (countrySlugs.length === 0) {
     return (
       <View style={s.emptyState}>
-        <Ionicons name="git-compare-outline" size={32} color={tokens.color.subtext} />
+        <Ionicons name="git-compare-outline" size={32} color={tokens.color.onDarkSoft} />
         <Text style={s.emptyText}>
           Select countries above to compare side by side
         </Text>
@@ -189,16 +189,13 @@ const s = {
   scrollContent: { paddingBottom: 4 },
 
   table: {
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    borderRadius: tokens.radius.lg,
-    backgroundColor: tokens.color.surface,
+    ...tokens.card,
     overflow: "hidden" as const,
   },
 
   headerRow: {
     flexDirection: "row" as const,
-    backgroundColor: tokens.color.bg,
+    backgroundColor: tokens.color.cardBg,
     borderBottomWidth: 1,
     borderBottomColor: tokens.color.border,
   },
@@ -280,7 +277,7 @@ const s = {
     width: LABEL_WIDTH,
     paddingHorizontal: 10,
     paddingVertical: 10,
-    backgroundColor: tokens.color.bg,
+    backgroundColor: tokens.color.cardBg,
     borderRightWidth: 1,
     borderRightColor: tokens.color.border,
     gap: 4,
@@ -392,7 +389,7 @@ const s = {
   emptyText: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkMid,
     textAlign: "center" as const,
   },
 } as const;

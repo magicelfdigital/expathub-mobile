@@ -61,7 +61,7 @@ export default function LifetimeOfferBanner() {
         <Text style={styles.buttonText}>
           Convert to {countryName} Lifetime
         </Text>
-        <Ionicons name="arrow-forward" size={16} color={tokens.color.text} />
+        <Ionicons name="arrow-forward" size={16} color={tokens.color.white} />
       </TouchableOpacity>
     </View>
   );
@@ -69,10 +69,7 @@ export default function LifetimeOfferBanner() {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: tokens.color.primarySoft,
-    borderWidth: 1,
-    borderColor: tokens.color.primaryBorder,
-    borderRadius: tokens.radius.md,
+    ...tokens.card,
     padding: tokens.space.lg,
     gap: tokens.space.sm,
   },
@@ -118,6 +115,6 @@ const styles = StyleSheet.create({
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.text,
+    color: tokens.color.white,
   },
 });

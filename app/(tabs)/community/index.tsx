@@ -103,7 +103,7 @@ export default function CommunityScreen() {
             style={({ pressed }) => [styles.ctaButton, pressed && styles.ctaButtonPressed]}
           >
             <Text style={styles.ctaButtonText}>Start your 30-day decision window</Text>
-            <Ionicons name="arrow-forward" size={14} color={tokens.color.text} />
+            <Ionicons name="arrow-forward" size={14} color={tokens.color.white} />
           </Pressable>
         </View>
 
@@ -147,7 +147,7 @@ function UnlockedCommunity({ countrySlug }: { countrySlug: string | null }) {
         </Text>
         {countryName ? (
           <View style={styles.countryTag}>
-            <Ionicons name="location" size={12} color={tokens.color.primary} />
+            <Ionicons name="location" size={12} color={tokens.color.teal} />
             <Text style={styles.countryTagText}>{countryName}</Text>
           </View>
         ) : null}
@@ -198,7 +198,7 @@ const styles = {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: tokens.color.primarySoft,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: "center" as const,
     justifyContent: "center" as const,
   },
@@ -206,13 +206,13 @@ const styles = {
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
     textAlign: "center" as const,
   },
   lead: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkMid,
     lineHeight: 20,
     textAlign: "center" as const,
   },
@@ -225,7 +225,7 @@ const styles = {
   },
   countryTagText: {
     fontSize: tokens.text.small,
-    color: tokens.color.primary,
+    color: tokens.color.teal,
     fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
   },
@@ -235,7 +235,7 @@ const styles = {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodySemiBold,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
   },
 
   listGap: { gap: tokens.space.sm },
@@ -244,10 +244,7 @@ const styles = {
     flexDirection: "row" as const,
     alignItems: "flex-start" as const,
     gap: 12,
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
+    ...tokens.card,
     padding: tokens.space.lg,
   },
   featureIconCircle: {
@@ -274,10 +271,7 @@ const styles = {
   },
 
   ctaCard: {
-    backgroundColor: tokens.color.goldLight,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.gold,
+    ...tokens.card,
     padding: tokens.space.xl,
     gap: tokens.space.sm,
     alignItems: "center" as const,
@@ -311,17 +305,14 @@ const styles = {
     transform: [{ scale: 0.99 }],
   },
   ctaButtonText: {
-    color: tokens.color.text,
+    color: tokens.color.white,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodyBold,
     fontSize: tokens.text.body,
   },
 
   linkCard: {
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
+    ...tokens.card,
     padding: tokens.space.lg,
   },
   linkCardPressed: {
@@ -365,7 +356,7 @@ const styles = {
     marginTop: 8,
     fontSize: tokens.text.small,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkSoft,
     textAlign: "center" as const,
     lineHeight: 16,
   },

@@ -82,16 +82,16 @@ export default function FlexibilityScreen() {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: tokens.color.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: tokens.space.xl, paddingBottom: tokens.space.xxl, gap: tokens.space.xl },
   header: { gap: tokens.space.sm },
-  h1: { fontSize: tokens.text.h1, fontWeight: tokens.weight.black as any, fontFamily: tokens.font.display, color: tokens.color.text },
-  explainer: { fontSize: tokens.text.body, color: tokens.color.subtext, fontFamily: tokens.font.body, lineHeight: 22 },
+  h1: { fontSize: tokens.text.h1, fontWeight: tokens.weight.black as any, fontFamily: tokens.font.display, color: tokens.color.onDark },
+  explainer: { fontSize: tokens.text.body, color: tokens.color.onDarkMid, fontFamily: tokens.font.body, lineHeight: 22 },
   countryList: { gap: tokens.space.sm },
   row: {
+    ...tokens.card,
     flexDirection: "row", alignItems: "center", padding: tokens.space.lg,
-    borderRadius: tokens.radius.lg, borderWidth: 1, borderColor: tokens.color.border,
-    backgroundColor: tokens.color.surface, gap: tokens.space.sm,
+    gap: tokens.space.sm,
   },
   rowPressed: { opacity: 0.9, transform: [{ scale: 0.99 }] },
   info: { flex: 1, gap: 4 },
@@ -106,7 +106,7 @@ const s = StyleSheet.create({
   readyText: { fontSize: 9, fontWeight: "800" as any, fontFamily: tokens.font.bodyBold, color: tokens.color.primary },
   soonBadge: {
     flexDirection: "row", alignItems: "center", gap: 3,
-    paddingHorizontal: 7, paddingVertical: 2, borderRadius: tokens.radius.sm, backgroundColor: tokens.color.bg,
+    paddingHorizontal: 7, paddingVertical: 2, borderRadius: tokens.radius.sm, backgroundColor: 'rgba(255,255,255,0.08)',
   },
   soonText: { fontSize: 9, fontWeight: "800" as any, fontFamily: tokens.font.bodyBold, color: tokens.color.textSoft },
 });

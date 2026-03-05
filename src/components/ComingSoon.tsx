@@ -42,10 +42,7 @@ const s = {
   card: {
     width: "100%" as const,
     padding: tokens.space.xl,
-    borderRadius: tokens.radius.lg,
-    backgroundColor: tokens.color.surface,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
+    ...tokens.card,
     alignItems: "center" as const,
     gap: tokens.space.sm,
   },

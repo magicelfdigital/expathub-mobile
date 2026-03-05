@@ -100,7 +100,7 @@ export default function ForgotPasswordScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Pressable onPress={handleBack} hitSlop={12} style={s.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={tokens.color.text} />
+          <Ionicons name="arrow-back" size={24} color={tokens.color.onDark} />
         </Pressable>
 
         <View style={s.logoWrap}>
@@ -197,8 +197,8 @@ export default function ForgotPasswordScreen() {
 }
 
 const s = {
-  flex: { flex: 1, backgroundColor: tokens.color.bg } as const,
-  scroll: { flex: 1, backgroundColor: tokens.color.bg } as const,
+  flex: { flex: 1, backgroundColor: 'rgba(15,25,60,0.95)' } as const,
+  scroll: { flex: 1, backgroundColor: 'rgba(15,25,60,0.95)' } as const,
   scrollContent: {
     paddingHorizontal: 24,
     paddingBottom: 60,
@@ -216,14 +216,14 @@ const s = {
     fontSize: 28,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
     marginBottom: 8,
   } as const,
 
   subtitle: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkMid,
     lineHeight: 22,
     marginBottom: 24,
   } as const,
@@ -234,13 +234,10 @@ const s = {
   } as const,
 
   infoBox: {
+    ...tokens.card,
     flexDirection: "row" as const,
     alignItems: "flex-start" as const,
     gap: 10,
-    backgroundColor: tokens.color.primarySoft,
-    borderWidth: 1,
-    borderColor: tokens.color.primaryBorder,
-    borderRadius: tokens.radius.md,
     padding: 14,
     marginBottom: 20,
   } as const,
@@ -253,7 +250,11 @@ const s = {
     lineHeight: 20,
   } as const,
 
-  form: { gap: 4 } as const,
+  form: {
+    ...tokens.card,
+    padding: 20,
+    gap: 4,
+  } as const,
 
   label: {
     fontSize: tokens.text.small,
@@ -279,7 +280,7 @@ const s = {
   errorText: {
     fontSize: tokens.text.small,
     fontFamily: tokens.font.body,
-    color: "#b91c1c",
+    color: "#fca5a5",
     marginTop: 8,
   } as const,
 
@@ -310,11 +311,11 @@ const s = {
   toggleText: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkMid,
   } as const,
 
   toggleLink: {
-    color: tokens.color.primary,
+    color: tokens.color.teal,
     fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
   } as const,

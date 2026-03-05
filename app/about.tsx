@@ -36,7 +36,7 @@ export default function AboutScreen() {
     >
       <View style={s.header}>
         <Pressable onPress={handleBack} hitSlop={12}>
-          <Ionicons name="close" size={28} color={tokens.color.text} />
+          <Ionicons name="close" size={28} color={tokens.color.onDark} />
         </Pressable>
         <Text style={s.headerTitle}>About</Text>
         <View style={{ width: 28 }} />
@@ -128,7 +128,7 @@ export default function AboutScreen() {
 const s = {
   container: {
     flex: 1,
-    backgroundColor: tokens.color.bg,
+    backgroundColor: 'rgba(15,25,60,0.95)',
   } as const,
 
   scrollContent: {
@@ -153,21 +153,21 @@ const s = {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
   } as const,
 
   title: {
     fontSize: 24,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
     marginBottom: 12,
   } as const,
 
   description: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkMid,
     lineHeight: 22,
     marginBottom: 32,
   } as const,
@@ -176,7 +176,7 @@ const s = {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkSoft,
     textTransform: "uppercase" as const,
     letterSpacing: 1,
     marginBottom: 8,
@@ -184,10 +184,7 @@ const s = {
   } as const,
 
   card: {
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
+    ...tokens.card,
     marginBottom: 24,
     overflow: "hidden" as const,
   } as const,
@@ -274,14 +271,14 @@ const s = {
     flex: 1,
     fontSize: tokens.text.small,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkSoft,
     lineHeight: 18,
   } as const,
 
   copyright: {
     fontSize: tokens.text.small,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkSoft,
     opacity: 0.5,
     textAlign: "center" as const,
     marginTop: 16,

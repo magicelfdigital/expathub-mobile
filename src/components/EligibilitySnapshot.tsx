@@ -631,10 +631,7 @@ export default function EligibilitySnapshot({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.md,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
+    ...tokens.card,
     padding: tokens.space.lg,
     marginTop: tokens.space.md,
   },

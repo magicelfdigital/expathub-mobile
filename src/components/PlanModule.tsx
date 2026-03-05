@@ -452,10 +452,7 @@ const s = {
     gap: tokens.space.sm,
   },
   stepCard: {
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    backgroundColor: tokens.color.surface,
+    ...tokens.card,
     overflow: "hidden" as const,
   },
   stepCardHighlighted: {

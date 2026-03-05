@@ -51,11 +51,11 @@ export default function CountryIndexScreen() {
         </View>
 
         <View style={styles.searchWrap}>
-          <Ionicons name="search" size={18} color={tokens.color.subtext} style={{ marginLeft: 12 }} />
+          <Ionicons name="search" size={18} color="rgba(255,255,255,0.50)" style={{ marginLeft: 12 }} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search..."
-            placeholderTextColor={tokens.color.subtext}
+            placeholderTextColor="rgba(255,255,255,0.45)"
             value={search}
             onChangeText={setSearch}
             autoCorrect={false}
@@ -63,7 +63,7 @@ export default function CountryIndexScreen() {
           />
           {search.length > 0 && (
             <Pressable onPress={() => setSearch("")} hitSlop={8} style={{ marginRight: 12 }}>
-              <Ionicons name="close-circle" size={18} color={tokens.color.subtext} />
+              <Ionicons name="close-circle" size={18} color="rgba(255,255,255,0.50)" />
             </Pressable>
           )}
         </View>
@@ -122,7 +122,7 @@ export default function CountryIndexScreen() {
 }
 
 const styles = {
-  container: { flex: 1, backgroundColor: tokens.color.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: tokens.space.xl, paddingBottom: tokens.space.xxl, gap: tokens.space.lg },
 
   header: { gap: tokens.space.xs },
@@ -130,17 +130,17 @@ const styles = {
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
   },
-  lead: { fontSize: tokens.text.body, fontFamily: tokens.font.body, color: tokens.color.subtext, lineHeight: 18 },
+  lead: { fontSize: tokens.text.body, fontFamily: tokens.font.body, color: tokens.color.onDarkMid, lineHeight: 18 },
 
   searchWrap: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: tokens.radius.md,
     borderWidth: 1,
-    borderColor: tokens.color.border,
+    borderColor: 'rgba(255,255,255,0.20)',
     gap: 6,
   },
 
@@ -150,7 +150,7 @@ const styles = {
     paddingHorizontal: 8,
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
   },
 
   regionSection: { gap: tokens.space.sm },
@@ -159,16 +159,13 @@ const styles = {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.primary,
+    color: tokens.color.onDarkMid,
     textTransform: "uppercase" as const,
     letterSpacing: 1,
   },
 
   card: {
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
+    ...tokens.card,
     padding: tokens.space.lg,
     gap: tokens.space.sm,
   },
@@ -188,14 +185,11 @@ const styles = {
   },
 
   rowCard: {
+    ...tokens.card,
     flexDirection: "row" as const,
     alignItems: "center" as const,
     justifyContent: "space-between" as const,
     gap: tokens.space.sm,
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.md,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
     paddingVertical: 14,
     paddingHorizontal: tokens.space.lg,
   },
@@ -216,14 +210,11 @@ const styles = {
   },
 
   rowCardMuted: {
+    ...tokens.card,
     flexDirection: "row" as const,
     alignItems: "center" as const,
     justifyContent: "space-between" as const,
     gap: tokens.space.sm,
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.md,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
     paddingVertical: 14,
     paddingHorizontal: tokens.space.lg,
     opacity: 0.6,
@@ -240,11 +231,11 @@ const styles = {
     fontSize: 10,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkSoft,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: tokens.radius.sm,
-    backgroundColor: tokens.color.bg,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     overflow: "hidden" as const,
   },
 } as const;

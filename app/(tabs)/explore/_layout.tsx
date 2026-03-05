@@ -3,6 +3,7 @@ import { Stack, useRouter } from "expo-router";
 import React from "react";
 import { Image, Pressable } from "react-native";
 import { tokens } from "@/theme/tokens";
+import { colors } from "@/constants/colors";
 
 function AppHeaderTitle() {
   return (
@@ -46,8 +47,13 @@ export default function ExploreLayout() {
         headerTitle: () => <AppHeaderTitle />,
         headerTitleAlign: "center",
         headerShadowVisible: false,
-        headerStyle: { backgroundColor: tokens.color.surface, borderBottomWidth: 1, borderBottomColor: tokens.color.border },
+        headerStyle: {
+          backgroundColor: colors.glassLight,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.borderDark,
+        },
         title: "",
+        contentStyle: { backgroundColor: 'transparent' },
       }}
     >
       <Stack.Screen name="index" options={{ title: "" }} />

@@ -38,7 +38,7 @@ export default function PassportNotesScreen() {
     return (
       <Screen>
         <View style={{ flex: 1, padding: tokens.space.xl, justifyContent: "center", alignItems: "center" }}>
-          <Text style={{ fontSize: tokens.text.h3, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodySemiBold, color: tokens.color.text }}>
+          <Text style={{ fontSize: tokens.text.h3, fontWeight: tokens.weight.black, fontFamily: tokens.font.bodySemiBold, color: tokens.color.onDark }}>
             No passport notes available
           </Text>
           <Pressable onPress={() => router.back()} style={{ marginTop: 16 }}>
@@ -94,7 +94,7 @@ export default function PassportNotesScreen() {
 }
 
 const styles = {
-  container: { flex: 1, backgroundColor: tokens.color.bg },
+  container: { flex: 1, backgroundColor: 'transparent' },
   content: { padding: tokens.space.xl, paddingBottom: tokens.space.xxl, gap: tokens.space.lg },
 
   headerSection: { gap: tokens.space.xs },
@@ -107,13 +107,13 @@ const styles = {
     fontSize: tokens.text.h2,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
   },
   subtitle: {
     fontSize: tokens.text.body,
     fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.text,
+    color: tokens.color.onDarkMid,
     marginTop: 2,
   },
   lead: {
@@ -126,11 +126,10 @@ const styles = {
 
   notesList: { gap: 12 },
   noteCard: {
+    ...tokens.card,
     padding: 14,
-    borderRadius: tokens.radius.lg,
-    backgroundColor: tokens.color.tealLight,
-    borderWidth: 1,
     borderColor: tokens.color.teal,
+    backgroundColor: tokens.color.tealLight,
     gap: 8,
   },
   noteLabelRow: {
@@ -169,7 +168,7 @@ const styles = {
   disclaimer: {
     fontSize: tokens.text.small,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkSoft,
     lineHeight: 16,
     marginTop: 4,
   },

@@ -521,13 +521,13 @@ export function ProPaywall({
   if (!isLaunch && resolvedCountrySlug) {
     return (
       <View style={s.loadingContainer}>
-        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: tokens.color.bg, alignItems: "center" as const, justifyContent: "center" as const, marginBottom: 8 }}>
-          <Ionicons name="time-outline" size={28} color={tokens.color.textSoft} />
+        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: "center" as const, justifyContent: "center" as const, marginBottom: 8 }}>
+          <Ionicons name="time-outline" size={28} color={tokens.color.onDarkSoft} />
         </View>
-        <Text style={{ fontSize: 22, fontWeight: "700", fontFamily: tokens.font.display, color: tokens.color.text, textAlign: "center", marginBottom: 8 }}>
+        <Text style={{ fontSize: 22, fontWeight: "700", fontFamily: tokens.font.display, color: tokens.color.onDark, textAlign: "center", marginBottom: 8 }}>
           Coming Soon
         </Text>
-        <Text style={{ fontSize: 15, fontFamily: tokens.font.body, color: tokens.color.subtext, textAlign: "center", lineHeight: 22, paddingHorizontal: 24 }}>
+        <Text style={{ fontSize: 15, fontFamily: tokens.font.body, color: tokens.color.onDarkMid, textAlign: "center", lineHeight: 22, paddingHorizontal: 24 }}>
           Full Decision Briefs for {countryName} are being built. Complete guides with detailed advice will be available here soon.
         </Text>
         {showClose ? (
@@ -564,7 +564,7 @@ export function ProPaywall({
         showsVerticalScrollIndicator={false}
       >
         <Pressable onPress={handleClose} hitSlop={12} style={s.closeButton}>
-          <Ionicons name="close" size={24} color={tokens.color.text} />
+          <Ionicons name="close" size={24} color={tokens.color.onDark} />
         </Pressable>
 
         <View style={s.header}>
@@ -905,7 +905,7 @@ const s = {
   loadingText: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkMid,
   },
   scroll: {
     flex: 1,
@@ -936,12 +936,12 @@ const s = {
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
     textAlign: "center" as const,
   },
   lead: {
     fontSize: tokens.text.body,
-    color: tokens.color.text,
+    color: tokens.color.onDarkMid,
     fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
     lineHeight: 22,
@@ -949,7 +949,7 @@ const s = {
   },
   subLead: {
     fontSize: tokens.text.small,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkSoft,
     fontFamily: tokens.font.body,
     lineHeight: 18,
     textAlign: "center" as const,
@@ -977,10 +977,7 @@ const s = {
     lineHeight: 20,
   },
   featureCard: {
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
+    ...tokens.card,
     padding: tokens.space.lg,
     gap: 10,
   },
@@ -1057,10 +1054,7 @@ const s = {
     gap: tokens.space.md,
   },
   pricingCard: {
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
+    ...tokens.card,
     padding: tokens.space.xl,
     gap: tokens.space.sm,
   },
@@ -1157,18 +1151,15 @@ const s = {
     marginTop: tokens.space.sm,
   },
   countryUnlockCtaText: {
-    color: tokens.color.text,
+    color: tokens.color.white,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodyBold,
     fontSize: tokens.text.body,
   },
   secondaryCta: {
+    ...tokens.card,
     paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    backgroundColor: tokens.color.surface,
     alignItems: "center" as const,
     width: "100%" as const,
     marginTop: tokens.space.sm,
@@ -1197,10 +1188,7 @@ const s = {
     alignItems: "center" as const,
     gap: tokens.space.md,
     padding: tokens.space.xl,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.primaryBorder,
-    backgroundColor: tokens.color.primarySoft,
+    ...tokens.card,
   },
   activeText: {
     fontSize: tokens.text.h3,
@@ -1248,10 +1236,7 @@ const s = {
     alignItems: "flex-start" as const,
     gap: 8,
     padding: tokens.space.md,
-    borderRadius: tokens.radius.lg,
-    backgroundColor: tokens.color.surface,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
+    ...tokens.card,
   },
   coverageNoteText: {
     flex: 1,
@@ -1261,17 +1246,14 @@ const s = {
     lineHeight: 18,
   },
   promoLinkText: {
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkSoft,
     fontSize: tokens.text.small,
     fontFamily: tokens.font.body,
     textDecorationLine: "underline" as const,
   },
   promoCard: {
+    ...tokens.card,
     padding: tokens.space.lg,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    backgroundColor: tokens.color.surface,
     gap: 10,
   },
   promoLabel: {
@@ -1295,7 +1277,7 @@ const s = {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
     color: tokens.color.text,
-    backgroundColor: tokens.color.bg,
+    backgroundColor: tokens.color.white,
   },
   promoSubmitBtn: {
     width: 44,
@@ -1320,12 +1302,9 @@ const s = {
     fontWeight: tokens.weight.bold,
   },
   monthlyCard: {
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    borderRadius: tokens.radius.md,
+    ...tokens.card,
     padding: 16,
     gap: 8,
-    backgroundColor: tokens.color.surface,
   },
   monthlyHeader: {
     flexDirection: "row" as const,
@@ -1346,10 +1325,9 @@ const s = {
   disclaimer: {
     fontSize: 10,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkSoft,
     textAlign: "center" as const,
     lineHeight: 14,
-    opacity: 0.7,
   },
   legalFooter: {
     flexDirection: "row" as const,
@@ -1368,7 +1346,7 @@ const s = {
   legalSeparator: {
     fontSize: tokens.text.small,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkSoft,
   },
   tabRow: {
     flexDirection: "row" as const,
@@ -1380,7 +1358,7 @@ const s = {
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: "transparent" as const,
+    backgroundColor: "rgba(255,255,255,0.12)" as const,
   },
   tabPillActive: {
     backgroundColor: tokens.color.teal,
@@ -1389,7 +1367,7 @@ const s = {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.semibold,
     fontFamily: tokens.font.bodySemiBold,
-    color: tokens.color.subtext,
+    color: "rgba(255,255,255,0.60)",
   },
   tabPillTextActive: {
     color: "#FFFFFF",
@@ -1398,10 +1376,7 @@ const s = {
     gap: tokens.space.sm,
   },
   faqCard: {
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
+    ...tokens.card,
     padding: tokens.space.lg,
     gap: 10,
   },

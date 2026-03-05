@@ -109,7 +109,7 @@ export default function AuthScreen() {
 
         {error ? (
           <View style={s.errorBox}>
-            <Ionicons name="alert-circle" size={16} color="#b91c1c" />
+            <Ionicons name="alert-circle" size={16} color="#fca5a5" />
             <Text style={s.errorText}>{error}</Text>
           </View>
         ) : null}
@@ -218,9 +218,9 @@ export default function AuthScreen() {
 }
 
 const s = {
-  flex: { flex: 1, backgroundColor: tokens.color.bg } as const,
+  flex: { flex: 1, backgroundColor: 'rgba(15,25,60,0.95)' } as const,
   flexCentered: { alignItems: "center" as const } as const,
-  scroll: { flex: 1, backgroundColor: tokens.color.bg } as const,
+  scroll: { flex: 1, backgroundColor: 'rgba(15,25,60,0.95)' } as const,
   scrollLarge: { maxWidth: 900, width: "100%" as const } as const,
   scrollContent: {
     paddingHorizontal: 24,
@@ -234,14 +234,14 @@ const s = {
     fontSize: 28,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
     marginBottom: 8,
   } as const,
 
   subtitle: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkMid,
     lineHeight: 22,
     marginBottom: 24,
   } as const,
@@ -250,9 +250,9 @@ const s = {
     flexDirection: "row" as const,
     alignItems: "center" as const,
     gap: 8,
-    backgroundColor: "#fef2f2",
+    backgroundColor: "rgba(185,28,28,0.15)",
     borderWidth: 1,
-    borderColor: "#fecaca",
+    borderColor: "rgba(185,28,28,0.30)",
     borderRadius: tokens.radius.md,
     padding: 12,
     marginBottom: 16,
@@ -262,11 +262,15 @@ const s = {
     flex: 1,
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: "#b91c1c",
+    color: "#fca5a5",
     lineHeight: 20,
   } as const,
 
-  form: { gap: 4 } as const,
+  form: {
+    ...tokens.card,
+    padding: 20,
+    gap: 4,
+  } as const,
 
   label: {
     fontSize: tokens.text.small,
@@ -312,7 +316,7 @@ const s = {
   fieldError: {
     fontSize: tokens.text.small,
     fontFamily: tokens.font.body,
-    color: "#b91c1c",
+    color: "#fca5a5",
     marginTop: 4,
   } as const,
 
@@ -342,11 +346,11 @@ const s = {
   toggleText: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkMid,
   } as const,
 
   toggleLink: {
-    color: tokens.color.primary,
+    color: tokens.color.teal,
     fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
   } as const,
@@ -358,7 +362,7 @@ const s = {
 
   forgotText: {
     fontSize: tokens.text.body,
-    color: tokens.color.primary,
+    color: tokens.color.teal,
     fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
   } as const,

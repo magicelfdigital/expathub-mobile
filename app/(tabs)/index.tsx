@@ -86,7 +86,7 @@ export default function HomeScreen() {
             <Ionicons
               name={user ? "person-circle" : "person-circle-outline"}
               size={28}
-              color={user ? tokens.color.primary : tokens.color.subtext}
+              color={user ? tokens.color.primary : tokens.color.onDarkMid}
             />
           </Pressable>
         </View>
@@ -144,7 +144,7 @@ export default function HomeScreen() {
                 </Pressable>
 
                 <View style={styles.coverageNote}>
-                  <Ionicons name="checkmark-circle" size={14} color={tokens.color.primary} />
+                  <Ionicons name="checkmark-circle" size={14} color={tokens.color.teal} />
                   <Text style={styles.coverageNoteText}>
                     Decision-ready: {COVERAGE_SUMMARY.ready}
                   </Text>
@@ -253,7 +253,7 @@ export default function HomeScreen() {
 }
 
 const styles = {
-  container: { flex: 1, backgroundColor: tokens.color.bg },
+  container: { flex: 1, backgroundColor: 'transparent' as const },
   content: { paddingBottom: tokens.space.xxl },
 
   topBar: {
@@ -267,10 +267,7 @@ const styles = {
   loadingCard: {
     padding: tokens.space.xl,
     margin: tokens.space.xl,
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
+    ...tokens.card,
     alignItems: "center" as const,
   },
   loadingText: {
@@ -297,14 +294,14 @@ const styles = {
     fontSize: 28,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
     textAlign: "center" as const,
     lineHeight: 34,
   },
 
   welcomeBody: {
     fontSize: tokens.text.body,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkMid,
     fontFamily: tokens.font.body,
     textAlign: "center" as const,
     lineHeight: 22,
@@ -316,10 +313,7 @@ const styles = {
     gap: tokens.space.sm,
     marginTop: tokens.space.sm,
     padding: tokens.space.lg,
-    borderRadius: tokens.radius.lg,
-    backgroundColor: tokens.color.surface,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
+    ...tokens.card,
   },
 
   valuePropRow: {
@@ -373,7 +367,7 @@ const styles = {
 
   coverageNoteText: {
     fontSize: tokens.text.small,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkSoft,
     fontFamily: tokens.font.body,
     lineHeight: 16,
   },
@@ -389,7 +383,7 @@ const styles = {
     fontSize: tokens.text.h1,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.display,
-    color: tokens.color.text,
+    color: tokens.color.onDark,
   },
 
   continueCard: {
@@ -430,7 +424,7 @@ const styles = {
 
   clearText: {
     fontSize: tokens.text.small,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkSoft,
     fontFamily: tokens.font.body,
     textAlign: "center" as const,
     marginTop: 2,
@@ -451,15 +445,15 @@ const styles = {
   sectionTitle: {
     fontSize: tokens.text.h3,
     fontWeight: tokens.weight.black,
-    fontFamily: tokens.font.bodySemiBold,
-    color: tokens.color.text,
+    fontFamily: tokens.font.display,
+    color: tokens.color.onDark,
   },
 
   sectionLink: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodyBold,
-    color: tokens.color.primary,
+    color: tokens.color.teal,
   },
 
   listGap: { gap: tokens.space.sm },
@@ -475,10 +469,7 @@ const styles = {
     alignItems: "center" as const,
     justifyContent: "space-between" as const,
     gap: tokens.space.sm,
-    backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
+    ...tokens.card,
     padding: tokens.space.lg,
   },
 
@@ -541,10 +532,7 @@ const styles = {
     alignItems: "center" as const,
     paddingVertical: 10,
     paddingHorizontal: tokens.space.lg,
-    borderRadius: tokens.radius.lg,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    backgroundColor: tokens.color.surface,
+    ...tokens.card,
     gap: 6,
   },
   websiteCtaText: {
@@ -566,7 +554,7 @@ const styles = {
   footerDivider: {
     width: "100%" as const,
     height: 1,
-    backgroundColor: tokens.color.border,
+    backgroundColor: tokens.color.borderDark,
     marginBottom: tokens.space.sm,
   },
   footerLinks: {
@@ -576,18 +564,18 @@ const styles = {
   },
   footerLinkText: {
     fontSize: tokens.text.small,
-    color: tokens.color.primary,
+    color: tokens.color.onDarkMid,
     fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
   },
   footerDot: {
     fontSize: tokens.text.small,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkSoft,
     fontFamily: tokens.font.body,
   },
   footerCopy: {
     fontSize: 11,
-    color: tokens.color.subtext,
+    color: tokens.color.onDarkSoft,
     fontFamily: tokens.font.body,
   },
 } as const;
