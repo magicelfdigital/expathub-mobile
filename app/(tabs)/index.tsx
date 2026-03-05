@@ -72,6 +72,8 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
 
+        <Text style={{ color: 'red', fontSize: 20, textAlign: 'center' as const }}>DARK MAP V2 LOADED</Text>
+
         {!isLoaded ? (
           <View style={styles.loadingCard}>
             <Text style={styles.loadingText}>Loading...</Text>
