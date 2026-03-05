@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Linking, Pressable, Text, View } from "react-native";
 
 import { COUNTRIES } from "@/data/countries";
+import { PATHWAYS } from "@/data/pathways";
 import { usePlan } from "@/src/contexts/PlanContext";
 import { PLAN_STEPS, getStep3Checklist, type PlanStep } from "@/src/data/planSteps";
 import { getPetRequirements } from "@/src/data/petRequirements";
@@ -130,7 +131,11 @@ function StepCard({
             <Text style={s.disclaimer}>{step.disclaimer}</Text>
           )}
           {step.id === "confirm_pathway" && countrySlug && pathwayId ? (
-            <EligibilitySnapshot countrySlug={countrySlug} pathwayId={pathwayId} />
+            <EligibilitySnapshot
+              countrySlug={countrySlug}
+              pathwayId={pathwayId}
+              availablePathways={(PATHWAYS[countrySlug] ?? []).map((p) => ({ key: p.key, title: p.title }))}
+            />
           ) : null}
         </View>
       )}

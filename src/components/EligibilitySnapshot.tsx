@@ -285,7 +285,7 @@ function computeResult(
   }
 
   if (thresholds.excludedPassports?.includes(nationality)) {
-    cautions.push(`${pathwayName ?? "This pathway"} is generally designed for non-EU nationals. EU/EEA citizens may have simpler options available.`);
+    cautions.push(`${pathwayName ?? "This pathway"} is generally designed for non-EU nationals. EU/EEA citizens typically have the right to live and work in other EU/EEA countries without a visa under freedom of movement.`);
   } else {
     strengths.push(`Your passport nationality is generally eligible for ${label}.`);
   }
@@ -425,18 +425,26 @@ const dropStyles = StyleSheet.create({
 interface EligibilitySnapshotProps {
   countrySlug: string;
   pathwayId?: string;
+  availablePathways?: { key: string; title: string }[];
 }
 
 export default function EligibilitySnapshot({
   countrySlug,
   pathwayId,
+  availablePathways,
 }: EligibilitySnapshotProps) {
   const [nationality, setNationality] = useState<string | null>(null);
   const [income, setIncome] = useState<string | null>(null);
   const [savings, setSavings] = useState<string | null>(null);
   const [employment, setEmployment] = useState<string | null>(null);
+  const [selectedPathway, setSelectedPathway] = useState<string | null>(pathwayId ?? null);
   const [result, setResult] = useState<EligibilityResult | null>(null);
   const [hasRun, setHasRun] = useState(false);
+
+  const effectivePathwayId = selectedPathway || pathwayId || "";
+  const pathwayOptions = availablePathways && availablePathways.length > 1
+    ? availablePathways.map((p) => p.title)
+    : null;
 
   useEffect(() => {
     AsyncStorage.getItem(PASSPORT_STORAGE_KEY).then((stored) => {
@@ -453,14 +461,19 @@ export default function EligibilitySnapshot({
 
   const allFilled = !!nationality && !!income && !!savings && !!employment;
 
+  const handleSelectPathway = (title: string) => {
+    const match = availablePathways?.find((p) => p.title === title);
+    if (match) setSelectedPathway(match.key);
+  };
+
   const handleRun = () => {
     if (!allFilled) return;
-    const computed = computeResult(nationality, income, savings, employment, pathwayId ?? "");
+    const computed = computeResult(nationality, income, savings, employment, effectivePathwayId);
     setResult(computed);
     setHasRun(true);
     trackEvent("eligibility_snapshot_run", {
       country: countrySlug,
-      pathway: pathwayId ?? "",
+      pathway: effectivePathwayId,
       result: computed.alignmentLevel,
     });
   };
@@ -469,6 +482,7 @@ export default function EligibilitySnapshot({
     setIncome(null);
     setSavings(null);
     setEmployment(null);
+    setSelectedPathway(pathwayId ?? null);
     setResult(null);
     setHasRun(false);
   };
@@ -489,6 +503,14 @@ export default function EligibilitySnapshot({
 
       {!hasRun ? (
         <>
+          {pathwayOptions ? (
+            <DropdownSelect
+              label="Pathway to evaluate"
+              options={pathwayOptions}
+              value={availablePathways?.find((p) => p.key === selectedPathway)?.title ?? null}
+              onSelect={handleSelectPathway}
+            />
+          ) : null}
           <DropdownSelect
             label="Passport Nationality"
             options={NATIONALITIES}
@@ -550,8 +572,8 @@ export default function EligibilitySnapshot({
               />
               <Text style={styles.resultTitle}>
                 {result.alignmentLevel === "strong"
-                  ? `${pathwayId && PATHWAY_LABELS[pathwayId] ? PATHWAY_LABELS[pathwayId] : "This pathway"} appears viable based on your inputs.`
-                  : `${pathwayId && PATHWAY_LABELS[pathwayId] ? PATHWAY_LABELS[pathwayId] : "This pathway"} may work, but a few areas need review.`}
+                  ? `${effectivePathwayId && PATHWAY_LABELS[effectivePathwayId] ? PATHWAY_LABELS[effectivePathwayId] : "This pathway"} appears viable based on your inputs.`
+                  : `${effectivePathwayId && PATHWAY_LABELS[effectivePathwayId] ? PATHWAY_LABELS[effectivePathwayId] : "This pathway"} may work, but a few areas need review.`}
               </Text>
             </View>
           </View>
