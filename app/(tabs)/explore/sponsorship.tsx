@@ -12,9 +12,10 @@ const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
 
 const COUNTRIES = [
   { slug: "canada", name: "Canada", label: "Express Entry (employer offer adds points)", pathwayKey: "express-entry" },
-  { slug: "malta", name: "Malta", label: "Single Permit (employer-sponsored)", pathwayKey: "grp" },
-  { slug: "spain", name: "Spain", label: "Work Visa (employer-sponsored)", pathwayKey: "nlv" },
+  { slug: "germany", name: "Germany", label: "EU Blue Card (employer-sponsored for qualified professionals)", pathwayKey: "eu-blue-card" },
+  { slug: "ireland", name: "Ireland", label: "Critical Skills Employment Permit (employer-sponsored)", pathwayKey: "critical-skills" },
   { slug: "united-kingdom", name: "United Kingdom", label: "Skilled Worker Visa (employer sponsors)", pathwayKey: "skilled-worker" },
+  { slug: "australia", name: "Australia", label: "Skilled Nominated Visa (employer/state sponsorship)", pathwayKey: "skilled-nominated-190" },
 ];
 
 export default function SponsorshipScreen() {
@@ -23,7 +24,7 @@ export default function SponsorshipScreen() {
 
   const goPathway = (slug: string, pathwayKey: string) => {
     setSelectedCountrySlug(slug);
-    router.push({ pathname: "/(tabs)/country/[slug]/pathways/[key]" as any, params: { slug, key: pathwayKey } });
+    router.navigate({ pathname: "/(tabs)/country/[slug]/pathways/[key]" as any, params: { slug, key: pathwayKey } });
   };
 
   return (

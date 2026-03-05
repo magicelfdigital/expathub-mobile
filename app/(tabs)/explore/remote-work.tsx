@@ -25,7 +25,7 @@ export default function RemoteWorkScreen() {
 
   const goPathway = (slug: string, pathwayKey: string) => {
     setSelectedCountrySlug(slug);
-    router.push({ pathname: "/(tabs)/country/[slug]/pathways/[key]" as any, params: { slug, key: pathwayKey } });
+    router.navigate({ pathname: "/(tabs)/country/[slug]/pathways/[key]" as any, params: { slug, key: pathwayKey } });
   };
 
   return (
