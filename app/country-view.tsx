@@ -291,7 +291,7 @@ export default function CountryViewScreen() {
               onPress={() => {
                 const firstPathway = pathways[0];
                 if (!firstPathway) return;
-                startPlan(countrySlug, firstPathway.key);
+                startPlan(countrySlug, firstPathway.key, countryName);
               }}
             >
               <Ionicons name="flag" size={16} color="#fff" />

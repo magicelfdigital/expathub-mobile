@@ -3,7 +3,6 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { Alert } from "react-native";
 import { trackEvent } from "@/src/lib/analytics";
 import { PLAN_STEPS } from "@/src/data/planSteps";
-import { getCountry } from "@/src/data";
 
 type PlanState = {
   activeCountrySlug: string | null;
@@ -14,7 +13,7 @@ type PlanState = {
 
 type PlanContextValue = PlanState & {
   isLoaded: boolean;
-  startPlan: (countrySlug: string, pathwayId: string) => void;
+  startPlan: (countrySlug: string, pathwayId: string, countryName?: string) => void;
   completeStep: (stepId: string) => void;
   uncompleteStep: (stepId: string) => void;
   resetPlan: () => void;
@@ -72,38 +71,27 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     trackEvent("plan_focus_started", { country: countrySlug, pathway: pathwayId });
   }, [persist]);
 
-  const startPlan = useCallback((countrySlug: string, pathwayId: string) => {
+  const startPlan = useCallback((countrySlug: string, pathwayId: string, countryName?: string) => {
     const current = stateRef.current;
     const existingSlug = current.activeCountrySlug;
-    Alert.alert(
-      "DEBUG startPlan",
-      `existing=${existingSlug}, new=${countrySlug}, same=${existingSlug === countrySlug}`,
-      [
-        {
-          text: "Continue",
-          onPress: () => {
-            if (existingSlug && existingSlug !== countrySlug) {
-              const prevName = getCountry(existingSlug)?.name ?? existingSlug;
-              const newName = getCountry(countrySlug)?.name ?? countrySlug;
-              Alert.alert(
-                "Switch your focus?",
-                `You have an active plan for ${prevName}. Switching will reset your progress and start fresh for ${newName}.`,
-                [
-                  { text: "Keep current plan", style: "cancel" },
-                  {
-                    text: `Focus on ${newName}`,
-                    style: "destructive",
-                    onPress: () => doStartPlan(countrySlug, pathwayId),
-                  },
-                ],
-              );
-            } else {
-              doStartPlan(countrySlug, pathwayId);
-            }
+    if (existingSlug && existingSlug !== countrySlug) {
+      const prevLabel = existingSlug.charAt(0).toUpperCase() + existingSlug.slice(1).replace(/-/g, " ");
+      const newLabel = countryName || countrySlug.charAt(0).toUpperCase() + countrySlug.slice(1).replace(/-/g, " ");
+      Alert.alert(
+        "Switch your focus?",
+        `You have an active plan for ${prevLabel}. Switching will reset your progress and start fresh for ${newLabel}.`,
+        [
+          { text: "Keep current plan", style: "cancel" },
+          {
+            text: `Focus on ${newLabel}`,
+            style: "destructive",
+            onPress: () => doStartPlan(countrySlug, pathwayId),
           },
-        },
-      ],
-    );
+        ],
+      );
+    } else {
+      doStartPlan(countrySlug, pathwayId);
+    }
   }, [doStartPlan]);
 
   const completeStep = useCallback((stepId: string) => {
