@@ -87,6 +87,13 @@ export default function CountrySlugLayout() {
         }}
       />
       <Stack.Screen
+        name="planner"
+        options={{
+          title: "",
+          headerBackTitle: "",
+        }}
+      />
+      <Stack.Screen
         name="pathways/[key]"
         options={{
           title: "",
