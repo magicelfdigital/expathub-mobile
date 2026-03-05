@@ -46,7 +46,7 @@ export default function ExploreLayout() {
         headerTitle: () => <AppHeaderTitle />,
         headerTitleAlign: "center",
         headerShadowVisible: false,
-        headerStyle: { backgroundColor: tokens.color.surface },
+        headerStyle: { backgroundColor: tokens.color.surface, borderBottomWidth: 1, borderBottomColor: tokens.color.border },
         title: "",
       }}
     >

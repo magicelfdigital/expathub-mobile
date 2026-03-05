@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { tokens } from "@/theme/tokens";
 import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import React from "react";
-import { Image, Pressable } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 
 function AppHeaderTitle() {
   return (
@@ -57,6 +57,36 @@ function CountryBackButton() {
   );
 }
 
+function PathfinderBadge() {
+  return (
+    <View style={{ marginRight: 12 }}>
+      <Text
+        style={{
+          color: tokens.color.gold,
+          backgroundColor: tokens.color.goldLight,
+          borderWidth: 1,
+          borderColor: 'rgba(232,153,26,0.25)',
+          borderRadius: 20,
+          paddingHorizontal: 10,
+          paddingVertical: 4,
+          fontSize: 11,
+          fontFamily: tokens.font.bodySemiBold,
+          overflow: 'hidden',
+        }}
+      >
+        Pathfinder
+      </Text>
+    </View>
+  );
+}
+
+const detailScreenOptions = {
+  title: "",
+  headerBackTitle: "",
+  headerLeft: () => <CountryBackButton />,
+  headerRight: () => <PathfinderBadge />,
+};
+
 export default function CountrySlugLayout() {
   return (
     <Stack
@@ -66,7 +96,7 @@ export default function CountrySlugLayout() {
         headerTitleAlign: "center",
         headerBackTitle: "",
         headerShadowVisible: false,
-        headerStyle: { backgroundColor: tokens.color.surface },
+        headerStyle: { backgroundColor: tokens.color.surface, borderBottomWidth: 1, borderBottomColor: tokens.color.border },
         headerLeft: () => <BackButton />,
         headerLeftContainerStyle: { paddingLeft: 8 },
         title: "",
@@ -80,62 +110,13 @@ export default function CountrySlugLayout() {
           headerBackTitle: "",
         }}
       />
-      <Stack.Screen
-        name="resources"
-        options={{
-          title: "",
-          headerBackTitle: "",
-          headerLeft: () => <CountryBackButton />,
-        }}
-      />
-      <Stack.Screen
-        name="vendors"
-        options={{
-          title: "",
-          headerBackTitle: "",
-          headerLeft: () => <CountryBackButton />,
-        }}
-      />
-      <Stack.Screen
-        name="community"
-        options={{
-          title: "",
-          headerBackTitle: "",
-          headerLeft: () => <CountryBackButton />,
-        }}
-      />
-      <Stack.Screen
-        name="saved"
-        options={{
-          title: "",
-          headerBackTitle: "",
-          headerLeft: () => <CountryBackButton />,
-        }}
-      />
-      <Stack.Screen
-        name="planner"
-        options={{
-          title: "",
-          headerBackTitle: "",
-          headerLeft: () => <CountryBackButton />,
-        }}
-      />
-      <Stack.Screen
-        name="pathways/[key]"
-        options={{
-          title: "",
-          headerBackTitle: "",
-          headerLeft: () => <CountryBackButton />,
-        }}
-      />
-      <Stack.Screen
-        name="pathways/passport-notes"
-        options={{
-          title: "",
-          headerBackTitle: "",
-          headerLeft: () => <CountryBackButton />,
-        }}
-      />
+      <Stack.Screen name="resources" options={detailScreenOptions} />
+      <Stack.Screen name="vendors" options={detailScreenOptions} />
+      <Stack.Screen name="community" options={detailScreenOptions} />
+      <Stack.Screen name="saved" options={detailScreenOptions} />
+      <Stack.Screen name="planner" options={detailScreenOptions} />
+      <Stack.Screen name="pathways/[key]" options={detailScreenOptions} />
+      <Stack.Screen name="pathways/passport-notes" options={detailScreenOptions} />
     </Stack>
   );
 }

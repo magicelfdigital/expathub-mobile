@@ -325,20 +325,17 @@ const styles = {
   },
 
   chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: tokens.radius.sm,
-    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
   },
 
   chipIdle: {
-    backgroundColor: tokens.color.surface,
-    borderColor: tokens.color.border,
+    backgroundColor: 'transparent',
   },
 
   chipActive: {
-    backgroundColor: tokens.color.primarySoft,
-    borderColor: tokens.color.primaryBorder,
+    backgroundColor: tokens.color.teal,
   },
 
   chipPressed: {
@@ -347,16 +344,16 @@ const styles = {
 
   chipText: {
     fontSize: tokens.text.small,
-    fontWeight: tokens.weight.black,
-    fontFamily: tokens.font.bodyBold,
+    fontWeight: '600' as const,
+    fontFamily: tokens.font.bodySemiBold,
   },
 
   chipTextIdle: {
-    color: tokens.color.text,
+    color: tokens.color.subtext,
   },
 
   chipTextActive: {
-    color: tokens.color.primary,
+    color: '#FFFFFF',
   },
 
   resourceList: {

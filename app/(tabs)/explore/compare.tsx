@@ -202,23 +202,20 @@ const s = StyleSheet.create({
   presetChip: {
     paddingHorizontal: 14,
     paddingVertical: 7,
-    borderRadius: tokens.radius.sm,
-    borderWidth: 1,
-    borderColor: tokens.color.border,
-    backgroundColor: tokens.color.surface,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
   },
   presetChipActive: {
-    borderColor: tokens.color.primary,
-    backgroundColor: tokens.color.primarySoft,
+    backgroundColor: tokens.color.teal,
   },
   presetChipText: {
     fontSize: tokens.text.small,
-    fontWeight: tokens.weight.bold as any,
-    fontFamily: tokens.font.bodyBold,
+    fontWeight: '600' as const,
+    fontFamily: tokens.font.bodySemiBold,
     color: tokens.color.subtext,
   },
   presetChipTextActive: {
-    color: tokens.color.primary,
+    color: '#FFFFFF',
   },
 
   modalOverlay: {

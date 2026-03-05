@@ -26,8 +26,8 @@ export default function CountryLayout() {
           headerShown: true,
           headerTitle: () => <AppHeaderTitle />,
           headerTitleAlign: "center",
-          headerShadowVisible: true,
-          headerStyle: { backgroundColor: tokens.color.surface },
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: tokens.color.surface, borderBottomWidth: 1, borderBottomColor: tokens.color.border },
           title: "",
         }}
       />
