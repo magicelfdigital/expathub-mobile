@@ -51,7 +51,7 @@ export default function HomeScreen() {
 
   const goCountryHub = (slug: string) => {
     setSelectedCountrySlug(slug);
-    router.push({ pathname: "/country-view", params: { slug } } as any);
+    router.push({ pathname: "/(tabs)/country/[slug]" as any, params: { slug } });
   };
 
   const goContinue = () => {
@@ -70,7 +70,7 @@ export default function HomeScreen() {
         return;
       }
     }
-    router.push({ pathname: "/country-view", params: { slug } } as any);
+    router.push({ pathname: "/(tabs)/country/[slug]" as any, params: { slug } });
   };
 
   const goBrowseCountries = () => {
