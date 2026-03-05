@@ -29,7 +29,7 @@ function AccountButton() {
       <Ionicons
         name={user ? "person-circle" : "person-circle-outline"}
         size={28}
-        color={user ? tokens.color.primary : colors.onDarkMid}
+        color={user ? tokens.color.primary : colors.textSoft}
       />
     </Pressable>
   );
@@ -41,9 +41,9 @@ const sharedHeaderOptions = {
   headerTitleAlign: "center" as const,
   headerShadowVisible: false,
   headerStyle: {
-    backgroundColor: colors.glassDark,
+    backgroundColor: colors.cream,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderDark,
+    borderBottomColor: colors.border,
   },
   headerRight: () => <AccountButton />,
 };
@@ -58,10 +58,10 @@ export default function TabsLayout() {
       screenOptions={{
         ...sharedHeaderOptions,
         tabBarActiveTintColor: colors.teal,
-        tabBarInactiveTintColor: colors.onDarkSoft,
+        tabBarInactiveTintColor: colors.textSoft,
         tabBarStyle: {
-          backgroundColor: colors.glassDark,
-          borderTopColor: colors.borderDark,
+          backgroundColor: colors.cream,
+          borderTopColor: colors.border,
           borderTopWidth: 1,
           height: Platform.OS === "web" ? 84 : 88,
           paddingBottom: Platform.OS === "web" ? 34 : undefined,

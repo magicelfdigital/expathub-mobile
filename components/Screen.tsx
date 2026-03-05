@@ -1,12 +1,10 @@
 import { useLayout } from "@/src/hooks/useLayout";
 import React from "react";
-import { ImageBackground, StyleSheet, View, ViewStyle } from "react-native";
+import { StyleSheet, View, ViewStyle } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const MAX_CONTENT_WIDTH = 900;
 const MAX_CONTENT_WIDTH_TABLET = 960;
-
-const mapBg = require("../assets/images/expathub-bg.png");
 
 export function Screen({
   children,
@@ -20,11 +18,7 @@ export function Screen({
   const { isTablet } = useLayout();
 
   return (
-    <ImageBackground
-      source={mapBg}
-      style={styles.bg}
-      resizeMode="cover"
-    >
+    <View style={styles.bg}>
       <SafeAreaView
         style={[styles.safe, isTablet && styles.safeCentered]}
         edges={["left", "right"]}
@@ -39,13 +33,14 @@ export function Screen({
           {children}
         </View>
       </SafeAreaView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   bg: {
     flex: 1,
+    backgroundColor: '#F5F6FA',
   },
   safe: {
     flex: 1,

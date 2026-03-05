@@ -29,7 +29,7 @@ SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'rgba(15,25,60,1)' } }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#F5F6FA' } }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="subscribe/index" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="auth" options={{ headerShown: false, presentation: "modal" }} />
@@ -71,7 +71,7 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <GestureHandlerRootView style={{ flex: 1, backgroundColor: 'rgba(15,25,60,1)' }}>
+        <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#F5F6FA' }}>
           <KeyboardProvider>
             <AuthProvider>
               <CountryProvider>
