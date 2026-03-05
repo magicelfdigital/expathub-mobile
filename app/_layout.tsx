@@ -2,7 +2,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
-import { ImageBackground, View } from "react-native";
+import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
@@ -29,7 +29,7 @@ SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'rgba(15,25,60,1)' } }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="subscribe/index" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="auth" options={{ headerShown: false, presentation: "modal" }} />
@@ -71,29 +71,22 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <GestureHandlerRootView style={{ flex: 1 }}>
-          <ImageBackground
-            source={require('../assets/images/expathub-map.png')}
-            style={{ flex: 1 }}
-            resizeMode="cover"
-          >
-            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15,25,60,0.50)' }} />
-            <KeyboardProvider>
-              <AuthProvider>
-                <CountryProvider>
-                  <SubscriptionProvider>
-                    <PlanProvider>
-                      <ContinueProvider>
-                        <SavedProvider>
-                          <RootLayoutNav />
-                        </SavedProvider>
-                      </ContinueProvider>
-                    </PlanProvider>
-                  </SubscriptionProvider>
-                </CountryProvider>
-              </AuthProvider>
-            </KeyboardProvider>
-          </ImageBackground>
+        <GestureHandlerRootView style={{ flex: 1, backgroundColor: 'rgba(15,25,60,1)' }}>
+          <KeyboardProvider>
+            <AuthProvider>
+              <CountryProvider>
+                <SubscriptionProvider>
+                  <PlanProvider>
+                    <ContinueProvider>
+                      <SavedProvider>
+                        <RootLayoutNav />
+                      </SavedProvider>
+                    </ContinueProvider>
+                  </PlanProvider>
+                </SubscriptionProvider>
+              </CountryProvider>
+            </AuthProvider>
+          </KeyboardProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>
     </ErrorBoundary>
