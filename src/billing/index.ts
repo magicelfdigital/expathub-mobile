@@ -32,12 +32,21 @@ function createRCClient(): RevenueCatClient {
 
       const offerings = await rc.getOfferings();
       if (!offerings.current?.availablePackages.length) {
+        console.log("[PURCHASE-DIAG] No packages in current offering. Check RevenueCat dashboard.");
         throw new Error("No products available");
       }
+      const availableIds = offerings.current.availablePackages.map(
+        (p) => p.product.identifier,
+      );
+      console.log(`[PURCHASE-DIAG] Looking for: "${productId}"`);
+      console.log(`[PURCHASE-DIAG] Available products: ${JSON.stringify(availableIds)}`);
       const pkg = offerings.current.availablePackages.find(
         (p) => p.product.identifier === productId,
       );
-      if (!pkg) throw new Error(`Product "${productId}" not found`);
+      if (!pkg) {
+        console.log(`[PURCHASE-DIAG] MISMATCH: "${productId}" not in [${availableIds.join(", ")}]`);
+        throw new Error(`Product "${productId}" not found. Available: ${availableIds.join(", ")}`);
+      }
 
       const result = await rc.purchasePackage(pkg);
       return {
