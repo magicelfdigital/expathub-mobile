@@ -117,6 +117,10 @@ export default function CountryDetailScreen() {
   const hasPlanForThisCountry = planCountrySlug === countrySlug;
   const isPaidUser = hasActiveSubscription;
 
+  React.useEffect(() => {
+    console.warn(`[COUNTRY-PAGE] slug=${countrySlug}, urlSlug=${urlSlug}, selectedSlug=${selectedCountrySlug}, planSlug=${planCountrySlug}, hasPlan=${hasPlanForThisCountry}, isPaid=${isPaidUser}`);
+  }, [countrySlug, planCountrySlug]);
+
   const go = (leaf: string) => {
     if (!countrySlug) return;
     router.push({ pathname: `/(tabs)/country/[slug]/${leaf}` as any, params: { slug: countrySlug } });
