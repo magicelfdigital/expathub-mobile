@@ -19,10 +19,10 @@ function BackButton({ fallback }: { fallback?: string }) {
   return (
     <Pressable
       onPress={() => {
-        if (router.canGoBack()) {
-          router.back();
-        } else if (fallback) {
+        if (fallback) {
           router.replace(fallback as any);
+        } else if (router.canGoBack()) {
+          router.back();
         } else {
           router.replace("/(tabs)" as any);
         }
@@ -75,7 +75,7 @@ export default function CountrySlugLayout() {
       <Stack.Screen
         name="index"
         options={{
-          headerLeft: () => <BackButton />,
+          headerLeft: () => <BackButton fallback="/(tabs)" />,
           title: "",
           headerBackTitle: "",
         }}
