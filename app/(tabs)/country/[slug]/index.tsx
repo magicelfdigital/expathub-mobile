@@ -117,10 +117,6 @@ export default function CountryDetailScreen() {
   const hasPlanForThisCountry = planCountrySlug === countrySlug;
   const isPaidUser = hasActiveSubscription;
 
-  React.useEffect(() => {
-    console.warn(`[COUNTRY-PAGE] slug=${countrySlug}, urlSlug=${urlSlug}, selectedSlug=${selectedCountrySlug}, planSlug=${planCountrySlug}, hasPlan=${hasPlanForThisCountry}, isPaid=${isPaidUser}`);
-  }, [countrySlug, planCountrySlug]);
-
   const go = (leaf: string) => {
     if (!countrySlug) return;
     router.push({ pathname: `/(tabs)/country/[slug]/${leaf}` as any, params: { slug: countrySlug } });
@@ -275,14 +271,6 @@ export default function CountryDetailScreen() {
                 );
               })}
             </View>
-          </View>
-        ) : null}
-
-        {__DEV__ ? (
-          <View style={{ margin: 16, padding: 12, backgroundColor: "#fff3cd", borderRadius: 8, borderWidth: 1, borderColor: "#ffc107" }}>
-            <Text style={{ fontSize: 11, fontFamily: "monospace", color: "#856404" }}>
-              {`DEBUG(tabs): slug=${countrySlug}\npaid=${isPaidUser}, launch=${isLaunch}\nplanSlug=${planCountrySlug ?? "null"}\nhasPlanHere=${hasPlanForThisCountry}\nshowFocus=${isPaidUser && isLaunch && !hasPlanForThisCountry && pathways.length > 0}`}
-            </Text>
           </View>
         ) : null}
 

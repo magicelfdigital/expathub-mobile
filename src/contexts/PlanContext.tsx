@@ -74,7 +74,6 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   const startPlan = useCallback((countrySlug: string, pathwayId: string, countryName?: string) => {
     const current = stateRef.current;
     const existingSlug = current.activeCountrySlug;
-    console.warn(`[PLAN] startPlan called: existing=${existingSlug}, new=${countrySlug}, willSwitch=${!!(existingSlug && existingSlug !== countrySlug)}`);
     if (existingSlug && existingSlug !== countrySlug) {
       const prevLabel = existingSlug.charAt(0).toUpperCase() + existingSlug.slice(1).replace(/-/g, " ");
       const newLabel = countryName || countrySlug.charAt(0).toUpperCase() + countrySlug.slice(1).replace(/-/g, " ");

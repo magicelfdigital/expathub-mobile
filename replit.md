@@ -113,7 +113,8 @@ Preferred communication style: Simple, everyday language.
   - Tab switcher between "Your Plan" and "Pet Checklist" when pets enabled
   - Quarantine warnings (UK, Australia) and breed restriction notes displayed as amber alert cards
   - Behind paywall (part of planner)
-- **Switch Confirmation**: When focusing on a different country while a plan exists, `Alert.alert` prompts user to confirm ("Switch your focus?" / "Keep current plan"). `startPlan()` atomically resets state (no separate `resetPlan()` call to avoid async race).
+- **Switch Confirmation**: When focusing on a different country while a plan exists, `Alert.alert` prompts user to confirm ("Switch your focus?" / "Keep current plan"). `startPlan(countrySlug, pathwayId, countryName?)` atomically resets state (no separate `resetPlan()` call to avoid async race). Country name display uses slug-to-label conversion (no `getCountry()` import to avoid native bundling issues).
+- **Slug Priority**: All country pages use `urlSlug || selectedCountrySlug` (URL param takes priority over persisted selection) to prevent stale country data during navigation.
 - **Integration**: Both country pages show Focus Activation for paid users and PlanModule for active plans: tabbed page (`app/(tabs)/country/[slug]/index.tsx`) and standalone hub (`app/country-view.tsx`).
 - **Analytics Events**: `plan_focus_started`, `plan_step_completed`, `eligibility_snapshot_run`, `lifetime_offer_shown`, `lifetime_offer_clicked`, `plan_completed`.
 - **Tone**: Calm, advisory — no exclamation marks, no urgency, no legal assurance language.
