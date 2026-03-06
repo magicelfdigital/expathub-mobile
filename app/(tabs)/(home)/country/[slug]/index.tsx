@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useMemo, useEffect } from "react";
+import { useRouter } from "expo-router";
+import React, { useEffect } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/components/Screen";
@@ -80,18 +80,13 @@ function CoverageRow({ label, status }: { label: string; status: "decision-ready
 
 export default function CountryDetailScreen() {
   const router = useRouter();
-  const { slug } = useLocalSearchParams<{ slug: string }>();
-  const { setSelectedCountrySlug } = useCountry();
+  const { selectedCountrySlug } = useCountry();
   const { hasActiveSubscription, hasFullAccess, hasCountryAccess, accessType, decisionPassDaysLeft } = useSubscription();
   const { activeCountrySlug: planCountrySlug, startPlan } = usePlan();
   const { recordView } = useContinue();
   const { isTablet } = useLayout();
 
-  const countrySlug = typeof slug === "string" ? slug : "";
-
-  useEffect(() => {
-    if (countrySlug) setSelectedCountrySlug(countrySlug);
-  }, [countrySlug]);
+  const countrySlug = selectedCountrySlug ?? "";
 
   useEffect(() => {
     if (countrySlug) {
@@ -99,16 +94,11 @@ export default function CountryDetailScreen() {
     }
   }, [countrySlug]);
 
-  const countryName = useMemo(() => {
-    if (!countrySlug) return "Country";
-    return getCountry(countrySlug)?.name ?? "Country";
-  }, [countrySlug]);
-
-  const pathways = useMemo(() => getPathways(countrySlug), [countrySlug]);
-
-  const coverage = useMemo(() => getCountryCoverage(countrySlug), [countrySlug]);
+  const countryName = getCountry(countrySlug)?.name ?? "Country";
+  const pathways = getPathways(countrySlug);
+  const coverage = getCountryCoverage(countrySlug);
   const hasCoverage = coverage.ready.length > 0 || coverage.soon.length > 0;
-  const isLaunch = useMemo(() => isLaunchCountry(countrySlug), [countrySlug]);
+  const isLaunch = isLaunchCountry(countrySlug);
 
   const hasAccess = hasFullAccess || hasCountryAccess(countrySlug);
   const countryPrice = COUNTRY_LIFETIME_PRICES[countrySlug] ?? "$69";
