@@ -62,6 +62,28 @@ export const VENDORS: CountryVendors = {
     { name: "CPA Australia", category: "Tax", url: "https://www.cpaaustralia.com.au", note: "Certified practising accountants" },
     { name: "MARA (Migration Agents)", category: "Relocation", url: "https://www.mara.gov.au", note: "Registered migration agents" },
   ],
+  malta: [
+    { name: "Chamber of Advocates", category: "Legal", url: "https://www.avukati.org", note: "Find licensed lawyers in Malta" },
+    { name: "Malta Institute of Accountants", category: "Tax", url: "https://www.miamalta.org", note: "Certified accountants and auditors" },
+    { name: "Malta Developers Association", category: "Housing", url: "https://www.mda.com.mt", note: "Licensed property developers" },
+    { name: "Frank Salt Real Estate", category: "Housing", url: "https://www.franksalt.com.mt", note: "Property sales and rentals" },
+  ],
+  panama: [
+    { name: "Panama Bar Association", category: "Legal", url: "https://www.colegioabogados.org.pa", note: "Licensed attorneys" },
+    { name: "CPA Panama", category: "Tax", url: "https://www.colegiocpapanama.org", note: "Certified public accountants" },
+    { name: "Encuentra24", category: "Housing", url: "https://www.encuentra24.com/panama", note: "Property listings and rentals" },
+  ],
+  ecuador: [
+    { name: "Ecuadorian Bar Association", category: "Legal", url: "https://www.faba.org.ec", note: "Licensed attorneys" },
+    { name: "Plusvalía", category: "Housing", url: "https://www.plusvalia.com", note: "Real estate listings across Ecuador" },
+    { name: "Ecuador Visas", category: "Relocation", url: "https://www.ecuadorvisas.com", note: "Visa and relocation assistance" },
+  ],
+  "united-kingdom": [
+    { name: "Law Society of England & Wales", category: "Legal", url: "https://www.lawsociety.org.uk", note: "Find solicitors" },
+    { name: "ICAEW", category: "Tax", url: "https://www.icaew.com", note: "Chartered accountants" },
+    { name: "Rightmove", category: "Housing", url: "https://www.rightmove.co.uk", note: "Property sales and rentals" },
+    { name: "OISC (Immigration Advisers)", category: "Relocation", url: "https://www.gov.uk/find-an-immigration-adviser", note: "Regulated immigration advisers" },
+  ],
 };
 
 export function getVendorsForCountry(slug: string): Vendor[] {
