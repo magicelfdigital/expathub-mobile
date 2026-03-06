@@ -9,6 +9,12 @@ type CountryContextValue = {
 
 const STORAGE_KEY = "selectedCountrySlug";
 
+let _immediateSlug: string | null = null;
+
+export function getImmediateSlug(): string | null {
+  return _immediateSlug;
+}
+
 const CountryContext = createContext<CountryContextValue | undefined>(undefined);
 
 export function CountryProvider({ children }: { children: React.ReactNode }) {
@@ -21,7 +27,10 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const stored = await AsyncStorage.getItem(STORAGE_KEY);
-        if (isMounted) setSelectedCountrySlugState(stored ? stored : null);
+        if (isMounted) {
+          _immediateSlug = stored ?? null;
+          setSelectedCountrySlugState(stored ? stored : null);
+        }
       } finally {
         if (isMounted) setIsLoaded(true);
       }
@@ -43,12 +52,12 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
           await AsyncStorage.removeItem(STORAGE_KEY);
         }
       } catch {
-        // ignore storage errors in v1
       }
     })();
   }, [selectedCountrySlug, isLoaded]);
 
   const setSelectedCountrySlug = useCallback((slug: string | null) => {
+    _immediateSlug = slug;
     setSelectedCountrySlugState(slug);
   }, []);
 
