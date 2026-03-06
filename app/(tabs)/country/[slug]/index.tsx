@@ -1,10 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
-import React, { useMemo, useCallback, useEffect, useState } from "react";
+import { useRouter } from "expo-router";
+import React, { useMemo, useEffect } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/components/Screen";
-import { useCountry, getImmediateSlug } from "@/contexts/CountryContext";
+import { useCountry } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { usePlan } from "@/src/contexts/PlanContext";
 import { useLayout } from "@/src/hooks/useLayout";
@@ -80,29 +80,13 @@ function CoverageRow({ label, status }: { label: string; status: "decision-ready
 
 export default function CountryDetailScreen() {
   const router = useRouter();
-  const { slug } = useLocalSearchParams<{ slug?: string }>();
-  const { selectedCountrySlug, setSelectedCountrySlug } = useCountry();
+  const { selectedCountrySlug } = useCountry();
   const { hasActiveSubscription, hasFullAccess, hasCountryAccess, accessType, decisionPassDaysLeft } = useSubscription();
   const { activeCountrySlug: planCountrySlug, startPlan } = usePlan();
   const { recordView } = useContinue();
   const { isTablet } = useLayout();
 
-  const urlSlug = typeof slug === "string" ? slug : Array.isArray(slug) ? slug[0] : "";
-
-  const [countrySlug, setCountrySlug] = useState(() => {
-    return getImmediateSlug() || urlSlug || "";
-  });
-
-  useFocusEffect(
-    useCallback(() => {
-      const fresh = getImmediateSlug();
-      if (fresh) setCountrySlug(fresh);
-    }, [])
-  );
-
-  useEffect(() => {
-    if (selectedCountrySlug) setCountrySlug(selectedCountrySlug);
-  }, [selectedCountrySlug]);
+  const countrySlug = selectedCountrySlug || "";
 
   useEffect(() => {
     if (countrySlug) {
