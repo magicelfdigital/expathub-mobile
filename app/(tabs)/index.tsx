@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { CommonActions, useNavigation } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import { Image, Linking, Platform, Pressable, ScrollView, Text, View } from "react-native";
@@ -17,6 +18,7 @@ const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
 
 export default function HomeScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { selectedCountrySlug, setSelectedCountrySlug, isLoaded } = useCountry();
@@ -56,20 +58,30 @@ export default function HomeScreen() {
 
   const goCountryHub = (slug: string) => {
     setSelectedCountrySlug(slug);
-    router.navigate("/(tabs)/country" as any);
-    requestAnimationFrame(() => {
-      router.replace({ pathname: "/(tabs)/country/[slug]" as any, params: { slug } });
+    navigation.dispatch((state) => {
+      const tabIndex = state.routes.findIndex((r) => r.name === "country");
+      return CommonActions.reset({
+        ...state,
+        index: tabIndex >= 0 ? tabIndex : state.index,
+        routes: state.routes.map((route) =>
+          route.name === "country"
+            ? {
+                ...route,
+                state: {
+                  routes: [{ name: "[slug]", params: { slug } }],
+                  index: 0,
+                },
+              }
+            : route
+        ),
+      });
     });
   };
 
   const goContinue = () => {
     const slug = lastViewedCountrySlug || selectedCountrySlug;
     if (!slug) return;
-    setSelectedCountrySlug(slug);
-    router.navigate("/(tabs)/country" as any);
-    requestAnimationFrame(() => {
-      router.replace({ pathname: "/(tabs)/country/[slug]" as any, params: { slug } });
-    });
+    goCountryHub(slug);
   };
 
   const hasSelection = Boolean(continueCountry);
