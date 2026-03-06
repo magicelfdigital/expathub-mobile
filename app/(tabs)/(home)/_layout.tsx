@@ -14,6 +14,7 @@ export default function HomeStackLayout() {
       <Stack.Screen name="countries" />
       <Stack.Screen
         name="country/[slug]"
+        getId={({ params }) => params?.slug ?? "default"}
         options={{
           animation: "slide_from_bottom",
           animationDuration: 250,
