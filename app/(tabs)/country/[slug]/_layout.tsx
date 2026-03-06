@@ -40,11 +40,7 @@ function HomeButton() {
   return (
     <Pressable
       onPress={() => {
-        if (router.canGoBack()) {
-          router.back();
-        } else {
-          router.navigate("/(tabs)" as any);
-        }
+        router.navigate("/(tabs)" as any);
       }}
       hitSlop={12}
       style={{ padding: 8 }}
