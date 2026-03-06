@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useMemo } from "react";
+import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
+import React, { useMemo, useCallback } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/components/Screen";
@@ -88,7 +88,17 @@ export default function CountryDetailScreen() {
   const { isTablet } = useLayout();
 
   const urlSlug = typeof slug === "string" ? slug : Array.isArray(slug) ? slug[0] : "";
-  const countrySlug = getImmediateSlug() || selectedCountrySlug || urlSlug || "";
+
+  useFocusEffect(
+    useCallback(() => {
+      const fresh = getImmediateSlug();
+      if (fresh && fresh !== urlSlug) {
+        router.replace({ pathname: "/(tabs)/country/[slug]", params: { slug: fresh } } as any);
+      }
+    }, [urlSlug])
+  );
+
+  const countrySlug = urlSlug || selectedCountrySlug || "";
 
   React.useEffect(() => {
     if (countrySlug) {

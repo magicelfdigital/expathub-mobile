@@ -56,7 +56,7 @@ export default function HomeScreen() {
 
   const goCountryHub = (slug: string) => {
     setSelectedCountrySlug(slug);
-    router.push({ pathname: "/view/[slug]", params: { slug } } as any);
+    router.navigate({ pathname: "/(tabs)/country/[slug]", params: { slug } } as any);
   };
 
   const goContinue = () => {
