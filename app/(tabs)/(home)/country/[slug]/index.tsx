@@ -1,15 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Screen } from "@/components/Screen";
 import { useCountry } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { usePlan } from "@/src/contexts/PlanContext";
+import { useLayout } from "@/src/hooks/useLayout";
 import { getCountry, getPathways, getCountryCoverage, isDecisionReady, isLaunchCountry } from "@/src/data";
 import { COUNTRY_LIFETIME_PRICES } from "@/src/config/subscription";
+import { useContinue } from "@/src/contexts/ContinueContext";
 import { tokens } from "@/theme/tokens";
 import { PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
 
@@ -20,13 +21,14 @@ type NavItem = {
   subtitle: string;
   icon: string;
   onPress: () => void;
+  tablet?: boolean;
 };
 
-function NavCard({ title, subtitle, icon, onPress }: NavItem) {
+function NavCard({ title, subtitle, icon, onPress, tablet }: NavItem) {
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+      style={({ pressed }) => [styles.card, tablet && styles.cardTablet, pressed && styles.cardPressed]}
     >
       <View style={styles.cardLeft}>
         <View style={styles.iconCircle}>
@@ -76,19 +78,24 @@ function CoverageRow({ label, status }: { label: string; status: "decision-ready
   );
 }
 
-export default function CountryViewScreen() {
+export default function CountryDetailScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { slug } = useLocalSearchParams<{ slug?: string }>();
+  const { slug } = useLocalSearchParams<{ slug: string }>();
   const { setSelectedCountrySlug } = useCountry();
   const { hasActiveSubscription, hasFullAccess, hasCountryAccess, accessType, decisionPassDaysLeft } = useSubscription();
   const { activeCountrySlug: planCountrySlug, startPlan } = usePlan();
+  const { recordView } = useContinue();
+  const { isTablet } = useLayout();
 
   const countrySlug = typeof slug === "string" ? slug : "";
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (countrySlug) setSelectedCountrySlug(countrySlug);
+  }, [countrySlug]);
+
+  useEffect(() => {
     if (countrySlug) {
-      setSelectedCountrySlug(countrySlug);
+      recordView(countrySlug);
     }
   }, [countrySlug]);
 
@@ -110,28 +117,20 @@ export default function CountryViewScreen() {
 
   const go = (leaf: string) => {
     if (!countrySlug) return;
-    router.push({ pathname: `/(tabs)/country/[slug]/${leaf}` as any, params: { slug: countrySlug } });
+    router.push({ pathname: `/(tabs)/(home)/country/[slug]/${leaf}` as any, params: { slug: countrySlug } });
   };
 
   const goPathway = (key: string) => {
-    router.push({ pathname: "/(tabs)/country/[slug]/pathways/[key]" as any, params: { slug: countrySlug, key } });
+    router.push({ pathname: "/(tabs)/(home)/country/[slug]/pathways/[key]" as any, params: { slug: countrySlug, key } });
   };
 
   return (
     <Screen>
       <ScrollView
         style={styles.container}
-        contentContainerStyle={[
-          styles.content,
-          { paddingTop: (Platform.OS === "web" ? WEB_TOP_INSET : insets.top) + tokens.space.lg },
-        ]}
+        contentContainerStyle={[styles.content, Platform.OS === "web" && { paddingTop: WEB_TOP_INSET + tokens.space.xl }]}
         showsVerticalScrollIndicator={false}
       >
-        <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={22} color={tokens.color.primary} />
-          <Text style={styles.backText}>Back</Text>
-        </Pressable>
-
         <View style={styles.header}>
           <Text style={styles.title}>{countryName}</Text>
           <Text style={styles.subtitle}>
@@ -150,11 +149,56 @@ export default function CountryViewScreen() {
         </View>
 
         {hasAccess && accessType === "decision_pass" && decisionPassDaysLeft != null ? (
-          <View style={styles.accessBanner}>
-            <Ionicons name="shield-checkmark" size={16} color={tokens.color.primary} />
-            <Text style={styles.accessBannerText}>
-              Decision Pass active — {decisionPassDaysLeft} days remaining
-            </Text>
+          <View style={{ gap: tokens.space.sm }}>
+            <View style={styles.accessBanner}>
+              <Ionicons name="shield-checkmark" size={16} color={tokens.color.primary} />
+              <Text style={styles.accessBannerText}>
+                Decision Pass active — {decisionPassDaysLeft} days remaining
+              </Text>
+            </View>
+            {isLaunch && !hasCountryAccess(countrySlug) ? (
+              <Pressable
+                style={({ pressed }) => [styles.convertBanner, pressed && styles.cardPressed]}
+                onPress={() => router.push({ pathname: "/subscribe" as any, params: { country: countrySlug } })}
+              >
+                <View style={styles.unlockBannerLeft}>
+                  <Ionicons name="diamond-outline" size={18} color={tokens.color.gold} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.convertBannerTitle}>Keep {countryName} after your pass expires</Text>
+                    <Text style={styles.convertBannerSub}>
+                      Unlock lifetime access for {countryPrice}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={tokens.color.gold} />
+              </Pressable>
+            ) : null}
+          </View>
+        ) : hasAccess && accessType === "subscription" ? (
+          <View style={{ gap: tokens.space.sm }}>
+            <View style={styles.accessBanner}>
+              <Ionicons name="checkmark-circle" size={16} color={tokens.color.primary} />
+              <Text style={styles.accessBannerText}>
+                Monthly subscription active
+              </Text>
+            </View>
+            {isLaunch && !hasCountryAccess(countrySlug) ? (
+              <Pressable
+                style={({ pressed }) => [styles.convertBanner, pressed && styles.cardPressed]}
+                onPress={() => router.push({ pathname: "/subscribe" as any, params: { country: countrySlug } })}
+              >
+                <View style={styles.unlockBannerLeft}>
+                  <Ionicons name="diamond-outline" size={18} color={tokens.color.gold} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.convertBannerTitle}>Lock in {countryName} permanently</Text>
+                    <Text style={styles.convertBannerSub}>
+                      Lifetime access for {countryPrice} — no subscription needed
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={tokens.color.gold} />
+              </Pressable>
+            ) : null}
           </View>
         ) : hasAccess && accessType === "country_lifetime" ? (
           <View style={styles.accessBanner}>
@@ -173,7 +217,7 @@ export default function CountryViewScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.unlockBannerTitle}>Make a confident relocation decision</Text>
                 <Text style={styles.unlockBannerSub}>
-                  30-day access from $29 or unlock {countryName} forever for {countryPrice}
+                  30-day access from {`$29`} or unlock {countryName} forever for {countryPrice}
                 </Text>
               </View>
             </View>
@@ -224,17 +268,17 @@ export default function CountryViewScreen() {
           </View>
         ) : null}
 
-        <View style={styles.listGap}>
-          <NavCard title="Resources" subtitle="Guides, official links, checklists" icon="document-text-outline" onPress={() => go("resources")} />
-          <NavCard title="Vendors" subtitle="Licensed professionals and services" icon="briefcase-outline" onPress={() => go("vendors")} />
-          <NavCard title="Community" subtitle="Groups, forums, meetups" icon="people-outline" onPress={() => go("community")} />
-          <NavCard title="Saved" subtitle="Your bookmarked resources" icon="bookmark-outline" onPress={() => go("saved")} />
+        <View style={[styles.listGap, isTablet && styles.listGrid]}>
+          <NavCard title="Resources" subtitle="Guides, official links, checklists" icon="document-text-outline" onPress={() => go("resources")} tablet={isTablet} />
+          <NavCard title="Vendors" subtitle="Licensed professionals and services" icon="briefcase-outline" onPress={() => go("vendors")} tablet={isTablet} />
+          <NavCard title="Community" subtitle="Groups, forums, meetups" icon="people-outline" onPress={() => go("community")} tablet={isTablet} />
+          <NavCard title="Saved" subtitle="Your bookmarked resources" icon="bookmark-outline" onPress={() => go("saved")} tablet={isTablet} />
         </View>
 
         {pathways.length > 0 ? (
           <View style={styles.pathwaySection}>
             <Text style={styles.sectionTitle}>Residency Pathways</Text>
-            <View style={styles.listGap}>
+            <View style={[styles.listGap, isTablet && styles.listGrid]}>
               {pathways.map((p) => {
                 const ready = isDecisionReady(countrySlug, p.key);
                 const showCoverageBadge = p.premium;
@@ -242,7 +286,7 @@ export default function CountryViewScreen() {
                   <Pressable
                     key={p.key}
                     onPress={() => goPathway(p.key)}
-                    style={({ pressed }) => [styles.pathwayCard, pressed && styles.cardPressed]}
+                    style={({ pressed }) => [styles.pathwayCard, isTablet && styles.cardTablet, pressed && styles.cardPressed]}
                   >
                     <View style={{ flex: 1 }}>
                       <View style={styles.pathwayTitleRow}>
@@ -285,19 +329,6 @@ const styles = {
     padding: tokens.space.xl,
     paddingBottom: tokens.space.xxl,
     gap: tokens.space.lg,
-  },
-
-  backBtn: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 4,
-    marginBottom: tokens.space.xs,
-  },
-  backText: {
-    fontSize: tokens.text.body,
-    color: tokens.color.primary,
-    fontWeight: tokens.weight.bold,
-    fontFamily: tokens.font.bodyBold,
   },
 
   header: {
@@ -384,6 +415,32 @@ const styles = {
     marginTop: 1,
   },
 
+  convertBanner: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    paddingHorizontal: tokens.space.lg,
+    paddingVertical: tokens.space.md,
+    borderRadius: tokens.radius.lg,
+    backgroundColor: tokens.color.surface,
+    borderWidth: 1,
+    borderColor: tokens.color.gold,
+  },
+
+  convertBannerTitle: {
+    fontSize: tokens.text.body,
+    fontWeight: tokens.weight.semiBold,
+    fontFamily: tokens.font.bodySemiBold,
+    color: tokens.color.text,
+  },
+
+  convertBannerSub: {
+    fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
+    marginTop: 1,
+  },
+
   coverageSection: {
     gap: tokens.space.sm,
     padding: tokens.space.lg,
@@ -446,6 +503,12 @@ const styles = {
     gap: tokens.space.sm,
   },
 
+  listGrid: {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    gap: tokens.space.sm,
+  },
+
   card: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
@@ -455,6 +518,10 @@ const styles = {
     borderWidth: 1,
     borderColor: tokens.color.border,
     backgroundColor: tokens.color.surface,
+  },
+
+  cardTablet: {
+    width: "48.5%" as any,
   },
 
   cardPressed: {

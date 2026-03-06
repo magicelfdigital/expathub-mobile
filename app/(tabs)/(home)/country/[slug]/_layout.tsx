@@ -7,7 +7,7 @@ import { Image, Pressable, Text, View } from "react-native";
 function AppHeaderTitle() {
   return (
     <Image
-      source={require("../../../../assets/brand/fulllogo_transparent_nobuffer no_tag.png")}
+      source={require("../../../../../assets/brand/fulllogo_transparent_nobuffer no_tag.png")}
       resizeMode="contain"
       style={{ height: 32, width: 180 }}
     />
@@ -59,7 +59,7 @@ function CountryBackButton() {
         if (router.canGoBack()) {
           router.back();
         } else if (slug) {
-          router.replace({ pathname: "/(tabs)/country/[slug]" as any, params: { slug } });
+          router.replace({ pathname: "/(tabs)/(home)/country/[slug]" as any, params: { slug } });
         } else {
           router.replace("/(tabs)" as any);
         }

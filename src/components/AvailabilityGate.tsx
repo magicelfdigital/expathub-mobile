@@ -41,7 +41,7 @@ export function AvailabilityGate({
         title="Coming Soon"
         message={`Full ${SECTION_LABELS[section].toLowerCase()} coverage for ${countryName} is being built. Complete guides will be available here soon.`}
         ctaLabel="Browse available countries"
-        onPressCta={() => router.push("/(tabs)/country" as any)}
+        onPressCta={() => router.push("/(tabs)/(home)/countries" as any)}
       />
     );
   }
@@ -56,7 +56,7 @@ export function AvailabilityGate({
           if (router.canGoBack()) {
             router.back();
           } else {
-            router.push({ pathname: "/(tabs)/country/[slug]", params: { slug: countrySlug } } as any);
+            router.push({ pathname: "/(tabs)/(home)/country/[slug]", params: { slug: countrySlug } } as any);
           }
         }}
       />

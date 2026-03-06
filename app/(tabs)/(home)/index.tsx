@@ -56,7 +56,7 @@ export default function HomeScreen() {
 
   const goCountryHub = (slug: string) => {
     setSelectedCountrySlug(slug);
-    router.navigate({ pathname: "/(tabs)/country/[slug]", params: { slug } } as any);
+    router.push({ pathname: "/(tabs)/(home)/country/[slug]", params: { slug } } as any);
   };
 
   const goContinue = () => {
@@ -98,7 +98,7 @@ export default function HomeScreen() {
             {!hasSelection ? (
               <View style={styles.welcomeSection}>
                 <Image
-                  source={require("../../assets/brand/fulllogo_transparent_nobuffer.png")}
+                  source={require("../../../assets/brand/fulllogo_transparent_nobuffer.png")}
                   resizeMode="contain"
                   style={styles.welcomeLogo}
                 />
@@ -110,7 +110,7 @@ export default function HomeScreen() {
                 </Text>
 
                 <Image
-                  source={require('../../assets/images/expathub-map.png')}
+                  source={require('../../../assets/images/expathub-map.png')}
                   style={{ width: '100%' as any, height: 160, borderRadius: 18, marginBottom: 16 }}
                   resizeMode='cover'
                 />
@@ -148,7 +148,7 @@ export default function HomeScreen() {
             ) : (
               <View style={styles.returningSection}>
                 <Image
-                  source={require("../../assets/brand/fulllogo_transparent_nobuffer.png")}
+                  source={require("../../../assets/brand/fulllogo_transparent_nobuffer.png")}
                   resizeMode="contain"
                   style={[styles.welcomeLogo, { alignSelf: "center" }]}
                 />

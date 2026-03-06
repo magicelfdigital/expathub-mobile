@@ -296,7 +296,7 @@ export default function ExploreScreen() {
         </Pressable>
 
         <Pressable
-          onPress={() => router.push("/(tabs)/country" as any)}
+          onPress={() => router.push("/(tabs)/(home)/countries" as any)}
           style={({ pressed }) => [s.browseLink, pressed && s.browseLinkPressed]}
         >
           <Ionicons name="globe-outline" size={18} color={tokens.color.primary} />
