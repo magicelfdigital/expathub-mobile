@@ -527,7 +527,7 @@ const styles = {
   },
   websiteCtaText: {
     fontSize: 12,
-    color: tokens.color.subtext,
+    color: tokens.color.text,
     fontFamily: tokens.font.body,
   },
   websiteCtaLogo: {
