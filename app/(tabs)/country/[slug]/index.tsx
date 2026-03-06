@@ -88,13 +88,13 @@ export default function CountryDetailScreen() {
   const { isTablet } = useLayout();
 
   const urlSlug = typeof slug === "string" ? slug : Array.isArray(slug) ? slug[0] : "";
-  const countrySlug = selectedCountrySlug || urlSlug || "";
+  const countrySlug = urlSlug || selectedCountrySlug || "";
 
   React.useEffect(() => {
-    if (urlSlug && urlSlug !== selectedCountrySlug) {
-      setSelectedCountrySlug(urlSlug);
+    if (countrySlug && countrySlug !== selectedCountrySlug) {
+      setSelectedCountrySlug(countrySlug);
     }
-  }, [urlSlug]);
+  }, [countrySlug]);
 
   React.useEffect(() => {
     if (countrySlug) {
