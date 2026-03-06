@@ -70,7 +70,7 @@ export default function SavedResourcesScreen() {
   const { getSavedResources, removeSavedResource } = useSaved();
 
   const urlSlug = typeof slug === "string" ? slug : undefined;
-  const countrySlug = urlSlug || "";
+  const countrySlug = urlSlug || selectedCountrySlug || "";
 
   const countryName = useMemo(() => {
     if (!countrySlug) return "this country";
