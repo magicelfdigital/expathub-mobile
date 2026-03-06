@@ -78,7 +78,7 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="(home)"
         options={{
           title: "Home",
           tabBarLabel: "Home",
@@ -107,13 +107,6 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="people" size={size} color={color} />
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="country"
-        options={{
-          headerShown: false,
-          href: null,
         }}
       />
     </Tabs>

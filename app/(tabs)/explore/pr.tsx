@@ -27,7 +27,7 @@ export default function PRScreen() {
 
   const goPathway = (slug: string, pathwayKey: string) => {
     setSelectedCountrySlug(slug);
-    router.navigate({ pathname: "/(tabs)/country/[slug]/pathways/[key]" as any, params: { slug, key: pathwayKey } });
+    router.push({ pathname: "/(tabs)/(home)/country/[slug]/pathways/[key]" as any, params: { slug, key: pathwayKey } });
   };
 
   return (

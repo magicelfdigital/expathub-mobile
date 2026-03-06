@@ -111,7 +111,7 @@ export default function PathwayScreen() {
             title="Coming Soon"
             message={`Full Decision Briefs for ${countryName} are being built. Complete guides with detailed advice will be available here soon.`}
             ctaLabel="Browse available countries"
-            onPressCta={() => router.push("/(tabs)/country" as any)}
+            onPressCta={() => router.push("/(tabs)/(home)/countries" as any)}
           />
         </Screen>
       );
@@ -427,7 +427,7 @@ function PathwayContent({ pathway, countryName, openInApp, brief, countrySlug, p
 
       {passportNotes.length > 0 ? (
         <Pressable
-          onPress={() => router.push({ pathname: "/(tabs)/country/[slug]/pathways/passport-notes" as any, params: { slug: countrySlug, key: pathwayKey } })}
+          onPress={() => router.push({ pathname: "/(tabs)/(home)/country/[slug]/pathways/passport-notes" as any, params: { slug: countrySlug, key: pathwayKey } })}
           style={({ pressed }) => [styles.passportCard, pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] }]}
         >
           <View style={styles.passportCardLeft}>

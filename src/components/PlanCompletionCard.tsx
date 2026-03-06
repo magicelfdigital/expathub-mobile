@@ -96,7 +96,7 @@ export default function PlanCompletionCard({ onReviewPlan }: Props) {
             style={styles.secondaryButton}
             onPress={() =>
               router.push({
-                pathname: "/(tabs)/country/[slug]/vendors" as any,
+                pathname: "/(tabs)/(home)/country/[slug]/vendors" as any,
                 params: { slug: activeCountrySlug },
               })
             }
