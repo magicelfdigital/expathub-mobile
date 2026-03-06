@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/components/Screen";
-import { useCountry } from "@/contexts/CountryContext";
+import { useCountry, getImmediateSlug } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { usePlan } from "@/src/contexts/PlanContext";
 import { useLayout } from "@/src/hooks/useLayout";
@@ -88,7 +88,7 @@ export default function CountryDetailScreen() {
   const { isTablet } = useLayout();
 
   const urlSlug = typeof slug === "string" ? slug : Array.isArray(slug) ? slug[0] : "";
-  const countrySlug = selectedCountrySlug || urlSlug || "";
+  const countrySlug = getImmediateSlug() || selectedCountrySlug || urlSlug || "";
 
   React.useEffect(() => {
     if (countrySlug) {
