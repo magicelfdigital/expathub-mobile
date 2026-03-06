@@ -17,7 +17,7 @@ export default function PassportNotesScreen() {
   const { selectedCountrySlug } = useCountry();
 
   const urlSlug = typeof slug === "string" ? slug : "";
-  const countrySlug = urlSlug || "";
+  const countrySlug = urlSlug || selectedCountrySlug || "";
   const pathwayKey = typeof key === "string" ? key : "";
 
   const countryName = useMemo(() => {

@@ -19,7 +19,7 @@ export default function CountryVendorsScreen() {
   const { selectedCountrySlug } = useCountry();
   const { recordView } = useContinue();
   const urlSlug = typeof slug === "string" ? slug : "";
-  const countrySlug = urlSlug || "";
+  const countrySlug = urlSlug || selectedCountrySlug || "";
 
   React.useEffect(() => {
     if (countrySlug) {

@@ -24,7 +24,7 @@ export default function PlannerScreen() {
   const { activeCountrySlug: planCountrySlug, startPlan } = usePlan();
 
   const urlSlug = typeof slug === "string" ? slug : Array.isArray(slug) ? slug[0] : "";
-  const countrySlug = urlSlug || "";
+  const countrySlug = urlSlug || selectedCountrySlug || "";
 
   const countryName = useMemo(() => {
     if (!countrySlug) return "Country";
