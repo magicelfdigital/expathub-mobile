@@ -105,7 +105,7 @@ const detailScreenOptions = {
   headerBackTitle: "",
   headerLeft: () => <CountryBackButton />,
   headerRight: () => <PathfinderBadge />,
-  headerRightContainerStyle: { paddingRight: 12 },
+  headerRightContainerStyle: { paddingRight: 12, backgroundColor: "transparent" },
 };
 
 export default function CountrySlugLayout() {
