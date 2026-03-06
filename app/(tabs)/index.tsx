@@ -9,9 +9,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
 import { useContinue } from "@/src/contexts/ContinueContext";
 import { useLayout } from "@/src/hooks/useLayout";
-import { getCountries, getCountry, getPopularCountries } from "@/src/data";
+import { getCountries, getCountry, REGION_ORDER, sortCountriesAlpha, isLaunchCountry } from "@/src/data";
 import { COVERAGE_SUMMARY } from "@/src/data";
-import { getApiUrl } from "@/lib/query-client";
 import { tokens } from "@/theme/tokens";
 
 const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
@@ -24,21 +23,25 @@ export default function HomeScreen() {
   const { lastViewedCountrySlug, lastViewedSection, clearContinue } = useContinue();
   const { isTablet } = useLayout();
 
-  const selected = useMemo(() => {
-    if (!selectedCountrySlug) return null;
-    return getCountry(selectedCountrySlug) ?? null;
-  }, [selectedCountrySlug]);
-
   const continueCountry = useMemo(() => {
     const slug = lastViewedCountrySlug || selectedCountrySlug;
     if (!slug) return null;
     return getCountry(slug) ?? null;
   }, [lastViewedCountrySlug, selectedCountrySlug]);
 
-  const popular = useMemo(() => {
-    const flagged = getPopularCountries();
-    const list = flagged.length ? flagged : getCountries();
-    return list.slice(0, 6);
+  const grouped = useMemo(() => {
+    const all = getCountries();
+    const byRegion: Record<string, typeof all> = {};
+    for (const c of all) {
+      if (!byRegion[c.region]) byRegion[c.region] = [];
+      byRegion[c.region].push(c);
+    }
+    return REGION_ORDER
+      .filter((r) => byRegion[r]?.length)
+      .map((region) => ({
+        region,
+        countries: byRegion[region].sort(sortCountriesAlpha),
+      }));
   }, []);
 
   const sectionLabel = useMemo(() => {
@@ -53,24 +56,14 @@ export default function HomeScreen() {
 
   const goCountryHub = (slug: string) => {
     setSelectedCountrySlug(slug);
-    router.navigate("/(tabs)/country" as any);
-    setTimeout(() => {
-      router.push({ pathname: "/(tabs)/country/[slug]" as any, params: { slug } });
-    }, 0);
+    router.push({ pathname: "/(tabs)/country/[slug]" as any, params: { slug } });
   };
 
   const goContinue = () => {
     const slug = lastViewedCountrySlug || selectedCountrySlug;
     if (!slug) return;
     setSelectedCountrySlug(slug);
-    router.navigate("/(tabs)/country" as any);
-    setTimeout(() => {
-      router.push({ pathname: "/(tabs)/country/[slug]" as any, params: { slug } });
-    }, 0);
-  };
-
-  const goBrowseCountries = () => {
-    router.push("/(tabs)/country");
+    router.push({ pathname: "/(tabs)/country/[slug]" as any, params: { slug } });
   };
 
   const hasSelection = Boolean(continueCountry);
@@ -144,10 +137,7 @@ export default function HomeScreen() {
                   </View>
                 </View>
 
-                <Pressable onPress={goBrowseCountries} style={styles.primaryButton}>
-                  <Text style={styles.primaryButtonText}>Choose your country</Text>
-                  <Ionicons name="arrow-forward" size={16} color={tokens.color.white} />
-                </Pressable>
+                <Text style={styles.primaryButtonHint}>Browse the countries below to get started</Text>
 
                 <View style={styles.coverageNote}>
                   <Ionicons name="checkmark-circle" size={14} color={tokens.color.primary} />
@@ -186,40 +176,37 @@ export default function HomeScreen() {
               </View>
             )}
 
-            <View style={styles.popularSection}>
-              <View style={styles.sectionRow}>
-                <Text style={styles.sectionTitle}>Popular destinations</Text>
-                {!hasSelection ? (
-                  <Pressable onPress={goBrowseCountries} hitSlop={10}>
-                    <Text style={styles.sectionLink}>See all</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-
-              <View style={[styles.listGap, isTablet && styles.listGrid]}>
-                {popular.map((c) => (
-                  <Pressable
-                    key={c.slug}
-                    onPress={() => {
-                      setSelectedCountrySlug(c.slug);
-                      goCountryHub(c.slug);
-                    }}
-                    style={({ pressed }) => [styles.rowCard, isTablet && styles.rowCardTablet, pressed && styles.rowCardPressed]}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.rowTitle}>{c.name}</Text>
-                      <Text style={styles.rowSubtitle}>{c.region}</Text>
-                    </View>
-                    <View style={styles.openPill}>
-                      <Text style={styles.openPillText}>Open</Text>
-                    </View>
-                  </Pressable>
-                ))}
-              </View>
-
-              <Pressable onPress={goBrowseCountries} style={styles.browseAllButton}>
-                <Text style={styles.browseAllText}>Browse All Countries</Text>
-              </Pressable>
+            <View style={styles.countriesSection}>
+              <Text style={styles.sectionTitle}>Choose a destination</Text>
+              {grouped.map(({ region, countries }) => (
+                <View key={region} style={styles.regionBlock}>
+                  <Text style={styles.regionLabel}>{region}</Text>
+                  <View style={[styles.listGap, isTablet && styles.listGrid]}>
+                    {countries.map((c) => {
+                      const isLaunch = isLaunchCountry(c.slug);
+                      return isLaunch ? (
+                        <Pressable
+                          key={c.slug}
+                          onPress={() => goCountryHub(c.slug)}
+                          style={({ pressed }) => [styles.rowCard, isTablet && styles.rowCardTablet, pressed && styles.rowCardPressed]}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.rowTitle}>{c.name}</Text>
+                          </View>
+                          <Ionicons name="chevron-forward" size={16} color={tokens.color.primary} />
+                        </Pressable>
+                      ) : (
+                        <View key={c.slug} style={[styles.rowCardMuted, isTablet && styles.rowCardTablet]}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.rowTitleMuted}>{c.name}</Text>
+                          </View>
+                          <Text style={styles.comingSoonTag}>Coming soon</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                </View>
+              ))}
             </View>
 
             <Pressable
@@ -352,23 +339,11 @@ const styles = {
     lineHeight: 20,
   },
 
-  primaryButton: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    gap: 8,
-    width: "100%" as const,
-    paddingVertical: 16,
-    borderRadius: tokens.radius.lg,
-    backgroundColor: tokens.color.primary,
-    marginTop: tokens.space.sm,
-  },
-
-  primaryButtonText: {
-    fontSize: tokens.text.h3,
-    fontWeight: tokens.weight.black,
-    fontFamily: tokens.font.bodyBold,
-    color: tokens.color.white,
+  primaryButtonHint: {
+    fontSize: tokens.text.body,
+    color: tokens.color.subtext,
+    fontFamily: tokens.font.bodyMedium,
+    textAlign: "center" as const,
   },
 
   coverageNote: {
@@ -442,16 +417,10 @@ const styles = {
     marginTop: 2,
   },
 
-  popularSection: {
+  countriesSection: {
     paddingHorizontal: tokens.space.xl,
     paddingTop: tokens.space.lg,
-    gap: tokens.space.sm,
-  },
-
-  sectionRow: {
-    flexDirection: "row" as const,
-    alignItems: "baseline" as const,
-    justifyContent: "space-between" as const,
+    gap: tokens.space.md,
   },
 
   sectionTitle: {
@@ -461,19 +430,25 @@ const styles = {
     color: tokens.color.text,
   },
 
-  sectionLink: {
+  regionBlock: {
+    gap: tokens.space.sm,
+  },
+
+  regionLabel: {
     fontSize: tokens.text.small,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodyBold,
     color: tokens.color.primary,
+    textTransform: "uppercase" as const,
+    letterSpacing: 1,
   },
 
-  listGap: { gap: tokens.space.sm },
+  listGap: { gap: 6 },
 
   listGrid: {
     flexDirection: "row" as const,
     flexWrap: "wrap" as const,
-    gap: tokens.space.sm,
+    gap: 6,
   },
 
   rowCard: {
@@ -482,10 +457,11 @@ const styles = {
     justifyContent: "space-between" as const,
     gap: tokens.space.sm,
     backgroundColor: tokens.color.surface,
-    borderRadius: tokens.radius.lg,
+    borderRadius: tokens.radius.md,
     borderWidth: 1,
     borderColor: tokens.color.border,
-    padding: tokens.space.lg,
+    paddingVertical: 14,
+    paddingHorizontal: tokens.space.lg,
   },
 
   rowCardTablet: {
@@ -499,46 +475,42 @@ const styles = {
 
   rowTitle: {
     fontSize: tokens.text.body,
-    fontWeight: tokens.weight.black,
+    fontWeight: tokens.weight.bold,
     fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
   },
 
-  rowSubtitle: {
-    marginTop: 2,
-    fontSize: tokens.text.small,
-    color: tokens.color.subtext,
-    fontFamily: tokens.font.body,
-  },
-
-  openPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: tokens.radius.sm,
-    backgroundColor: tokens.color.primarySoft,
-    borderWidth: 1,
-    borderColor: tokens.color.primaryBorder,
-  },
-
-  openPillText: {
-    fontSize: tokens.text.small,
-    fontWeight: tokens.weight.black,
-    fontFamily: tokens.font.bodyBold,
-    color: tokens.color.primary,
-  },
-
-  browseAllButton: {
-    marginTop: tokens.space.sm,
-    paddingVertical: 14,
-    borderRadius: tokens.radius.lg,
-    backgroundColor: tokens.color.primary,
+  rowCardMuted: {
+    flexDirection: "row" as const,
     alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    gap: tokens.space.sm,
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    paddingVertical: 14,
+    paddingHorizontal: tokens.space.lg,
+    opacity: 0.6,
   },
 
-  browseAllText: {
-    color: tokens.color.white,
+  rowTitleMuted: {
+    fontSize: tokens.text.body,
+    fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.subtext,
+  },
+
+  comingSoonTag: {
+    fontSize: 10,
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodyBold,
+    color: tokens.color.subtext,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: tokens.radius.sm,
+    backgroundColor: tokens.color.bg,
+    overflow: "hidden" as const,
   },
 
   websiteCta: {
