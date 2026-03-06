@@ -9,7 +9,7 @@ function AppHeaderTitle() {
     <Image
       source={require("../../../../assets/brand/fulllogo_transparent_nobuffer no_tag.png")}
       resizeMode="contain"
-      style={{ height: 28, width: 160 }}
+      style={{ height: 32, width: 180 }}
     />
   );
 }
@@ -80,14 +80,10 @@ function PathfinderBadge() {
   return (
     <View
       style={{
-        marginRight: 12,
         backgroundColor: tokens.color.goldLight,
-        borderWidth: 1,
-        borderColor: "rgba(232,153,26,0.25)",
-        borderRadius: 20,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        overflow: "hidden",
+        borderRadius: 12,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
       }}
     >
       <Text
@@ -95,6 +91,7 @@ function PathfinderBadge() {
           color: tokens.color.gold,
           fontSize: 11,
           fontFamily: tokens.font.bodySemiBold,
+          lineHeight: 14,
         }}
       >
         Pathfinder
@@ -108,6 +105,7 @@ const detailScreenOptions = {
   headerBackTitle: "",
   headerLeft: () => <CountryBackButton />,
   headerRight: () => <PathfinderBadge />,
+  headerRightContainerStyle: { paddingRight: 12 },
 };
 
 export default function CountrySlugLayout() {
