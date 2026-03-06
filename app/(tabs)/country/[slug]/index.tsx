@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter, useFocusEffect } from "expo-router";
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useEffect, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import { Screen } from "@/components/Screen";
@@ -89,18 +89,22 @@ export default function CountryDetailScreen() {
 
   const urlSlug = typeof slug === "string" ? slug : Array.isArray(slug) ? slug[0] : "";
 
+  const [countrySlug, setCountrySlug] = useState(() => {
+    return getImmediateSlug() || urlSlug || "";
+  });
+
   useFocusEffect(
     useCallback(() => {
       const fresh = getImmediateSlug();
-      if (fresh && fresh !== urlSlug) {
-        router.replace({ pathname: "/(tabs)/country/[slug]", params: { slug: fresh } } as any);
-      }
-    }, [urlSlug])
+      if (fresh) setCountrySlug(fresh);
+    }, [])
   );
 
-  const countrySlug = urlSlug || selectedCountrySlug || "";
+  useEffect(() => {
+    if (selectedCountrySlug) setCountrySlug(selectedCountrySlug);
+  }, [selectedCountrySlug]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (countrySlug) {
       recordView(countrySlug);
     }
