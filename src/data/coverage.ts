@@ -35,19 +35,19 @@ const COVERAGE_MAP: Record<string, CountryCoverage> = {
   },
   panama: {
     pathways: { _country: "decision-ready", "friendly-nations": "decision-ready", pensionado: "decision-ready", "self-economic-solvency": "decision-ready" },
-    sections: { brief: "decision-ready", pathway: "decision-ready", resources: "coming-soon", vendors: "coming-soon", community: "coming-soon" },
+    sections: { brief: "decision-ready", pathway: "decision-ready", resources: "decision-ready", vendors: "decision-ready", community: "decision-ready" },
   },
   ecuador: {
     pathways: { _country: "decision-ready", rentista: "decision-ready", jubilado: "decision-ready" },
-    sections: { brief: "decision-ready", pathway: "decision-ready", resources: "coming-soon", vendors: "coming-soon", community: "coming-soon" },
+    sections: { brief: "decision-ready", pathway: "decision-ready", resources: "decision-ready", vendors: "decision-ready", community: "decision-ready" },
   },
   malta: {
     pathways: { _country: "decision-ready", "digital-nomad": "decision-ready", grp: "decision-ready" },
-    sections: { brief: "decision-ready", pathway: "decision-ready", resources: "coming-soon", vendors: "coming-soon", community: "coming-soon" },
+    sections: { brief: "decision-ready", pathway: "decision-ready", resources: "decision-ready", vendors: "decision-ready", community: "decision-ready" },
   },
   "united-kingdom": {
     pathways: { _country: "decision-ready", "skilled-worker": "decision-ready", "global-talent": "decision-ready", "innovator-founder": "decision-ready" },
-    sections: { brief: "decision-ready", pathway: "decision-ready", resources: "coming-soon", vendors: "coming-soon", community: "coming-soon" },
+    sections: { brief: "decision-ready", pathway: "decision-ready", resources: "decision-ready", vendors: "decision-ready", community: "decision-ready" },
   },
   germany: {
     pathways: { _country: "decision-ready", "eu-blue-card": "decision-ready", "skilled-worker-residence": "decision-ready" },
