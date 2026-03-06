@@ -152,11 +152,56 @@ export default function CountryDetailScreen() {
         </View>
 
         {hasAccess && accessType === "decision_pass" && decisionPassDaysLeft != null ? (
-          <View style={styles.accessBanner}>
-            <Ionicons name="shield-checkmark" size={16} color={tokens.color.primary} />
-            <Text style={styles.accessBannerText}>
-              Decision Pass active — {decisionPassDaysLeft} days remaining
-            </Text>
+          <View style={{ gap: tokens.space.sm }}>
+            <View style={styles.accessBanner}>
+              <Ionicons name="shield-checkmark" size={16} color={tokens.color.primary} />
+              <Text style={styles.accessBannerText}>
+                Decision Pass active — {decisionPassDaysLeft} days remaining
+              </Text>
+            </View>
+            {isLaunch && !hasCountryAccess(countrySlug) ? (
+              <Pressable
+                style={({ pressed }) => [styles.convertBanner, pressed && styles.cardPressed]}
+                onPress={() => router.push({ pathname: "/subscribe" as any, params: { country: countrySlug } })}
+              >
+                <View style={styles.unlockBannerLeft}>
+                  <Ionicons name="diamond-outline" size={18} color={tokens.color.gold} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.convertBannerTitle}>Keep {countryName} after your pass expires</Text>
+                    <Text style={styles.convertBannerSub}>
+                      Unlock lifetime access for {countryPrice}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={tokens.color.gold} />
+              </Pressable>
+            ) : null}
+          </View>
+        ) : hasAccess && accessType === "subscription" ? (
+          <View style={{ gap: tokens.space.sm }}>
+            <View style={styles.accessBanner}>
+              <Ionicons name="checkmark-circle" size={16} color={tokens.color.primary} />
+              <Text style={styles.accessBannerText}>
+                Monthly subscription active
+              </Text>
+            </View>
+            {isLaunch && !hasCountryAccess(countrySlug) ? (
+              <Pressable
+                style={({ pressed }) => [styles.convertBanner, pressed && styles.cardPressed]}
+                onPress={() => router.push({ pathname: "/subscribe" as any, params: { country: countrySlug } })}
+              >
+                <View style={styles.unlockBannerLeft}>
+                  <Ionicons name="diamond-outline" size={18} color={tokens.color.gold} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.convertBannerTitle}>Lock in {countryName} permanently</Text>
+                    <Text style={styles.convertBannerSub}>
+                      Lifetime access for {countryPrice} — no subscription needed
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={tokens.color.gold} />
+              </Pressable>
+            ) : null}
           </View>
         ) : hasAccess && accessType === "country_lifetime" ? (
           <View style={styles.accessBanner}>
@@ -367,6 +412,32 @@ const styles = {
   },
 
   unlockBannerSub: {
+    fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
+    marginTop: 1,
+  },
+
+  convertBanner: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    paddingHorizontal: tokens.space.lg,
+    paddingVertical: tokens.space.md,
+    borderRadius: tokens.radius.lg,
+    backgroundColor: tokens.color.surface,
+    borderWidth: 1,
+    borderColor: tokens.color.gold,
+  },
+
+  convertBannerTitle: {
+    fontSize: tokens.text.body,
+    fontWeight: tokens.weight.semiBold,
+    fontFamily: tokens.font.bodySemiBold,
+    color: tokens.color.text,
+  },
+
+  convertBannerSub: {
     fontSize: tokens.text.small,
     fontFamily: tokens.font.body,
     color: tokens.color.subtext,
