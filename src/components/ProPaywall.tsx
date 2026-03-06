@@ -590,41 +590,76 @@ export function ProPaywall({
         ) : null}
 
         {hasFullAccess ? (
-          <View style={s.activeCard}>
-            <Ionicons name="checkmark-circle" size={24} color={tokens.color.primary} />
-            <Text style={s.activeText}>{PAID_TIER_DISPLAY_NAME} — full access</Text>
-            <Text style={s.sourceText}>
-              {accessType === "decision_pass"
-                ? `Decision Pass — ${decisionPassDaysLeft ?? 0} days left`
-                : accessType === "subscription"
-                  ? "Monthly subscription"
-                  : accessType === "sandbox"
-                    ? "Sandbox mode (testing)"
-                    : ""}
-            </Text>
-            {decisionPassExpiresAt ? (
-              <Text style={s.expirationText}>
-                Expires {new Date(decisionPassExpiresAt).toLocaleDateString()}
+          <>
+            <View style={s.activeCard}>
+              <Ionicons name="checkmark-circle" size={24} color={tokens.color.primary} />
+              <Text style={s.activeText}>Your current plan</Text>
+              <Text style={s.sourceText}>
+                {accessType === "decision_pass"
+                  ? `Decision Pass — ${decisionPassDaysLeft ?? 0} days left`
+                  : accessType === "subscription"
+                    ? "Monthly subscription — all countries"
+                    : accessType === "country_lifetime"
+                      ? `${countryName ?? "Country"} — lifetime access`
+                      : accessType === "sandbox"
+                        ? "Sandbox mode (testing)"
+                        : "Active"}
               </Text>
-            ) : expirationDate ? (
-              <Text style={s.expirationText}>
-                Renews {new Date(expirationDate).toLocaleDateString()}
-              </Text>
+              {unlockedCountries && unlockedCountries.length > 0 ? (
+                <Text style={s.expirationText}>
+                  Countries unlocked: {unlockedCountries.map((c: string) => {
+                    const country = COUNTRIES.find((co) => co.slug === c);
+                    return country?.name ?? c;
+                  }).join(", ")}
+                </Text>
+              ) : null}
+              {decisionPassExpiresAt ? (
+                <Text style={s.expirationText}>
+                  Expires {new Date(decisionPassExpiresAt).toLocaleDateString()}
+                </Text>
+              ) : expirationDate ? (
+                <Text style={s.expirationText}>
+                  Renews {new Date(expirationDate).toLocaleDateString()}
+                </Text>
+              ) : null}
+              {accessType === "subscription" ? (
+                <Pressable
+                  onPress={handleManage}
+                  disabled={busy}
+                  style={({ pressed }) => [s.secondaryCta, pressed && s.ctaPressed]}
+                >
+                  {busy ? (
+                    <ActivityIndicator size="small" color={tokens.color.text} />
+                  ) : (
+                    <Text style={s.secondaryCtaText}>Manage Subscription</Text>
+                  )}
+                </Pressable>
+              ) : null}
+            </View>
+
+            {resolvedCountrySlug && !alreadyHasCountry && accessType !== "subscription" ? (
+              <View style={s.monthlyCard}>
+                <View style={s.monthlyHeader}>
+                  <Ionicons name="diamond-outline" size={18} color={tokens.color.gold} />
+                  <Text style={s.monthlyTitle}>Lock in {countryName} permanently</Text>
+                </View>
+                <Text style={s.monthlyMeta}>
+                  Keep access to {countryName} after your {accessType === "decision_pass" ? "Decision Pass expires" : "current plan ends"}
+                </Text>
+                <Pressable
+                  onPress={() => handleCountryUnlock()}
+                  disabled={busy}
+                  style={({ pressed }) => [s.countryUnlockCta, pressed && s.ctaPressed]}
+                >
+                  {busy ? (
+                    <ActivityIndicator size="small" color={tokens.color.text} />
+                  ) : (
+                    <Text style={s.countryUnlockCtaText}>Unlock {countryName} Forever — {countryPrice}</Text>
+                  )}
+                </Pressable>
+              </View>
             ) : null}
-            {accessType === "subscription" ? (
-              <Pressable
-                onPress={handleManage}
-                disabled={busy}
-                style={({ pressed }) => [s.secondaryCta, pressed && s.ctaPressed]}
-              >
-                {busy ? (
-                  <ActivityIndicator size="small" color={tokens.color.text} />
-                ) : (
-                  <Text style={s.secondaryCtaText}>Manage Subscription</Text>
-                )}
-              </Pressable>
-            ) : null}
-          </View>
+          </>
         ) : alreadyHasCountry && resolvedCountrySlug ? (
           <View style={s.activeCard}>
             <Ionicons name="checkmark-circle" size={24} color={tokens.color.primary} />
