@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Tabs, useRouter, useSegments } from "expo-router";
+import { Tabs, useRouter } from "expo-router";
 import React from "react";
 import { Image, Platform, Pressable } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,7 +55,6 @@ const sharedHeaderOptions = {
 
 export default function TabsLayout() {
   const router = useRouter();
-  const segments = useSegments();
 
   return (
     <Tabs
@@ -114,21 +113,7 @@ export default function TabsLayout() {
         name="country"
         options={{
           headerShown: false,
-          title: "Countries",
-          tabBarLabel: "Countries",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="earth" size={size} color={color} />
-          ),
-        }}
-        listeners={{
-          tabPress: (e) => {
-            const inCountryTab = segments[0] === "(tabs)" && segments[1] === "country";
-            const onCountryIndex = inCountryTab && segments.length <= 2;
-            if (!onCountryIndex) {
-              e.preventDefault();
-              router.navigate("/(tabs)/country" as any);
-            }
-          },
+          href: null,
         }}
       />
     </Tabs>

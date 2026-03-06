@@ -22,9 +22,28 @@ function BackButton({ fallback }: { fallback?: string }) {
         if (router.canGoBack()) {
           router.back();
         } else if (fallback) {
-          router.replace(fallback as any);
+          router.navigate(fallback as any);
         } else {
-          router.replace("/(tabs)" as any);
+          router.navigate("/(tabs)" as any);
+        }
+      }}
+      hitSlop={12}
+      style={{ padding: 8 }}
+    >
+      <Ionicons name="chevron-back" size={24} color={tokens.color.primary} />
+    </Pressable>
+  );
+}
+
+function HomeButton() {
+  const router = useRouter();
+  return (
+    <Pressable
+      onPress={() => {
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          router.navigate("/(tabs)" as any);
         }
       }}
       hitSlop={12}
@@ -105,7 +124,7 @@ export default function CountrySlugLayout() {
       <Stack.Screen
         name="index"
         options={{
-          headerLeft: () => <BackButton fallback="/(tabs)" />,
+          headerLeft: () => <HomeButton />,
           title: "",
           headerBackTitle: "",
         }}
