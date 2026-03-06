@@ -114,6 +114,7 @@ export default function TabsLayout() {
         options={{
           headerShown: false,
           href: null,
+          unmountOnBlur: true,
         }}
       />
     </Tabs>
