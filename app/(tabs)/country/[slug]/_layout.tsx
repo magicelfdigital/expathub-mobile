@@ -78,19 +78,23 @@ function CountryBackButton() {
 
 function PathfinderBadge() {
   return (
-    <View style={{ marginRight: 12 }}>
+    <View
+      style={{
+        marginRight: 12,
+        backgroundColor: tokens.color.goldLight,
+        borderWidth: 1,
+        borderColor: "rgba(232,153,26,0.25)",
+        borderRadius: 20,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        overflow: "hidden",
+      }}
+    >
       <Text
         style={{
           color: tokens.color.gold,
-          backgroundColor: tokens.color.goldLight,
-          borderWidth: 1,
-          borderColor: 'rgba(232,153,26,0.25)',
-          borderRadius: 20,
-          paddingHorizontal: 10,
-          paddingVertical: 4,
           fontSize: 11,
           fontFamily: tokens.font.bodySemiBold,
-          overflow: 'hidden',
         }}
       >
         Pathfinder
