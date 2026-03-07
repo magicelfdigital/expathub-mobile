@@ -111,8 +111,8 @@ export default function HomeScreen() {
 
                 <Image
                   source={require('../../../assets/images/expathub-map.png')}
-                  style={{ width: '100%' as any, height: 160, borderRadius: 18, marginBottom: 16 }}
-                  resizeMode='cover'
+                  style={{ width: '100%' as any, height: 180, borderRadius: 18, marginBottom: 16 }}
+                  resizeMode='contain'
                 />
 
                 <View style={styles.valueProps}>
