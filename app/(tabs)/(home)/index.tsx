@@ -109,11 +109,6 @@ export default function HomeScreen() {
                   ExpatHub helps you understand visa options, work authorization rules, and residency pathways so you can make confident decisions about relocating internationally.
                 </Text>
 
-                <Image
-                  source={require('../../../assets/images/expathub-map.png')}
-                  style={{ width: '100%' as any, height: 180, borderRadius: 18, marginBottom: 16 }}
-                  resizeMode='contain'
-                />
 
                 <View style={styles.valueProps}>
                   <View style={styles.valuePropRow}>
