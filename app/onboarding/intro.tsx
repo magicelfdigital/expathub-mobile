@@ -26,7 +26,7 @@ export default function IntroScreen() {
         </View>
 
         <Text style={styles.headline}>
-          Think You've Chosen the Right Country?{"\n"}Run This First.
+          Think You've Chosen the Right Country?{"\n"}Take the Quiz.
         </Text>
 
         <Text style={styles.subtext}>
@@ -41,7 +41,7 @@ export default function IntroScreen() {
           <Ionicons name="arrow-forward" size={18} color="#fff" />
         </Pressable>
 
-        <Text style={styles.small}>9 questions \u00b7 Takes about 2 minutes</Text>
+        <Text style={styles.small}>9 questions - Takes about 2 minutes</Text>
       </View>
     </View>
   );
