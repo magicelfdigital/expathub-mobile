@@ -1,0 +1,76 @@
+ExpatHub Mobile — Results Screen: Capture & CTA Logic
+
+Complete specification — governs all post-quiz result screen behaviour
+
+COUNTRY AVAILABILITY CHECK
+
+After computing the top match, classify it as one of two states:
+
+Has full guide: Portugal, Spain, Costa Rica, Canada, Panama, Ecuador, Malta, United Kingdom, Germany, Ireland, Australia
+Coming soon (no full guide): any country not in the above list (e.g. Mexico, Colombia, Thailand, Indonesia, Vietnam)
+This classification drives everything below.
+
+TOP MATCH CARD — AVAILABILITY NOTICE
+
+Show this notice block only when the top match is a coming-soon country. Do not show it for countries with full guides.
+
+Notice wording:
+
+"No full guide for [Country] yet — get notified when it's ready?"
+
+If user is logged in / email already known:
+Show two inline actions — no email field:
+
+Button (primary): "Yes, notify me" — POST to /api/country-interest with { email: knownEmail, country_slug }, then replace with confirmation
+Text link: "No thanks" — dismisses the notice silently, no API call
+If user is not logged in / no email known:
+Show an email input + submit button:
+
+Placeholder: your@email.com
+Button: "Notify me"
+On submit: POST to /api/country-interest with { email, country_slug }
+After successful submission:
+Replace the notice with:
+
+✓ "You're on the list — we'll let you know when it launches."
+
+API call:
+
+POST /api/country-interest
+{ "email": "user@example.com", "country_slug": "mexico" }
+SAVE RESULTS CARD — COMBINED EMAIL + ACCOUNT CTA
+
+This card appears only when the top match has a full guide. Hide it entirely when the top match is coming-soon (the availability notice above handles email collection instead).
+
+The card is a single unified block — not two separate elements:
+
+Heading: "Save your results"
+Subtext: "No sales calls. No spam. Just your breakdown."
+Email input — shared between both actions below
+Primary button (gold): "Create Free Account to Save Results" — navigates to /register
+Two small secondary text links below the button (side by side, centered):
+"Just email me the results" — submits email to /api/readiness-lead, shows success state in place
+"Skip for now" — dismisses the card without any submission
+Success state (after "Just email me the results"):
+Replace entire card content with:
+
+✓ "Sent! Check your inbox. / Your full breakdown is on its way."
+
+There is no separate standalone "Create Free Account" button outside this card.
+
+TEAL EXPLORE CTA
+
+Always show below the save card (or in its place when coming-soon), as a standalone button:
+
+Label: "Explore [Top Match Country Name]"
+Navigates to the country hub for the top match
+Teal background (#33C4DC)
+FULL DECISION TABLE
+
+Top match status	Show availability notice	Show save results card	Show teal Explore CTA
+Full guide available	No	Yes	Yes
+Coming soon	Yes — with Yes/No or email form	No	Yes
+API REFERENCE
+
+POST /api/country-interest      { email, country_slug }   → waitlist/notify
+POST /api/readiness-lead        { email, score, tier, risks, answers }   → save results + email

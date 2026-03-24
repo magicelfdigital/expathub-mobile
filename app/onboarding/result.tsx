@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { calculateQuizResult, getGapMessage, hasFullGuide, TIER_LABELS, TIER_DESCRIPTIONS } from "@/src/data/quiz";
 import type { Tier } from "@/src/data/quiz";
 import { useOnboarding } from "@/contexts/OnboardingContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
 import { tokens } from "@/theme/tokens";
 import { trackEvent } from "@/src/lib/analytics";
@@ -30,6 +31,7 @@ export default function ResultScreen() {
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
   const { answers: answersStr } = useLocalSearchParams<{ answers?: string }>();
   const { completeOnboarding } = useOnboarding();
+  const { user } = useAuth();
   const { setSelectedCountrySlug } = useCountry();
 
   const answers = useMemo(() => {
@@ -45,55 +47,61 @@ export default function ResultScreen() {
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
+  const [saveCardDismissed, setSaveCardDismissed] = useState(false);
 
   const [interestEmail, setInterestEmail] = useState("");
   const [interestSent, setInterestSent] = useState(false);
   const [interestSending, setInterestSending] = useState(false);
+  const [noticeDismissed, setNoticeDismissed] = useState(false);
 
-  const handleSaveResults = async () => {
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+  const knownEmail = user?.email ?? null;
+
+  const handleEmailResults = async () => {
+    const addr = email;
+    if (!addr || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr)) return;
     setEmailSending(true);
     try {
       const base = getBaseUrl();
       await fetch(`${base}/api/readiness-lead`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          score: result.score,
-          tier: result.tier,
-          risks: result.risks,
-          answers,
-        }),
+        body: JSON.stringify({ email: addr, score: result.score, tier: result.tier, risks: result.risks, answers }),
       });
       setEmailSent(true);
       trackEvent("readiness_lead_saved", { tier: result.tier, score: result.score });
-    } catch {
-    } finally {
-      setEmailSending(false);
-    }
+    } catch {} finally { setEmailSending(false); }
   };
 
-  const handleCountryInterest = async () => {
-    if (!interestEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(interestEmail)) return;
-    if (!result.topMatch.slug) return;
+  const handleCountryInterestKnown = async () => {
+    if (!knownEmail) return;
     setInterestSending(true);
     try {
       const base = getBaseUrl();
+      const slug = result.topMatch.slug ?? result.topMatch.name.toLowerCase().replace(/[\s,]+/g, "-");
       await fetch(`${base}/api/country-interest`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: interestEmail,
-          country_slug: result.topMatch.slug ?? result.topMatch.name.toLowerCase().replace(/\s+/g, "-"),
-        }),
+        body: JSON.stringify({ email: knownEmail, country_slug: slug }),
       });
       setInterestSent(true);
       trackEvent("country_interest_submitted", { country: result.topMatch.name });
-    } catch {
-    } finally {
-      setInterestSending(false);
-    }
+    } catch {} finally { setInterestSending(false); }
+  };
+
+  const handleCountryInterestAnon = async () => {
+    if (!interestEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(interestEmail)) return;
+    setInterestSending(true);
+    try {
+      const base = getBaseUrl();
+      const slug = result.topMatch.slug ?? result.topMatch.name.toLowerCase().replace(/[\s,]+/g, "-");
+      await fetch(`${base}/api/country-interest`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: interestEmail, country_slug: slug }),
+      });
+      setInterestSent(true);
+      trackEvent("country_interest_submitted", { country: result.topMatch.name });
+    } catch {} finally { setInterestSending(false); }
   };
 
   const handleCreateAccount = async () => {
@@ -107,20 +115,138 @@ export default function ResultScreen() {
     trackEvent("quiz_completed", { tier: result.tier, score: result.score, action: "explore_match" });
     if (result.topMatch.slug && countryHasGuide) {
       setSelectedCountrySlug(result.topMatch.slug);
-      router.replace("/(tabs)/(home)");
-    } else {
-      router.replace("/(tabs)/(home)");
     }
+    router.replace("/(tabs)/(home)");
   };
 
-  const handleRestart = async () => {
+  const handleRestart = () => {
     router.replace("/onboarding/quiz");
+  };
+
+  const renderAvailabilityNotice = () => {
+    if (countryHasGuide || noticeDismissed) return null;
+
+    if (interestSent) {
+      return (
+        <View style={styles.successRow}>
+          <Ionicons name="checkmark-circle" size={16} color={tokens.color.teal} />
+          <Text style={styles.successText}>You're on the list - we'll let you know when it launches.</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.amberNotice}>
+        <Ionicons name="information-circle" size={18} color="#92670A" />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.amberText}>
+            No full guide for {result.topMatch.name} yet - get notified when it's ready?
+          </Text>
+
+          {knownEmail ? (
+            <View style={styles.noticeActions}>
+              <Pressable
+                onPress={handleCountryInterestKnown}
+                disabled={interestSending}
+                style={({ pressed }) => [styles.notifyBtnInline, pressed && { opacity: 0.8 }]}
+              >
+                {interestSending ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.notifyBtnText}>Yes, notify me</Text>
+                )}
+              </Pressable>
+              <Pressable onPress={() => setNoticeDismissed(true)} hitSlop={8}>
+                <Text style={styles.noThanksLink}>No thanks</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.notifyRow}>
+              <TextInput
+                style={styles.notifyInput}
+                placeholder="your@email.com"
+                placeholderTextColor={tokens.color.subtext}
+                value={interestEmail}
+                onChangeText={setInterestEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Pressable
+                onPress={handleCountryInterestAnon}
+                disabled={interestSending}
+                style={({ pressed }) => [styles.notifyBtn, pressed && { opacity: 0.9 }]}
+              >
+                {interestSending ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={styles.notifyBtnText}>Notify me</Text>
+                )}
+              </Pressable>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  const renderSaveCard = () => {
+    if (!countryHasGuide) return null;
+
+    if (emailSent) {
+      return (
+        <View style={styles.card}>
+          <View style={styles.successRow}>
+            <Ionicons name="checkmark-circle" size={16} color={tokens.color.teal} />
+            <Text style={styles.successText}>Sent! Check your inbox. Your full breakdown is on its way.</Text>
+          </View>
+        </View>
+      );
+    }
+
+    if (saveCardDismissed) return null;
+
+    return (
+      <View style={styles.card}>
+        <Text style={styles.emailLabel}>Save your results</Text>
+        <Text style={styles.emailSubtext}>No sales calls. No spam. Just your breakdown.</Text>
+        <TextInput
+          style={styles.emailInput}
+          placeholder="your@email.com"
+          placeholderTextColor={tokens.color.subtext}
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <Pressable
+          onPress={handleCreateAccount}
+          style={({ pressed }) => [styles.goldBtn, pressed && { opacity: 0.9 }]}
+        >
+          <Text style={styles.goldBtnText}>Create Free Account to Save Results</Text>
+        </Pressable>
+        <View style={styles.secondaryLinks}>
+          <Pressable onPress={handleEmailResults} disabled={emailSending} hitSlop={8}>
+            {emailSending ? (
+              <ActivityIndicator size="small" color={tokens.color.subtext} />
+            ) : (
+              <Text style={styles.secondaryLink}>Just email me the results</Text>
+            )}
+          </Pressable>
+          <Text style={styles.linkDot}>|</Text>
+          <Pressable onPress={() => setSaveCardDismissed(true)} hitSlop={8}>
+            <Text style={styles.secondaryLink}>Skip for now</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
   };
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 160 + bottomPad }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + bottomPad }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
@@ -148,48 +274,7 @@ export default function ResultScreen() {
               <Text style={styles.matchDesc}>{result.topMatch.description}</Text>
             </View>
           </View>
-
-          {!countryHasGuide ? (
-            <View style={styles.amberNotice}>
-              <Ionicons name="information-circle" size={18} color="#92670A" />
-              <Text style={styles.amberText}>
-                We don't have a full guide for {result.topMatch.name} yet - but it's on our roadmap.
-              </Text>
-            </View>
-          ) : null}
-
-          {!countryHasGuide && !interestSent ? (
-            <View style={styles.notifyRow}>
-              <TextInput
-                style={styles.notifyInput}
-                placeholder="your@email.com"
-                placeholderTextColor={tokens.color.subtext}
-                value={interestEmail}
-                onChangeText={setInterestEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <Pressable
-                onPress={handleCountryInterest}
-                disabled={interestSending}
-                style={({ pressed }) => [styles.notifyBtn, pressed && { opacity: 0.9 }]}
-              >
-                {interestSending ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.notifyBtnText}>Notify Me</Text>
-                )}
-              </Pressable>
-            </View>
-          ) : null}
-
-          {interestSent ? (
-            <View style={styles.sentRow}>
-              <Ionicons name="checkmark-circle" size={16} color={tokens.color.teal} />
-              <Text style={styles.sentText}>We'll let you know when it launches.</Text>
-            </View>
-          ) : null}
+          {renderAvailabilityNotice()}
         </View>
 
         <View style={styles.card}>
@@ -209,64 +294,19 @@ export default function ResultScreen() {
           ) : null}
         </View>
 
-        {!emailSent ? (
-          <View style={styles.card}>
-            <Text style={styles.emailLabel}>Save your results + get alerts when visa rules change</Text>
-            <Text style={styles.emailSubtext}>No sales calls. No spam. Just your breakdown.</Text>
-            <TextInput
-              style={styles.emailInput}
-              placeholder="your@email.com"
-              placeholderTextColor={tokens.color.subtext}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <Pressable
-              onPress={handleSaveResults}
-              disabled={emailSending}
-              style={({ pressed }) => [styles.saveBtn, pressed && { opacity: 0.9 }]}
-            >
-              {emailSending ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.saveBtnText}>Save My Results</Text>
-              )}
-            </Pressable>
-            <Pressable onPress={() => setEmailSent(true)} hitSlop={8}>
-              <Text style={styles.skipLink}>Skip for now</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.sentRow}>
-            <Ionicons name="checkmark-circle" size={16} color={tokens.color.teal} />
-            <Text style={styles.sentText}>Results saved.</Text>
-          </View>
-        )}
-
-        <Pressable onPress={handleRestart} hitSlop={8} style={{ alignSelf: "center", marginTop: 8 }}>
-          <Text style={styles.restartLink}>Restart quiz</Text>
-        </Pressable>
-      </ScrollView>
-
-      <View style={[styles.ctaBar, { paddingBottom: bottomPad + 16 }]}>
-        <Pressable
-          onPress={handleCreateAccount}
-          style={({ pressed }) => [styles.primaryCta, pressed && { opacity: 0.9 }]}
-        >
-          <Text style={styles.primaryCtaText}>Create Free Account to Save Results</Text>
-        </Pressable>
+        {renderSaveCard()}
 
         <Pressable
           onPress={handleExploreMatch}
-          style={({ pressed }) => [styles.secondaryCta, pressed && { opacity: 0.9 }]}
+          style={({ pressed }) => [styles.exploreCta, pressed && { opacity: 0.9 }]}
         >
-          <Text style={styles.secondaryCtaText}>
-            Explore {result.topMatch.name}
-          </Text>
+          <Text style={styles.exploreCtaText}>Explore {result.topMatch.name}</Text>
         </Pressable>
-      </View>
+
+        <Pressable onPress={handleRestart} hitSlop={8} style={{ alignSelf: "center", marginTop: 4 }}>
+          <Text style={styles.restartLink}>Restart quiz</Text>
+        </Pressable>
+      </ScrollView>
     </View>
   );
 }
@@ -374,16 +414,32 @@ const styles = StyleSheet.create({
     borderColor: "#F0DCA0",
   },
   amberText: {
-    flex: 1,
     fontSize: 14,
     fontFamily: tokens.font.body,
     color: "#92670A",
     lineHeight: 20,
+    marginBottom: 10,
+  },
+  noticeActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  notifyBtnInline: {
+    backgroundColor: tokens.color.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  noThanksLink: {
+    fontSize: 14,
+    fontFamily: tokens.font.body,
+    color: "#92670A",
+    textDecorationLine: "underline",
   },
   notifyRow: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 12,
   },
   notifyInput: {
     flex: 1,
@@ -410,16 +466,17 @@ const styles = StyleSheet.create({
     fontFamily: tokens.font.bodySemiBold,
     fontWeight: "600",
   },
-  sentRow: {
+  successRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginTop: 10,
   },
-  sentText: {
+  successText: {
+    flex: 1,
     fontSize: 14,
     fontFamily: tokens.font.body,
     color: tokens.color.teal,
+    lineHeight: 20,
   },
   gapMessage: {
     fontSize: 15,
@@ -464,28 +521,49 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: tokens.font.body,
     color: tokens.color.text,
-    backgroundColor: "#fff",
+    backgroundColor: tokens.color.bg,
     marginBottom: 12,
   },
-  saveBtn: {
-    backgroundColor: tokens.color.primary,
-    paddingVertical: 14,
-    borderRadius: 12,
+  goldBtn: {
+    backgroundColor: tokens.color.gold,
+    paddingVertical: 16,
+    borderRadius: 14,
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  saveBtnText: {
+  goldBtnText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 17,
     fontFamily: tokens.font.bodySemiBold,
     fontWeight: "600",
   },
-  skipLink: {
-    fontSize: 14,
+  secondaryLinks: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
+  },
+  secondaryLink: {
+    fontSize: 13,
     fontFamily: tokens.font.body,
     color: tokens.color.subtext,
-    textAlign: "center",
-    paddingVertical: 4,
+    textDecorationLine: "underline",
+  },
+  linkDot: {
+    fontSize: 13,
+    color: tokens.color.subtext,
+  },
+  exploreCta: {
+    backgroundColor: tokens.color.teal,
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  exploreCtaText: {
+    color: "#fff",
+    fontSize: 17,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600",
   },
   restartLink: {
     fontSize: 14,
@@ -493,46 +571,5 @@ const styles = StyleSheet.create({
     color: tokens.color.subtext,
     textDecorationLine: "underline",
     paddingVertical: 8,
-  },
-  ctaBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: tokens.color.bg,
-    paddingHorizontal: tokens.space.xl,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(28,43,94,0.08)",
-    gap: 10,
-    alignItems: "center",
-  },
-  primaryCta: {
-    backgroundColor: tokens.color.gold,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 14,
-    width: "100%",
-    alignItems: "center",
-  },
-  primaryCtaText: {
-    color: "#fff",
-    fontSize: 17,
-    fontFamily: tokens.font.bodySemiBold,
-    fontWeight: "600",
-  },
-  secondaryCta: {
-    backgroundColor: tokens.color.teal,
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 14,
-    width: "100%",
-    alignItems: "center",
-  },
-  secondaryCtaText: {
-    color: "#fff",
-    fontSize: 16,
-    fontFamily: tokens.font.bodySemiBold,
-    fontWeight: "600",
   },
 });
