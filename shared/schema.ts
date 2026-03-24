@@ -36,6 +36,23 @@ export const insertWaitlistSchema = z.object({
 export type WaitlistEntry = typeof waitlist.$inferSelect;
 export type InsertWaitlistEntry = z.infer<typeof insertWaitlistSchema>;
 
+export const readinessLeads = pgTable("readiness_leads", {
+  id: serial("id").primaryKey(),
+  email: varchar("email", { length: 255 }).notNull(),
+  score: integer("score"),
+  tier: varchar("tier", { length: 50 }),
+  risks: jsonb("risks"),
+  answers: jsonb("answers"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const countryInterest = pgTable("country_interest", {
+  id: serial("id").primaryKey(),
+  email: varchar("email", { length: 255 }).notNull(),
+  countrySlug: varchar("country_slug", { length: 100 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const quizLeads = pgTable("quiz_leads", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull(),

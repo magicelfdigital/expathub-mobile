@@ -173,8 +173,8 @@ export function calculateQuizResult(
     }
   }
 
-  const weightedMax = 21;
-  const displayScore = Math.round((weightedRaw / weightedMax) * 16);
+  const weightedMax = 23.5;
+  const displayScore = Math.min(16, Math.round((weightedRaw / weightedMax) * 16));
 
   let tier: Tier;
   if (displayScore <= 5) tier = "dreaming";
@@ -200,8 +200,18 @@ export const TIER_DESCRIPTIONS: Record<Tier, string> = {
 };
 
 export function getGapMessage(risks: string[]): string {
-  if (risks.length === 0) return "No critical gaps \u2014 your main job now is choosing and committing.";
+  if (risks.length === 0) return "No critical gaps identified - focus on timeline.";
   if (risks.length === 1) return `Your main blocker is ${risks[0]}. Address this before committing.`;
-  if (risks.length === 2) return `Focus on ${risks[0]} and ${risks[1]} \u2014 these are your highest-risk gaps.`;
+  if (risks.length === 2) return `Focus on ${risks[0]} and ${risks[1]} - these are your highest-risk gaps.`;
   return `You have several gaps to close. Start with ${risks[0]}.`;
+}
+
+export const GUIDE_COUNTRIES = new Set([
+  "portugal", "spain", "costa-rica", "canada", "panama",
+  "ecuador", "malta", "united-kingdom", "germany", "ireland", "australia",
+]);
+
+export function hasFullGuide(slug: string | null): boolean {
+  if (!slug) return false;
+  return GUIDE_COUNTRIES.has(slug);
 }

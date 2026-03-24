@@ -337,6 +337,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/readiness-lead", async (req: Request, res: Response) => {
+    const { email, score, tier, risks, answers } = req.body as {
+      email?: string;
+      score?: number;
+      tier?: string;
+      risks?: string[];
+      answers?: Record<string, string>;
+    };
+
+    if (!email || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400).json({ error: "A valid email is required" });
+      return;
+    }
+
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) {
+      res.status(200).json({ ok: true });
+      return;
+    }
+
+    let pool: pg.Pool | null = null;
+    try {
+      pool = new pg.Pool({ connectionString: dbUrl });
+      await pool.query(
+        `INSERT INTO readiness_leads (email, score, tier, risks, answers)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [email, score || null, tier || null, JSON.stringify(risks || []), JSON.stringify(answers || {})]
+      );
+    } catch (err: any) {
+      console.error("Readiness lead insert error:", err);
+    } finally {
+      if (pool) await pool.end();
+    }
+    res.status(200).json({ ok: true });
+  });
+
+  app.post("/api/country-interest", async (req: Request, res: Response) => {
+    const { email, country_slug } = req.body as {
+      email?: string;
+      country_slug?: string;
+    };
+
+    if (!email || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      res.status(400).json({ error: "A valid email is required" });
+      return;
+    }
+
+    if (!country_slug || typeof country_slug !== "string") {
+      res.status(400).json({ error: "country_slug is required" });
+      return;
+    }
+
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) {
+      res.status(200).json({ ok: true });
+      return;
+    }
+
+    let pool: pg.Pool | null = null;
+    try {
+      pool = new pg.Pool({ connectionString: dbUrl });
+      await pool.query(
+        `INSERT INTO country_interest (email, country_slug)
+         VALUES ($1, $2)`,
+        [email, country_slug]
+      );
+    } catch (err: any) {
+      console.error("Country interest insert error:", err);
+    } finally {
+      if (pool) await pool.end();
+    }
+    res.status(200).json({ ok: true });
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
