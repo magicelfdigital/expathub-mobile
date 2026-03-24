@@ -1,0 +1,115 @@
+Option 3 will drop fewer users. Here's why:
+
+Asking for email + password **before** showing the result feels like a toll booth — users haven't seen value yet and will bail. Showing the result first creates the "I want to save this" motivation that makes account creation feel worthwhile rather than annoying.
+
+**Recommended flow:**
+
+> Quiz → Result (with Top Match) → "Create a free account to save your results" → Full registration (email + password) → Country list
+
+The result screen is the hook. Account creation converts better when users are already emotionally invested in their match.
+
+Here's the updated Replit agent prompt:
+
+---
+
+**REPLIT AGENT PROMPT — iOS Onboarding Quiz + Account Creation (React Native)**
+
+```
+Add a Relocation Readiness Assessment as the mandatory first-launch 
+onboarding flow in the React Native iOS app. Replace the current 
+country list as the first-use experience. The country list becomes 
+the post-onboarding home screen.
+
+CONTEXT:
+The web app has an 8-question Relocation Readiness Assessment at /readiness 
+that scores users across hidden dimensions and returns a tier 
+(Dreaming, Exploring, Ready to Act) plus a region recommendation.
+The iOS app currently drops new users directly into a country list 
+with no personalization or account creation. We need to fix this with 
+a full onboarding funnel.
+
+DESIGN SYSTEM:
+- Background: #F7F6F2 warm gray
+- Primary: #606CB9 blue-purple
+- Accent teal: #33C4DC
+- Gold CTA: #E8991A
+- Headings: Playfair Display (or closest RN serif equivalent)
+- Body: Inter
+- Cards: white, 16px border-radius, rgba(96,108,185,0.15) border
+
+ONBOARDING FLOW (first launch only):
+
+STEP 1 — OnboardingQuizScreen
+- Fire on first launch, gated by AsyncStorage flag 'hasSeenOnboarding'
+- Mirror the 8 questions from the web /readiness assessment exactly
+- One question per screen with a progress bar at the top
+- Large tap targets for answer options (no small radio buttons)
+- Back navigation between questions
+- Horizontal slide animation between questions
+- Scoring is fully client-side (no API call needed during quiz)
+
+STEP 2 — QuizResultScreen
+- Display tier badge: Dreaming / Exploring / Ready to Act
+- Display Top Match country card (country name, flag, 1-line description)
+- Use same hidden dimension scoring logic as web version
+- Subheadline: "Create a free account to save your results and 
+  get alerts when visa rules change"
+- Primary CTA (gold #E8991A): "Save My Results — Create Account"
+  → navigates to Step 3
+- Secondary text link: "Skip for now — just browse"
+  → sets AsyncStorage 'hasSeenOnboarding': true and 'skippedAccount': true
+  → navigates directly to country list (main app)
+  → stores { tier, topRegion, score } in AsyncStorage 'quizResult'
+
+STEP 3 — CreateAccountScreen (only reached from Result screen)
+- Full registration: email + password fields
+- Password: min 8 chars, show/hide toggle
+- "Sign up with Apple" button (required for App Store compliance)
+- On successful registration:
+  - POST to existing /api/auth/register with { email, password }
+  - Also POST quiz result to /api/auth/quiz-lead with 
+    { email, tier, topRegion, source: 'ios_onboarding' }
+  - Store JWT in secure storage (not AsyncStorage)
+  - Set AsyncStorage 'hasSeenOnboarding': true
+  - Set AsyncStorage 'quizResult': { tier, topRegion, score }
+  - Navigate to country list (main app)
+- Below form: "Already have an account? Sign in" → LoginScreen
+- Below form: "Skip for now" text link → same as skip above
+
+RETURNING USER BEHAVIOR:
+- If 'hasSeenOnboarding' is true: skip onboarding entirely, go to 
+  country list on launch
+- If user skipped account creation: show a soft banner on the country 
+  list home screen (dismissible, shown max 3 times) reading:
+  "Your results are saved on this device. Create an account to access 
+  them anywhere." with a "Create Account" link → CreateAccountScreen
+- 'skipBannerCount' in AsyncStorage tracks dismissals, stops at 3
+
+ACCOUNT RECOVERY / RETURNING TO RESULTS:
+- Profile tab (or account icon in nav): if logged in, show quiz result 
+  tier + top match with a "Retake Quiz" option
+- If not logged in, profile tab shows "Sign in or create account" 
+  with quiz result retrieved from AsyncStorage if available
+- "Retake Quiz" clears 'quizResult' from AsyncStorage and relaunches 
+  OnboardingQuizScreen as a modal (not replacing nav stack)
+
+BACKEND ENDPOINT (add to shared backend if not exists):
+POST /api/auth/quiz-lead
+Body: { email, tier, topRegion, source }
+- Upsert into quiz_leads table: (id, email, tier, top_region, source, 
+  created_at)
+- If email matches existing user, tag account with quiz result
+- Return 200 silently — never surface errors to user (fire and forget)
+
+CONSTRAINTS:
+- Do not modify existing authentication screens used by current logged-in users
+- Do not touch payment or subscription screens
+- Quiz scoring must work fully offline — no API calls during quiz
+- No third-party quiz or onboarding libraries
+- Follow existing RN project file/folder conventions
+- Country list screen is unchanged — it just no longer fires on first launch
+```
+
+---
+
+This gives you the full funnel, the soft re-engagement banner for skippers, and the profile tab recovery path so users can always get back to their results. Paste this directly into your iOS Replit agent.
