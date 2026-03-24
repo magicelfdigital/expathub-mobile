@@ -259,6 +259,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ hasProAccess: false });
   });
 
+  app.post("/api/auth/quiz-lead", async (req: Request, res: Response) => {
+    const { email, tier, topRegion, regionPreference, score, risks, source } = req.body as {
+      email?: string;
+      tier?: string;
+      topRegion?: string;
+      regionPreference?: string;
+      score?: number;
+      risks?: string[];
+      source?: string;
+    };
+
+    if (!email || !tier) {
+      res.status(200).json({ ok: true });
+      return;
+    }
+
+    const dbUrl = process.env.DATABASE_URL;
+    if (!dbUrl) {
+      res.status(200).json({ ok: true });
+      return;
+    }
+
+    let pool: pg.Pool | null = null;
+    try {
+      pool = new pg.Pool({ connectionString: dbUrl });
+      await pool.query(
+        `INSERT INTO quiz_leads (email, tier, top_region, region_preference, score, risks, source)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT DO NOTHING`,
+        [email, tier, topRegion || null, regionPreference || null, score || null, JSON.stringify(risks || []), source || "ios_onboarding"]
+      );
+    } catch (err: any) {
+      console.error("Quiz lead insert error:", err);
+    } finally {
+      if (pool) await pool.end();
+    }
+    res.status(200).json({ ok: true });
+  });
+
   app.post("/api/waitlist", async (req: Request, res: Response) => {
     const { countrySlug, email, note } = req.body as {
       countrySlug?: string;

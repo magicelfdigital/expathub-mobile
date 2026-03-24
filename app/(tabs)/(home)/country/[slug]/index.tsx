@@ -81,7 +81,6 @@ function CoverageRow({ label, status }: { label: string; status: "decision-ready
 export default function CountryDetailScreen() {
   const router = useRouter();
   const { selectedCountrySlug } = useCountry();
-  console.log("DEBUG countrySlug:", selectedCountrySlug);
   const { hasActiveSubscription, hasFullAccess, hasCountryAccess, accessType, decisionPassDaysLeft } = useSubscription();
   const { activeCountrySlug: planCountrySlug, startPlan } = usePlan();
   const { recordView } = useContinue();

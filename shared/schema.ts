@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, varchar, integer, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -35,3 +35,15 @@ export const insertWaitlistSchema = z.object({
 
 export type WaitlistEntry = typeof waitlist.$inferSelect;
 export type InsertWaitlistEntry = z.infer<typeof insertWaitlistSchema>;
+
+export const quizLeads = pgTable("quiz_leads", {
+  id: serial("id").primaryKey(),
+  email: varchar("email", { length: 255 }).notNull(),
+  tier: varchar("tier", { length: 50 }).notNull(),
+  topRegion: varchar("top_region", { length: 100 }),
+  regionPreference: varchar("region_preference", { length: 100 }),
+  score: integer("score"),
+  risks: jsonb("risks"),
+  source: varchar("source", { length: 100 }),
+  createdAt: timestamp("created_at").defaultNow(),
+});

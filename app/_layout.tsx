@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -10,6 +10,7 @@ import { queryClient } from "@/lib/query-client";
 import { CountryProvider } from "@/contexts/CountryContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { OnboardingProvider, useOnboarding } from "@/contexts/OnboardingContext";
 import { PlanProvider } from "@/src/contexts/PlanContext";
 import { SavedProvider } from "@/src/contexts/SavedContext";
 import { ContinueProvider } from "@/src/contexts/ContinueContext";
@@ -27,19 +28,41 @@ import { tokens } from "@/theme/tokens";
 
 SplashScreen.preventAutoHideAsync();
 
+function OnboardingGate() {
+  const { hasSeenOnboarding } = useOnboarding();
+  const segments = useSegments();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (hasSeenOnboarding === null) return;
+
+    const inOnboarding = segments[0] === "onboarding";
+
+    if (!hasSeenOnboarding && !inOnboarding) {
+      router.replace("/onboarding/intro");
+    }
+  }, [hasSeenOnboarding, segments, router]);
+
+  return null;
+}
+
 function RootLayoutNav() {
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="subscribe/index" options={{ headerShown: false, presentation: "modal" }} />
-      <Stack.Screen name="auth" options={{ headerShown: false, presentation: "modal" }} />
-      <Stack.Screen name="account" options={{ headerShown: false, presentation: "modal" }} />
-      <Stack.Screen name="about" options={{ headerShown: false, presentation: "modal" }} />
+    <>
+      <OnboardingGate />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="subscribe/index" options={{ headerShown: false, presentation: "modal" }} />
+        <Stack.Screen name="auth" options={{ headerShown: false, presentation: "modal" }} />
+        <Stack.Screen name="account" options={{ headerShown: false, presentation: "modal" }} />
+        <Stack.Screen name="about" options={{ headerShown: false, presentation: "modal" }} />
 
-      {__DEV__ && (
-        <Stack.Screen name="debug-billing" options={{ headerShown: false, presentation: "modal" }} />
-      )}
-    </Stack>
+        {__DEV__ && (
+          <Stack.Screen name="debug-billing" options={{ headerShown: false, presentation: "modal" }} />
+        )}
+      </Stack>
+    </>
   );
 }
 
@@ -74,17 +97,19 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{ flex: 1, backgroundColor: tokens.color.bg }}>
           <KeyboardProvider>
             <AuthProvider>
-              <CountryProvider>
-                <SubscriptionProvider>
-                  <PlanProvider>
-                    <ContinueProvider>
-                      <SavedProvider>
-                        <RootLayoutNav />
-                      </SavedProvider>
-                    </ContinueProvider>
-                  </PlanProvider>
-                </SubscriptionProvider>
-              </CountryProvider>
+              <OnboardingProvider>
+                <CountryProvider>
+                  <SubscriptionProvider>
+                    <PlanProvider>
+                      <ContinueProvider>
+                        <SavedProvider>
+                          <RootLayoutNav />
+                        </SavedProvider>
+                      </ContinueProvider>
+                    </PlanProvider>
+                  </SubscriptionProvider>
+                </CountryProvider>
+              </OnboardingProvider>
             </AuthProvider>
           </KeyboardProvider>
         </GestureHandlerRootView>

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useOnboarding } from "@/contexts/OnboardingContext";
 import { getBackendBase } from "@/src/billing/backendClient";
 import { getApiUrl } from "@/lib/query-client";
 import { COUNTRIES } from "@/data/countries";
@@ -14,6 +15,8 @@ import { testCrash, isNativeBuild } from "@/utils/crashlytics";
 import { trackEvent } from "@/src/lib/analytics";
 import { FREE_TIER_DISPLAY_NAME, PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
 import { getOrchestrator, clearRefreshCooldown } from "@/src/billing";
+import { TIER_LABELS } from "@/src/data/quiz";
+import type { Tier } from "@/src/data/quiz";
 
 function getCountryName(slug: string): string {
   return COUNTRIES.find((c) => c.slug === slug)?.name ?? slug;
@@ -35,6 +38,8 @@ export default function AccountScreen() {
     setSandboxOverride,
     refresh,
   } = useSubscription();
+
+  const { quizResult, clearForRetake } = useOnboarding();
 
   const [deleting, setDeleting] = useState(false);
   const [deletedSuccess, setDeletedSuccess] = useState(false);
@@ -274,6 +279,33 @@ export default function AccountScreen() {
         ) : null}
 
       </View>
+
+      {quizResult ? (
+        <View style={s.card}>
+          <Text style={[s.rowLabel, { marginBottom: 12 }]}>Readiness Assessment</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 8 }}>
+            <View style={{ backgroundColor: quizResult.tier === "ready" ? tokens.color.teal : quizResult.tier === "exploring" ? tokens.color.primary : "#9BA8C0", paddingVertical: 4, paddingHorizontal: 14, borderRadius: 12 }}>
+              <Text style={{ color: "#fff", fontSize: 13, fontFamily: tokens.font.bodySemiBold, fontWeight: "600" }}>{TIER_LABELS[quizResult.tier as Tier]}</Text>
+            </View>
+            <Text style={s.rowValue}>Score: {quizResult.score}/16</Text>
+          </View>
+          {quizResult.topMatch ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <Text style={{ fontSize: 20 }}>{quizResult.topMatch.flag}</Text>
+              <Text style={[s.rowValue, { flex: 1 }]}>Top Match: {quizResult.topMatch.name}</Text>
+            </View>
+          ) : null}
+          <Pressable
+            onPress={async () => {
+              await clearForRetake();
+              router.push("/onboarding/intro");
+            }}
+            style={({ pressed }) => [{ paddingVertical: 8 }, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={{ fontSize: 15, fontFamily: tokens.font.bodySemiBold, fontWeight: "600", color: tokens.color.primary }}>Retake Quiz</Text>
+          </Pressable>
+        </View>
+      ) : null}
 
       {__DEV__ ? (
         <View style={s.sandboxToggleRow}>

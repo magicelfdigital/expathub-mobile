@@ -1,0 +1,142 @@
+Add a Relocation Readiness Assessment as the mandatory first-launch 
+onboarding flow in the React Native iOS app. Replace the current 
+country list as the first-use experience. The country list becomes 
+the post-onboarding home screen.
+
+CONTEXT:
+The web app has a Relocation Readiness Assessment that scores users 
+and returns a tier plus region recommendation. The iOS app currently 
+drops new users into a country list with no personalization or account 
+creation. This prompt implements a full onboarding funnel with a 
+strengthened 9-question quiz, weighted scoring, and account creation.
+
+DESIGN SYSTEM:
+- Background: #F7F6F2 warm gray
+- Primary: #606CB9 blue-purple
+- Accent teal: #33C4DC
+- Gold CTA: #E8991A
+- Headings: Playfair Display (or closest RN serif equivalent)
+- Body: Inter
+- Cards: white, 16px border-radius, rgba(96,108,185,0.15) border
+- Tier badge colors:
+    Dreaming: #9BA8C0 (muted)
+    Exploring: #606CB9 (primary blue)
+    Ready to Act: #33C4DC (teal)
+
+ONBOARDING FLOW (first launch only, gated by AsyncStorage 
+'hasSeenOnboarding'):
+
+--- SCREEN 1: IntroScreen ---
+- Headline: "Think You've Chosen the Right Country? Run This First."
+- Subtext: "Most relocation mistakes aren't about the country. 
+  They're about fit."
+- CTA button (primary #606CB9): "Run the 2-Minute Fit Check"
+- Small text below: "9 questions · Takes about 2 minutes"
+
+--- SCREEN 2–10: QuizScreen (one question per screen) ---
+Questions 1–8: Yes / Somewhat / No answer options (large tap targets, 
+  full-width cards)
+Question 9: four region options displayed as cards with flag emojis
+  A) 🇵🇹🇪🇸 Southern Europe (Portugal, Spain)
+  B) 🇬🇧🇮🇪 Northern Europe (UK, Ireland)
+  C) 🇲🇽🇨🇷 Latin America (Mexico, Costa Rica)
+  D) 🌏 Southeast Asia / Other
+- Progress bar at top (e.g. "Question 3 of 9")
+- Back chevron top-left to return to previous question
+- Horizontal slide animation between questions
+- No "Next" button — selecting an answer auto-advances
+
+SCORING (client-side, fully offline):
+Questions 1–3: raw score × 1.5 (Yes=3, Somewhat=1.5, No=0)
+Questions 4–8: raw score × 1 (Yes=2, Somewhat=1, No=0)
+Question 9: not scored, stored as regionPreference
+weightedMax = 21
+displayScore = Math.round((weightedRaw / 21) * 16)
+
+Tiers:
+0–5   → 'dreaming'
+6–10  → 'exploring'
+11–16 → 'ready'
+
+Risk flags: questions 1–8 where answer === 'no', collect category labels
+
+Top Match lookup table (score + regionPreference):
+dreaming  + southern_europe → Portugal
+dreaming  + northern_europe → Ireland
+dreaming  + latin_america   → Mexico
+dreaming  + other           → Chiang Mai, Thailand
+exploring + southern_europe → Spain
+exploring + northern_europe → UK
+exploring + latin_america   → Costa Rica
+exploring + other           → Bali, Indonesia
+ready     + southern_europe → Portugal (Algarve / Lisbon)
+ready     + northern_europe → UK
+ready     + latin_america   → Colombia (Medellín)
+ready     + other           → Vietnam (Da Nang)
+
+--- SCREEN 11: QuizResultScreen ---
+Display:
+- Tier badge with tier-appropriate color
+- Top Match country card (name + flag emoji + 1-line description)
+- Personalized gap line based on risk flag count:
+    0 gaps: "No critical gaps — your main job now is choosing and committing."
+    1 gap:  "Your main blocker is [gap]. Address this before committing."
+    2 gaps: "Focus on [gap1] and [gap2] — these are your highest-risk gaps."
+    3+ gaps: "You have several gaps to close. Start with [highest-weight gap]."
+- "Gaps to address:" list of category labels (if any)
+- Optional email field: "Save your results + get alerts when visa 
+  rules change" with skip link
+- Primary CTA (gold #E8991A): "Create Free Account to Save Results"
+  → navigates to CreateAccountScreen
+- Secondary CTA (teal #33C4DC): "Explore [Top Match Country]"
+  → sets hasSeenOnboarding: true, stores quizResult, navigates to 
+  country detail screen for top match country
+
+--- SCREEN 12: CreateAccountScreen ---
+- Full registration: email + password (min 8 chars, show/hide toggle)
+- "Sign up with Apple" button (required for App Store compliance)
+- On successful registration:
+    POST /api/auth/register { email, password }
+    POST /api/auth/quiz-lead { email, tier, topRegion, 
+      regionPreference, score, risks, source: 'ios_onboarding' }
+    Store JWT in SecureStore (not AsyncStorage)
+    Set AsyncStorage 'hasSeenOnboarding': true
+    Set AsyncStorage 'quizResult': { tier, topRegion, score, risks }
+    Navigate to country list (main app)
+- "Already have an account? Sign in" → LoginScreen
+- "Skip for now" text link → sets hasSeenOnboarding: true, 
+  stores quizResult, navigates to country list
+
+RETURNING USER / SKIP RECOVERY:
+- If hasSeenOnboarding === true: skip onboarding, go straight to 
+  country list on all future launches
+- If user skipped account creation: show a soft dismissible banner 
+  on country list home screen (max 3 times, tracked in AsyncStorage 
+  'skipBannerCount'):
+  "Your results are saved on this device. Create an account to access 
+  them anywhere." + "Create Account" link → CreateAccountScreen
+
+PROFILE TAB:
+- If logged in: show quiz result tier + top match + "Retake Quiz" option
+- If not logged in: show "Sign in or create account" + quiz result 
+  from AsyncStorage if available
+- "Retake Quiz" clears quizResult from AsyncStorage and launches 
+  IntroScreen as a modal (does not replace main nav stack)
+
+BACKEND ENDPOINT (add to shared backend if not exists):
+POST /api/auth/quiz-lead
+Body: { email, tier, topRegion, regionPreference, score, risks, source }
+- Upsert into quiz_leads table:
+  (id, email, tier, top_region, region_preference, score, 
+   risks JSONB, source, created_at)
+- If email matches existing user, tag account with quiz result
+- Return 200 always — never surface errors to user
+
+CONSTRAINTS:
+- Do not modify existing auth screens used by current logged-in users
+- Do not touch payment or subscription screens
+- All quiz scoring must work fully offline — no API calls during quiz
+- No third-party quiz or onboarding libraries
+- Follow existing RN project file/folder naming conventions
+- Country list screen is unchanged — it just no longer fires on 
+  first launch

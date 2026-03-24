@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Screen } from "@/components/Screen";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
+import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useContinue } from "@/src/contexts/ContinueContext";
 import { useLayout } from "@/src/hooks/useLayout";
 import { getCountries, getCountry, REGION_ORDER, sortCountriesAlpha, isLaunchCountry } from "@/src/data";
@@ -21,6 +22,7 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const { selectedCountrySlug, setSelectedCountrySlug, isLoaded } = useCountry();
   const { lastViewedCountrySlug, lastViewedSection, clearContinue } = useContinue();
+  const { shouldShowBanner, dismissBanner } = useOnboarding();
   const { isTablet } = useLayout();
 
   const continueCountry = useMemo(() => {
@@ -88,6 +90,24 @@ export default function HomeScreen() {
             />
           </Pressable>
         </View>
+
+        {shouldShowBanner && !user ? (
+          <View style={styles.skipBanner}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.skipBannerText}>
+                Your results are saved on this device. Create an account to access them anywhere.
+              </Text>
+            </View>
+            <View style={styles.skipBannerActions}>
+              <Pressable onPress={() => router.push("/auth?mode=register")} hitSlop={8}>
+                <Text style={styles.skipBannerLink}>Create Account</Text>
+              </Pressable>
+              <Pressable onPress={dismissBanner} hitSlop={8}>
+                <Ionicons name="close" size={18} color={tokens.color.subtext} />
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
 
         {!isLoaded ? (
           <View style={styles.loadingCard}>
@@ -561,5 +581,34 @@ const styles = {
     fontSize: 11,
     color: tokens.color.subtext,
     fontFamily: tokens.font.body,
+  },
+  skipBanner: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 14,
+    marginHorizontal: tokens.space.xl,
+    marginBottom: tokens.space.md,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "rgba(28,43,94,0.08)",
+  },
+  skipBannerText: {
+    fontSize: 14,
+    fontFamily: tokens.font.body,
+    color: tokens.color.text,
+    lineHeight: 20,
+  },
+  skipBannerActions: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 12,
+  },
+  skipBannerLink: {
+    fontSize: 14,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600" as const,
+    color: tokens.color.primary,
   },
 } as const;
