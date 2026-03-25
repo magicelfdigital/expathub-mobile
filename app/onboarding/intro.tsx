@@ -22,7 +22,7 @@ export default function IntroScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPad + 24 }]}>
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 140 + bottomPad }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 180 + bottomPad }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.logoWrap}>
