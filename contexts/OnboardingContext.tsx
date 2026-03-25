@@ -13,6 +13,7 @@ interface OnboardingContextValue {
   skippedAccount: boolean;
   skipBannerCount: number;
   completeOnboarding: (result: QuizResult, skippedAccount?: boolean) => Promise<void>;
+  skipOnboarding: () => Promise<void>;
   saveQuizResult: (result: QuizResult) => Promise<void>;
   dismissBanner: () => Promise<void>;
   clearForRetake: () => Promise<void>;
@@ -60,6 +61,11 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     setSkippedAccount(skipped);
   }, []);
 
+  const skipOnboarding = useCallback(async () => {
+    await AsyncStorage.setItem(ONBOARDING_KEY, "true");
+    setHasSeenOnboarding(true);
+  }, []);
+
   const saveQuizResult = useCallback(async (result: QuizResult) => {
     await AsyncStorage.setItem(QUIZ_RESULT_KEY, JSON.stringify(result));
     setQuizResult(result);
@@ -92,13 +98,14 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       skippedAccount,
       skipBannerCount,
       completeOnboarding,
+      skipOnboarding,
       saveQuizResult,
       dismissBanner,
       clearForRetake,
       markAccountCreated,
       shouldShowBanner,
     }),
-    [hasSeenOnboarding, quizResult, skippedAccount, skipBannerCount, completeOnboarding, saveQuizResult, dismissBanner, clearForRetake, markAccountCreated, shouldShowBanner]
+    [hasSeenOnboarding, quizResult, skippedAccount, skipBannerCount, completeOnboarding, skipOnboarding, saveQuizResult, dismissBanner, clearForRetake, markAccountCreated, shouldShowBanner]
   );
 
   return <OnboardingContext.Provider value={value}>{children}</OnboardingContext.Provider>;
