@@ -20,50 +20,49 @@ export default function IntroScreen() {
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   return (
-    <View style={[styles.container, { paddingTop: topPad + 24 }]}>
-      <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 180 + bottomPad }]}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.logoWrap}>
-          <Image
-            source={require("../../assets/brand/fulllogo_transparent_nobuffer.png")}
-            resizeMode="contain"
-            style={{ height: 56, width: 240 }}
-          />
-        </View>
+    <ScrollView
+      style={[styles.container, { paddingTop: topPad + 24 }]}
+      contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPad + 32 }]}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.logoWrap}>
+        <Image
+          source={require("../../assets/brand/fulllogo_transparent_nobuffer.png")}
+          resizeMode="contain"
+          style={{ height: 56, width: 240 }}
+        />
+      </View>
 
-        <Text style={styles.welcome}>Welcome to ExpatHub</Text>
-        <Text style={styles.tagline}>
-          Your guide to relocating abroad with confidence.
-        </Text>
+      <Text style={styles.welcome}>Welcome to ExpatHub</Text>
+      <Text style={styles.tagline}>
+        Your guide to relocating abroad with confidence.
+      </Text>
 
-        <View style={styles.featureList}>
-          {FEATURES.map((f, i) => (
-            <View key={i} style={styles.featureRow}>
-              <View style={styles.featureIcon}>
-                <Ionicons name={f.icon} size={22} color={tokens.color.primary} />
-              </View>
-              <Text style={styles.featureText}>{f.text}</Text>
+      <View style={styles.featureList}>
+        {FEATURES.map((f, i) => (
+          <View key={i} style={styles.featureRow}>
+            <View style={styles.featureIcon}>
+              <Ionicons name={f.icon} size={22} color={tokens.color.primary} />
             </View>
-          ))}
-        </View>
-
-        <View style={styles.divider} />
-
-        <View style={styles.quizSection}>
-          <View style={styles.quizIconCircle}>
-            <Ionicons name="compass" size={28} color={tokens.color.gold} />
+            <Text style={styles.featureText}>{f.text}</Text>
           </View>
-          <Text style={styles.quizHeadline}>Find your best-fit country</Text>
-          <Text style={styles.quizSubtext}>
-            Take a quick readiness check to see where you stand and which country matches your situation.
-          </Text>
-          <Text style={styles.quizMeta}>9 questions - about 2 minutes</Text>
-        </View>
-      </ScrollView>
+        ))}
+      </View>
 
-      <View style={[styles.ctaBar, { paddingBottom: bottomPad + 16 }]}>
+      <View style={styles.divider} />
+
+      <View style={styles.quizSection}>
+        <View style={styles.quizIconCircle}>
+          <Ionicons name="compass" size={28} color={tokens.color.gold} />
+        </View>
+        <Text style={styles.quizHeadline}>Find your best-fit country</Text>
+        <Text style={styles.quizSubtext}>
+          Take a quick readiness check to see where you stand and which country matches your situation.
+        </Text>
+        <Text style={styles.quizMeta}>9 questions - about 2 minutes</Text>
+      </View>
+
+      <View style={styles.ctaSection}>
         <Pressable
           onPress={() => router.push("/onboarding/quiz")}
           style={({ pressed }) => [styles.cta, pressed && { opacity: 0.9 }]}
@@ -81,7 +80,7 @@ export default function IntroScreen() {
           <Text style={styles.skipText}>Skip and explore on my own</Text>
         </Pressable>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -148,6 +147,7 @@ const styles = StyleSheet.create({
   },
   quizSection: {
     alignItems: "center",
+    marginBottom: 32,
   },
   quizIconCircle: {
     width: 56,
@@ -180,16 +180,7 @@ const styles = StyleSheet.create({
     fontFamily: tokens.font.body,
     color: tokens.color.subtext,
   },
-  ctaBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: tokens.color.bg,
-    paddingHorizontal: tokens.space.xl,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(28,43,94,0.08)",
+  ctaSection: {
     gap: 12,
     alignItems: "center",
   },
