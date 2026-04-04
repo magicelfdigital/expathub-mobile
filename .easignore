@@ -1,0 +1,54 @@
+# Dependencies (EAS installs these during build)
+node_modules/
+
+# Expo cache
+.expo/
+
+# Build outputs
+dist/
+web-build/
+
+# Replit-specific
+.local/
+.cache/
+.config/
+.upm/
+replit.nix
+.replit
+replit.md
+.replit.workflows
+
+# Generated/attached assets not needed for build
+attached_assets/
+
+# Git
+.git/
+
+# Debug logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.tsbuildinfo
+
+# macOS
+.DS_Store
+
+# Environment files
+.env
+.env*.local
+
+# Native folders (managed by EAS)
+ios/
+android/
+
+# Certificates and keys
+*.jks
+*.p8
+*.p12
+*.key
+*.pem
+*.mobileprovision
+*.orig.*
+
+# Temporary files
+/tmp/
