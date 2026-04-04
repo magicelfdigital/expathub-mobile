@@ -16,7 +16,7 @@ Preferred communication style: Simple, everyday language.
 - **Navigation**: Tab-based layout (Home, Explore, Shortlist, Community) with stack navigators for detail screens. Subscription flow is a modal.
 - **Authentication**: JWT-based via `AuthContext`, token storage using `expo-secure-store` or `AsyncStorage`. Web authentication is proxied through an Express backend.
 - **Key Features**:
-    - **Subscription/Freemium Model**: 3-tier system (30-Day Decision Pass, Country Lifetime Unlock, Monthly Subscription) integrated with RevenueCat for mobile and Stripe Checkout for web. Entitlements are backend-authoritative.
+    - **Subscription/Freemium Model**: 4-tier system (30-Day Decision Pass at $29, Country Lifetime Unlock at $69, Monthly Explorer at $14.99/mo, Annual Pathfinder at $89/yr) integrated with RevenueCat for mobile and Stripe Checkout for web. RevenueCat product IDs: `expathub_explorer` (monthly), `expathub_pathfinder` (annual). Entitlements are backend-authoritative.
     - **Continue / Last Viewed**: Persists user's last viewed country, section, and resource for quick access.
     - **Saved Resources**: Allows users to bookmark resources per country.
     - **Paywall Segmented Navigation**: ProPaywall component with "What you get", "Plans", and "FAQ" tabs, plus a sticky CTA.

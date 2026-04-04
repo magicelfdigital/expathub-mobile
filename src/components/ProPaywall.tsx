@@ -27,10 +27,12 @@ import { createCheckoutSession, createCustomerPortalSession } from "@/src/subscr
 import {
   DECISION_PASS_PRICE,
   MONTHLY_PRICE,
+  ANNUAL_PRICE,
   COUNTRY_LIFETIME_PRICE,
   COUNTRY_LIFETIME_PRICES,
   RC_DECISION_PASS_PRODUCT,
   RC_MONTHLY_PRODUCT,
+  RC_ANNUAL_PRODUCT,
   getCountryLifetimeProductId,
   SANDBOX_ENABLED,
   TERMS_URL,
@@ -67,7 +69,7 @@ const FAQ_ITEMS: { question: string; answer: string }[] = [
   },
   {
     question: "Can I access multiple countries?",
-    answer: "The 30-Day Decision Pass gives you access to all 8 countries. You can also unlock individual countries permanently, or subscribe monthly for ongoing access.",
+    answer: "The 30-Day Decision Pass gives you access to all 11 countries. You can also unlock individual countries permanently, subscribe monthly, or save over 50% with an annual Pathfinder plan.",
   },
   {
     question: "How do I cancel a subscription?",
@@ -206,6 +208,7 @@ export function ProPaywall({
             pending.type === "decision_pass" ? RC_DECISION_PASS_PRODUCT
             : pending.type === "country_lifetime" && pending.countrySlug ? getCountryLifetimeProductId(pending.countrySlug)
             : pending.type === "monthly" ? RC_MONTHLY_PRODUCT
+            : pending.type === "annual" ? RC_ANNUAL_PRODUCT
             : null;
 
           if (!productId) return;
@@ -435,6 +438,38 @@ export function ProPaywall({
     await handleMobilePurchase(RC_MONTHLY_PRODUCT, "monthly_subscription");
   }
 
+  async function handleAnnualSubscribe() {
+    if (!user) {
+      console.log("[PURCHASE] Annual tapped but user not logged in — redirecting to auth");
+      await storePendingPurchase("annual", resolvedCountrySlug);
+      router.push("/auth?mode=register");
+      return;
+    }
+    trackEvent("product_selected", { productId: RC_ANNUAL_PRODUCT, price: ANNUAL_PRICE, type: "annual_subscription" });
+    trackEvent("purchase_tapped", { type: "annual_subscription", platform: Platform.OS });
+    if (Platform.OS === "web") {
+      setBusy(true);
+      setError(null);
+      try {
+        if (__DEV__) {
+          console.log("[PURCHASE] DEV MODE: Simulating annual subscription on web");
+          trackEvent("purchase_success", { type: "annual_subscription", platform: "web", status: "dev_simulated" });
+          await refresh();
+          if (onClose) onClose();
+          else router.back();
+          return;
+        }
+        setError("Annual subscriptions are available on the mobile app. Open ExpatHub on your phone to purchase.");
+      } catch (e: any) {
+        setError(e?.message ?? "Unknown error");
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    await handleMobilePurchase(RC_ANNUAL_PRODUCT, "annual_subscription");
+  }
+
   async function handleRestore() {
     if (!user) {
       setError("Please sign in first to restore purchases.");
@@ -598,7 +633,7 @@ export function ProPaywall({
                 {accessType === "decision_pass"
                   ? `Decision Pass — ${decisionPassDaysLeft ?? 0} days left`
                   : accessType === "subscription"
-                    ? "Monthly subscription — all countries"
+                    ? "Active subscription — all countries"
                     : accessType === "country_lifetime"
                       ? `${countryName ?? "Country"} — lifetime access`
                       : accessType === "sandbox"
@@ -735,12 +770,12 @@ export function ProPaywall({
                       <Text style={s.priceUnit}>one-time</Text>
                     </View>
                     <Text style={s.pricingDesc}>
-                      Full access to all 8 countries for 30 days. Ideal if you're actively comparing destinations.
+                      Full access to all 11 countries for 30 days. Ideal if you're actively comparing destinations.
                     </Text>
                     <View style={s.pricingBullets}>
                       <View style={s.pricingBulletRow}>
                         <Ionicons name="checkmark-circle" size={16} color={tokens.color.primary} />
-                        <Text style={s.pricingBulletText}>All 8 Decision Briefs</Text>
+                        <Text style={s.pricingBulletText}>All 11 Decision Briefs</Text>
                       </View>
                       <View style={s.pricingBulletRow}>
                         <Ionicons name="checkmark-circle" size={16} color={tokens.color.primary} />
@@ -778,10 +813,34 @@ export function ProPaywall({
                     </Pressable>
                   ) : null}
 
+                  {Platform.OS !== "web" ? (
+                  <View style={[s.monthlyCard, { borderColor: tokens.color.gold, borderWidth: 2 }]}>
+                    <View style={s.bestValueBadge}>
+                      <Text style={s.bestValueText}>BEST VALUE</Text>
+                    </View>
+                    <View style={s.monthlyHeader}>
+                      <Ionicons name="star" size={18} color={tokens.color.gold} />
+                      <Text style={s.monthlyTitle}>Annual Pathfinder</Text>
+                    </View>
+                    <Text style={s.monthlyMeta}>{ANNUAL_PRICE}/year · Save over 50% vs monthly</Text>
+                    <Pressable
+                      onPress={handleAnnualSubscribe}
+                      disabled={busy}
+                      style={({ pressed }) => [s.primaryCta, pressed && s.ctaPressed]}
+                    >
+                      {busy ? (
+                        <ActivityIndicator size="small" color={tokens.color.white} />
+                      ) : (
+                        <Text style={s.primaryCtaText}>Subscribe Annually — {ANNUAL_PRICE}/yr</Text>
+                      )}
+                    </Pressable>
+                  </View>
+                  ) : null}
+
                   <View style={s.monthlyCard}>
                     <View style={s.monthlyHeader}>
                       <Ionicons name="calendar-outline" size={18} color={tokens.color.primary} />
-                      <Text style={s.monthlyTitle}>Monthly Subscription</Text>
+                      <Text style={s.monthlyTitle}>Monthly Explorer</Text>
                     </View>
                     <Text style={s.monthlyMeta}>{MONTHLY_PRICE}/month · auto-renewing</Text>
                     <Pressable
@@ -896,8 +955,8 @@ export function ProPaywall({
           {Platform.OS === "web"
             ? "Payment managed via Stripe. Cancel anytime from the customer portal."
             : Platform.OS === "ios"
-              ? "Payment will be charged to your Apple ID account. Monthly subscription ($14.99/month) automatically renews unless cancelled at least 24 hours before the end of the current period. You can manage and cancel subscriptions in your App Store account settings. The 30-Day Decision Pass and country unlocks are one-time, non-recurring purchases."
-              : "Monthly subscription ($14.99/month) automatically renews. Cancel anytime in Google Play Store settings. The 30-Day Decision Pass and country unlocks are one-time, non-recurring purchases."}
+              ? "Payment will be charged to your Apple ID account. Monthly ($14.99/month) and annual ($89/year) subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period. You can manage and cancel subscriptions in your App Store account settings. The 30-Day Decision Pass and country unlocks are one-time, non-recurring purchases."
+              : "Monthly ($14.99/month) and annual ($89/year) subscriptions automatically renew. Cancel anytime in Google Play Store settings. The 30-Day Decision Pass and country unlocks are one-time, non-recurring purchases."}
         </Text>
 
         <View style={s.legalFooter}>
@@ -1361,6 +1420,24 @@ const s = {
     padding: 16,
     gap: 8,
     backgroundColor: tokens.color.surface,
+    position: "relative" as const,
+    overflow: "hidden" as const,
+  },
+  bestValueBadge: {
+    position: "absolute" as const,
+    top: 0,
+    right: 0,
+    backgroundColor: tokens.color.gold,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderBottomLeftRadius: 8,
+  },
+  bestValueText: {
+    fontSize: 9,
+    fontWeight: "800" as const,
+    fontFamily: tokens.font.bodyBold,
+    color: "#fff",
+    letterSpacing: 0.8,
   },
   monthlyHeader: {
     flexDirection: "row" as const,

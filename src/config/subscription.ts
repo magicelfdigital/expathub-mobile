@@ -10,9 +10,10 @@ export const RC_DECISION_PASS_PRODUCT =
   Platform.OS === "ios" ? "30_day_pass" : "decision_pass_30d";
 export const RC_MONTHLY_PRODUCT =
   process.env.EXPO_PUBLIC_RC_MONTHLY_PRODUCT ??
-  (Platform.OS === "ios" ? "monthly_subscription_all_access" : "expathub_pro_monthly:monthly");
+  (Platform.OS === "ios" ? "expathub_explorer" : "expathub_explorer:monthly");
 export const RC_ANNUAL_PRODUCT =
-  process.env.EXPO_PUBLIC_RC_ANNUAL_PRODUCT ?? "yearly";
+  process.env.EXPO_PUBLIC_RC_ANNUAL_PRODUCT ??
+  (Platform.OS === "ios" ? "expathub_pathfinder" : "expathub_pathfinder:annual");
 
 export const STRIPE_MONTHLY_PRICE_ID =
   process.env.EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID ?? "";
@@ -33,6 +34,7 @@ export const DECISION_PASS_DURATION_DAYS = 30;
 
 export const DECISION_PASS_PRICE = "$29";
 export const MONTHLY_PRICE = "$14.99";
+export const ANNUAL_PRICE = "$89";
 export const COUNTRY_LIFETIME_PRICE = "$69";
 
 export const LAUNCH_COUNTRIES = [
