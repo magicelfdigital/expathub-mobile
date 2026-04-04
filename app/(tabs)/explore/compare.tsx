@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Dimensions, FlatList, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -18,6 +19,7 @@ const COMPARE_PRESETS = [
 ];
 
 export default function CompareScreen() {
+  const { slugs: slugsParam } = useLocalSearchParams<{ slugs?: string }>();
   const compareStartedRef = useRef(false);
 
   useEffect(() => {
@@ -27,7 +29,15 @@ export default function CompareScreen() {
     }
   }, []);
 
-  const [compareSlugs, setCompareSlugs] = useState<string[]>(["portugal", "spain"]);
+  const initialSlugs = useMemo(() => {
+    if (slugsParam) {
+      const parsed = slugsParam.split(",").filter((s) => s.trim().length > 0);
+      if (parsed.length >= 2) return parsed.slice(0, 3);
+    }
+    return ["portugal", "spain"];
+  }, [slugsParam]);
+
+  const [compareSlugs, setCompareSlugs] = useState<string[]>(initialSlugs);
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const allCountries = useMemo(() => getCountries(), []);

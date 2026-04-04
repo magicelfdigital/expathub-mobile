@@ -14,6 +14,7 @@ import { OnboardingProvider, useOnboarding } from "@/contexts/OnboardingContext"
 import { PlanProvider } from "@/src/contexts/PlanContext";
 import { SavedProvider } from "@/src/contexts/SavedContext";
 import { ContinueProvider } from "@/src/contexts/ContinueContext";
+import { BookmarkProvider } from "@/contexts/BookmarkContext";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
 import { Lora_600SemiBold } from "@expo-google-fonts/lora";
@@ -100,13 +101,15 @@ export default function RootLayout() {
               <OnboardingProvider>
                 <CountryProvider>
                   <SubscriptionProvider>
-                    <PlanProvider>
-                      <ContinueProvider>
-                        <SavedProvider>
-                          <RootLayoutNav />
-                        </SavedProvider>
-                      </ContinueProvider>
-                    </PlanProvider>
+                    <BookmarkProvider>
+                      <PlanProvider>
+                        <ContinueProvider>
+                          <SavedProvider>
+                            <RootLayoutNav />
+                          </SavedProvider>
+                        </ContinueProvider>
+                      </PlanProvider>
+                    </BookmarkProvider>
                   </SubscriptionProvider>
                 </CountryProvider>
               </OnboardingProvider>

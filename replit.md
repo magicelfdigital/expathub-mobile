@@ -13,7 +13,7 @@ Preferred communication style: Simple, everyday language.
 - **Routing**: `expo-router` for file-based routing and typed routes.
 - **State Management**: React Context for global state and React Query for server-side data.
 - **UI Design**: Custom component library with a design token system, specific color palette (blue, teal, gold, navy, cream, surface), and fonts (Lora 600 for headlines, DM Sans for UI text). Consistent styling with rounded corners for cards and active tab pills.
-- **Navigation**: Tab-based layout (Home, Explore, Community) with stack navigators for detail screens. Subscription flow is a modal.
+- **Navigation**: Tab-based layout (Home, Explore, Shortlist, Community) with stack navigators for detail screens. Subscription flow is a modal.
 - **Authentication**: JWT-based via `AuthContext`, token storage using `expo-secure-store` or `AsyncStorage`. Web authentication is proxied through an Express backend.
 - **Key Features**:
     - **Subscription/Freemium Model**: 3-tier system (30-Day Decision Pass, Country Lifetime Unlock, Monthly Subscription) integrated with RevenueCat for mobile and Stripe Checkout for web. Entitlements are backend-authoritative.
@@ -25,6 +25,10 @@ Preferred communication style: Simple, everyday language.
     - **Expanding Soon / Waitlist**: Section for upcoming countries with a waitlist feature integrated with the backend.
     - **Source Badge Classification**: Resources are categorized as official, authoritative, or community.
     - **Planner Layer**: A 6-step semi-linear relocation planning system for paid users, with country-specific checklists and pet requirements. It allows users to manage one active plan at a time.
+    - **Country Bookmarks & Shortlist**: Users can bookmark countries from any card. Shortlist tab shows bookmarked countries with compare selection and move notes. Free users limited to 1 bookmark. Context: `contexts/BookmarkContext.tsx`, component: `src/components/BookmarkButton.tsx`, screen: `app/(tabs)/shortlist/index.tsx`.
+    - **Move Notes**: Per-country freeform notes on the shortlist screen, auto-saved on blur. Pro-only feature. Data stored in `move_notes` table.
+    - **Enhanced Compare Matrix**: 14 comparison rows including LGBTQ+ friendliness, healthcare quality, climate, tax treatment. Free users see 4 free rows, rest gated behind paywall.
+    - **Cancellation Modal**: Intercepts "Manage Subscription" on account screen for paid users, showing bookmark/note counts before proceeding to native subscription management. Component: `src/components/CancellationModal.tsx`.
     - **Tablet Support**: Responsive design using a `useLayout` hook to adapt screen layouts for tablets with 2-column grids.
 
 ### Backend

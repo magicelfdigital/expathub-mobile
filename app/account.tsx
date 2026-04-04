@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useOnboarding } from "@/contexts/OnboardingContext";
+import { CancellationModal } from "@/src/components/CancellationModal";
 import { getBackendBase } from "@/src/billing/backendClient";
 import { getApiUrl } from "@/lib/query-client";
 import { COUNTRIES } from "@/data/countries";
@@ -45,6 +46,7 @@ export default function AccountScreen() {
   const [deletedSuccess, setDeletedSuccess] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const { width: screenWidth } = useWindowDimensions();
   const isLargeScreen = screenWidth >= 768;
   const WEB_TOP = Platform.OS === "web" ? 67 : 0;
@@ -95,6 +97,15 @@ export default function AccountScreen() {
   };
 
   const handleManageSubscription = () => {
+    if (hasPaidAccess) {
+      setShowCancelModal(true);
+      return;
+    }
+    openSubscriptionManagement();
+  };
+
+  const openSubscriptionManagement = () => {
+    setShowCancelModal(false);
     if (Platform.OS === "ios") {
       Linking.openURL("https://apps.apple.com/account/subscriptions");
     } else if (Platform.OS === "android") {
@@ -446,6 +457,12 @@ export default function AccountScreen() {
       <Pressable onPress={handleVersionTap} style={s.versionLabel}>
         <Text style={s.versionText}>ExpatHub v1.0.0</Text>
       </Pressable>
+
+      <CancellationModal
+        visible={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onProceed={openSubscriptionManagement}
+      />
     </ScrollView>
   );
 }

@@ -172,7 +172,7 @@ export function CompareMatrix({
           <View style={s.proFooter}>
             <Ionicons name="lock-closed" size={14} color={tokens.color.primary} />
             <Text style={s.proFooterText}>
-              Unlock 5 more factors with ExpatHub {PAID_TIER_DISPLAY_NAME}
+              Unlock {rows.filter((r) => r.proOnly).length} more factors with ExpatHub {PAID_TIER_DISPLAY_NAME}
             </Text>
           </View>
         )}

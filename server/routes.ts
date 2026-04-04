@@ -6,6 +6,28 @@ import pg from "pg";
 const AUTH_API_URL = "https://www.expathub.website";
 const PASSWORD_API_URL = "https://www.expathub.website";
 
+async function getUserIdFromToken(req: Request): Promise<string | null> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return null;
+  try {
+    const upstream = await fetch(`${AUTH_API_URL}/api/auth/me`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json", Authorization: authHeader },
+    });
+    if (!upstream.ok) return null;
+    const data = await upstream.json() as { user?: { id?: string | number } };
+    return data?.user?.id?.toString() ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function getPool(): pg.Pool | null {
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl) return null;
+  return new pg.Pool({ connectionString: dbUrl });
+}
+
 function getStripe(): Stripe | null {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) return null;
@@ -409,6 +431,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (pool) await pool.end();
     }
     res.status(200).json({ ok: true });
+  });
+
+  // ── Bookmarks CRUD ──
+
+  app.get("/api/bookmarks", async (req: Request, res: Response) => {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const pool = getPool();
+    if (!pool) { res.json([]); return; }
+    try {
+      const result = await pool.query(
+        "SELECT id, country_slug, created_at FROM bookmarks WHERE user_id = $1 ORDER BY created_at DESC",
+        [userId]
+      );
+      res.json(result.rows.map((r: any) => ({ id: r.id, countrySlug: r.country_slug, createdAt: r.created_at })));
+    } catch (err: any) {
+      console.error("Bookmarks fetch error:", err);
+      res.status(500).json({ error: "Failed to fetch bookmarks" });
+    } finally {
+      await pool.end();
+    }
+  });
+
+  app.post("/api/bookmarks", async (req: Request, res: Response) => {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const { countrySlug } = req.body as { countrySlug?: string };
+    if (!countrySlug) { res.status(400).json({ error: "countrySlug is required" }); return; }
+    const pool = getPool();
+    if (!pool) { res.status(503).json({ error: "Database not configured" }); return; }
+    try {
+      const existing = await pool.query(
+        "SELECT id FROM bookmarks WHERE user_id = $1 AND country_slug = $2",
+        [userId, countrySlug]
+      );
+      if (existing.rows.length > 0) {
+        res.json({ ok: true, id: existing.rows[0].id });
+        return;
+      }
+      const result = await pool.query(
+        "INSERT INTO bookmarks (user_id, country_slug) VALUES ($1, $2) RETURNING id",
+        [userId, countrySlug]
+      );
+      res.json({ ok: true, id: result.rows[0].id });
+    } catch (err: any) {
+      console.error("Bookmark insert error:", err);
+      res.status(500).json({ error: "Failed to save bookmark" });
+    } finally {
+      await pool.end();
+    }
+  });
+
+  app.delete("/api/bookmarks/:countrySlug", async (req: Request, res: Response) => {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const { countrySlug } = req.params;
+    const pool = getPool();
+    if (!pool) { res.status(503).json({ error: "Database not configured" }); return; }
+    try {
+      await pool.query(
+        "DELETE FROM bookmarks WHERE user_id = $1 AND country_slug = $2",
+        [userId, countrySlug]
+      );
+      await pool.query(
+        "DELETE FROM move_notes WHERE user_id = $1 AND country_slug = $2",
+        [userId, countrySlug]
+      );
+      res.json({ ok: true });
+    } catch (err: any) {
+      console.error("Bookmark delete error:", err);
+      res.status(500).json({ error: "Failed to remove bookmark" });
+    } finally {
+      await pool.end();
+    }
+  });
+
+  // ── Move Notes CRUD ──
+
+  app.get("/api/notes", async (req: Request, res: Response) => {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const pool = getPool();
+    if (!pool) { res.json([]); return; }
+    try {
+      const result = await pool.query(
+        "SELECT id, country_slug, content, updated_at FROM move_notes WHERE user_id = $1 ORDER BY updated_at DESC",
+        [userId]
+      );
+      res.json(result.rows.map((r: any) => ({ id: r.id, countrySlug: r.country_slug, content: r.content, updatedAt: r.updated_at })));
+    } catch (err: any) {
+      console.error("Notes fetch error:", err);
+      res.status(500).json({ error: "Failed to fetch notes" });
+    } finally {
+      await pool.end();
+    }
+  });
+
+  app.put("/api/notes/:countrySlug", async (req: Request, res: Response) => {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const { countrySlug } = req.params;
+    const { content } = req.body as { content?: string };
+    if (typeof content !== "string") { res.status(400).json({ error: "content is required" }); return; }
+    const pool = getPool();
+    if (!pool) { res.status(503).json({ error: "Database not configured" }); return; }
+    try {
+      await pool.query(
+        `INSERT INTO move_notes (user_id, country_slug, content, updated_at)
+         VALUES ($1, $2, $3, NOW())
+         ON CONFLICT (user_id, country_slug) DO UPDATE SET content = $3, updated_at = NOW()`,
+        [userId, countrySlug, content]
+      );
+      res.json({ ok: true });
+    } catch (err: any) {
+      console.error("Note save error:", err);
+      res.status(500).json({ error: "Failed to save note" });
+    } finally {
+      await pool.end();
+    }
+  });
+
+  // ── Saved-state summary (for cancellation modal) ──
+
+  app.get("/api/saved-summary", async (req: Request, res: Response) => {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const pool = getPool();
+    if (!pool) { res.json({ bookmarkCount: 0, notesCount: 0 }); return; }
+    try {
+      const bm = await pool.query("SELECT COUNT(*) as count FROM bookmarks WHERE user_id = $1", [userId]);
+      const notes = await pool.query("SELECT COUNT(*) as count FROM move_notes WHERE user_id = $1 AND content != ''", [userId]);
+      res.json({
+        bookmarkCount: parseInt(bm.rows[0].count, 10),
+        notesCount: parseInt(notes.rows[0].count, 10),
+      });
+    } catch (err: any) {
+      console.error("Saved summary error:", err);
+      res.json({ bookmarkCount: 0, notesCount: 0 });
+    } finally {
+      await pool.end();
+    }
   });
 
   const httpServer = createServer(app);

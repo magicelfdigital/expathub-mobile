@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 import { Screen } from "@/components/Screen";
+import { BookmarkButton } from "@/src/components/BookmarkButton";
 import { useCountry } from "@/contexts/CountryContext";
 import { useLayout } from "@/src/hooks/useLayout";
 import { getCountries, REGION_ORDER, sortCountriesAlpha, isLaunchCountry } from "@/src/data";
@@ -96,6 +97,7 @@ export default function CountryIndexScreen() {
                       <View style={{ flex: 1 }}>
                         <Text style={styles.rowTitle}>{c.name}</Text>
                       </View>
+                      <BookmarkButton countrySlug={c.slug} size={18} />
                       {isSelected ? (
                         <Ionicons name="checkmark-circle" size={20} color={tokens.color.primary} />
                       ) : (

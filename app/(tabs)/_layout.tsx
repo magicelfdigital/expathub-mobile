@@ -100,6 +100,17 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="shortlist"
+        options={{
+          headerShown: false,
+          title: "Shortlist",
+          tabBarLabel: "Shortlist",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="bookmark" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="community/index"
         options={{
           title: "Community",

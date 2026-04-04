@@ -5,6 +5,7 @@ import { Image, Linking, Platform, Pressable, ScrollView, Text, View } from "rea
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Screen } from "@/components/Screen";
+import { BookmarkButton } from "@/src/components/BookmarkButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
 import { useOnboarding } from "@/contexts/OnboardingContext";
@@ -207,6 +208,7 @@ export default function HomeScreen() {
                           <View style={{ flex: 1 }}>
                             <Text style={styles.rowTitle}>{c.name}</Text>
                           </View>
+                          <BookmarkButton countrySlug={c.slug} size={18} />
                           <Ionicons name="chevron-forward" size={16} color={tokens.color.primary} />
                         </Pressable>
                       ) : (

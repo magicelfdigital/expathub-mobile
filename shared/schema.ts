@@ -64,3 +64,18 @@ export const quizLeads = pgTable("quiz_leads", {
   source: varchar("source", { length: 100 }),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const bookmarks = pgTable("bookmarks", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  countrySlug: varchar("country_slug", { length: 100 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const moveNotes = pgTable("move_notes", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  countrySlug: varchar("country_slug", { length: 100 }).notNull(),
+  content: text("content").default(""),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
