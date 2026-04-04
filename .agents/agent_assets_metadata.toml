@@ -1,5 +1,10 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "hgaGr4PhpNw_f5DRtjRmk"
+uri = "file://attached_assets/generated_images/expathub_7day_promo_1024x1024.png"
+type = "image"
+title = "ExpatHub 7-day promo offer"
 
 [[outputs]]
 id = "vOqROD-5TunXCcizWVFFF"
@@ -48,3 +53,9 @@ id = "wkDKylYPxF5oI2OnEzsnj"
 uri = "file://attached_assets/resized/8_1775090461817.png"
 type = "image"
 title = "8 - Onboarding (1284x2778)"
+
+[[outputs]]
+id = "q10WgjMO5M0cluQMV9kwe"
+uri = "file://attached_assets/generated_images/expathub_7day_promo_1024x1024.png"
+type = "image"
+title = "ExpatHub 7-Day Promo Offer (1024x1024)"
