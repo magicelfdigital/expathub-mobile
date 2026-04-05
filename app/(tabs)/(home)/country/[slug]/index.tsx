@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
+import { BookmarkButton } from "@/src/components/BookmarkButton";
 import { Screen } from "@/components/Screen";
 import { useCountry } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -122,7 +123,10 @@ export default function CountryDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>{countryName}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={[styles.title, { flex: 1 }]}>{countryName}</Text>
+            <BookmarkButton countrySlug={countrySlug} size={24} />
+          </View>
           <Text style={styles.subtitle}>
             {isLaunch
               ? "Explore residency pathways, resources, and community."
