@@ -21,25 +21,13 @@ export function BookmarkButton({ countrySlug, size = 22 }: Props) {
   const [busy, setBusy] = useState(false);
   const active = isBookmarked(countrySlug);
 
+  const canBookmark = hasActiveSubscription || active || bookmarkCount < 1;
+
+  if (user && !canBookmark) return null;
+
   const handlePress = useCallback(async () => {
     if (!user) {
       router.push("/auth?mode=register" as any);
-      return;
-    }
-
-    if (!active && !hasActiveSubscription && bookmarkCount >= 1) {
-      if (Platform.OS === "web") {
-        window.alert("Upgrade to save more countries to your shortlist.");
-      } else {
-        Alert.alert(
-          "Upgrade Required",
-          "Free accounts can save 1 country. Upgrade to save more.",
-          [
-            { text: "Not Now", style: "cancel" },
-            { text: "View Plans", onPress: () => router.push("/subscribe" as any) },
-          ]
-        );
-      }
       return;
     }
 
