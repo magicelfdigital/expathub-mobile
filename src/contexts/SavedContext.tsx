@@ -16,7 +16,12 @@ const SavedContext = createContext<SavedContextValue | undefined>(undefined);
 
 export function SavedProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<SavedState>({});
-  const [isLoaded, setIsLoaded] = useState(false);
+  const loadedRef = useRef(false);
+  const stateRef = useRef<SavedState>(state);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
     let mounted = true;
@@ -24,35 +29,39 @@ export function SavedProvider({ children }: { children: React.ReactNode }) {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw && mounted) {
-          setState(JSON.parse(raw) as SavedState);
+          const parsed = JSON.parse(raw) as SavedState;
+          setState(parsed);
+          stateRef.current = parsed;
         }
       } catch (e) {
         console.warn("[SavedContext] Failed to load state:", e);
       }
-      if (mounted) setIsLoaded(true);
+      if (mounted) loadedRef.current = true;
     })();
     return () => { mounted = false; };
   }, []);
 
-  useEffect(() => {
-    if (!isLoaded) return;
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state)).catch((e) =>
+  const persist = useCallback((next: SavedState) => {
+    if (!loadedRef.current) return;
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch((e) =>
       console.warn("[SavedContext] Failed to persist state:", e)
     );
-  }, [state, isLoaded]);
+  }, []);
 
   const toggleSavedResource = useCallback((countrySlug: string, resourceId: string) => {
     setState((prev) => {
       const list = prev[countrySlug] ?? [];
       const exists = list.includes(resourceId);
-      return {
+      const next = {
         ...prev,
         [countrySlug]: exists
           ? list.filter((id) => id !== resourceId)
           : [...list, resourceId],
       };
+      persist(next);
+      return next;
     });
-  }, []);
+  }, [persist]);
 
   const isSaved = useCallback((countrySlug: string, resourceId: string): boolean => {
     return (state[countrySlug] ?? []).includes(resourceId);
@@ -66,12 +75,14 @@ export function SavedProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => {
       const list = prev[countrySlug] ?? [];
       if (!list.includes(resourceId)) return prev;
-      return {
+      const next = {
         ...prev,
         [countrySlug]: list.filter((id) => id !== resourceId),
       };
+      persist(next);
+      return next;
     });
-  }, []);
+  }, [persist]);
 
   const value = useMemo<SavedContextValue>(
     () => ({ toggleSavedResource, isSaved, getSavedResources, removeSavedResource }),
