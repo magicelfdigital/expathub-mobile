@@ -98,7 +98,13 @@ async function _initRevenueCat(): Promise<boolean> {
     }
 
     return true;
-  } catch (e) {
+  } catch (e: any) {
+    const msg = e?.message ?? String(e);
+    if (msg.includes("Invalid API key") && msg.includes("Expo Go")) {
+      rcLog("Running in Expo Go without Test Store key — RevenueCat purchase UI disabled, backend remains authority for entitlements");
+      initialized = false;
+      return false;
+    }
     rcLog(`RevenueCat init failed: ${e}`);
     return false;
   }
