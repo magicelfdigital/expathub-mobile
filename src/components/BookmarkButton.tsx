@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { Alert, Platform, Pressable } from "react-native";
+import { Alert, Platform, Pressable, View } from "react-native";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useBookmarks } from "@/contexts/BookmarkContext";
@@ -42,18 +42,23 @@ export function BookmarkButton({ countrySlug, size = 22 }: Props) {
   }, [user, active, hasActiveSubscription, bookmarkCount, countrySlug, toggleBookmark, router]);
 
   return (
-    <Pressable
-      onPress={handlePress}
-      hitSlop={10}
-      disabled={busy}
-      style={({ pressed }) => [{ opacity: pressed || busy ? 0.5 : 1 }]}
-      testID={`bookmark-${countrySlug}`}
-    >
-      <Ionicons
-        name={active ? "bookmark" : "bookmark-outline"}
-        size={size}
-        color={active ? tokens.color.gold : tokens.color.subtext}
-      />
-    </Pressable>
+    <View onStartShouldSetResponder={() => true}>
+      <Pressable
+        onPress={(e) => {
+          e.stopPropagation();
+          handlePress();
+        }}
+        hitSlop={10}
+        disabled={busy}
+        style={({ pressed }) => [{ opacity: pressed || busy ? 0.5 : 1, padding: 4 }]}
+        testID={`bookmark-${countrySlug}`}
+      >
+        <Ionicons
+          name={active ? "bookmark" : "bookmark-outline"}
+          size={size}
+          color={active ? tokens.color.gold : tokens.color.subtext}
+        />
+      </Pressable>
+    </View>
   );
 }
