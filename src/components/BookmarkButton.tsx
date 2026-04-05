@@ -34,7 +34,8 @@ export function BookmarkButton({ countrySlug, size = 22 }: Props) {
     setBusy(true);
     try {
       await toggleBookmark(countrySlug);
-    } catch {
+    } catch (e: any) {
+      console.warn("[Bookmark] toggle failed:", e?.message ?? e);
     } finally {
       setBusy(false);
     }
