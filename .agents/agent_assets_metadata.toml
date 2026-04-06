@@ -59,3 +59,9 @@ id = "q10WgjMO5M0cluQMV9kwe"
 uri = "file://attached_assets/generated_images/expathub_7day_promo_1024x1024.png"
 type = "image"
 title = "ExpatHub 7-Day Promo Offer (1024x1024)"
+
+[[outputs]]
+id = "i5zcSjGUtgwpMw9wWkCT4"
+uri = "file://.local/web-agent-bookmarks-prompt.md"
+type = "text"
+title = "Web Agent Prompt - Bookmarks & Notes API"
