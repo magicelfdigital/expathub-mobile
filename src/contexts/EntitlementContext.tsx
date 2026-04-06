@@ -284,7 +284,16 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     })();
 
     return () => { mounted = false; };
-  }, [refresh]);
+  }, []);
+
+  const prevTokenRef = React.useRef(token);
+  useEffect(() => {
+    if (token !== prevTokenRef.current) {
+      prevTokenRef.current = token;
+      gateLog(`Auth token changed — refreshing entitlements immediately`);
+      refresh();
+    }
+  }, [token, refresh]);
 
   const hasCountryAccess = useCallback((slug: string): boolean => {
     if (__DEV__ && SANDBOX_ENABLED && sandboxOverride) return true;
