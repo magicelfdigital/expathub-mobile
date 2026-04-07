@@ -44,10 +44,7 @@ export function BookmarkButton({ countrySlug, size = 22 }: Props) {
   return (
     <View onStartShouldSetResponder={() => true}>
       <Pressable
-        onPress={(e) => {
-          e.stopPropagation();
-          handlePress();
-        }}
+        onPress={handlePress}
         hitSlop={10}
         disabled={busy}
         style={({ pressed }) => [{ opacity: pressed || busy ? 0.5 : 1, padding: 4 }]}
