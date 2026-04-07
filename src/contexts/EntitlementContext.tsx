@@ -254,6 +254,10 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     }
   }, [sandboxOverride, token, user?.id]);
 
+  const refreshRef = React.useRef(refresh);
+  useEffect(() => { refreshRef.current = refresh; }, [refresh]);
+
+  const rcInitDoneRef = React.useRef(false);
   useEffect(() => {
     let mounted = true;
 
@@ -267,8 +271,9 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
             gateLog("RC init FAILED — RC is for purchase UX only, backend remains authority");
           }
         }
+        rcInitDoneRef.current = true;
         if (mounted) {
-          await refresh();
+          await refreshRef.current();
         }
       } catch (e: any) {
         gateLog(`Init ERROR: ${e?.message ?? e} — fail closed`);
@@ -290,8 +295,10 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (token !== prevTokenRef.current) {
       prevTokenRef.current = token;
-      gateLog(`Auth token changed — refreshing entitlements immediately`);
-      refresh();
+      if (rcInitDoneRef.current) {
+        gateLog(`Auth token changed — refreshing entitlements immediately`);
+        refresh();
+      }
     }
   }, [token, refresh]);
 
