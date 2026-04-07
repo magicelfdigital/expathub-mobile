@@ -70,18 +70,12 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
 
   const addMutation = useMutation({
     mutationFn: async (slug: string) => {
-      const url = `${getBase()}/api/bookmarks`;
-      console.log(`[Bookmark] POST ${url} body=${JSON.stringify({ countrySlug: slug })}`);
-      const res = await fetch(url, {
+      const res = await fetch(`${getBase()}/api/bookmarks`, {
         method: "POST",
         headers,
         body: JSON.stringify({ countrySlug: slug }),
       });
-      if (!res.ok) {
-        const body = await res.text();
-        console.warn(`[Bookmark] POST failed: ${res.status} ${body}`);
-        throw new Error(`Failed to add bookmark: ${res.status} ${body}`);
-      }
+      if (!res.ok) throw new Error("Failed to add bookmark");
       return res.json();
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["bookmarks"] }),
