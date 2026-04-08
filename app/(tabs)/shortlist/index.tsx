@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Screen } from "@/components/Screen";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBookmarks } from "@/contexts/BookmarkContext";
+import { useCountry } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { getCountry } from "@/src/data";
 import { tokens } from "@/theme/tokens";
@@ -143,6 +144,7 @@ export default function ShortlistScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { bookmarks, toggleBookmark, noteForCountry, saveNote } = useBookmarks();
+  const { setSelectedCountrySlug } = useCountry();
   const { hasActiveSubscription } = useSubscription();
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -247,9 +249,10 @@ export default function ShortlistScreen() {
             isPro={hasActiveSubscription}
             onRemove={() => handleRemove(item.countrySlug)}
             onSaveNote={(content) => saveNote(item.countrySlug, content)}
-            onNavigate={() =>
-              router.push(`/(tabs)/(home)/country/${item.countrySlug}` as any)
-            }
+            onNavigate={() => {
+              setSelectedCountrySlug(item.countrySlug);
+              router.push({ pathname: "/(tabs)/(home)/country/[slug]", params: { slug: item.countrySlug } } as any);
+            }}
             selected={selected.has(item.countrySlug)}
             onToggleSelect={() => handleToggleSelect(item.countrySlug)}
           />
