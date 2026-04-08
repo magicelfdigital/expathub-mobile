@@ -65,3 +65,9 @@ id = "i5zcSjGUtgwpMw9wWkCT4"
 uri = "file://.local/web-agent-bookmarks-prompt.md"
 type = "text"
 title = "Web Agent Prompt - Bookmarks & Notes API"
+
+[[outputs]]
+id = "2OtiI6UToutFUo9S2zbbt"
+uri = "file://app-store-listing.md"
+type = "text"
+title = "ExpatHub App Store Listing"
