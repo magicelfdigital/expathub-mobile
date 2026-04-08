@@ -16,9 +16,10 @@ import { Feather } from "@expo/vector-icons";
 export type ErrorFallbackProps = {
   error: Error;
   resetError: () => void;
+  componentStack?: string;
 };
 
-export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
+export function ErrorFallback({ error, resetError, componentStack }: ErrorFallbackProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
@@ -86,9 +87,16 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
           Please reload the app to continue.
         </Text>
 
-        <Text style={[styles.errorSummary, { color: theme.textSecondary }]} selectable numberOfLines={4}>
-          {error.message}
-        </Text>
+        <ScrollView style={styles.errorBox} contentContainerStyle={styles.errorBoxContent}>
+          <Text style={styles.errorBoxText} selectable>
+            {error?.name ?? "Error"}: {error?.message || "(no message)"}
+          </Text>
+          {componentStack ? (
+            <Text style={styles.errorBoxStack} selectable numberOfLines={8}>
+              {componentStack.slice(0, 500)}
+            </Text>
+          ) : null}
+        </ScrollView>
 
         <Pressable
           onPress={handleRestart}
@@ -210,12 +218,28 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 24,
   },
-  errorSummary: {
+  errorBox: {
+    maxHeight: 120,
+    width: "100%",
+    backgroundColor: "#FFF3F3",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FFD0D0",
+  },
+  errorBoxContent: {
+    padding: 12,
+  },
+  errorBoxText: {
     fontSize: 13,
-    textAlign: "center",
     lineHeight: 18,
-    paddingHorizontal: 16,
-    opacity: 0.7,
+    color: "#CC0000",
+    fontWeight: "600" as const,
+  },
+  errorBoxStack: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: "#880000",
+    marginTop: 6,
   },
   topButton: {
     position: "absolute",

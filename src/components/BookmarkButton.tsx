@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
-import { Alert, Platform, Pressable, View } from "react-native";
+import React, { Component, useCallback, useState } from "react";
+import { Pressable, View } from "react-native";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useBookmarks } from "@/contexts/BookmarkContext";
@@ -13,7 +13,14 @@ type Props = {
   size?: number;
 };
 
-export function BookmarkButton({ countrySlug, size = 22 }: Props) {
+class BookmarkErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: Error) { console.warn("[BookmarkButton] render error:", error?.message); }
+  render() { return this.state.hasError ? null : this.props.children; }
+}
+
+function BookmarkButtonInner({ countrySlug, size = 22 }: Props) {
   const { user } = useAuth();
   const { isBookmarked, toggleBookmark, bookmarkCount } = useBookmarks();
   const { hasActiveSubscription } = useSubscription();
@@ -57,5 +64,13 @@ export function BookmarkButton({ countrySlug, size = 22 }: Props) {
         />
       </Pressable>
     </View>
+  );
+}
+
+export function BookmarkButton(props: Props) {
+  return (
+    <BookmarkErrorBoundary>
+      <BookmarkButtonInner {...props} />
+    </BookmarkErrorBoundary>
   );
 }
