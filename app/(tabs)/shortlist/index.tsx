@@ -36,6 +36,7 @@ type BookmarkCardProps = {
   onNavigate: () => void;
   selected: boolean;
   onToggleSelect: () => void;
+  showCompare: boolean;
 };
 
 function BookmarkCard({
@@ -47,6 +48,7 @@ function BookmarkCard({
   onNavigate,
   selected,
   onToggleSelect,
+  showCompare,
 }: BookmarkCardProps) {
   const [noteText, setNoteText] = useState(note);
   const [noteExpanded, setNoteExpanded] = useState(false);
@@ -61,13 +63,15 @@ function BookmarkCard({
   return (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Pressable onPress={onToggleSelect} hitSlop={8} style={styles.selectBtn}>
-          <Ionicons
-            name={selected ? "checkbox" : "square-outline"}
-            size={22}
-            color={selected ? tokens.color.teal : tokens.color.subtext}
-          />
-        </Pressable>
+        {showCompare ? (
+          <Pressable onPress={onToggleSelect} hitSlop={8} style={styles.selectBtn}>
+            <Ionicons
+              name={selected ? "checkbox" : "square-outline"}
+              size={22}
+              color={selected ? tokens.color.teal : tokens.color.subtext}
+            />
+          </Pressable>
+        ) : null}
 
         <Pressable onPress={onNavigate} style={styles.cardTitleArea}>
           <Text style={styles.cardName} numberOfLines={1}>
@@ -255,6 +259,7 @@ export default function ShortlistScreen() {
             }}
             selected={selected.has(item.countrySlug)}
             onToggleSelect={() => handleToggleSelect(item.countrySlug)}
+            showCompare={bookmarks.length >= 2}
           />
         )}
         ListFooterComponent={
