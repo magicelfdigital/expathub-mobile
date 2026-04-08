@@ -157,6 +157,9 @@ export default function ShortlistScreen() {
       const next = new Set(prev);
       if (next.has(slug)) {
         next.delete(slug);
+        if (next.size < 2) {
+          next.clear();
+        }
       } else if (next.size < 3) {
         next.add(slug);
       }
