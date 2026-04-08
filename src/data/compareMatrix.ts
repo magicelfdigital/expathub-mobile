@@ -22,6 +22,9 @@ const ALL_ROWS: CompareRow[] = [
       ecuador: "Rentista, Jubilado",
       malta: "Digital Nomad, GRP",
       "united-kingdom": "Skilled Worker, Global Talent, Innovator Founder",
+      germany: "EU Blue Card, Skilled Worker, Job Seeker, Freelance Visa",
+      ireland: "Critical Skills Employment, General Employment, Stamp 0",
+      australia: "Skilled Independent 189, Skilled Nominated 190, Employer Sponsored 482",
     },
   },
   {
@@ -37,6 +40,9 @@ const ALL_ROWS: CompareRow[] = [
       ecuador: "Limited — remote for foreign employer tolerated",
       malta: "Yes — Nomad Residence for remote workers",
       "united-kingdom": "No — employer sponsorship required",
+      germany: "Yes — Freelance Visa allows self-employment. Blue Card requires employer.",
+      ireland: "No — employment permits require Irish employer sponsor.",
+      australia: "Yes — 189 visa grants full work rights. 482 requires sponsor.",
     },
   },
   {
@@ -52,6 +58,9 @@ const ALL_ROWS: CompareRow[] = [
       ecuador: "Yes — permanent residency eligible after ~2 years",
       malta: "No — GRP is renewable, no permanent residency pathway",
       "united-kingdom": "Yes — ILR after 5 years",
+      germany: "Yes — settlement permit after 21–33 months (Blue Card) or 5 years (other routes).",
+      ireland: "Yes — Stamp 4 after 2 years on Critical Skills, citizenship at 5.",
+      australia: "Yes — 189/190 grant permanent residency on arrival.",
     },
   },
   {
@@ -67,6 +76,9 @@ const ALL_ROWS: CompareRow[] = [
       ecuador: "2–4 months",
       malta: "4–8 weeks",
       "united-kingdom": "3–8 weeks (Skilled Worker)",
+      germany: "1–3 months (Blue Card/Skilled Worker). Freelance visa varies by city.",
+      ireland: "2–6 months (Critical Skills faster than General).",
+      australia: "6–18 months (189/190). 482 employer-sponsored is faster.",
     },
   },
   {
@@ -83,6 +95,9 @@ const ALL_ROWS: CompareRow[] = [
       ecuador: "Not required; Spanish helpful",
       malta: "English is official — no barrier",
       "united-kingdom": "B1 English for most visa types",
+      germany: "B1 German for settlement permit. Not required for Blue Card initially.",
+      ireland: "English is official — no barrier for most applicants.",
+      australia: "Yes — IELTS 6+ or equivalent for skilled visas.",
     },
   },
   {
@@ -99,6 +114,9 @@ const ALL_ROWS: CompareRow[] = [
       ecuador: "Exists but rarely used — local wages make it impractical for most expats.",
       malta: "Single Permit system — employer applies, government approves. Small market, limited roles.",
       "united-kingdom": "Primary route — employer must be licensed sponsor. Minimum salary £38,700 (2024+).",
+      germany: "Strong — Blue Card is employer-driven, no labor market test for shortage occupations. €45,300 salary threshold.",
+      ireland: "Primary route — employer must hold employment permit. Critical Skills list favors tech/STEM.",
+      australia: "Common — 482 visa requires approved sponsor. Labour market testing required.",
     },
   },
   {
@@ -115,6 +133,9 @@ const ALL_ROWS: CompareRow[] = [
       ecuador: "Rentista: ~$1,375/mo (3x basic salary). Jubilado: ~$800/mo pension",
       malta: "Nomad Residence: ~€2,700/mo gross income minimum",
       "united-kingdom": "Skilled Worker: £38,700/yr salary (or going rate). Global Talent: no minimum.",
+      germany: "Blue Card: €45,300/yr (€41,042 for shortage occupations). Freelance: sufficient client contracts.",
+      ireland: "Critical Skills: €38,000/yr minimum (€64,000 for non-critical list). General: €34,000/yr.",
+      australia: "189/190: proof of settlement funds (~AUD $30,000). 482: market salary rate applies.",
     },
   },
   {
@@ -131,6 +152,9 @@ const ALL_ROWS: CompareRow[] = [
       ecuador: "Medium — worldwide income taxed for residents. Rates up to 37%.",
       malta: "Low-Medium — remittance basis available for non-domiciled residents.",
       "united-kingdom": "High — worldwide income taxed. Non-dom remittance basis ending 2025.",
+      germany: "High — worldwide income taxed. Progressive rates up to 45%. Solidarity surcharge applies.",
+      ireland: "High — worldwide income taxed for residents. Top rate 40% above €42,000.",
+      australia: "High — worldwide income taxed. Top rate 45% above AUD $190,000. No tax-free threshold for temp residents.",
     },
   },
   {
@@ -147,6 +171,9 @@ const ALL_ROWS: CompareRow[] = [
       ecuador: "Medium — process has improved. Some in-person requirements.",
       malta: "Low — small country, efficient processing, English-language system.",
       "united-kingdom": "Medium — clear online system, strict documentation requirements.",
+      germany: "High — Ausländerbehörde appointments scarce in major cities. Process is thorough but rigid.",
+      ireland: "Medium — straightforward online process. IRP registration required in-person.",
+      australia: "Medium — clear online system (ImmiAccount), but processing times are long.",
     },
   },
   {
@@ -163,6 +190,9 @@ const ALL_ROWS: CompareRow[] = [
       ecuador: "People wanting high-income local jobs. Those uncomfortable with developing-country infrastructure.",
       malta: "People wanting a big-city lifestyle. Those planning to work locally (tiny job market).",
       "united-kingdom": "Budget-conscious movers. People without employer sponsorship lined up.",
+      germany: "Remote workers without local clients. Those who don't want to learn German long-term.",
+      ireland: "Budget-conscious movers (high cost of living). Those without employer sponsorship.",
+      australia: "Older applicants (age cap at 45 for most skilled visas). Those without assessed skills.",
     },
   },
   {
@@ -179,6 +209,9 @@ const ALL_ROWS: CompareRow[] = [
       ecuador: "Moderate — marriage equality since 2019, social attitudes vary by region.",
       malta: "Very High — top-ranked in Europe, comprehensive equality legislation.",
       "united-kingdom": "High — marriage equality since 2014, strong workplace protections.",
+      germany: "Very High — marriage equality since 2017, strong anti-discrimination framework.",
+      ireland: "Very High — marriage equality by referendum 2015, comprehensive equality laws.",
+      australia: "High — marriage equality since 2017, strong workplace protections.",
     },
   },
   {
@@ -195,6 +228,9 @@ const ALL_ROWS: CompareRow[] = [
       ecuador: "Moderate — IESS public system improving. Quality private care in Quito/Guayaquil.",
       malta: "Very Good — free public healthcare for residents, modern facilities.",
       "united-kingdom": "Good — NHS is free at point of use, but under strain. Private available.",
+      germany: "Excellent — mandatory health insurance (public or private), high-quality care, short wait times.",
+      ireland: "Good — public system (HSE) has long waits. Private insurance common for faster access.",
+      australia: "Very Good — Medicare public system is comprehensive. Private insurance reduces wait times.",
     },
   },
   {
@@ -211,6 +247,9 @@ const ALL_ROWS: CompareRow[] = [
       ecuador: "Excellent — highlands have spring-like weather year-round. Coast is hot.",
       malta: "Very Good — Mediterranean, hot summers, mild winters. Limited green space.",
       "united-kingdom": "Fair — mild but grey and rainy. London has ~1,500 sunshine hours/year.",
+      germany: "Fair — cold winters, warm summers. Southern Germany is milder.",
+      ireland: "Fair — mild but very wet and overcast. Rarely extreme temperatures.",
+      australia: "Excellent — sunny in most regions. Sydney/Melbourne have mild, pleasant climates.",
     },
   },
   {
@@ -227,6 +266,9 @@ const ALL_ROWS: CompareRow[] = [
       ecuador: "Worldwide taxation for residents — progressive rates up to 37%.",
       malta: "Remittance basis for non-doms — foreign income taxed only if remitted to Malta.",
       "united-kingdom": "Non-dom regime ending 2025. New residence-based system replacing it.",
+      germany: "No special expat regime — progressive taxation up to 45% + solidarity surcharge.",
+      ireland: "SARP regime for assigned employees — 30% income exclusion for qualifying expats.",
+      australia: "Temporary residents taxed only on Australian-source income. No CGT on foreign assets.",
     },
   },
 ];
