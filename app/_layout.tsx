@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { logCrash } from "@/utils/crashlytics";
 import { queryClient } from "@/lib/query-client";
 import { CountryProvider } from "@/contexts/CountryContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
@@ -93,7 +94,7 @@ export default function RootLayout() {
   }
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary onError={(error) => { logCrash(error); }}>
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView style={{ flex: 1, backgroundColor: tokens.color.bg }}>
           <KeyboardProvider>
