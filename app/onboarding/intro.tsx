@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { tokens } from "@/theme/tokens";
@@ -67,6 +67,14 @@ export default function IntroScreen() {
       contentContainerStyle={[s.scrollContent, { paddingBottom: bottomPad + 40 }]}
       showsVerticalScrollIndicator={false}
     >
+      <View style={s.logoWrap}>
+        <Image
+          source={require("../../assets/brand/fulllogo_transparent_nobuffer.png")}
+          resizeMode="contain"
+          style={s.logo}
+        />
+      </View>
+
       <Text style={s.headline}>
         Not Sure Which Country Is Right for You?
       </Text>
@@ -178,6 +186,15 @@ const s = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
+  },
+
+  logoWrap: {
+    alignItems: "center",
+    marginBottom: 28,
+  },
+  logo: {
+    height: 60,
+    width: 260,
   },
 
   headline: {
