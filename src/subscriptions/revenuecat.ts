@@ -78,6 +78,17 @@ async function _initRevenueCat(): Promise<boolean> {
     return false;
   }
 
+  let isExpoGo = false;
+  try {
+    const Constants = (await import("expo-constants")).default;
+    isExpoGo = Constants.appOwnership === "expo";
+  } catch {}
+
+  if (isExpoGo && apiKey.startsWith("appl_")) {
+    rcLog("Running in Expo Go with production key — skipping RevenueCat configure to avoid red screen. Backend remains authority for entitlements.");
+    return false;
+  }
+
   try {
     if (LOG_LEVEL) {
       rc.setLogLevel(LOG_LEVEL.DEBUG);
