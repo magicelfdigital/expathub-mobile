@@ -62,127 +62,135 @@ export default function IntroScreen() {
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   return (
-    <ScrollView
-      style={[s.container, { paddingTop: topPad + 24 }]}
-      contentContainerStyle={[s.scrollContent, { paddingBottom: bottomPad + 40 }]}
-      showsVerticalScrollIndicator={false}
-    >
-      <View style={s.logoWrap}>
-        <Image
-          source={require("../../assets/brand/fulllogo_transparent_nobuffer.png")}
-          resizeMode="contain"
-          style={s.logo}
-        />
-      </View>
-
-      <Text style={s.headline}>
-        Not Sure Which Country Is Right for You?
-      </Text>
-      <Text style={s.subtitle}>
-        Answer 9 questions. Get a personalised fit score, your top country match, and exactly what's holding you back.
-      </Text>
-
-      <Text style={s.sectionLabel}>WHAT YOU'LL GET</Text>
-      <View style={s.benefitList}>
-        {BENEFITS.map((b, i) => (
-          <View key={i} style={s.benefitRow}>
-            <View style={s.benefitIcon}>
-              <Ionicons name={b.icon} size={12} color={TEAL} />
-            </View>
-            <Text style={s.benefitText}>{b.text}</Text>
-          </View>
-        ))}
-      </View>
-
-      <View style={s.previewCard}>
-        <View style={s.previewHeader}>
-          <Text style={s.previewHeaderText}>SAMPLE RESULT PREVIEW</Text>
+    <View style={s.root}>
+      <ScrollView
+        style={[s.container, { paddingTop: topPad + 16 }]}
+        contentContainerStyle={[s.scrollContent, { paddingBottom: bottomPad + 120 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={s.logoWrap}>
+          <Image
+            source={require("../../assets/brand/fulllogo_transparent_nobuffer.png")}
+            resizeMode="contain"
+            style={s.logo}
+          />
         </View>
 
-        <View style={s.previewBody}>
-          <View style={s.scoreRow}>
-            <Text style={s.scoreLabel}>Readiness Score</Text>
-            <Text style={s.scoreValue}>11 / 16</Text>
-          </View>
-          <View style={s.progressTrack}>
-            <View style={[s.progressFill, { width: "69%" }]} />
-          </View>
+        <Text style={s.headline}>
+          Not Sure Which Country Is Right for You?
+        </Text>
+        <Text style={s.subtitle}>
+          Answer 9 questions. Get a personalised fit score, your top country match, and exactly what's holding you back.
+        </Text>
 
-          <View style={s.tierRow}>
-            <View style={s.tierBadge}>
-              <Text style={s.tierBadgeText}>Exploring</Text>
+        <Text style={s.sectionLabel}>WHAT YOU'LL GET</Text>
+        <View style={s.benefitList}>
+          {BENEFITS.map((b, i) => (
+            <View key={i} style={s.benefitRow}>
+              <View style={s.benefitIcon}>
+                <Ionicons name={b.icon} size={16} color={TEAL} />
+              </View>
+              <Text style={s.benefitText}>{b.text}</Text>
             </View>
-            <Text style={s.tierDesc}>
-              Serious, but a few gaps to close before committing.
-            </Text>
+          ))}
+        </View>
+
+        <View style={s.previewCard}>
+          <View style={s.previewHeader}>
+            <Text style={s.previewHeaderText}>SAMPLE RESULT PREVIEW</Text>
           </View>
 
-          <View style={s.matchCard}>
-            <Text style={s.matchFlag}>{"\uD83C\uDDF5\uD83C\uDDF9"}</Text>
-            <View style={s.matchTextWrap}>
-              <Text style={s.matchTitle}>Top Match — Portugal</Text>
-              <Text style={s.matchDesc}>
-                D7 pathway, Algarve or Lisbon — strong fit for your profile.
+          <View style={s.previewBody}>
+            <View style={s.scoreRow}>
+              <Text style={s.scoreLabel}>Readiness Score</Text>
+              <Text style={s.scoreValue}>11 / 16</Text>
+            </View>
+            <View style={s.progressTrack}>
+              <View style={[s.progressFill, { width: "69%" }]} />
+            </View>
+
+            <View style={s.tierRow}>
+              <View style={s.tierBadge}>
+                <Text style={s.tierBadgeText}>Exploring</Text>
+              </View>
+              <Text style={s.tierDesc}>
+                Serious, but a few gaps to close before committing.
+              </Text>
+            </View>
+
+            <View style={s.matchCard}>
+              <Text style={s.matchFlag}>{"\uD83C\uDDF5\uD83C\uDDF9"}</Text>
+              <View style={s.matchTextWrap}>
+                <Text style={s.matchTitle}>Top Match — Portugal</Text>
+                <Text style={s.matchDesc}>
+                  D7 pathway, Algarve or Lisbon — strong fit for your profile.
+                </Text>
+              </View>
+            </View>
+
+            <View style={s.gapRow}>
+              <Ionicons name="warning-outline" size={14} color={AMBER} />
+              <Text style={s.gapText}>
+                Main gap: <Text style={s.gapBold}>Visa Pathway</Text> — identify your specific visa before committing.
               </Text>
             </View>
           </View>
+        </View>
 
-          <View style={s.gapRow}>
-            <Ionicons name="warning-outline" size={14} color={AMBER} />
-            <Text style={s.gapText}>
-              Main gap: <Text style={s.gapBold}>Visa Pathway</Text> — identify your specific visa before committing.
-            </Text>
+        <Text style={s.trustText}>
+          ExpatHub analyzes over 250 data points across healthcare, cost of living, visa complexity, and tax treaties to match your profile to a country.
+        </Text>
+
+        <Text style={[s.sectionLabel, { marginTop: 24 }]}>WHAT OTHERS SAY</Text>
+        <View style={s.testimonialList}>
+          {TESTIMONIALS.map((t, i) => (
+            <View key={i} style={s.testimonialCard}>
+              <Text style={s.testimonialQuote}>"{t.quote}"</Text>
+              <Text style={s.testimonialName}>{t.name}</Text>
+              <Text style={s.testimonialDetail}>{t.detail}</Text>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+
+      <View style={[s.stickyFooter, { paddingBottom: bottomPad + 12 }]}>
+        <Pressable
+          onPress={() => router.push("/onboarding/quiz")}
+          style={({ pressed }) => [s.cta, pressed && { opacity: 0.9 }]}
+        >
+          <Text style={s.ctaText}>See My Results</Text>
+          <Ionicons name="arrow-forward" size={18} color="#fff" />
+        </Pressable>
+
+        <View style={s.footerMeta}>
+          <View style={s.metaRow}>
+            <Ionicons name="time-outline" size={14} color={BODY_COLOR} />
+            <Text style={s.metaText}>Takes 2 minutes. No sign-up required.</Text>
           </View>
+
+          <Pressable
+            onPress={async () => {
+              await skipOnboarding();
+              router.replace("/(tabs)/(home)");
+            }}
+            hitSlop={12}
+            style={s.skipBtn}
+          >
+            <Text style={s.skipText}>Skip and explore on my own</Text>
+          </Pressable>
         </View>
       </View>
-
-      <Text style={s.trustText}>
-        ExpatHub analyzes over 250 data points across healthcare, cost of living, visa complexity, and tax treaties to match your profile to a country.
-      </Text>
-
-      <Pressable
-        onPress={() => router.push("/onboarding/quiz")}
-        style={({ pressed }) => [s.cta, pressed && { opacity: 0.9 }]}
-      >
-        <Text style={s.ctaText}>See My Results</Text>
-        <Ionicons name="arrow-forward" size={18} color="#fff" />
-      </Pressable>
-
-      <View style={s.metaRow}>
-        <Ionicons name="time-outline" size={14} color={BODY_COLOR} />
-        <Text style={s.metaText}>Takes 2 minutes. No sign-up required.</Text>
-      </View>
-
-      <View style={s.skipWrap}>
-        <Pressable
-          onPress={async () => {
-            await skipOnboarding();
-            router.replace("/(tabs)/(home)");
-          }}
-          hitSlop={8}
-        >
-          <Text style={s.skipText}>Skip and explore on my own</Text>
-        </Pressable>
-      </View>
-
-      <Text style={[s.sectionLabel, { marginTop: 32 }]}>WHAT OTHERS SAY</Text>
-      <View style={s.testimonialList}>
-        {TESTIMONIALS.map((t, i) => (
-          <View key={i} style={s.testimonialCard}>
-            <Text style={s.testimonialQuote}>"{t.quote}"</Text>
-            <Text style={s.testimonialName}>{t.name}</Text>
-            <Text style={s.testimonialDetail}>{t.detail}</Text>
-          </View>
-        ))}
-      </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
     backgroundColor: BG,
+  },
+  container: {
+    flex: 1,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -190,35 +198,35 @@ const s = StyleSheet.create({
 
   logoWrap: {
     alignItems: "center",
-    marginBottom: 28,
+    marginBottom: 20,
   },
   logo: {
-    height: 60,
-    width: 260,
+    height: 52,
+    width: 240,
   },
 
   headline: {
-    fontSize: 32,
+    fontSize: 28,
     fontFamily: tokens.font.display,
     fontWeight: "700",
     color: HEADING_COLOR,
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: tokens.font.body,
     color: BODY_COLOR,
-    lineHeight: 24,
+    lineHeight: 23,
     marginBottom: 24,
   },
 
   sectionLabel: {
-    fontSize: 10,
+    fontSize: 12,
     fontFamily: tokens.font.bodySemiBold,
     fontWeight: "600",
     color: SECTION_LABEL,
     letterSpacing: 1,
-    marginBottom: 16,
+    marginBottom: 14,
   },
 
   benefitList: {
@@ -231,14 +239,14 @@ const s = StyleSheet.create({
     gap: 12,
   },
   benefitIcon: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: TEAL_BG,
     justifyContent: "center",
     alignItems: "center",
     flexShrink: 0,
-    marginTop: 1,
+    marginTop: 0,
   },
   benefitText: {
     flex: 1,
@@ -246,6 +254,7 @@ const s = StyleSheet.create({
     fontFamily: tokens.font.body,
     color: BODY_COLOR,
     lineHeight: 20,
+    paddingTop: 3,
   },
 
   previewCard: {
@@ -277,7 +286,7 @@ const s = StyleSheet.create({
   },
   previewBody: {
     padding: 16,
-    gap: 12,
+    gap: 14,
   },
 
   scoreRow: {
@@ -327,10 +336,10 @@ const s = StyleSheet.create({
   },
   tierDesc: {
     flex: 1,
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: tokens.font.body,
     color: BODY_COLOR,
-    lineHeight: 16,
+    lineHeight: 17,
   },
 
   matchCard: {
@@ -348,19 +357,19 @@ const s = StyleSheet.create({
   },
   matchTextWrap: {
     flex: 1,
-    gap: 2,
+    gap: 3,
   },
   matchTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: tokens.font.bodySemiBold,
     fontWeight: "600",
     color: HEADING_COLOR,
   },
   matchDesc: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: tokens.font.body,
     color: BODY_COLOR,
-    lineHeight: 16,
+    lineHeight: 17,
   },
 
   gapRow: {
@@ -371,10 +380,10 @@ const s = StyleSheet.create({
   },
   gapText: {
     flex: 1,
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: tokens.font.body,
     color: BODY_COLOR,
-    lineHeight: 16,
+    lineHeight: 17,
   },
   gapBold: {
     fontFamily: tokens.font.bodyBold,
@@ -382,11 +391,23 @@ const s = StyleSheet.create({
   },
 
   trustText: {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: tokens.font.body,
     color: BODY_COLOR,
-    lineHeight: 18,
-    marginBottom: 16,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+
+  stickyFooter: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: BG,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(28,43,94,0.08)",
   },
 
   cta: {
@@ -406,12 +427,16 @@ const s = StyleSheet.create({
     fontWeight: "600",
   },
 
+  footerMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    marginTop: 8,
+    gap: 5,
   },
   metaText: {
     fontSize: 12,
@@ -419,15 +444,15 @@ const s = StyleSheet.create({
     color: BODY_COLOR,
   },
 
-  skipWrap: {
-    alignItems: "center",
-    marginTop: 10,
+  skipBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
   },
   skipText: {
     fontSize: 14,
-    fontFamily: tokens.font.body,
-    color: BODY_COLOR,
-    paddingVertical: 4,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600",
+    color: SECTION_LABEL,
   },
 
   testimonialList: {
@@ -445,18 +470,18 @@ const s = StyleSheet.create({
     fontFamily: tokens.font.body,
     fontStyle: "italic",
     color: BODY_COLOR,
-    lineHeight: 20,
+    lineHeight: 21,
     marginBottom: 10,
   },
   testimonialName: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: tokens.font.bodySemiBold,
     fontWeight: "600",
     color: HEADING_COLOR,
     marginBottom: 2,
   },
   testimonialDetail: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: tokens.font.body,
     color: BODY_COLOR,
   },
