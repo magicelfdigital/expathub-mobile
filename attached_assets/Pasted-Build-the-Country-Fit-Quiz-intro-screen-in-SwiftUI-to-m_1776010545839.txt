@@ -1,0 +1,61 @@
+Build the Country Fit Quiz intro screen in SwiftUI to match the web design.
+
+Screen: Quiz Landing / Intro
+
+Background color: #F7F6F2 (warm off-white). Single scrollable VStack with 20pt horizontal padding.
+
+1 — Headline
+Large bold serif font (match Playfair Display if available, otherwise use .serif modifier on a System font).
+Text: "Not Sure Which Country Is Right for You?"
+Color: #1C2B5E. Font size ~32pt.
+
+2 — Subtitle
+Below headline, 8pt gap.
+Text: "Answer 9 questions. Get a personalised fit score, your top country match, and exactly what's holding you back."
+Color: #5A6785. Font size 17pt, regular weight, multiline.
+
+3 — "What You'll Get" list
+Section label: "WHAT YOU'LL GET" — 10pt, semibold, letter-spaced, color #606CB9. 24pt gap below subtitle.
+
+Three rows, each: small teal circle icon on left, body text on right.
+
+Circle: 20×20pt, fill rgba(51, 196, 220, 0.15), icon inside in #33C4DC, size 12pt
+Icons: use SF Symbols — target, checkmark.circle, exclamationmark.triangle
+Row text color: #5A6785, 14pt
+Rows:
+
+"A readiness score (0–16) and your tier — Dreaming, Exploring, or Ready to Act"
+"Your top country match based on your visa options, lifestyle priorities, and budget"
+"A gap analysis showing the 1–3 things most likely to derail your move"
+4 — Sample Result Preview card
+White card, 16pt corner radius, border rgba(96,108,185,0.2), subtle shadow. 24pt gap above.
+
+Header strip: label "SAMPLE RESULT PREVIEW" — 10pt semibold, #606CB9, uppercase. Light purple-tinted background rgba(96,108,185,0.08), bottom border.
+Score row: "Readiness Score" left, "11 / 16" right in #1C2B5E bold. Below: teal #33C4DC progress bar at 69% fill, 8pt tall, fully rounded ends, gray track.
+Tier badge: Pill with #33C4DC background, white text "Exploring". Next to it: "Serious, but a few gaps to close before committing." in #5A6785 12pt.
+Top match row: Nested rounded card, background #F7F6F2, border rgba(96,108,185,0.15). Left: 🇵🇹 flag emoji 24pt. Right stacked: "Top Match — Portugal" semibold #1C2B5E 13pt, then "D7 pathway, Algarve or Lisbon — strong fit for your profile." in #5A6785 12pt.
+Gap row: exclamationmark.triangle SF Symbol in amber #d97706, then text: "Main gap: " + bold "Visa Pathway" + " — identify your specific visa before committing." — all 12pt #5A6785.
+5 — Trust signal
+12pt, #5A6785, left-aligned, 16pt above CTA.
+Text: "ExpatHub analyzes over 250 data points across healthcare, cost of living, visa complexity, and tax treaties to match your profile to a country."
+
+6 — CTA button
+Full width, 56pt tall, 12pt corner radius, fill #606CB9, white label "See My Results" 17pt semibold, trailing arrow icon arrow.right.
+Taps → start quiz (dismiss this screen, begin Q1).
+
+Below button (8pt gap): "Takes 2 minutes. No sign-up required." — 12pt, #5A6785, with clock SF Symbol left.
+
+7 — Testimonials
+Section label "WHAT OTHERS SAY" — same style as section 3 label. 32pt gap below CTA.
+
+Three cards. Each: white background, 12pt corner radius, border rgba(96,108,185,0.15), 16pt padding.
+
+Italic quote text 14pt #5A6785
+Name: 12pt semibold #1C2B5E
+Detail: 12pt regular #5A6785
+Cards:
+
+"I'd been researching Portugal for months. The quiz told me in 2 minutes that my income type was the wrong fit for the D7 — saved me from a very expensive mistake." — James R., Beta tester · moved to Spain instead
+"I thought I was ready. The gap analysis flagged my exit strategy and timeline. Both were real problems I hadn't thought through." — Priya M., Beta tester · currently applying for NLV
+"Brutally honest. Didn't tell me what I wanted to hear — told me what I needed to fix. That's rare." — David K., Beta tester · Exploring tier, targeting 2026
+Spacing rhythm: 8pt base unit. Section gaps = 24pt. Card internal padding = 16pt. Bottom of scroll = 40pt safe-area padding.
