@@ -43,10 +43,8 @@ Unlock the details that actually matter for your move:
 - Enhanced compare matrix with 10 additional factors
 
 SUBSCRIPTION OPTIONS:
-- 30-Day Decision Pass: $29 one-time — perfect for focused research
-- Country Lifetime Unlock: $69 one-time — full access to one country forever
-- Monthly Explorer: $14.99/month — access everything, cancel anytime
-- Annual Pathfinder: $89/year — best value for serious planners
+- Monthly Explorer: $14.99/month — full access to everything, cancel anytime
+- Annual Pathfinder: $89/year — best value, save over 50%
 
 BUILT FOR REAL DECISIONS:
 ExpatHub is not a travel app. It's a relocation research tool built by people who've been through the process. Every pathway guide includes real timelines, actual costs, and the bureaucratic realities that other resources gloss over.
