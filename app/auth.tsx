@@ -104,14 +104,14 @@ export default function AuthScreen() {
           {mode === "login"
             ? "Welcome back"
             : isAnnualTrialContext
-              ? "You're 30 seconds away from your 7-day free trial"
+              ? "Create your account to start your trial"
               : "Create your account"}
         </Text>
         <Text style={s.subtitle}>
           {mode === "login"
             ? "Sign in to access your saved countries and subscription"
             : isAnnualTrialContext
-              ? "Create an account so we can keep your trial and progress safe."
+              ? "We need an account to apply your 7-day free trial and save your progress."
               : "Sign up to sync your progress across devices"}
         </Text>
 
