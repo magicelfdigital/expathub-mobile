@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useMemo, useRef } from "react";
+import { useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -43,11 +44,13 @@ function MatrixRow({
   slugs,
   isPro,
   isOdd,
+  onLockedTap,
 }: {
   row: CompareRow;
   slugs: string[];
   isPro: boolean;
   isOdd: boolean;
+  onLockedTap: (rowId: string, slug: string) => void;
 }) {
   const locked = row.proOnly && !isPro;
 
@@ -65,7 +68,7 @@ function MatrixRow({
       {slugs.map((slug) => (
         <View key={slug} style={s.valueCell}>
           {locked ? (
-            <View style={s.lockedContent}>
+            <Pressable onPress={() => onLockedTap(row.id, slug)} style={s.lockedContent}>
               <View style={s.blurredLines}>
                 <View style={s.blurLine1} />
                 <View style={s.blurLine2} />
@@ -75,7 +78,7 @@ function MatrixRow({
                 <Ionicons name="lock-closed" size={10} color={tokens.color.primary} />
                 <Text style={s.lockText}>Decision Access</Text>
               </View>
-            </View>
+            </Pressable>
           ) : (
             <Text style={s.valueText}>{row.values[slug] ?? "\u2014"}</Text>
           )}
@@ -92,9 +95,19 @@ export function CompareMatrix({
   maxCountries = 3,
 }: Props) {
   const { hasActiveSubscription } = useSubscription();
+  const router = useRouter();
   const rows = useMemo(() => getCompareMatrix(countrySlugs), [countrySlugs]);
   const compareStartedRef = useRef(false);
   const viewedRowsRef = useRef<Set<string>>(new Set());
+
+  const handleLockedTap = useCallback((rowId: string, slug: string) => {
+    trackEvent("compare_row_tapped", {
+      rowId,
+      countrySlug: slug,
+      locked: true,
+    });
+    router.push("/subscribe" as any);
+  }, [router]);
 
   useEffect(() => {
     if (countrySlugs.length > 0 && !compareStartedRef.current) {
@@ -163,6 +176,7 @@ export function CompareMatrix({
               row={row}
               slugs={countrySlugs}
               isPro={hasActiveSubscription}
+              onLockedTap={handleLockedTap}
               isOdd={idx % 2 === 1}
             />
           </React.Fragment>

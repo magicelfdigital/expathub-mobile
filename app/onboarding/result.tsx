@@ -41,7 +41,7 @@ function getBaseUrl(): string {
   return getBackendBase();
 }
 
-function BlockerCard({ blocker, onGuide }: { blocker: Blocker; onGuide: (label: string) => void }) {
+function BlockerCard({ blocker, onGuide }: { blocker: Blocker; onGuide: (b: Blocker) => void }) {
   const c = LEVEL_COLORS[blocker.level];
   return (
     <View style={[styles.blockerCard, { borderLeftColor: c.border, backgroundColor: c.bg }]}>
@@ -56,7 +56,7 @@ function BlockerCard({ blocker, onGuide }: { blocker: Blocker; onGuide: (label: 
       <Text style={styles.blockerLabel}>First action</Text>
       <Text style={styles.blockerBody}>{blocker.firstAction}</Text>
       <Pressable
-        onPress={() => onGuide(blocker.guideMeLabel)}
+        onPress={() => onGuide(blocker)}
         style={({ pressed }) => [styles.guideBtn, { borderColor: c.border }, pressed && { opacity: 0.85 }]}
       >
         <Text style={[styles.guideBtnText, { color: c.border }]}>{blocker.guideMeLabel}</Text>
@@ -139,8 +139,26 @@ export default function ResultScreen() {
     router.push("/subscribe");
   };
 
-  const handleGuideMe = (label: string) => {
-    console.log(`[guide-me] ${label}`);
+  const handleGuideMe = (blocker: Blocker) => {
+    const blockerId = `q${blocker.questionId}-${blocker.level}`;
+    trackEvent("blocker_guide_tapped", {
+      blockerId,
+      questionId: blocker.questionId,
+      level: blocker.level,
+      tier: result.tier,
+    });
+    router.push({
+      pathname: "/guide/[blockerId]",
+      params: {
+        blockerId,
+        questionId: String(blocker.questionId),
+        level: blocker.level,
+        title: blocker.title,
+        whatThisMeans: blocker.whatThisMeans,
+        firstAction: blocker.firstAction,
+        label: blocker.guideMeLabel,
+      },
+    } as any);
   };
 
   const handleRestart = () => {

@@ -77,7 +77,7 @@ const FAQ_ITEMS: { question: string; answer: string }[] = [
   },
   {
     question: "Is there a free trial?",
-    answer: "There is no free trial. Both plans can be cancelled anytime — the Annual Pathfinder saves over 50% compared to paying monthly.",
+    answer: "Yes — the Annual Pathfinder includes a 7-day free trial. Cancel before day 7 in your App Store or Google Play subscription settings and you won't be charged. After the trial, the plan renews at $89/year unless cancelled.",
   },
   {
     question: "What payment methods are accepted?",
@@ -163,6 +163,7 @@ export function ProPaywall({
   const pendingPurchaseHandled = useRef(false);
 
   const offer: ProOffer = getProOffer(resolvedCountrySlug, pathwayKey);
+  const mountedAtRef = useRef<number>(Date.now());
 
   const resolvedEntryPoint: PaywallEntryPoint =
     entryPoint ?? (pathwayKey ? "pathway" : resolvedCountrySlug ? "country" : "general");
@@ -556,6 +557,8 @@ export function ProPaywall({
     trackEvent("paywall_dismissed", {
       countrySlug: resolvedCountrySlug ?? "none",
       pathwayKey: pathwayKey ?? "none",
+      timeOnScreenMs: Date.now() - mountedAtRef.current,
+      activeTab,
     });
     if (onClose) onClose();
     else if (router.canGoBack()) router.back();
@@ -694,7 +697,13 @@ export function ProPaywall({
               {PAYWALL_TABS.map((tab) => (
                 <Pressable
                   key={tab.key}
-                  onPress={() => setActiveTab(tab.key)}
+                  onPress={() => {
+                    setActiveTab(tab.key);
+                    trackEvent("paywall_tab_viewed", {
+                      tab: tab.key,
+                      countrySlug: resolvedCountrySlug ?? "none",
+                    });
+                  }}
                   style={[s.tabPill, activeTab === tab.key && s.tabPillActive]}
                 >
                   <Text style={[s.tabPillText, activeTab === tab.key && s.tabPillTextActive]}>
@@ -750,13 +759,13 @@ export function ProPaywall({
                   {Platform.OS !== "web" ? (
                   <View style={[s.monthlyCard, { borderColor: tokens.color.gold, borderWidth: 2 }]}>
                     <View style={s.bestValueBadge}>
-                      <Text style={s.bestValueText}>BEST VALUE</Text>
+                      <Text style={s.bestValueText}>7-DAY FREE TRIAL</Text>
                     </View>
                     <View style={s.monthlyHeader}>
                       <Ionicons name="star" size={18} color={tokens.color.gold} />
                       <Text style={s.monthlyTitle}>Annual Pathfinder</Text>
                     </View>
-                    <Text style={s.monthlyMeta}>{ANNUAL_PRICE}/year · Save over 50% vs monthly</Text>
+                    <Text style={s.monthlyMeta}>Free for 7 days, then {ANNUAL_PRICE}/year · Save over 50% vs monthly</Text>
                     <Pressable
                       onPress={handleAnnualSubscribe}
                       disabled={busy}
@@ -765,9 +774,12 @@ export function ProPaywall({
                       {busy ? (
                         <ActivityIndicator size="small" color={tokens.color.white} />
                       ) : (
-                        <Text style={s.primaryCtaText}>Subscribe Annually — {ANNUAL_PRICE}/yr</Text>
+                        <Text style={s.primaryCtaText}>Start 7-day free trial</Text>
                       )}
                     </Pressable>
+                    <Text style={s.trialFinePrint}>
+                      Cancel anytime before day 7 — you won't be charged.
+                    </Text>
                   </View>
                   ) : null}
 
@@ -889,8 +901,8 @@ export function ProPaywall({
           {Platform.OS === "web"
             ? "Payment managed via Stripe. Cancel anytime from the customer portal."
             : Platform.OS === "ios"
-              ? "Payment will be charged to your Apple ID account. Monthly ($14.99/month) and annual ($89/year) subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period. You can manage and cancel subscriptions in your App Store account settings."
-              : "Monthly ($14.99/month) and annual ($89/year) subscriptions automatically renew. Cancel anytime in Google Play Store settings."}
+              ? "The Annual Pathfinder includes a 7-day free trial. Cancel before the trial ends in your App Store subscription settings and you won't be charged. Otherwise, payment will be charged to your Apple ID at $89/year on the 8th day. Monthly ($14.99/month) and annual ($89/year) subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period."
+              : "The Annual Pathfinder includes a 7-day free trial. Cancel before the trial ends in Google Play subscription settings and you won't be charged. Otherwise, your account will be charged $89/year on the 8th day. Monthly ($14.99/month) and annual ($89/year) subscriptions automatically renew until cancelled."}
         </Text>
 
         <View style={s.legalFooter}>
@@ -1388,6 +1400,13 @@ const s = {
     fontSize: tokens.text.small,
     fontFamily: tokens.font.body,
     color: tokens.color.subtext,
+  },
+  trialFinePrint: {
+    fontSize: 12,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
+    textAlign: "center" as const,
+    marginTop: 8,
   },
   disclaimer: {
     fontSize: 10,

@@ -52,7 +52,15 @@ type AnalyticsEvent =
   | "lifetime_offer_clicked"
   | "waitlist_joined"
   | "readiness_lead_saved"
-  | "country_interest_submitted";
+  | "country_interest_submitted"
+  | "quiz_question_answered"
+  | "quiz_abandoned"
+  | "blocker_guide_tapped"
+  | "blocker_guide_viewed"
+  | "blocker_guide_notify_signup"
+  | "bookmark_limit_hit"
+  | "compare_row_tapped"
+  | "paywall_tab_viewed";
 
 type EventProperties = Record<string, string | number | boolean | undefined>;
 

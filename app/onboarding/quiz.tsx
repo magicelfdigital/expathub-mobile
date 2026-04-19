@@ -19,12 +19,30 @@ export default function QuizScreen() {
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const slideAnim = useRef(new Animated.Value(0)).current;
   const startedRef = useRef(false);
+  const completedRef = useRef(false);
+  const lastIndexRef = useRef(0);
+  const answersRef = useRef<Record<number, string>>({});
+
+  React.useEffect(() => {
+    answersRef.current = answers;
+    lastIndexRef.current = currentIndex;
+  }, [answers, currentIndex]);
 
   React.useEffect(() => {
     if (!startedRef.current) {
       startedRef.current = true;
       trackEvent("quiz_started");
     }
+    return () => {
+      const answeredCount = Object.keys(answersRef.current).length;
+      if (!completedRef.current && answeredCount > 0 && answeredCount < TOTAL) {
+        trackEvent("quiz_abandoned", {
+          lastQuestionIndex: lastIndexRef.current,
+          answered: answeredCount,
+          totalQuestions: TOTAL,
+        });
+      }
+    };
   }, []);
 
   const question = QUIZ_QUESTIONS[currentIndex];
@@ -48,13 +66,22 @@ export default function QuizScreen() {
   }, [slideAnim, screenWidth]);
 
   const selectAnswer = useCallback((value: string) => {
-    const questionId = QUIZ_QUESTIONS[currentIndex].id;
+    const q = QUIZ_QUESTIONS[currentIndex];
+    const questionId = q.id;
     const newAnswers = { ...answers, [questionId]: value };
     setAnswers(newAnswers);
+
+    trackEvent("quiz_question_answered", {
+      questionId,
+      questionIndex: currentIndex,
+      category: q.category,
+      answer: value,
+    });
 
     if (currentIndex < TOTAL - 1) {
       animateTransition("forward", () => setCurrentIndex(currentIndex + 1));
     } else {
+      completedRef.current = true;
       trackEvent("quiz_completed", { totalQuestions: TOTAL });
       router.push({
         pathname: "/onboarding/result",

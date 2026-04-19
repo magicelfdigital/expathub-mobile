@@ -6,6 +6,7 @@ import { Pressable, View } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBookmarks } from "@/contexts/BookmarkContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { trackEvent } from "@/src/lib/analytics";
 import { tokens } from "@/theme/tokens";
 
 type Props = {
@@ -30,11 +31,18 @@ function BookmarkButtonInner({ countrySlug, size = 22 }: Props) {
 
   const canBookmark = hasActiveSubscription || active || bookmarkCount < 1;
 
-  if (user && !canBookmark) return null;
-
   const handlePress = useCallback(async () => {
     if (!user) {
       router.push("/auth?mode=register" as any);
+      return;
+    }
+
+    if (!canBookmark) {
+      trackEvent("bookmark_limit_hit", {
+        countrySlug,
+        currentCount: bookmarkCount,
+      });
+      router.push("/subscribe" as any);
       return;
     }
 
@@ -46,7 +54,7 @@ function BookmarkButtonInner({ countrySlug, size = 22 }: Props) {
     } finally {
       setBusy(false);
     }
-  }, [user, active, hasActiveSubscription, bookmarkCount, countrySlug, toggleBookmark, router]);
+  }, [user, canBookmark, bookmarkCount, countrySlug, toggleBookmark, router]);
 
   return (
     <View onStartShouldSetResponder={() => true}>
