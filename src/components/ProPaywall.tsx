@@ -69,7 +69,7 @@ const FAQ_ITEMS: { question: string; answer: string }[] = [
   },
   {
     question: "Can I access multiple countries?",
-    answer: "The 30-Day Decision Pass gives you access to all 11 countries. You can also unlock individual countries permanently, subscribe monthly, or save over 50% with an annual Pathfinder plan.",
+    answer: "Both the Monthly Explorer and Annual Pathfinder plans give you full access to all 11 country guides while your subscription is active.",
   },
   {
     question: "How do I cancel a subscription?",
@@ -77,7 +77,7 @@ const FAQ_ITEMS: { question: string; answer: string }[] = [
   },
   {
     question: "Is there a free trial?",
-    answer: "There is no free trial, but the 30-Day Decision Pass is a one-time purchase with no auto-renewal. You get full access for 30 days to make your decision.",
+    answer: "There is no free trial. Both plans can be cancelled anytime — the Annual Pathfinder saves over 50% compared to paying monthly.",
   },
   {
     question: "What payment methods are accepted?",
@@ -681,28 +681,6 @@ export function ProPaywall({
               ) : null}
             </View>
 
-            {resolvedCountrySlug && !alreadyHasCountry && accessType !== "subscription" ? (
-              <View style={s.monthlyCard}>
-                <View style={s.monthlyHeader}>
-                  <Ionicons name="diamond-outline" size={18} color={tokens.color.gold} />
-                  <Text style={s.monthlyTitle}>Lock in {countryName} permanently</Text>
-                </View>
-                <Text style={s.monthlyMeta}>
-                  Keep access to {countryName} after your {accessType === "decision_pass" ? "Decision Pass expires" : "current plan ends"}
-                </Text>
-                <Pressable
-                  onPress={() => handleCountryUnlock()}
-                  disabled={busy}
-                  style={({ pressed }) => [s.countryUnlockCta, pressed && s.ctaPressed]}
-                >
-                  {busy ? (
-                    <ActivityIndicator size="small" color={tokens.color.text} />
-                  ) : (
-                    <Text style={s.countryUnlockCtaText}>Unlock {countryName} Forever — {countryPrice}</Text>
-                  )}
-                </Pressable>
-              </View>
-            ) : null}
           </>
         ) : alreadyHasCountry && resolvedCountrySlug ? (
           <View style={s.activeCard}>
@@ -769,59 +747,6 @@ export function ProPaywall({
             {activeTab === "plans" ? (
               <>
                 <View style={s.pricingSection}>
-                  <View style={[s.pricingCard, s.primaryCard]}>
-                    <View style={s.pricingHeader}>
-                      <Ionicons name="compass" size={22} color={tokens.color.primary} />
-                      <Text style={s.pricingTitle}>30-Day Decision Access</Text>
-                    </View>
-                    <View style={s.priceRow}>
-                      <Text style={s.priceAmount}>{DECISION_PASS_PRICE}</Text>
-                      <Text style={s.priceUnit}>one-time</Text>
-                    </View>
-                    <Text style={s.pricingDesc}>
-                      Full access to all 11 countries for 30 days. Ideal if you're actively comparing destinations.
-                    </Text>
-                    <View style={s.pricingBullets}>
-                      <View style={s.pricingBulletRow}>
-                        <Ionicons name="checkmark-circle" size={16} color={tokens.color.primary} />
-                        <Text style={s.pricingBulletText}>All 11 Decision Briefs</Text>
-                      </View>
-                      <View style={s.pricingBulletRow}>
-                        <Ionicons name="checkmark-circle" size={16} color={tokens.color.primary} />
-                        <Text style={s.pricingBulletText}>Side-by-side comparisons</Text>
-                      </View>
-                      <View style={s.pricingBulletRow}>
-                        <Ionicons name="checkmark-circle" size={16} color={tokens.color.primary} />
-                        <Text style={s.pricingBulletText}>No auto-renewal</Text>
-                      </View>
-                    </View>
-                    <Pressable
-                      onPress={handleDecisionPassPurchase}
-                      disabled={busy}
-                      style={({ pressed }) => [s.primaryCta, pressed && s.ctaPressed]}
-                    >
-                      {busy ? (
-                        <ActivityIndicator size="small" color={tokens.color.white} />
-                      ) : (
-                        <Text style={s.primaryCtaText}>Start 30-Day Decision Access - {DECISION_PASS_PRICE}</Text>
-                      )}
-                    </Pressable>
-                  </View>
-
-                  {resolvedCountrySlug ? (
-                    <Pressable
-                      onPress={() => handleCountryUnlock()}
-                      disabled={busy}
-                      style={({ pressed }) => [s.secondaryCta, pressed && s.ctaPressed]}
-                    >
-                      {busy ? (
-                        <ActivityIndicator size="small" color={tokens.color.text} />
-                      ) : (
-                        <Text style={s.secondaryCtaText}>Unlock {countryName} Forever - {countryPrice}</Text>
-                      )}
-                    </Pressable>
-                  ) : null}
-
                   {Platform.OS !== "web" ? (
                   <View style={[s.monthlyCard, { borderColor: tokens.color.gold, borderWidth: 2 }]}>
                     <View style={s.bestValueBadge}>
@@ -964,8 +889,8 @@ export function ProPaywall({
           {Platform.OS === "web"
             ? "Payment managed via Stripe. Cancel anytime from the customer portal."
             : Platform.OS === "ios"
-              ? "Payment will be charged to your Apple ID account. Monthly ($14.99/month) and annual ($89/year) subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period. You can manage and cancel subscriptions in your App Store account settings. The 30-Day Decision Pass and country unlocks are one-time, non-recurring purchases."
-              : "Monthly ($14.99/month) and annual ($89/year) subscriptions automatically renew. Cancel anytime in Google Play Store settings. The 30-Day Decision Pass and country unlocks are one-time, non-recurring purchases."}
+              ? "Payment will be charged to your Apple ID account. Monthly ($14.99/month) and annual ($89/year) subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period. You can manage and cancel subscriptions in your App Store account settings."
+              : "Monthly ($14.99/month) and annual ($89/year) subscriptions automatically renew. Cancel anytime in Google Play Store settings."}
         </Text>
 
         <View style={s.legalFooter}>
