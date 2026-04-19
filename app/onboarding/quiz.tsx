@@ -4,10 +4,13 @@ import React, { useCallback, useRef, useState } from "react";
 import { Animated, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { QUIZ_QUESTIONS } from "@/src/data/quiz";
+import { QuizSaveModal } from "@/src/components/QuizSaveModal";
 import { tokens } from "@/theme/tokens";
 import { trackEvent } from "@/src/lib/analytics";
 
 const TOTAL = QUIZ_QUESTIONS.length;
+const SAVE_PROMPT_TRIGGER_INDEX = 4; // After Q5
+const SAVE_PROMPT_NO_THRESHOLD = 3;
 
 export default function QuizScreen() {
   const router = useRouter();
@@ -17,9 +20,12 @@ export default function QuizScreen() {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [savePromptVisible, setSavePromptVisible] = useState(false);
+  const [savePromptNoCount, setSavePromptNoCount] = useState(0);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const startedRef = useRef(false);
   const completedRef = useRef(false);
+  const savePromptShownRef = useRef(false);
   const lastIndexRef = useRef(0);
   const answersRef = useRef<Record<number, string>>({});
 
@@ -79,6 +85,20 @@ export default function QuizScreen() {
     });
 
     if (currentIndex < TOTAL - 1) {
+      const noCount = Object.values(newAnswers).filter((v) => v === "no").length;
+      const shouldPrompt =
+        currentIndex === SAVE_PROMPT_TRIGGER_INDEX &&
+        noCount >= SAVE_PROMPT_NO_THRESHOLD &&
+        !savePromptShownRef.current;
+
+      if (shouldPrompt) {
+        savePromptShownRef.current = true;
+        setSavePromptNoCount(noCount);
+        setSavePromptVisible(true);
+        trackEvent("quiz_save_shown", { questionIndex: currentIndex, noCount });
+        return;
+      }
+
       animateTransition("forward", () => setCurrentIndex(currentIndex + 1));
     } else {
       completedRef.current = true;
@@ -89,6 +109,15 @@ export default function QuizScreen() {
       });
     }
   }, [currentIndex, answers, animateTransition, router]);
+
+  const handleSavePromptContinue = useCallback(() => {
+    setSavePromptVisible(false);
+    animateTransition("forward", () => setCurrentIndex((idx) => idx + 1));
+  }, [animateTransition]);
+
+  const handleSavePromptClose = useCallback(() => {
+    setSavePromptVisible(false);
+  }, []);
 
   const goBack = useCallback(() => {
     if (currentIndex > 0) {
@@ -142,6 +171,13 @@ export default function QuizScreen() {
           })}
         </View>
       </Animated.View>
+
+      <QuizSaveModal
+        visible={savePromptVisible}
+        noCount={savePromptNoCount}
+        onClose={handleSavePromptClose}
+        onContinue={handleSavePromptContinue}
+      />
     </View>
   );
 }

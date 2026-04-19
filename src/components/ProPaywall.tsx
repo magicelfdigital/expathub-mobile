@@ -451,7 +451,7 @@ export function ProPaywall({
     if (!user) {
       console.log("[PURCHASE] Annual tapped but user not logged in — redirecting to auth");
       await storePendingPurchase("annual", resolvedCountrySlug);
-      router.push("/auth?mode=register");
+      router.push("/auth?mode=register&purchaseContext=annual_trial");
       return;
     }
     trackEvent("product_selected", { productId: RC_ANNUAL_PRODUCT, price: ANNUAL_PRICE, type: "annual_subscription" });
@@ -469,7 +469,15 @@ export function ProPaywall({
           else router.back();
           return;
         }
-        setError("Annual subscriptions are available on the mobile app. Open ExpatHub on your phone to purchase.");
+        const priceId = process.env.EXPO_PUBLIC_STRIPE_ANNUAL_PRICE_ID;
+        if (!priceId) {
+          setError("Annual checkout is not configured yet. Please try the monthly plan or check back soon.");
+          return;
+        }
+        const url = await createCheckoutSession(priceId);
+        if (url) {
+          window.location.href = url;
+        }
       } catch (e: any) {
         setError(e?.message ?? "Unknown error");
       } finally {
@@ -598,7 +606,13 @@ export function ProPaywall({
     );
   }
 
-  const showBottomCta = false;
+  // Show sticky CTA on the "What you get" and "FAQ" tabs to push conversion for
+  // users who scroll without committing. On the Plans tab, the inline plan CTAs
+  // already drive action so we hide the sticky bar to avoid duplication.
+  const showBottomCta = !hasFullAccess && !alreadyHasCountry && activeTab !== "plans";
+  const stickyCtaLabel = Platform.OS === "web"
+    ? `Subscribe Annually — ${ANNUAL_PRICE}/yr`
+    : "Start 7-day free trial";
 
   return (
     <View style={{ flex: 1, backgroundColor: tokens.color.bg }}>
@@ -756,16 +770,21 @@ export function ProPaywall({
             {activeTab === "plans" ? (
               <>
                 <View style={s.pricingSection}>
-                  {Platform.OS !== "web" ? (
                   <View style={[s.monthlyCard, { borderColor: tokens.color.gold, borderWidth: 2 }]}>
                     <View style={s.bestValueBadge}>
-                      <Text style={s.bestValueText}>7-DAY FREE TRIAL</Text>
+                      <Text style={s.bestValueText}>
+                        {Platform.OS === "web" ? "BEST VALUE" : "7-DAY FREE TRIAL"}
+                      </Text>
                     </View>
                     <View style={s.monthlyHeader}>
                       <Ionicons name="star" size={18} color={tokens.color.gold} />
                       <Text style={s.monthlyTitle}>Annual Pathfinder</Text>
                     </View>
-                    <Text style={s.monthlyMeta}>Free for 7 days, then {ANNUAL_PRICE}/year · Save over 50% vs monthly</Text>
+                    <Text style={s.monthlyMeta}>
+                      {Platform.OS === "web"
+                        ? `${ANNUAL_PRICE}/year · Save over 50% vs monthly`
+                        : `Free for 7 days, then ${ANNUAL_PRICE}/year · Save over 50% vs monthly`}
+                    </Text>
                     <Pressable
                       onPress={handleAnnualSubscribe}
                       disabled={busy}
@@ -774,14 +793,19 @@ export function ProPaywall({
                       {busy ? (
                         <ActivityIndicator size="small" color={tokens.color.white} />
                       ) : (
-                        <Text style={s.primaryCtaText}>Start 7-day free trial</Text>
+                        <Text style={s.primaryCtaText}>
+                          {Platform.OS === "web"
+                            ? `Subscribe Annually — ${ANNUAL_PRICE}/yr`
+                            : "Start 7-day free trial"}
+                        </Text>
                       )}
                     </Pressable>
-                    <Text style={s.trialFinePrint}>
-                      Cancel anytime before day 7 — you won't be charged.
-                    </Text>
+                    {Platform.OS !== "web" && (
+                      <Text style={s.trialFinePrint}>
+                        Cancel anytime before day 7 — you won't be charged.
+                      </Text>
+                    )}
                   </View>
-                  ) : null}
 
                   <View style={s.monthlyCard}>
                     <View style={s.monthlyHeader}>
@@ -919,16 +943,23 @@ export function ProPaywall({
       {showBottomCta ? (
         <View style={[s.bottomCtaBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <Pressable
-            onPress={handleDecisionPassPurchase}
+            onPress={() => {
+              trackEvent("paywall_sticky_cta_tapped", { tab: activeTab, platform: Platform.OS });
+              setActiveTab("plans");
+              handleAnnualSubscribe();
+            }}
             disabled={busy}
             style={({ pressed }) => [s.bottomCtaButton, pressed && s.ctaPressed]}
           >
             {busy ? (
               <ActivityIndicator size="small" color={tokens.color.white} />
             ) : (
-              <Text style={s.bottomCtaText}>Start 30-Day Decision Access - {DECISION_PASS_PRICE}</Text>
+              <Text style={s.bottomCtaText}>{stickyCtaLabel}</Text>
             )}
           </Pressable>
+          {Platform.OS !== "web" ? (
+            <Text style={s.bottomCtaFinePrint}>Cancel anytime before day 7 — you won't be charged.</Text>
+          ) : null}
         </View>
       ) : null}
     </View>
@@ -1513,5 +1544,12 @@ const s = {
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodyBold,
     fontSize: tokens.text.body,
+  },
+  bottomCtaFinePrint: {
+    fontSize: 11,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
+    textAlign: "center" as const,
+    marginTop: 6,
   },
 };

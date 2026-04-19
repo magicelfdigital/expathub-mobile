@@ -273,11 +273,46 @@ const ALL_ROWS: CompareRow[] = [
   },
 ];
 
+// Display order: free rows first (in original order), then pro rows reordered by
+// expected click-through impact based on user research and post-launch analytics.
+// High-emotional-pull rows (LGBTQ+, healthcare, tax, climate) appear first to
+// maximise paywall pressure per scroll.
+const PRO_ROW_ORDER = [
+  "lgbtq-index",
+  "healthcare-quality",
+  "tax-treatment",
+  "climate-score",
+  "tax-exposure",
+  "income-thresholds",
+  "bureaucracy",
+  "language-requirement",
+  "sponsorship-reality",
+  "not-good-for",
+];
+
+function orderRows(rows: CompareRow[]): CompareRow[] {
+  const free = rows.filter((r) => !r.proOnly);
+  const pro = rows.filter((r) => r.proOnly);
+  const proById = new Map(pro.map((r) => [r.id, r]));
+  const orderedPro: CompareRow[] = [];
+  for (const id of PRO_ROW_ORDER) {
+    const row = proById.get(id);
+    if (row) {
+      orderedPro.push(row);
+      proById.delete(id);
+    }
+  }
+  // Append any pro rows not explicitly listed (defensive against new additions)
+  for (const remaining of proById.values()) orderedPro.push(remaining);
+  return [...free, ...orderedPro];
+}
+
 export function getCompareMatrix(countrySlugs: string[]): CompareRow[] {
   const validSlugs = countrySlugs.filter(isLaunchCountry);
   if (validSlugs.length === 0) return [];
 
-  return ALL_ROWS.map((row) => {
+  const ordered = orderRows(ALL_ROWS);
+  return ordered.map((row) => {
     const filteredValues: Record<string, string> = {};
     for (const slug of validSlugs) {
       filteredValues[slug] = row.values[slug] ?? "\u2014";

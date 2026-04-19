@@ -60,7 +60,11 @@ type AnalyticsEvent =
   | "blocker_guide_notify_signup"
   | "bookmark_limit_hit"
   | "compare_row_tapped"
-  | "paywall_tab_viewed";
+  | "paywall_tab_viewed"
+  | "quiz_save_shown"
+  | "quiz_save_submitted"
+  | "quiz_save_dismissed"
+  | "paywall_sticky_cta_tapped";
 
 type EventProperties = Record<string, string | number | boolean | undefined>;
 

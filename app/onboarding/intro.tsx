@@ -90,7 +90,7 @@ export default function IntroScreen() {
           Not Sure Which Country Is Right for You?
         </Text>
         <Text style={s.subtitle}>
-          Answer 9 questions. Get a personalised fit score, your top country match, and exactly what's holding you back.
+          Take the 90-second quiz. Get a personalised fit score, your top country match, and exactly what's holding you back.
         </Text>
 
         <Text style={s.sectionLabel}>WHAT YOU'LL GET</Text>

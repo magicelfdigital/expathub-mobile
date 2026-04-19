@@ -25,7 +25,9 @@ type Mode = "login" | "register";
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ mode?: string }>();
+  const params = useLocalSearchParams<{ mode?: string; purchaseContext?: string }>();
+  const purchaseContext = typeof params.purchaseContext === "string" ? params.purchaseContext : undefined;
+  const isAnnualTrialContext = purchaseContext === "annual_trial";
   const { login, register } = useAuth();
   const [mode, setMode] = useState<Mode>(params.mode === "login" ? "login" : "register");
   const [email, setEmail] = useState("");
@@ -99,12 +101,18 @@ export default function AuthScreen() {
         </View>
 
         <Text style={s.heading}>
-          {mode === "login" ? "Welcome back" : "Create your account"}
+          {mode === "login"
+            ? "Welcome back"
+            : isAnnualTrialContext
+              ? "You're 30 seconds away from your 7-day free trial"
+              : "Create your account"}
         </Text>
         <Text style={s.subtitle}>
           {mode === "login"
             ? "Sign in to access your saved countries and subscription"
-            : "Sign up to sync your progress across devices"}
+            : isAnnualTrialContext
+              ? "Create an account so we can keep your trial and progress safe."
+              : "Sign up to sync your progress across devices"}
         </Text>
 
         {error ? (
