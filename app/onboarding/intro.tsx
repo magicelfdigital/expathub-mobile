@@ -168,7 +168,7 @@ export default function IntroScreen() {
           onPress={() => router.push("/onboarding/quiz")}
           style={({ pressed }) => [s.cta, pressed && { opacity: 0.9 }]}
         >
-          <Text style={s.ctaText}>See My Results</Text>
+          <Text style={s.ctaText}>Take the quiz</Text>
           <Ionicons name="arrow-forward" size={18} color="#fff" />
         </Pressable>
 
