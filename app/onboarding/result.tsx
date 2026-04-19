@@ -3,8 +3,15 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { calculateQuizResult, getGapMessage, hasFullGuide, TIER_LABELS, TIER_DESCRIPTIONS } from "@/src/data/quiz";
-import type { Tier } from "@/src/data/quiz";
+import {
+  calculateQuizResult,
+  hasFullGuide,
+  TIER_LABELS,
+  TIER_DESCRIPTIONS,
+  type Blocker,
+  type BlockerLevel,
+  type Tier,
+} from "@/src/data/quiz";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
@@ -19,9 +26,46 @@ const TIER_COLORS: Record<Tier, string> = {
   ready: tokens.color.teal,
 };
 
+const LEVEL_COLORS: Record<BlockerLevel, { border: string; bg: string; label: string; chip: string }> = {
+  critical: { border: "#D9534F", bg: "#FDF2F1", label: "Critical", chip: "#D9534F" },
+  moderate: { border: "#E8991A", bg: "#FFF8E8", label: "Moderate", chip: "#E8991A" },
+  explore: { border: "#3E81DD", bg: "#EEF4FC", label: "Explore", chip: "#3E81DD" },
+};
+
+const SECTION_TITLES: Record<BlockerLevel, string> = {
+  critical: "What's holding you back most",
+  moderate: "Worth your attention",
+  explore: "Areas to explore",
+};
+
 function getBaseUrl(): string {
   if (Platform.OS === "web") return getApiUrl().replace(/\/$/, "");
   return getBackendBase();
+}
+
+function BlockerCard({ blocker, onGuide }: { blocker: Blocker; onGuide: (label: string) => void }) {
+  const c = LEVEL_COLORS[blocker.level];
+  return (
+    <View style={[styles.blockerCard, { borderLeftColor: c.border, backgroundColor: c.bg }]}>
+      <View style={styles.blockerHeader}>
+        <View style={[styles.levelChip, { backgroundColor: c.chip }]}>
+          <Text style={styles.levelChipText}>{c.label}</Text>
+        </View>
+      </View>
+      <Text style={styles.blockerTitle}>{blocker.title}</Text>
+      <Text style={styles.blockerLabel}>What this means</Text>
+      <Text style={styles.blockerBody}>{blocker.whatThisMeans}</Text>
+      <Text style={styles.blockerLabel}>First action</Text>
+      <Text style={styles.blockerBody}>{blocker.firstAction}</Text>
+      <Pressable
+        onPress={() => onGuide(blocker.guideMeLabel)}
+        style={({ pressed }) => [styles.guideBtn, { borderColor: c.border }, pressed && { opacity: 0.85 }]}
+      >
+        <Text style={[styles.guideBtnText, { color: c.border }]}>{blocker.guideMeLabel}</Text>
+        <Ionicons name="arrow-forward" size={16} color={c.border} />
+      </Pressable>
+    </View>
+  );
 }
 
 export default function ResultScreen() {
@@ -53,8 +97,13 @@ export default function ResultScreen() {
   }, [result]);
 
   const tierColor = TIER_COLORS[result.tier];
-  const gapMessage = getGapMessage(result.risks);
   const countryHasGuide = hasFullGuide(result.topMatch.slug);
+
+  const grouped = useMemo(() => {
+    const g: Record<BlockerLevel, Blocker[]> = { critical: [], moderate: [], explore: [] };
+    for (const b of result.blockers) g[b.level].push(b);
+    return g;
+  }, [result.blockers]);
 
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
@@ -131,6 +180,20 @@ export default function ResultScreen() {
     router.replace("/(tabs)/(home)");
   };
 
+  const handleUnlockRoadmap = async () => {
+    await completeOnboarding(result, true);
+    trackEvent("paywall_unlock_tapped", { source: "result_screen", tier: result.tier });
+    if (result.topMatch.slug && countryHasGuide) {
+      router.push({ pathname: "/subscribe", params: { country: result.topMatch.slug } });
+    } else {
+      router.push("/subscribe");
+    }
+  };
+
+  const handleGuideMe = (label: string) => {
+    console.log(`[guide-me] ${label}`);
+  };
+
   const handleRestart = () => {
     router.replace("/onboarding/quiz");
   };
@@ -203,8 +266,6 @@ export default function ResultScreen() {
   };
 
   const renderSaveCard = () => {
-    if (!countryHasGuide) return null;
-
     if (emailSent) {
       return (
         <View style={styles.card}>
@@ -255,6 +316,36 @@ export default function ResultScreen() {
     );
   };
 
+  const renderBlockerSection = (level: BlockerLevel) => {
+    const items = grouped[level];
+    if (items.length === 0) return null;
+    return (
+      <View style={styles.blockerSection}>
+        <Text style={styles.sectionHeading}>{SECTION_TITLES[level]}</Text>
+        <View style={{ gap: 12 }}>
+          {items.map((b) => (
+            <BlockerCard key={b.questionId} blocker={b} onGuide={handleGuideMe} />
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  const renderPaywallCta = () => (
+    <Pressable
+      onPress={handleUnlockRoadmap}
+      style={({ pressed }) => [styles.paywallCta, pressed && { opacity: 0.9 }]}
+    >
+      <View style={{ flex: 1 }}>
+        <Text style={styles.paywallCtaTitle}>Unlock your full roadmap</Text>
+        <Text style={styles.paywallCtaSub}>Country-specific guides, planner, and unlimited compare</Text>
+      </View>
+      <Ionicons name="lock-open-outline" size={22} color="#fff" />
+    </Pressable>
+  );
+
+  const showPaywallAfterUrgent = grouped.critical.length > 0 || grouped.moderate.length > 0;
+
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <ScrollView
@@ -277,6 +368,24 @@ export default function ResultScreen() {
           </View>
         </View>
 
+        {renderBlockerSection("critical")}
+        {renderBlockerSection("moderate")}
+
+        {showPaywallAfterUrgent ? renderPaywallCta() : null}
+
+        {renderBlockerSection("explore")}
+
+        {result.blockers.length === 0 ? (
+          <View style={styles.card}>
+            <View style={styles.successRow}>
+              <Ionicons name="checkmark-circle" size={18} color={tokens.color.teal} />
+              <Text style={[styles.successText, { fontFamily: tokens.font.bodySemiBold, fontWeight: "600" }]}>
+                No critical gaps identified. Focus on locking in your timeline and target country.
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
         <View style={styles.card}>
           <Text style={styles.sectionLabel}>Your Top Match</Text>
           <View style={styles.matchRow}>
@@ -289,24 +398,7 @@ export default function ResultScreen() {
           {renderAvailabilityNotice()}
         </View>
 
-        <View style={styles.card}>
-          <Text style={styles.sectionLabel}>
-            {result.risks.length === 0 ? "Looking Good" : "Gaps to Address"}
-          </Text>
-          <Text style={styles.gapMessage}>{gapMessage}</Text>
-          {result.risks.length > 0 ? (
-            <View style={styles.riskList}>
-              {result.risks.map((risk) => (
-                <View key={risk} style={styles.riskRow}>
-                  <Ionicons name="alert-circle" size={16} color={tokens.color.gold} />
-                  <Text style={styles.riskText}>{risk}</Text>
-                </View>
-              ))}
-            </View>
-          ) : null}
-        </View>
-
-        {renderSaveCard()}
+        {countryHasGuide ? renderSaveCard() : null}
 
         <Pressable
           onPress={handleExploreMatch}
@@ -392,6 +484,108 @@ const styles = StyleSheet.create({
     fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 20,
+  },
+  blockerSection: {
+    gap: 10,
+  },
+  sectionHeading: {
+    fontSize: 18,
+    fontFamily: tokens.font.display,
+    fontWeight: "600",
+    color: tokens.color.text,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  blockerCard: {
+    borderRadius: 14,
+    borderLeftWidth: 5,
+    padding: 18,
+    borderTopWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderTopColor: "rgba(28,43,94,0.06)",
+    borderRightColor: "rgba(28,43,94,0.06)",
+    borderBottomColor: "rgba(28,43,94,0.06)",
+  },
+  blockerHeader: {
+    flexDirection: "row",
+    marginBottom: 8,
+  },
+  levelChip: {
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+  },
+  levelChipText: {
+    color: "#fff",
+    fontSize: 11,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  blockerTitle: {
+    fontSize: 17,
+    fontFamily: tokens.font.display,
+    fontWeight: "600",
+    color: tokens.color.text,
+    lineHeight: 24,
+    marginBottom: 12,
+  },
+  blockerLabel: {
+    fontSize: 12,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600",
+    color: tokens.color.subtext,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  blockerBody: {
+    fontSize: 14,
+    fontFamily: tokens.font.body,
+    color: tokens.color.text,
+    lineHeight: 20,
+  },
+  guideBtn: {
+    marginTop: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    backgroundColor: "#fff",
+  },
+  guideBtnText: {
+    fontSize: 14,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600",
+    flexShrink: 1,
+    textAlign: "center",
+  },
+  paywallCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    backgroundColor: "#606CB9",
+    borderRadius: 14,
+    padding: 18,
+  },
+  paywallCtaTitle: {
+    color: "#fff",
+    fontSize: 17,
+    fontFamily: tokens.font.display,
+    fontWeight: "600",
+    marginBottom: 2,
+  },
+  paywallCtaSub: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 13,
+    fontFamily: tokens.font.body,
   },
   matchRow: {
     flexDirection: "row",
@@ -489,27 +683,6 @@ const styles = StyleSheet.create({
     fontFamily: tokens.font.body,
     color: tokens.color.teal,
     lineHeight: 20,
-  },
-  gapMessage: {
-    fontSize: 15,
-    fontFamily: tokens.font.body,
-    color: tokens.color.text,
-    lineHeight: 22,
-    marginBottom: 4,
-  },
-  riskList: {
-    gap: 8,
-    marginTop: 8,
-  },
-  riskRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  riskText: {
-    fontSize: 15,
-    fontFamily: tokens.font.body,
-    color: tokens.color.text,
   },
   emailLabel: {
     fontSize: 16,
