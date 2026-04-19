@@ -1,0 +1,59 @@
+Update the ExpatHub result screen Guide me button behaviour only.
+Do not change anything else.
+
+## Guide me button logic
+
+Each blocker card has a "Guide me →" button with a guideMeLabel string.
+
+Implement the following behaviour in two layers:
+
+### Layer 1 — Paywall first
+On Guide me button press:
+- Trigger the existing RevenueCat paywall
+- Pass the guideMeLabel as context to personalise the paywall headline
+- The paywall headline should read: "Unlock: [guideMeLabel]"
+  e.g. "Unlock: Help me build a savings runway plan"
+- If the user subscribes or already has an active subscription, 
+  proceed immediately to Layer 2
+- If the user dismisses the paywall without subscribing, do nothing
+
+### Layer 2 — In-app navigation after subscription confirmed
+After RevenueCat confirms an active entitlement, navigate based on 
+the guideMeLabel value using this mapping:
+
+"Help me calculate my real moving budget" → app/tools/budget-calculator
+"Show me cost of living for my top region" → app/content/cost-of-living
+"Help me build a savings runway plan" → app/content/cost-of-living
+"Show me income requirements for my target visa" → app/content/visa-guides
+"Check if my income qualifies" → app/content/visa-guides
+"Help me map an income transition plan" → app/content/visa-guides
+"Match me to the right visa" → app/content/visa-guides
+"Help me figure out which visa type I need" → app/content/visa-guides
+"Start my visa research" → app/content/visa-guides
+"What professional help do I need and what does it cost" → app/content/bureaucracy-guides
+"Show me what the paperwork process actually looks like" → app/content/bureaucracy-guides
+"Show me lower-bureaucracy destinations" → app/content/bureaucracy-guides
+"Help us research the practical open questions" → app/content/destination-guides
+"Help me think through what my household needs from a destination" → app/content/destination-guides
+"Help me understand what's driving the hesitation" → app/content/destination-guides
+"Show me what daily life actually looks like in my target region" → app/content/destination-guides
+"Show me real expat accounts from my target region" → app/content/destination-guides
+"Help me find destinations that fit my lifestyle requirements" → app/content/destination-guides
+"Walk me through the exit strategy checklist" → app/tools/move-timeline
+"Help me think through a realistic fallback plan" → app/tools/move-timeline
+"Add this to my move timeline" → app/tools/move-timeline
+"Help me build a backwards timeline from my target date" → app/tools/move-timeline
+"Help me take my first concrete step" → app/tools/move-timeline
+"Help me figure out what's actually in the way" → app/tools/move-timeline
+
+If a screen does not yet exist, navigate to app/content/coming-soon 
+and pass the guideMeLabel as a param so the screen can display:
+"[guideMeLabel] — coming soon. You'll be notified when this is ready."
+
+### Notes
+- Check for active RevenueCat entitlement before triggering the paywall — 
+  if the user is already subscribed, skip the paywall and go straight to 
+  Layer 2 navigation
+- Do not create any of the destination screens — only implement the 
+  navigation logic and the coming-soon fallback
+- Do not change any other result screen behaviour

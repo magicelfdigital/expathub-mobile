@@ -113,6 +113,7 @@ type ProPaywallProps = {
   entryPoint?: PaywallEntryPoint;
   showClose?: boolean;
   onClose?: () => void;
+  unlockLabel?: string;
 };
 
 function getCountryName(slug: string): string {
@@ -125,6 +126,7 @@ export function ProPaywall({
   entryPoint,
   showClose = false,
   onClose,
+  unlockLabel,
 }: ProPaywallProps) {
   const router = useRouter();
   const { user, token } = useAuth();
@@ -625,7 +627,9 @@ export function ProPaywall({
             <Ionicons name="shield-checkmark" size={28} color={tokens.color.primary} />
           </View>
           <Text style={s.h1}>
-            {resolvedCountrySlug ? `Unlock ${countryName}` : "Make a confident relocation decision"}
+            {unlockLabel
+              ? `Unlock: ${unlockLabel}`
+              : resolvedCountrySlug ? `Unlock ${countryName}` : "Make a confident relocation decision"}
           </Text>
           <Text style={s.lead}>
             Compare countries, understand risks, and avoid costly mistakes
