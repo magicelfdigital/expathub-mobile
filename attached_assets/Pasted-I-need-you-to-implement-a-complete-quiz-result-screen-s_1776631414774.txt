@@ -1,0 +1,299 @@
+I need you to implement a complete quiz result screen system for ExpatHub, a React Native app built with Expo Router. This covers two things: (1) adding a 4th answer option to the existing quiz, and (2) building a new result screen that shows a personalised score, tier, and specific blocker content based on the user's answers.
+
+---
+
+## PART 1 — Add "Not sure yet" as a 4th answer option to the quiz
+
+The quiz currently has 3 options per question: Yes (2 pts), Somewhat (1 pt), No (0 pts).
+
+Add a 4th option to all 8 scored questions (Q1–Q8):
+- Label: "Not sure yet"
+- Score: 1 pt (same as Somewhat)
+- Internal flag: mark as `notSure: true` so the result screen can distinguish it from Somewhat
+
+The answer options in display order should be:
+1. Yes
+2. Somewhat  
+3. Not sure yet
+4. No
+
+Q9 (region selector) is unscored and unchanged.
+
+---
+
+## PART 2 — Build the result screen
+
+Create a new screen: `app/result.tsx` (or equivalent in your Expo Router structure)
+
+The screen receives the user's 9 answers as navigation params or from a shared state/context.
+
+### Score calculation
+
+For Q1–Q8:
+- Yes = 2 pts
+- Somewhat = 1 pt
+- Not sure yet = 1 pt
+- No = 0 pts
+
+Weighted questions (multiply pts × weight before summing):
+- Q1 Financial Cushion: 1.5×
+- Q2 Income Stability: 1.5×
+- Q3 Visa Pathway: 1.5×
+- Q4–Q8: 1×
+
+Max raw score = (2×1.5) + (2×1.5) + (2×1.5) + (2×1) + (2×1) + (2×1) + (2×1) + (2×1) = 19
+Scale the score to display out of 16: displayScore = Math.round((rawScore / 19) * 16)
+
+### Tier logic
+
+- 0–5: Dreaming
+- 6–11: Exploring  
+- 12–16: Ready to Act
+
+### Blocker logic
+
+For each of Q1–Q8, generate a blocker card based on the answer. "Yes" produces no blocker. The other three states each produce a blocker with:
+- level: "critical" | "moderate" | "explore"
+- title: string
+- whatThisMeans: string
+- firstAction: string
+- guideMeLabel: string
+
+Blocker levels by answer:
+- No on Q1–Q3 (weighted) → critical
+- No on Q4–Q8 → moderate
+- Somewhat on any question → moderate
+- Not sure yet on any question → explore
+
+Here is the complete blocker content for all 24 states:
+
+### Q1 — Financial Cushion
+
+**Somewhat:**
+level: moderate
+title: "Financial cushion: partially there"
+whatThisMeans: "Most people underestimate moving costs by 40–60%. The real number includes visa fees, flights, shipping or storage, a security deposit, first/last month rent, and a buffer for setup surprises. If you haven't added all of that up against your savings, you don't actually know your runway yet."
+firstAction: "Build a one-page moving cost estimate. Categories: visa + legal fees, transport, housing setup, 3-month cost-of-living buffer at destination."
+guideMeLabel: "Help me calculate my real moving budget"
+
+**Not sure yet:**
+level: explore
+title: "Financial cushion: not sure what you need"
+whatThisMeans: "The 6-month rule exists because things go wrong — visa delays, a bad rental, a medical bill. Six months gives you time to course-correct without panic. The number is different for every destination — €2,000/month in Portugal is very different from £3,500/month in Brighton."
+firstAction: "Pick one target region and look up average monthly expat living costs so you can set a real savings target."
+guideMeLabel: "Show me cost of living for my top region"
+
+**No:**
+level: critical
+title: "Financial cushion: not yet move-ready"
+whatThisMeans: "A move without financial runway is the #1 reason expats return home within 12 months — not because the country was wrong, but because money stress overrides everything else."
+firstAction: "Set a savings target and a timeline to hit it. If your target region costs €2,000/month, your minimum goal is €12,000 in move-ready savings on top of moving costs."
+guideMeLabel: "Help me build a savings runway plan"
+
+---
+
+### Q2 — Income Stability
+
+**Somewhat:**
+level: moderate
+title: "Income portability: partially sorted"
+whatThisMeans: "Most destination visas require proof of stable income for both applicants if applying jointly, and the threshold is usually higher than people expect. Portugal's D7 requires ~€760/month per person minimum, often more in practice."
+firstAction: "Map every income source and label each one: fully portable, partially portable, or location-dependent. Then identify the gap between your portable income total and your destination's visa income threshold."
+guideMeLabel: "Show me income requirements for my target visa"
+
+**Not sure yet:**
+level: explore
+title: "Income portability: not sure what qualifies"
+whatThisMeans: "Legally portable means your income doesn't require you to be physically present in a specific country to earn it. Remote employment, freelance contracts, rental income, dividends, and pensions all typically qualify. A W-2 job where your employer doesn't know you've moved usually doesn't."
+firstAction: "List your income sources and check them against three questions: Is it location-independent? Is it consistent? Can you document it with bank statements or contracts?"
+guideMeLabel: "Check if my income qualifies"
+
+**No:**
+level: critical
+title: "Income portability: needs a plan"
+whatThisMeans: "Location-dependent income is the most common blocker for would-be expats. This needs a concrete transition plan before the move becomes viable."
+firstAction: "Identify which path fits your situation: negotiate remote with your current employer, transition to freelance, build passive income, or target a destination with a job-seeker visa."
+guideMeLabel: "Help me map an income transition plan"
+
+---
+
+### Q3 — Visa Pathway
+
+**Somewhat:**
+level: moderate
+title: "Visa pathway: still taking shape"
+whatThisMeans: "Knowing the country isn't the same as knowing the visa. Spain alone has six different residency pathways with different income thresholds, processing times, and renewal conditions. The right visa depends on your income type, savings, whether you plan to work locally, and your timeline."
+firstAction: "Narrow from country to visa type. For each target country, look up the two or three most common expat pathways and check your income and savings against the minimum requirements."
+guideMeLabel: "Match me to the right visa"
+
+**Not sure yet:**
+level: explore
+title: "Visa pathway: not sure where to start"
+whatThisMeans: "For your target regions there are well-established pathways designed for exactly this profile: financially independent, remote-income, or retired. You don't need a lawyer to start — you need to know which category you fall into."
+firstAction: "Start with one question: are you planning to work locally, bring remote income, or live on savings/pension? That single answer determines which visa category applies to you."
+guideMeLabel: "Help me figure out which visa type I need"
+
+**No:**
+level: critical
+title: "Visa pathway: not yet identified"
+whatThisMeans: "Without a legal pathway to stay, everything else is hypothetical. The visa process for most popular expat destinations takes 3–12 months from application to approval, and preparation starts well before that."
+firstAction: "Pick your top region and spend 30 minutes on ExpatHub's visa overview for that region. You're looking for one thing: a visa category where you meet at least 80% of the requirements today."
+guideMeLabel: "Start my visa research"
+
+---
+
+### Q4 — Bureaucracy Tolerance
+
+**Somewhat:**
+level: moderate
+title: "Bureaucracy tolerance: a real factor"
+whatThisMeans: "The paperwork involved isn't difficult — it's slow, repetitive, and occasionally contradictory. Apostilles, notarised translations, criminal background checks, bank statements formatted a specific way. The people who struggle most are the ones who try to do it alone."
+firstAction: "Budget for help. A local gestor (Spain), solicitador (Portugal), or immigration solicitor (UK) costs €500–1,500 and handles the parts most likely to go wrong."
+guideMeLabel: "What professional help do I need and what does it cost"
+
+**Not sure yet:**
+level: explore
+title: "Bureaucracy: not sure what's involved"
+whatThisMeans: "Most people are surprised by the volume, not the complexity. You're typically dealing with apostilled documents, financial proof, a criminal background check, opening a local bank account before you have an address, and registering with local authorities after arrival. Each step has a sequence."
+firstAction: "Look at the visa application checklist for your target country. That list tells you exactly what's involved before you commit to anything."
+guideMeLabel: "Show me what the paperwork process actually looks like"
+
+**No:**
+level: moderate
+title: "Bureaucracy tolerance: worth factoring into destination choice"
+whatThisMeans: "Bureaucracy frustration is a genuine quality-of-life issue abroad — it doesn't end at the visa. Annual renewals, tax filings in two countries, driving licence exchanges, healthcare registration. It's an ongoing reality, not a one-time hurdle."
+firstAction: "Be honest about whether this is a dealbreaker or a manageable discomfort. Some destinations are significantly easier than others on bureaucracy burden."
+guideMeLabel: "Show me lower-bureaucracy destinations"
+
+---
+
+### Q5 — Family Alignment
+
+**Somewhat:**
+level: moderate
+title: "Household alignment: open questions to resolve"
+whatThisMeans: "Open questions at this stage are normal — they usually cluster around schools, leaving family behind, career disruption for a partner, and uncertainty about what daily life actually looks like. These don't need to be resolved before you research, but they do before you apply for anything."
+firstAction: "Name the open questions explicitly as a household. Sort them into two buckets: questions that research can answer (schools, healthcare, cost of living) and questions that need a values conversation."
+guideMeLabel: "Help us research the practical open questions"
+
+**Not sure yet:**
+level: explore
+title: "Household alignment: conversation not yet had"
+whatThisMeans: "This is the most important conversation to have before going further — not because it will derail the plan, but because the answers shape everything else. Which region fits your household depends on school quality, language, climate, proximity to flights home, and more."
+firstAction: "Have one focused conversation with the framing: if we were going to do this, what would each of us need to feel good about it? That question surfaces the real requirements without turning it into a negotiation."
+guideMeLabel: "Help me think through what my household needs from a destination"
+
+**No:**
+level: critical
+title: "Household alignment: needs work first"
+whatThisMeans: "A move abroad with unresolved household disagreement has a high failure rate — not because the destination was wrong, but because the stress of relocation amplifies existing tension."
+firstAction: "Pause the destination research temporarily. Focus on understanding what the resistant or uncertain household member actually needs — more information, a trial visit, or a different timeline."
+guideMeLabel: "Help me understand what's driving the hesitation"
+
+---
+
+### Q6 — Lifestyle Tradeoffs
+
+**Somewhat:**
+level: moderate
+title: "Lifestyle tradeoffs: some hesitation"
+whatThisMeans: "The tradeoffs that catch people off guard most often aren't the big ones — they're the small daily friction points. Slower delivery. Healthcare that works differently. Stores closed on Sundays. None are dealbreakers, but worth naming so they don't become sources of resentment."
+firstAction: "Make a specific list of your top five daily conveniences. Then look up how each one translates in your target region."
+guideMeLabel: "Show me what daily life actually looks like in my target region"
+
+**Not sure yet:**
+level: explore
+title: "Lifestyle tradeoffs: not sure what changes"
+whatThisMeans: "Most people overestimate the sacrifices and underestimate the gains. The tradeoffs vary enormously by destination. Brighton has next-day delivery and every UK convenience. The Algarve has warm winters and low cost of living but slower logistics. Knowing which tradeoffs apply to your specific target is more useful than worrying in the abstract."
+firstAction: "Pick your top region and read two or three recent expat accounts from people at a similar life stage. Real accounts of daily life are more useful than any official guide."
+guideMeLabel: "Show me real expat accounts from my target region"
+
+**No:**
+level: moderate
+title: "Lifestyle tradeoffs: a real sticking point"
+whatThisMeans: "If certain conveniences feel non-negotiable, filter destinations by how well they preserve them rather than assuming you'll adapt. Some destinations are significantly more expat-infrastructure-rich — English widely spoken, international schools, familiar retail, fast internet, good healthcare."
+firstAction: "Write down the three things you're least willing to give up. Then use that as a filter on destinations rather than a reason to stop."
+guideMeLabel: "Help me find destinations that fit my lifestyle requirements"
+
+---
+
+### Q7 — Exit Strategy
+
+**Somewhat:**
+level: moderate
+title: "Exit strategy: loosely planned"
+whatThisMeans: "A loose plan is fine at this stage. What you're protecting against is being abroad 18 months, things not working out, and discovering you don't know how to get back — financially, practically, or legally."
+firstAction: "Spend one hour answering four questions in writing: Can you re-establish residency at home? Do you have a storage unit or family address? What happens to your health insurance? What does re-entry to the job market look like?"
+guideMeLabel: "Walk me through the exit strategy checklist"
+
+**Not sure yet:**
+level: explore
+title: "Exit strategy: haven't thought it through yet"
+whatThisMeans: "Having a clear fallback is what gives you the confidence to actually go. People who know they can come back are more likely to leave in the first place, and more likely to make good decisions once they're there."
+firstAction: "Answer one question: if you moved abroad and needed to return in 12 months, what would you need to have kept in place to make that possible? That answer is your exit strategy."
+guideMeLabel: "Help me think through a realistic fallback plan"
+
+**No:**
+level: moderate
+title: "No exit strategy yet"
+whatThisMeans: "You don't need a detailed exit plan before you start researching. But before you sign a lease or sell a car, you want to know your re-entry baseline. The cost of not having one shows up as paralysis when small things go wrong abroad."
+firstAction: "File this as a task for the 6-months-before-move stage, not now. Add it to your move timeline so it doesn't fall through the cracks."
+guideMeLabel: "Add this to my move timeline"
+
+---
+
+### Q8 — Timeline Reality
+
+**Somewhat:**
+level: moderate
+title: "Timeline: outside the 12–24 month window"
+whatThisMeans: "Moving sooner than 12 months means compressing the visa application window, which has fixed processing times you can't rush. Moving on a 3+ year horizon often loses momentum — life fills the gap and the move keeps deferring."
+firstAction: "Set a target move month — even a rough one. Then work backwards: when does your visa application need to be submitted? When do you need your financial documents ready?"
+guideMeLabel: "Help me build a backwards timeline from my target date"
+
+**Not sure yet:**
+level: explore
+title: "Timeline: still in the dreaming phase"
+whatThisMeans: "Dreaming is a legitimate and important phase. The risk is staying there indefinitely. The move from dreaming to planning usually happens when one thing becomes concrete: a target region, a specific visa, or a savings number."
+firstAction: "Pick the one thing that feels most exciting and make it slightly more concrete. If it's a region, research one specific town. If it's a visa, look up the income requirement."
+guideMeLabel: "Help me take my first concrete step"
+
+**No:**
+level: explore
+title: "No timeline yet"
+whatThisMeans: "No timeline usually means the move still feels hypothetical, or there's a real constraint that makes committing to a date feel premature. The goal isn't to force a timeline — it's to understand which one applies, because the next step is different for each."
+firstAction: "Ask yourself honestly: is there a specific thing that needs to change before this becomes real? Name it. If you can name it, you can plan for it."
+guideMeLabel: "Help me figure out what's actually in the way"
+
+---
+
+## PART 3 — Result screen UI
+
+Build the result screen with these sections in order:
+
+1. **Score display** — large number out of 16, tier badge (Dreaming / Exploring / Ready to Act), one-sentence tier description
+
+2. **Blocker cards** — grouped into three sections:
+   - "What's holding you back most" — critical blockers (red left border)
+   - "Worth your attention" — moderate blockers (amber left border)
+   - "Areas to explore" — explore blockers (blue left border)
+   
+   Each card shows: title, "What this means" text, "First action" text, and a "Guide me" CTA button
+
+3. **Top country match** — derived from Q9 region answer, show the top recommended country for that region:
+   - Southern Europe → Portugal (Algarve)
+   - Northern Europe → United Kingdom (Brighton)
+   - Latin America → Mexico (Oaxaca/Mexico City)
+   - Southeast Asia / Other → Thailand (Chiang Mai)
+
+4. **Paywall CTA** — "Unlock your full roadmap" button that triggers the RevenueCat paywall. Place this after the first critical or moderate blocker section, before the explore section.
+
+---
+
+## Notes
+
+- Use the existing ExpatHub design system: primary #606CB9, teal #33C4DC, gold #E8991A, background #F7F6F2, Lora serif for headlines, DM Sans for body
+- The "Guide me" buttons do not need to navigate anywhere yet — use a placeholder onPress that console.logs the guideMeLabel
+- Do not modify any existing screens other than adding the 4th answer option to the quiz
+- Use TypeScript throughout
+- If quiz answers are passed via navigation params, handle the case where params are missing gracefully
