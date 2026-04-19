@@ -72,3 +72,6 @@ Preferred communication style: Simple, everyday language.
 ### Subscription & Payments
 - react-native-purchases (RevenueCat SDK)
 - Stripe API
+
+### Analytics
+- posthog-react-native (initialized in `app/_layout.tsx`, wired into `src/lib/analytics.ts`'s `trackEvent`). Reads `EXPO_PUBLIC_POSTHOG_KEY`; if absent, init is skipped and events still log locally + post to `/api/analytics`. Funnel events: `app_opened`, `onboarding_started`, `quiz_started`, `quiz_completed`, `result_screen_viewed`, `paywall_viewed`, `trial_tapped`, `trial_started`.

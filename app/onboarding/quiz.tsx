@@ -5,6 +5,7 @@ import { Animated, Platform, Pressable, StyleSheet, Text, View, useWindowDimensi
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { QUIZ_QUESTIONS } from "@/src/data/quiz";
 import { tokens } from "@/theme/tokens";
+import { trackEvent } from "@/src/lib/analytics";
 
 const TOTAL = QUIZ_QUESTIONS.length;
 
@@ -17,6 +18,14 @@ export default function QuizScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const startedRef = useRef(false);
+
+  React.useEffect(() => {
+    if (!startedRef.current) {
+      startedRef.current = true;
+      trackEvent("quiz_started");
+    }
+  }, []);
 
   const question = QUIZ_QUESTIONS[currentIndex];
   const progress = (currentIndex + 1) / TOTAL;
@@ -46,6 +55,7 @@ export default function QuizScreen() {
     if (currentIndex < TOTAL - 1) {
       animateTransition("forward", () => setCurrentIndex(currentIndex + 1));
     } else {
+      trackEvent("quiz_completed", { totalQuestions: TOTAL });
       router.push({
         pathname: "/onboarding/result",
         params: { answers: JSON.stringify(newAnswers) },

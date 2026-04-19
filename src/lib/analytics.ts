@@ -1,7 +1,15 @@
 import { Platform } from "react-native";
+import PostHog from "posthog-react-native";
 import { getBackendBase } from "@/src/billing/backendClient";
 
 type AnalyticsEvent =
+  | "app_opened"
+  | "onboarding_started"
+  | "quiz_started"
+  | "quiz_completed"
+  | "result_screen_viewed"
+  | "trial_tapped"
+  | "trial_started"
   | "subscribe_screen_viewed"
   | "subscribe_tapped"
   | "subscribe_success"
@@ -42,11 +50,49 @@ type AnalyticsEvent =
   | "plan_completed"
   | "lifetime_offer_shown"
   | "lifetime_offer_clicked"
-  | "waitlist_joined";
+  | "waitlist_joined"
+  | "readiness_lead_saved"
+  | "country_interest_submitted";
 
 type EventProperties = Record<string, string | number | boolean | undefined>;
 
 const listeners: Array<(event: AnalyticsEvent, props: EventProperties) => void> = [];
+
+let posthogClient: PostHog | null = null;
+let posthogInitialized = false;
+
+export function initAnalytics() {
+  if (posthogInitialized) return;
+  posthogInitialized = true;
+
+  const apiKey = process.env.EXPO_PUBLIC_POSTHOG_KEY;
+  if (!apiKey) {
+    if (__DEV__) {
+      console.log("[Analytics] PostHog API key not set (EXPO_PUBLIC_POSTHOG_KEY); skipping init");
+    }
+    return;
+  }
+
+  try {
+    posthogClient = new PostHog(apiKey, {
+      host: "https://us.i.posthog.com",
+    });
+  } catch (e) {
+    if (__DEV__) console.log("[Analytics] PostHog init error", e);
+  }
+}
+
+export function identifyUser(userId: string, traits?: Record<string, any>) {
+  try {
+    posthogClient?.identify(userId, traits);
+  } catch {}
+}
+
+export function shutdownAnalytics() {
+  try {
+    posthogClient?.shutdown();
+  } catch {}
+}
 
 export function trackEvent(
   event: AnalyticsEvent,
@@ -61,6 +107,10 @@ export function trackEvent(
       listener(event, properties);
     } catch {}
   }
+
+  try {
+    posthogClient?.capture(event, { ...properties, platform: Platform.OS });
+  } catch {}
 
   if (!__DEV__) {
     try {

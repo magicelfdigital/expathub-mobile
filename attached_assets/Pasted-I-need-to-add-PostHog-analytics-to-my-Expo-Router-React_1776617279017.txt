@@ -1,0 +1,63 @@
+I need to add PostHog analytics to my Expo Router React Native app (ExpatHub) to track the conversion funnel from onboarding through paywall. Here's exactly what to do:
+
+## 1. Install PostHog
+Run:
+  npx expo install posthog-react-native
+
+## 2. Create analytics utility
+Create file: lib/analytics.ts
+
+import PostHog from 'posthog-react-native';
+
+let client: PostHog | null = null;
+
+export function initAnalytics() {
+  client = new PostHog('YOUR_POSTHOG_API_KEY', {
+    host: 'https://us.i.posthog.com',
+  });
+}
+
+export function track(event: string, properties?: Record<string, any>) {
+  client?.capture(event, properties);
+}
+
+export function identifyUser(userId: string, traits?: Record<string, any>) {
+  client?.identify(userId, traits);
+}
+
+export function shutdownAnalytics() {
+  client?.shutdown();
+}
+
+## 3. Initialize in app root
+In app/_layout.tsx, import and call initAnalytics() inside useEffect on mount.
+
+## 4. Add these tracking calls to the following screens:
+
+app/index.tsx (or onboarding entry screen):
+  track('app_opened')
+  track('onboarding_started')
+
+Quiz screen (wherever quiz questions render):
+  On first question shown: track('quiz_started')
+  On final question answered: track('quiz_completed', { score: <weighted score>, topRegion: <top result> })
+
+Result screen:
+  track('result_screen_viewed', { topRegion: <top result>, matchScore: <score> })
+
+Paywall screen (wherever Monthly/Annual subscription options render):
+  On screen mount: track('paywall_viewed')
+  On "Start Free Trial" tap: track('trial_tapped')
+
+After RevenueCat purchase confirmed:
+  track('trial_started', { plan: 'monthly' | 'annual' })
+
+## 5. Get PostHog API key
+I will provide the API key separately. For now use the placeholder 'YOUR_POSTHOG_API_KEY'.
+
+## Notes:
+- Do not add any other libraries
+- Do not modify any existing UI or business logic
+- Only add analytics calls and the lib/analytics.ts file
+- Use TypeScript throughout
+- PostHog free tier supports up to 1M events/month — no billing needed to start

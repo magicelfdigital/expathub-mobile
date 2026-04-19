@@ -5,6 +5,9 @@ import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { tokens } from "@/theme/tokens";
+import { trackEvent } from "@/src/lib/analytics";
+
+let _onboardingTracked = false;
 
 const SECTION_LABEL = "#606CB9";
 const BODY_COLOR = "#5A6785";
@@ -60,6 +63,13 @@ export default function IntroScreen() {
   const { skipOnboarding } = useOnboarding();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
+
+  React.useEffect(() => {
+    if (!_onboardingTracked) {
+      _onboardingTracked = true;
+      trackEvent("onboarding_started");
+    }
+  }, []);
 
   return (
     <View style={s.root}>

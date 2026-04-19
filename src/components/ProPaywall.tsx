@@ -260,12 +260,14 @@ export function ProPaywall({
   }, [user, entitlementLoading]);
 
   useEffect(() => {
-    trackEvent("paywall_shown", {
+    const props = {
       platform: Platform.OS,
       country: resolvedCountrySlug ?? "none",
       pathway: pathwayKey ?? "none",
       entryPoint: resolvedEntryPoint,
-    });
+    };
+    trackEvent("paywall_shown", props);
+    trackEvent("paywall_viewed", props);
   }, []);
 
   useEffect(() => {
@@ -301,6 +303,11 @@ export function ProPaywall({
 
       if (result.status === "confirmed") {
         trackEvent("purchase_success", { type, platform: Platform.OS, status: "confirmed" });
+        if (type === "monthly_subscription") {
+          trackEvent("trial_started", { plan: "monthly", platform: Platform.OS });
+        } else if (type === "annual_subscription") {
+          trackEvent("trial_started", { plan: "annual", platform: Platform.OS });
+        }
         await refresh();
         console.log(`[PURCHASE] ${type} confirmed by backend, closing paywall`);
         if (onClose) onClose();
@@ -407,6 +414,7 @@ export function ProPaywall({
     }
     trackEvent("product_selected", { productId: RC_MONTHLY_PRODUCT, price: MONTHLY_PRICE, type: "monthly_subscription" });
     trackEvent("purchase_tapped", { type: "monthly_subscription", platform: Platform.OS });
+    trackEvent("trial_tapped", { plan: "monthly", platform: Platform.OS });
     if (Platform.OS === "web") {
       setBusy(true);
       setError(null);
@@ -447,6 +455,7 @@ export function ProPaywall({
     }
     trackEvent("product_selected", { productId: RC_ANNUAL_PRODUCT, price: ANNUAL_PRICE, type: "annual_subscription" });
     trackEvent("purchase_tapped", { type: "annual_subscription", platform: Platform.OS });
+    trackEvent("trial_tapped", { plan: "annual", platform: Platform.OS });
     if (Platform.OS === "web") {
       setBusy(true);
       setError(null);

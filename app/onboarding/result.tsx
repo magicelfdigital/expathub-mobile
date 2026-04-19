@@ -40,6 +40,18 @@ export default function ResultScreen() {
 
   const result = useMemo(() => calculateQuizResult(answers), [answers]);
 
+  const viewedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!viewedRef.current) {
+      viewedRef.current = true;
+      trackEvent("result_screen_viewed", {
+        topRegion: result.topMatch.name,
+        matchScore: result.score,
+        tier: result.tier,
+      });
+    }
+  }, [result]);
+
   const tierColor = TIER_COLORS[result.tier];
   const gapMessage = getGapMessage(result.risks);
   const countryHasGuide = hasFullGuide(result.topMatch.slug);
