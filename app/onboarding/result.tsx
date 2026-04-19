@@ -13,8 +13,6 @@ import {
 } from "@/src/data/quiz";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSubscription } from "@/contexts/SubscriptionContext";
-import { resolveGuideMeRoute } from "@/src/data/guideMeRoutes";
 import { tokens } from "@/theme/tokens";
 import { trackEvent } from "@/src/lib/analytics";
 import { getApiUrl } from "@/lib/query-client";
@@ -43,7 +41,7 @@ function getBaseUrl(): string {
   return getBackendBase();
 }
 
-function BlockerCard({ blocker, onGuide }: { blocker: Blocker; onGuide: (b: Blocker) => void }) {
+function BlockerCard({ blocker }: { blocker: Blocker }) {
   const c = LEVEL_COLORS[blocker.level];
   return (
     <View style={[styles.blockerCard, { borderLeftColor: c.border, backgroundColor: c.bg }]}>
@@ -57,13 +55,6 @@ function BlockerCard({ blocker, onGuide }: { blocker: Blocker; onGuide: (b: Bloc
       <Text style={styles.blockerBody}>{blocker.whatThisMeans}</Text>
       <Text style={styles.blockerLabel}>First action</Text>
       <Text style={styles.blockerBody}>{blocker.firstAction}</Text>
-      <Pressable
-        onPress={() => onGuide(blocker)}
-        style={({ pressed }) => [styles.guideBtn, { borderColor: c.border }, pressed && { opacity: 0.85 }]}
-      >
-        <Text style={[styles.guideBtnText, { color: c.border }]}>{blocker.guideMeLabel}</Text>
-        <Ionicons name="arrow-forward" size={16} color={c.border} />
-      </Pressable>
     </View>
   );
 }
@@ -76,7 +67,6 @@ export default function ResultScreen() {
   const { answers: answersStr } = useLocalSearchParams<{ answers?: string }>();
   const { completeOnboarding } = useOnboarding();
   const { user } = useAuth();
-  const { hasActiveSubscription, hasFullAccess } = useSubscription();
 
   const answers = useMemo(() => {
     try { return JSON.parse(answersStr ?? "{}"); } catch { return {}; }
@@ -142,36 +132,6 @@ export default function ResultScreen() {
     router.push("/subscribe");
   };
 
-  const handleGuideMe = async (blocker: Blocker) => {
-    const blockerId = `q${blocker.questionId}-${blocker.level}`;
-    const label = blocker.guideMeLabel;
-    const targetRoute = resolveGuideMeRoute(label);
-
-    trackEvent("blocker_guide_tapped", {
-      blockerId,
-      questionId: blocker.questionId,
-      level: blocker.level,
-      tier: result.tier,
-      label,
-      targetRoute,
-    });
-
-    // Mark onboarding complete so navigation guards don't bounce us back to intro.
-    await completeOnboarding(result, true);
-
-    // Layer 1: if user already has access, skip the paywall and go straight in.
-    if (hasActiveSubscription || hasFullAccess) {
-      router.push(targetRoute as any);
-      return;
-    }
-
-    // Otherwise, show the paywall with the blocker label as the unlock context.
-    // After entitlement activates, the subscribe screen will redirect to targetRoute.
-    router.push(
-      `/subscribe?unlockLabel=${encodeURIComponent(label)}&redirectTo=${encodeURIComponent(targetRoute)}` as any
-    );
-  };
-
   const handleRestart = () => {
     router.replace("/onboarding/quiz");
   };
@@ -235,7 +195,7 @@ export default function ResultScreen() {
         <Text style={styles.sectionHeading}>{SECTION_TITLES[level]}</Text>
         <View style={{ gap: 12 }}>
           {items.map((b) => (
-            <BlockerCard key={b.questionId} blocker={b} onGuide={handleGuideMe} />
+            <BlockerCard key={b.questionId} blocker={b} />
           ))}
         </View>
       </View>
@@ -446,25 +406,6 @@ const styles = StyleSheet.create({
     fontFamily: tokens.font.body,
     color: tokens.color.text,
     lineHeight: 20,
-  },
-  guideBtn: {
-    marginTop: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    borderWidth: 1.5,
-    backgroundColor: "#fff",
-  },
-  guideBtnText: {
-    fontSize: 14,
-    fontFamily: tokens.font.bodySemiBold,
-    fontWeight: "600",
-    flexShrink: 1,
-    textAlign: "center",
   },
   paywallCta: {
     flexDirection: "row",
