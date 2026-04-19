@@ -469,15 +469,7 @@ export function ProPaywall({
           else router.back();
           return;
         }
-        const priceId = process.env.EXPO_PUBLIC_STRIPE_ANNUAL_PRICE_ID;
-        if (!priceId) {
-          setError("Annual checkout is not configured yet. Please try the monthly plan or check back soon.");
-          return;
-        }
-        const url = await createCheckoutSession(priceId);
-        if (url) {
-          window.location.href = url;
-        }
+        setError("Annual subscriptions are available on the mobile app. Open ExpatHub on your phone to purchase.");
       } catch (e: any) {
         setError(e?.message ?? "Unknown error");
       } finally {
@@ -611,7 +603,7 @@ export function ProPaywall({
   // already drive action so we hide the sticky bar to avoid duplication.
   const showBottomCta = !hasFullAccess && !alreadyHasCountry && activeTab !== "plans";
   const stickyCtaLabel = Platform.OS === "web"
-    ? `Subscribe Annually — ${ANNUAL_PRICE}/yr`
+    ? `Subscribe Monthly — ${MONTHLY_PRICE}/mo`
     : "Start 7-day free trial";
 
   return (
@@ -770,21 +762,16 @@ export function ProPaywall({
             {activeTab === "plans" ? (
               <>
                 <View style={s.pricingSection}>
+                  {Platform.OS !== "web" ? (
                   <View style={[s.monthlyCard, { borderColor: tokens.color.gold, borderWidth: 2 }]}>
                     <View style={s.bestValueBadge}>
-                      <Text style={s.bestValueText}>
-                        {Platform.OS === "web" ? "BEST VALUE" : "7-DAY FREE TRIAL"}
-                      </Text>
+                      <Text style={s.bestValueText}>7-DAY FREE TRIAL</Text>
                     </View>
                     <View style={s.monthlyHeader}>
                       <Ionicons name="star" size={18} color={tokens.color.gold} />
                       <Text style={s.monthlyTitle}>Annual Pathfinder</Text>
                     </View>
-                    <Text style={s.monthlyMeta}>
-                      {Platform.OS === "web"
-                        ? `${ANNUAL_PRICE}/year · Save over 50% vs monthly`
-                        : `Free for 7 days, then ${ANNUAL_PRICE}/year · Save over 50% vs monthly`}
-                    </Text>
+                    <Text style={s.monthlyMeta}>Free for 7 days, then {ANNUAL_PRICE}/year · Save over 50% vs monthly</Text>
                     <Pressable
                       onPress={handleAnnualSubscribe}
                       disabled={busy}
@@ -793,19 +780,14 @@ export function ProPaywall({
                       {busy ? (
                         <ActivityIndicator size="small" color={tokens.color.white} />
                       ) : (
-                        <Text style={s.primaryCtaText}>
-                          {Platform.OS === "web"
-                            ? `Subscribe Annually — ${ANNUAL_PRICE}/yr`
-                            : "Start 7-day free trial"}
-                        </Text>
+                        <Text style={s.primaryCtaText}>Start 7-day free trial</Text>
                       )}
                     </Pressable>
-                    {Platform.OS !== "web" && (
-                      <Text style={s.trialFinePrint}>
-                        Cancel anytime before day 7 — you won't be charged.
-                      </Text>
-                    )}
+                    <Text style={s.trialFinePrint}>
+                      Cancel anytime before day 7 — you won't be charged.
+                    </Text>
                   </View>
+                  ) : null}
 
                   <View style={s.monthlyCard}>
                     <View style={s.monthlyHeader}>
@@ -946,7 +928,11 @@ export function ProPaywall({
             onPress={() => {
               trackEvent("paywall_sticky_cta_tapped", { tab: activeTab, platform: Platform.OS });
               setActiveTab("plans");
-              handleAnnualSubscribe();
+              if (Platform.OS === "web") {
+                handleMonthlySubscribe();
+              } else {
+                handleAnnualSubscribe();
+              }
             }}
             disabled={busy}
             style={({ pressed }) => [s.bottomCtaButton, pressed && s.ctaPressed]}
