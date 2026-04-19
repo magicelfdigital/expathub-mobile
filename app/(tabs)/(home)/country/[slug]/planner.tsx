@@ -8,7 +8,6 @@ import { useCountry } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { usePlan } from "@/src/contexts/PlanContext";
 import { PlanModule } from "@/src/components/PlanModule";
-import LifetimeOfferBanner from "@/src/components/LifetimeOfferBanner";
 import PlanCompletionCard from "@/src/components/PlanCompletionCard";
 import { getCountry, getPathways, isLaunchCountry } from "@/src/data";
 import { tokens } from "@/theme/tokens";
@@ -57,7 +56,6 @@ export default function PlannerScreen() {
           <View style={styles.planSection}>
             <PlanCompletionCard />
             <PlanModule />
-            <LifetimeOfferBanner />
           </View>
         ) : isPaidUser && isLaunch && pathways.length > 0 ? (
           <View style={styles.focusSection}>
