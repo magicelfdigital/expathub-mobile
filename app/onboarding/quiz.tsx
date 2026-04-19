@@ -117,7 +117,9 @@ export default function QuizScreen() {
 
   const handleSavePromptClose = useCallback(() => {
     setSavePromptVisible(false);
-  }, []);
+    // Advance the quiz so the user is not stranded on the question they just answered.
+    animateTransition("forward", () => setCurrentIndex((idx) => idx + 1));
+  }, [animateTransition]);
 
   const goBack = useCallback(() => {
     if (currentIndex > 0) {
