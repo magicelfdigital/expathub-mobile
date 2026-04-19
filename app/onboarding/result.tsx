@@ -5,7 +5,6 @@ import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, T
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   calculateQuizResult,
-  hasFullGuide,
   TIER_LABELS,
   TIER_DESCRIPTIONS,
   type Blocker,
@@ -14,7 +13,6 @@ import {
 } from "@/src/data/quiz";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { useCountry } from "@/contexts/CountryContext";
 import { tokens } from "@/theme/tokens";
 import { trackEvent } from "@/src/lib/analytics";
 import { getApiUrl } from "@/lib/query-client";
@@ -76,7 +74,6 @@ export default function ResultScreen() {
   const { answers: answersStr } = useLocalSearchParams<{ answers?: string }>();
   const { completeOnboarding } = useOnboarding();
   const { user } = useAuth();
-  const { setSelectedCountrySlug } = useCountry();
 
   const answers = useMemo(() => {
     try { return JSON.parse(answersStr ?? "{}"); } catch { return {}; }
@@ -89,7 +86,6 @@ export default function ResultScreen() {
     if (!viewedRef.current) {
       viewedRef.current = true;
       trackEvent("result_screen_viewed", {
-        topRegion: result.topMatch.name,
         matchScore: result.score,
         tier: result.tier,
       });
@@ -97,7 +93,6 @@ export default function ResultScreen() {
   }, [result]);
 
   const tierColor = TIER_COLORS[result.tier];
-  const countryHasGuide = hasFullGuide(result.topMatch.slug);
 
   const grouped = useMemo(() => {
     const g: Record<BlockerLevel, Blocker[]> = { critical: [], moderate: [], explore: [] };
@@ -109,13 +104,6 @@ export default function ResultScreen() {
   const [emailSent, setEmailSent] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
   const [saveCardDismissed, setSaveCardDismissed] = useState(false);
-
-  const [interestEmail, setInterestEmail] = useState("");
-  const [interestSent, setInterestSent] = useState(false);
-  const [interestSending, setInterestSending] = useState(false);
-  const [noticeDismissed, setNoticeDismissed] = useState(false);
-
-  const knownEmail = user?.email ?? null;
 
   const handleEmailResults = async () => {
     const addr = email;
@@ -133,61 +121,22 @@ export default function ResultScreen() {
     } catch {} finally { setEmailSending(false); }
   };
 
-  const handleCountryInterestKnown = async () => {
-    if (!knownEmail) return;
-    setInterestSending(true);
-    try {
-      const base = getBaseUrl();
-      const slug = result.topMatch.slug ?? result.topMatch.name.toLowerCase().replace(/[\s,]+/g, "-");
-      await fetch(`${base}/api/country-interest`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: knownEmail, country_slug: slug }),
-      });
-      setInterestSent(true);
-      trackEvent("country_interest_submitted", { country: result.topMatch.name });
-    } catch {} finally { setInterestSending(false); }
-  };
-
-  const handleCountryInterestAnon = async () => {
-    if (!interestEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(interestEmail)) return;
-    setInterestSending(true);
-    try {
-      const base = getBaseUrl();
-      const slug = result.topMatch.slug ?? result.topMatch.name.toLowerCase().replace(/[\s,]+/g, "-");
-      await fetch(`${base}/api/country-interest`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: interestEmail, country_slug: slug }),
-      });
-      setInterestSent(true);
-      trackEvent("country_interest_submitted", { country: result.topMatch.name });
-    } catch {} finally { setInterestSending(false); }
-  };
-
   const handleCreateAccount = async () => {
     await completeOnboarding(result, false);
     trackEvent("quiz_completed", { tier: result.tier, score: result.score, action: "create_account" });
     router.replace("/auth?mode=register");
   };
 
-  const handleExploreMatch = async () => {
+  const handleContinue = async () => {
     await completeOnboarding(result, true);
-    trackEvent("quiz_completed", { tier: result.tier, score: result.score, action: "explore_match" });
-    if (result.topMatch.slug && countryHasGuide) {
-      setSelectedCountrySlug(result.topMatch.slug);
-    }
+    trackEvent("quiz_completed", { tier: result.tier, score: result.score, action: "continue" });
     router.replace("/(tabs)/(home)");
   };
 
   const handleUnlockRoadmap = async () => {
     await completeOnboarding(result, true);
     trackEvent("paywall_unlock_tapped", { source: "result_screen", tier: result.tier });
-    if (result.topMatch.slug && countryHasGuide) {
-      router.push({ pathname: "/subscribe", params: { country: result.topMatch.slug } });
-    } else {
-      router.push("/subscribe");
-    }
+    router.push("/subscribe");
   };
 
   const handleGuideMe = (label: string) => {
@@ -196,73 +145,6 @@ export default function ResultScreen() {
 
   const handleRestart = () => {
     router.replace("/onboarding/quiz");
-  };
-
-  const renderAvailabilityNotice = () => {
-    if (countryHasGuide || noticeDismissed) return null;
-
-    if (interestSent) {
-      return (
-        <View style={styles.successRow}>
-          <Ionicons name="checkmark-circle" size={16} color={tokens.color.teal} />
-          <Text style={styles.successText}>You're on the list - we'll let you know when it launches.</Text>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.amberNotice}>
-        <Ionicons name="information-circle" size={18} color="#92670A" />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.amberText}>
-            No full guide for {result.topMatch.name} yet - get notified when it's ready?
-          </Text>
-
-          {knownEmail ? (
-            <View style={styles.noticeActions}>
-              <Pressable
-                onPress={handleCountryInterestKnown}
-                disabled={interestSending}
-                style={({ pressed }) => [styles.notifyBtnInline, pressed && { opacity: 0.8 }]}
-              >
-                {interestSending ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.notifyBtnText}>Yes, notify me</Text>
-                )}
-              </Pressable>
-              <Pressable onPress={() => setNoticeDismissed(true)} hitSlop={8}>
-                <Text style={styles.noThanksLink}>No thanks</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <View style={styles.notifyRow}>
-              <TextInput
-                style={styles.notifyInput}
-                placeholder="your@email.com"
-                placeholderTextColor={tokens.color.subtext}
-                value={interestEmail}
-                onChangeText={setInterestEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <Pressable
-                onPress={handleCountryInterestAnon}
-                disabled={interestSending}
-                style={({ pressed }) => [styles.notifyBtn, pressed && { opacity: 0.9 }]}
-              >
-                {interestSending ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.notifyBtnText}>Notify me</Text>
-                )}
-              </Pressable>
-            </View>
-          )}
-        </View>
-      </View>
-    );
   };
 
   const renderSaveCard = () => {
@@ -386,25 +268,13 @@ export default function ResultScreen() {
           </View>
         ) : null}
 
-        <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Your Top Match</Text>
-          <View style={styles.matchRow}>
-            <Text style={styles.matchFlag}>{result.topMatch.flag}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.matchName}>{result.topMatch.name}</Text>
-              <Text style={styles.matchDesc}>{result.topMatch.description}</Text>
-            </View>
-          </View>
-          {renderAvailabilityNotice()}
-        </View>
-
-        {countryHasGuide ? renderSaveCard() : null}
+        {renderSaveCard()}
 
         <Pressable
-          onPress={handleExploreMatch}
+          onPress={handleContinue}
           style={({ pressed }) => [styles.exploreCta, pressed && { opacity: 0.9 }]}
         >
-          <Text style={styles.exploreCtaText}>Explore {result.topMatch.name}</Text>
+          <Text style={styles.exploreCtaText}>Continue to ExpatHub</Text>
         </Pressable>
 
         <Pressable onPress={handleRestart} hitSlop={8} style={{ alignSelf: "center", marginTop: 4 }}>

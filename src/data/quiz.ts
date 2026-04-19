@@ -24,7 +24,7 @@ export interface QuizResult {
   tier: Tier;
   score: number;
   regionPreference: RegionPreference;
-  topMatch: TopMatch;
+  topMatch?: TopMatch;
   risks: string[];
   blockers: Blocker[];
 }
@@ -146,33 +146,6 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     ],
   },
 ];
-
-const REGION_TOP_MATCH: Record<RegionPreference, TopMatch> = {
-  southern_europe: {
-    name: "Portugal",
-    flag: "\u{1F1F5}\u{1F1F9}",
-    description: "Algarve \u2014 well-established expat infrastructure, D7 and digital nomad pathways, and a slower, sunnier pace.",
-    slug: "portugal",
-  },
-  northern_europe: {
-    name: "United Kingdom",
-    flag: "\u{1F1EC}\u{1F1E7}",
-    description: "Brighton \u2014 coastal city with strong creative scene, clear visa pathways, and fast access to London.",
-    slug: "united-kingdom",
-  },
-  latin_america: {
-    name: "Mexico",
-    flag: "\u{1F1F2}\u{1F1FD}",
-    description: "Oaxaca and Mexico City \u2014 low cost of living, generous temporary residency, and close to North America.",
-    slug: null,
-  },
-  other: {
-    name: "Chiang Mai, Thailand",
-    flag: "\u{1F1F9}\u{1F1ED}",
-    description: "Long-running digital nomad hub with low costs, warm weather, and a thriving expat community.",
-    slug: null,
-  },
-};
 
 const Q_WEIGHT: Record<number, number> = {
   1: 1.5, 2: 1.5, 3: 1.5,
@@ -411,10 +384,9 @@ export function calculateQuizResult(
   else tier = "ready";
 
   const regionPreference = (answers[9] ?? "southern_europe") as RegionPreference;
-  const topMatch = REGION_TOP_MATCH[regionPreference] ?? REGION_TOP_MATCH.southern_europe;
   const blockers = getBlockers(answers);
 
-  return { tier, score: displayScore, regionPreference, topMatch, risks, blockers };
+  return { tier, score: displayScore, regionPreference, risks, blockers };
 }
 
 export const TIER_LABELS: Record<Tier, string> = {

@@ -28,11 +28,11 @@ const BENEFITS = [
   },
   {
     icon: "checkmark-circle-outline" as const,
-    text: "Your top country match based on your visa options, lifestyle priorities, and budget",
+    text: "Your top blockers named specifically \u2014 not generic advice, your actual gaps",
   },
   {
     icon: "warning-outline" as const,
-    text: "A gap analysis showing the 1\u20133 things most likely to derail your move",
+    text: "A first action for each blocker so you know exactly where to start",
   },
 ];
 
@@ -129,11 +129,11 @@ export default function IntroScreen() {
             </View>
 
             <View style={s.matchCard}>
-              <Text style={s.matchFlag}>{"\uD83C\uDDF5\uD83C\uDDF9"}</Text>
+              <Ionicons name="alert-circle" size={26} color={AMBER} />
               <View style={s.matchTextWrap}>
-                <Text style={s.matchTitle}>Top Match — Portugal</Text>
+                <Text style={s.matchTitle}>Top blocker</Text>
                 <Text style={s.matchDesc}>
-                  D7 pathway, Algarve or Lisbon — strong fit for your profile.
+                  Visa pathway not yet identified
                 </Text>
               </View>
             </View>
