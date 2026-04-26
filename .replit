@@ -103,3 +103,7 @@ EXPO_PUBLIC_RC_ANNUAL_PRODUCT = "pro_annual"
 
 [userenv.production]
 EXPO_PUBLIC_BACKEND_URL = "https://www.expathub.website"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 180000
