@@ -11,23 +11,21 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
   initPurchases,
-  isRCInitialized,
   loginUser as rcLoginUser,
 } from "@/src/subscriptions/revenuecat";
 import {
   SANDBOX_ENABLED,
-  DECISION_PASS_DURATION_DAYS,
   VALID_PROMO_CODES,
 } from "@/src/config/subscription";
 import { trackEvent } from "@/src/lib/analytics";
 import { useAuth, AUTH_API_URL } from "@/contexts/AuthContext";
-import { getBackendClientInstance, getOrchestrator } from "@/src/billing";
+import { getBackendClientInstance } from "@/src/billing";
 import type { BackendEntitlements } from "@/src/billing";
-import { hasEntitlement, hasCountryEntitlement } from "@/src/billing";
+import { hasEntitlement } from "@/src/billing";
 import { shouldRefresh as cooldownAllows, recordRefresh } from "@/src/billing/refreshCooldown";
 
 type EntitlementSource = "revenuecat" | "stripe" | "sandbox" | "none";
-type AccessType = "decision_pass" | "country_lifetime" | "subscription" | "sandbox" | "none";
+type AccessType = "subscription" | "sandbox" | "none";
 
 const PROMO_CODE_KEY = "promo_code_redeemed";
 
@@ -44,16 +42,11 @@ interface EntitlementContextValue {
   sandboxMode: boolean;
   managementURL: string | null;
   expirationDate: string | null;
-  decisionPassExpiresAt: string | null;
-  decisionPassDaysLeft: number | null;
-  unlockedCountries: string[];
   rcConfigured: boolean;
   purchasesError: string | null;
   hasCountryAccess: (slug: string) => boolean;
   setSandboxOverride: (value: boolean) => void;
   refresh: () => Promise<void>;
-  recordDecisionPassPurchase: () => Promise<void>;
-  recordCountryUnlock: (slug: string) => Promise<void>;
   promoCodeActive: boolean;
   redeemPromoCode: (code: string) => Promise<{ success: boolean; error?: string }>;
   clearPromoCode: () => Promise<void>;
@@ -71,14 +64,12 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true);
   const [managementURL, setManagementURL] = useState<string | null>(null);
   const [expirationDate, setExpirationDate] = useState<string | null>(null);
-  const [decisionPassExpiresAt, setDecisionPassExpiresAt] = useState<string | null>(null);
-  const [decisionPassDaysLeft, setDecisionPassDaysLeft] = useState<number | null>(null);
-  const [unlockedCountries, setUnlockedCountries] = useState<string[]>([]);
   const [sandboxOverride, setSandboxOverrideState] = useState(false);
   const [rcConfigured, setRcConfigured] = useState(false);
   const [purchasesError, setPurchasesError] = useState<string | null>(null);
   const [promoCodeActive, setPromoCodeActive] = useState(false);
   const [backendEntitlements, setBackendEntitlements] = useState<BackendEntitlements | null>(null);
+
   const setSandboxOverride = useCallback((value: boolean) => {
     if (!SANDBOX_ENABLED) return;
     setSandboxOverrideState(value);
@@ -109,14 +100,6 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     setPromoCodeActive(false);
     gateLog("Promo code cleared");
     trackEvent?.("promo_code_cleared", {});
-  }, []);
-
-  const recordDecisionPassPurchase = useCallback(async () => {
-    gateLog("Decision Pass purchase recorded locally (will be confirmed by backend)");
-  }, []);
-
-  const recordCountryUnlock = useCallback(async (slug: string) => {
-    gateLog(`Country unlock recorded locally for ${slug} (will be confirmed by backend)`);
   }, []);
 
   const refresh = useCallback(async () => {
@@ -202,42 +185,26 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
 
       if (hasEntitlement(ent)) {
         const entSource: EntitlementSource = (ent.accessSource as EntitlementSource) ?? "none";
-        let entAccessType: AccessType = "none";
-
-        if (ent.subscription?.status === "active") {
-          entAccessType = "subscription";
-          setExpirationDate(ent.subscription.currentPeriodEnd ?? null);
-        } else if (ent.decisionPass?.active) {
-          entAccessType = "decision_pass";
-          setDecisionPassExpiresAt(ent.decisionPass.expiresAt ?? null);
-          if (ent.decisionPass.expiresAt) {
-            const exp = new Date(ent.decisionPass.expiresAt);
-            const now = new Date();
-            const daysLeft = Math.max(0, Math.ceil((exp.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)));
-            setDecisionPassDaysLeft(daysLeft);
-          }
-        } else if (ent.countryUnlocks.length > 0) {
-          entAccessType = "country_lifetime";
+        if (ent.subscription?.currentPeriodEnd) {
+          setExpirationDate(ent.subscription.currentPeriodEnd);
+        } else {
+          setExpirationDate(null);
         }
 
         setHasProAccess(true);
-        setHasFullAccess(ent.hasFullAccess);
-        setAccessType(entAccessType);
+        setHasFullAccess(true);
+        setAccessType("subscription");
         setSource(entSource);
-        setUnlockedCountries(ent.countryUnlocks);
         setManagementURL(null);
-        gateLog(`ACCESS GRANTED via backend: source=${entSource}, type=${entAccessType}, countries=[${ent.countryUnlocks.join(",")}]`);
-        trackEvent?.("entitlement_refresh", { source: entSource, hasProAccess: true, accessType: entAccessType });
+        gateLog(`ACCESS GRANTED via backend: source=${entSource}, type=subscription`);
+        trackEvent?.("entitlement_refresh", { source: entSource, hasProAccess: true, accessType: "subscription" });
       } else {
         setHasProAccess(false);
         setHasFullAccess(false);
         setAccessType("none");
         setSource("none");
-        setUnlockedCountries(ent.countryUnlocks);
         setManagementURL(null);
         setExpirationDate(null);
-        setDecisionPassExpiresAt(null);
-        setDecisionPassDaysLeft(null);
         gateLog("NO ACCESS from backend — showing paywall");
         trackEvent?.("entitlement_refresh", { source: "none", hasProAccess: false });
       }
@@ -286,12 +253,11 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     return () => { mounted = false; };
   }, [refresh]);
 
-  const hasCountryAccess = useCallback((slug: string): boolean => {
+  const hasCountryAccess = useCallback((_slug: string): boolean => {
     if (__DEV__ && SANDBOX_ENABLED && sandboxOverride) return true;
     if (__DEV__ && promoCodeActive) return true;
-    if (hasFullAccess) return true;
-    return hasCountryEntitlement(backendEntitlements, slug);
-  }, [sandboxOverride, promoCodeActive, hasFullAccess, backendEntitlements]);
+    return hasFullAccess;
+  }, [sandboxOverride, promoCodeActive, hasFullAccess]);
 
   const devBypass = __DEV__ && ((SANDBOX_ENABLED && sandboxOverride) || promoCodeActive);
   const value = useMemo<EntitlementContextValue>(
@@ -304,22 +270,17 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       sandboxMode: SANDBOX_ENABLED,
       managementURL,
       expirationDate,
-      decisionPassExpiresAt,
-      decisionPassDaysLeft,
-      unlockedCountries,
       rcConfigured,
       purchasesError,
       hasCountryAccess,
       setSandboxOverride,
       refresh,
-      recordDecisionPassPurchase,
-      recordCountryUnlock,
       promoCodeActive,
       redeemPromoCode,
       clearPromoCode,
       backendEntitlements,
     }),
-    [hasProAccess, hasFullAccess, accessType, source, loading, devBypass, managementURL, expirationDate, decisionPassExpiresAt, decisionPassDaysLeft, unlockedCountries, rcConfigured, purchasesError, hasCountryAccess, setSandboxOverride, refresh, recordDecisionPassPurchase, recordCountryUnlock, redeemPromoCode, clearPromoCode, backendEntitlements]
+    [hasProAccess, hasFullAccess, accessType, source, loading, devBypass, managementURL, expirationDate, rcConfigured, purchasesError, hasCountryAccess, setSandboxOverride, refresh, redeemPromoCode, clearPromoCode, backendEntitlements, promoCodeActive]
   );
 
   return <EntitlementContext.Provider value={value}>{children}</EntitlementContext.Provider>;

@@ -10,7 +10,6 @@ import { useOnboarding } from "@/contexts/OnboardingContext";
 import { CancellationModal } from "@/src/components/CancellationModal";
 import { getBackendBase } from "@/src/billing/backendClient";
 import { getApiUrl } from "@/lib/query-client";
-import { COUNTRIES } from "@/data/countries";
 import { tokens } from "@/theme/tokens";
 import { testCrash, isNativeBuild } from "@/utils/crashlytics";
 import { trackEvent } from "@/src/lib/analytics";
@@ -18,10 +17,6 @@ import { FREE_TIER_DISPLAY_NAME, PAID_TIER_DISPLAY_NAME } from "@/constants/tier
 import { getOrchestrator, clearRefreshCooldown } from "@/src/billing";
 import { TIER_LABELS } from "@/src/data/quiz";
 import type { Tier } from "@/src/data/quiz";
-
-function getCountryName(slug: string): string {
-  return COUNTRIES.find((c) => c.slug === slug)?.name ?? slug;
-}
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
@@ -32,9 +27,7 @@ export default function AccountScreen() {
     hasFullAccess,
     accessType,
     source,
-    decisionPassDaysLeft,
-    decisionPassExpiresAt,
-    unlockedCountries,
+    expirationDate,
     sandboxMode,
     setSandboxOverride,
     refresh,
@@ -184,10 +177,6 @@ export default function AccountScreen() {
 
   const accessLabel = (() => {
     switch (accessType) {
-      case "decision_pass":
-        return PAID_TIER_DISPLAY_NAME;
-      case "country_lifetime":
-        return PAID_TIER_DISPLAY_NAME;
       case "subscription":
         return PAID_TIER_DISPLAY_NAME;
       case "sandbox":
@@ -254,15 +243,10 @@ export default function AccountScreen() {
           </View>
         </View>
 
-        {accessType === "decision_pass" && decisionPassDaysLeft != null ? (
+        {hasPaidAccess && expirationDate ? (
           <View style={s.row}>
-            <Text style={s.rowLabel}>Expires</Text>
-            <Text style={s.rowValue}>
-              {decisionPassDaysLeft} days left
-              {decisionPassExpiresAt
-                ? ` (${new Date(decisionPassExpiresAt).toLocaleDateString()})`
-                : ""}
-            </Text>
+            <Text style={s.rowLabel}>Renews</Text>
+            <Text style={s.rowValue}>{new Date(expirationDate).toLocaleDateString()}</Text>
           </View>
         ) : null}
 
@@ -272,20 +256,6 @@ export default function AccountScreen() {
             <Text style={s.rowValue}>
               {source === "revenuecat" ? "App Store" : source === "stripe" ? "Web" : source}
             </Text>
-          </View>
-        ) : null}
-
-        {unlockedCountries.length > 0 ? (
-          <View style={s.countrySection}>
-            <Text style={s.countryLabel}>Unlocked Countries</Text>
-            <View style={s.countryChips}>
-              {unlockedCountries.map((slug) => (
-                <View key={slug} style={s.countryChip}>
-                  <Ionicons name="checkmark-circle" size={12} color={tokens.color.primary} />
-                  <Text style={s.countryChipText}>{getCountryName(slug)}</Text>
-                </View>
-              ))}
-            </View>
           </View>
         ) : null}
 

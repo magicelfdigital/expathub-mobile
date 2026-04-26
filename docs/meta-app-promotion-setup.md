@@ -26,7 +26,7 @@ Before changing campaigns, verify the funnel events are landing in **Meta Events
    - Complete the readiness quiz → expect `CompletedQuiz` with `top_country` parameter.
    - Open the paywall → expect `ViewedPaywall`.
    - Tap the annual / 14-day-trial button and confirm purchase (sandbox account) → expect `StartTrial` (value `0`).
-   - Buy the monthly plan, Decision Pass, or a country lifetime pack → expect `Subscribe` with the actual USD amount.
+   - Buy the monthly plan after the trial → expect `Subscribe` with the actual USD amount.
 4. Confirm **no PII** appears in any payload (no email, no name, no user ID — only `top_country`, `value`, `plan`, `entry_point`).
 
 ### Website (react-facebook-pixel, Pixel ID `2089699021599989`)

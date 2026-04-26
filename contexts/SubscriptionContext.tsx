@@ -4,23 +4,18 @@ import { EntitlementProvider, useEntitlement } from "@/src/contexts/EntitlementC
 type SubscriptionContextValue = {
   hasActiveSubscription: boolean;
   hasFullAccess: boolean;
-  accessType: "decision_pass" | "country_lifetime" | "subscription" | "sandbox" | "none";
+  accessType: "subscription" | "sandbox" | "none";
   setHasActiveSubscription: (value: boolean) => void;
   source: "revenuecat" | "stripe" | "sandbox" | "none";
   loading: boolean;
   sandboxMode: boolean;
   managementURL: string | null;
   expirationDate: string | null;
-  decisionPassExpiresAt: string | null;
-  decisionPassDaysLeft: number | null;
-  unlockedCountries: string[];
   rcConfigured: boolean;
   purchasesError: string | null;
   hasCountryAccess: (slug: string) => boolean;
   setSandboxOverride: (value: boolean) => void;
   refresh: () => Promise<void>;
-  recordDecisionPassPurchase: () => Promise<void>;
-  recordCountryUnlock: (slug: string) => Promise<void>;
   promoCodeActive: boolean;
   redeemPromoCode: (code: string) => Promise<{ success: boolean; error?: string }>;
   clearPromoCode: () => Promise<void>;
@@ -38,16 +33,11 @@ function SubscriptionBridge({ children }: { children: React.ReactNode }) {
     sandboxMode,
     managementURL,
     expirationDate,
-    decisionPassExpiresAt,
-    decisionPassDaysLeft,
-    unlockedCountries,
     rcConfigured,
     purchasesError,
     hasCountryAccess,
     setSandboxOverride,
     refresh,
-    recordDecisionPassPurchase,
-    recordCountryUnlock,
     promoCodeActive,
     redeemPromoCode,
     clearPromoCode,
@@ -72,21 +62,16 @@ function SubscriptionBridge({ children }: { children: React.ReactNode }) {
       sandboxMode,
       managementURL,
       expirationDate,
-      decisionPassExpiresAt,
-      decisionPassDaysLeft,
-      unlockedCountries,
       rcConfigured,
       purchasesError,
       hasCountryAccess,
       setSandboxOverride,
       refresh,
-      recordDecisionPassPurchase,
-      recordCountryUnlock,
       promoCodeActive,
       redeemPromoCode,
       clearPromoCode,
     }),
-    [hasProAccess, hasFullAccess, accessType, source, loading, sandboxMode, managementURL, expirationDate, decisionPassExpiresAt, decisionPassDaysLeft, unlockedCountries, rcConfigured, purchasesError, hasCountryAccess, setSandboxOverride, refresh, recordDecisionPassPurchase, recordCountryUnlock, promoCodeActive, redeemPromoCode, clearPromoCode]
+    [hasProAccess, hasFullAccess, accessType, source, loading, sandboxMode, managementURL, expirationDate, rcConfigured, purchasesError, hasCountryAccess, setSandboxOverride, refresh, promoCodeActive, redeemPromoCode, clearPromoCode]
   );
 
   return <SubscriptionContext.Provider value={value}>{children}</SubscriptionContext.Provider>;

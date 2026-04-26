@@ -230,32 +230,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return;
     }
 
-    const { priceId } = req.body as { priceId?: string };
+    const { plan } = req.body as { plan?: "monthly" | "annual" };
+    if (plan !== "monthly" && plan !== "annual") {
+      res.status(400).json({ error: "plan must be 'monthly' or 'annual'" });
+      return;
+    }
+
+    const monthlyId = process.env.STRIPE_MONTHLY_PRICE_ID;
+    const annualId = process.env.STRIPE_ANNUAL_PRICE_ID;
+    const priceId = plan === "monthly" ? monthlyId : annualId;
     if (!priceId) {
-      res.status(400).json({ error: "priceId is required" });
+      res.status(503).json({
+        error: `Stripe ${plan} price ID is not configured. Set ${plan === "monthly" ? "STRIPE_MONTHLY_PRICE_ID" : "STRIPE_ANNUAL_PRICE_ID"}.`,
+      });
       return;
     }
 
     try {
       const baseUrl = getBaseUrl(req);
-
-      const knownPlans: Record<string, { plan: string; value: number }> = {};
-      const monthlyId = process.env.STRIPE_MONTHLY_PRICE_ID;
-      const annualId = process.env.STRIPE_ANNUAL_PRICE_ID;
-      if (monthlyId) knownPlans[monthlyId] = { plan: "monthly", value: 14.99 };
-      if (annualId) knownPlans[annualId] = { plan: "annual", value: 89 };
-      const meta = knownPlans[priceId] ?? { plan: "unknown", value: 0 };
+      const value = plan === "monthly" ? 14.99 : 89;
 
       const successQuery = new URLSearchParams({
         subscribed: "true",
-        plan: meta.plan,
-        value: String(meta.value),
+        plan,
+        value: String(value),
         currency: "USD",
       }).toString();
 
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
         line_items: [{ price: priceId, quantity: 1 }],
+        subscription_data: {
+          trial_period_days: 14,
+        },
         success_url: `${baseUrl}/account?${successQuery}`,
         cancel_url: `${baseUrl}/pricing?checkout=cancel`,
       });

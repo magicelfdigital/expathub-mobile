@@ -10,7 +10,6 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { usePlan } from "@/src/contexts/PlanContext";
 import { useLayout } from "@/src/hooks/useLayout";
 import { getCountry, getPathways, getCountryCoverage, isDecisionReady, isLaunchCountry } from "@/src/data";
-import { COUNTRY_LIFETIME_PRICES } from "@/src/config/subscription";
 import { useContinue } from "@/src/contexts/ContinueContext";
 import { tokens } from "@/theme/tokens";
 import { PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
@@ -82,7 +81,7 @@ function CoverageRow({ label, status }: { label: string; status: "decision-ready
 export default function CountryDetailScreen() {
   const router = useRouter();
   const { selectedCountrySlug } = useCountry();
-  const { hasActiveSubscription, hasFullAccess, hasCountryAccess, accessType, decisionPassDaysLeft } = useSubscription();
+  const { hasActiveSubscription, hasFullAccess, hasCountryAccess, accessType } = useSubscription();
   const { activeCountrySlug: planCountrySlug, startPlan } = usePlan();
   const { recordView } = useContinue();
   const { isTablet } = useLayout();
@@ -102,7 +101,6 @@ export default function CountryDetailScreen() {
   const isLaunch = isLaunchCountry(countrySlug);
 
   const hasAccess = hasFullAccess || hasCountryAccess(countrySlug);
-  const countryPrice = COUNTRY_LIFETIME_PRICES[countrySlug] ?? "$69";
   const hasPlanForThisCountry = planCountrySlug === countrySlug;
   const isPaidUser = hasActiveSubscription;
 
@@ -142,63 +140,11 @@ export default function CountryDetailScreen() {
           ) : null}
         </View>
 
-        {hasAccess && accessType === "decision_pass" && decisionPassDaysLeft != null ? (
-          <View style={{ gap: tokens.space.sm }}>
-            <View style={styles.accessBanner}>
-              <Ionicons name="shield-checkmark" size={16} color={tokens.color.primary} />
-              <Text style={styles.accessBannerText}>
-                Decision Pass active — {decisionPassDaysLeft} days remaining
-              </Text>
-            </View>
-            {isLaunch && !hasCountryAccess(countrySlug) ? (
-              <Pressable
-                style={({ pressed }) => [styles.convertBanner, pressed && styles.cardPressed]}
-                onPress={() => router.push({ pathname: "/subscribe" as any, params: { country: countrySlug } })}
-              >
-                <View style={styles.unlockBannerLeft}>
-                  <Ionicons name="diamond-outline" size={18} color={tokens.color.gold} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.convertBannerTitle}>Keep {countryName} after your pass expires</Text>
-                    <Text style={styles.convertBannerSub}>
-                      Unlock lifetime access for {countryPrice}
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={tokens.color.gold} />
-              </Pressable>
-            ) : null}
-          </View>
-        ) : hasAccess && accessType === "subscription" ? (
-          <View style={{ gap: tokens.space.sm }}>
-            <View style={styles.accessBanner}>
-              <Ionicons name="checkmark-circle" size={16} color={tokens.color.primary} />
-              <Text style={styles.accessBannerText}>
-                Monthly subscription active
-              </Text>
-            </View>
-            {isLaunch && !hasCountryAccess(countrySlug) ? (
-              <Pressable
-                style={({ pressed }) => [styles.convertBanner, pressed && styles.cardPressed]}
-                onPress={() => router.push({ pathname: "/subscribe" as any, params: { country: countrySlug } })}
-              >
-                <View style={styles.unlockBannerLeft}>
-                  <Ionicons name="diamond-outline" size={18} color={tokens.color.gold} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.convertBannerTitle}>Lock in {countryName} permanently</Text>
-                    <Text style={styles.convertBannerSub}>
-                      Lifetime access for {countryPrice} — no subscription needed
-                    </Text>
-                  </View>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={tokens.color.gold} />
-              </Pressable>
-            ) : null}
-          </View>
-        ) : hasAccess && accessType === "country_lifetime" ? (
+        {hasAccess && accessType === "subscription" ? (
           <View style={styles.accessBanner}>
             <Ionicons name="checkmark-circle" size={16} color={tokens.color.primary} />
             <Text style={styles.accessBannerText}>
-              {countryName} unlocked — lifetime access
+              Subscription active — full access to all countries
             </Text>
           </View>
         ) : !hasAccess && isLaunch ? (
@@ -211,7 +157,7 @@ export default function CountryDetailScreen() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.unlockBannerTitle}>Make a confident relocation decision</Text>
                 <Text style={styles.unlockBannerSub}>
-                  30-day access from {`$29`} or unlock {countryName} forever for {countryPrice}
+                  Start a 14-day free trial to unlock {countryName} and all 11 country guides.
                 </Text>
               </View>
             </View>

@@ -4,9 +4,7 @@ import {
   RC_API_KEY_IOS,
   RC_API_KEY_ANDROID,
   ENTITLEMENT_ID,
-  ENTITLEMENT_DECISION_ACCESS,
   ENTITLEMENT_FULL_ACCESS,
-  ENTITLEMENT_COUNTRY_PREFIX,
 } from "@/src/config/subscription";
 
 type PurchasesModule = typeof import("react-native-purchases");
@@ -171,10 +169,7 @@ export function addCustomerInfoListener(
   loadPurchases().then((rc) => {
     if (!rc) return;
     const unsub = rc.addCustomerInfoUpdateListener((info) => {
-      const hasFullSub = !!info.entitlements.active[ENTITLEMENT_FULL_ACCESS];
-      const hasDecisionPass = !!info.entitlements.active[ENTITLEMENT_DECISION_ACCESS];
-      const hasCountryUnlock = Object.keys(info.entitlements.active).some((k) => k.startsWith(ENTITLEMENT_COUNTRY_PREFIX));
-      const hasAccess = hasFullSub || hasDecisionPass || hasCountryUnlock;
+      const hasAccess = !!info.entitlements.active[ENTITLEMENT_FULL_ACCESS];
       rcLog(`CustomerInfo update: hasAccess=${hasAccess}, active=[${Object.keys(info.entitlements.active).join(", ")}]`);
       listener({
         hasProAccess: hasAccess,
@@ -229,13 +224,8 @@ export async function getCustomerInfo(): Promise<CustomerInfoResult> {
       activeEntitlements[key] = true;
     }
 
-    const hasFullSub = !!info.entitlements.active[ENTITLEMENT_FULL_ACCESS];
-    const hasDecisionPass = !!info.entitlements.active[ENTITLEMENT_DECISION_ACCESS];
-    const hasCountryUnlock = Object.keys(activeEntitlements).some((k) => k.startsWith(ENTITLEMENT_COUNTRY_PREFIX));
-    const hasAnyAccess = hasFullSub || hasDecisionPass || hasCountryUnlock;
-
-    const primaryEntitlement = info.entitlements.active[ENTITLEMENT_FULL_ACCESS]
-      ?? info.entitlements.active[ENTITLEMENT_DECISION_ACCESS];
+    const hasAnyAccess = !!info.entitlements.active[ENTITLEMENT_FULL_ACCESS];
+    const primaryEntitlement = info.entitlements.active[ENTITLEMENT_FULL_ACCESS];
 
     rcLog(`getCustomerInfo: hasAccess=${hasAnyAccess}, entitlements=[${Object.keys(activeEntitlements).join(", ")}]`);
 
@@ -378,10 +368,7 @@ export async function purchasePackage(
     rcLog(`purchasePackage: native purchase dialog opening for ${productId}`);
     const result = await rc.purchasePackage(pkg);
     const activeKeys = Object.keys(result.customerInfo.entitlements.active);
-    const hasAccess =
-      !!result.customerInfo.entitlements.active[ENTITLEMENT_FULL_ACCESS] ||
-      !!result.customerInfo.entitlements.active[ENTITLEMENT_DECISION_ACCESS] ||
-      activeKeys.some((k) => k.startsWith(ENTITLEMENT_COUNTRY_PREFIX));
+    const hasAccess = !!result.customerInfo.entitlements.active[ENTITLEMENT_FULL_ACCESS];
     rcLog(`purchasePackage: complete for ${productId}, status=purchased, hasAccess=${hasAccess}, activeEntitlements=[${activeKeys.join(", ")}]`);
     return { status: "purchased", hasProAccess: hasAccess };
   } catch (e: any) {
@@ -415,10 +402,7 @@ export async function restorePurchases(): Promise<{
 
   try {
     const info = await rc.restorePurchases();
-    const hasAccess =
-      !!info.entitlements.active[ENTITLEMENT_FULL_ACCESS] ||
-      !!info.entitlements.active[ENTITLEMENT_DECISION_ACCESS] ||
-      Object.keys(info.entitlements.active).some((k) => k.startsWith(ENTITLEMENT_COUNTRY_PREFIX));
+    const hasAccess = !!info.entitlements.active[ENTITLEMENT_FULL_ACCESS];
     rcLog(`Restore complete: hasAccess=${hasAccess}, subs=[${info.activeSubscriptions.join(", ")}]`);
     return {
       hasProAccess: hasAccess,

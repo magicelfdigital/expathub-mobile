@@ -5,6 +5,20 @@
 **Company:** Magic Elf Digital
 **Contact:** support@magicelfdigital.com
 
+> ⚠️ **Pricing & entitlement sections are out of date (April 2026).** ExpatHub
+> now ships **two paid tiers only** — Monthly Explorer ($14.99/mo) and Annual
+> Pathfinder ($89/yr) — each with a **14-day free trial**. The legacy
+> **30-Day Decision Pass** and **Country Lifetime Unlock** products described
+> below have been removed from the codebase. The entitlement gate ignores any
+> `decisionPass` / `countryUnlocks` fields the backend may still return; only
+> `hasFullAccess` (active subscription or sandbox override) grants paid
+> access. For the current source of truth, see:
+>
+> - `src/config/subscription.ts` — product IDs, prices, `TRIAL_DURATION_DAYS`
+> - `src/billing/entitlementGate.ts` + `src/contexts/EntitlementContext.tsx`
+> - `docs/store-config-changes.md` — App Store / Play / RevenueCat / Stripe
+>   operator setup for the 2-tier model
+
 ---
 
 ## Table of Contents

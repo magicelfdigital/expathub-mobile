@@ -82,10 +82,10 @@ export const webApiClient = {
     logout: () => request<{ ok: boolean }>("/api/auth/logout", { method: "POST" }),
   },
   stripe: {
-    checkout: (priceId: string) =>
+    checkout: (plan: "monthly" | "annual") =>
       request<{ url: string }>("/api/stripe/checkout", {
         method: "POST",
-        json: { priceId },
+        json: { plan },
       }),
     portal: (customerId: string) =>
       request<{ url: string }>("/api/stripe/portal", {

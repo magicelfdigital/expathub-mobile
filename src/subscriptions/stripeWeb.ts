@@ -18,8 +18,8 @@ async function post<T>(path: string, body: Record<string, unknown>): Promise<T> 
   return res.json();
 }
 
-export async function createCheckoutSession(priceId: string): Promise<string> {
-  const data = await post<{ url: string }>("/api/stripe/checkout", { priceId });
+export async function createCheckoutSession(plan: "monthly" | "annual"): Promise<string> {
+  const data = await post<{ url: string }>("/api/stripe/checkout", { plan });
   return data.url;
 }
 

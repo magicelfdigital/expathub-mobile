@@ -25,18 +25,14 @@ import type { ProOffer } from "@/src/data";
 import { getOfferings } from "@/src/subscriptions/revenuecat";
 import { createCheckoutSession, createCustomerPortalSession } from "@/src/subscriptions/stripeWeb";
 import {
-  DECISION_PASS_PRICE,
   MONTHLY_PRICE,
   ANNUAL_PRICE,
-  COUNTRY_LIFETIME_PRICE,
-  COUNTRY_LIFETIME_PRICES,
-  RC_DECISION_PASS_PRODUCT,
   RC_MONTHLY_PRODUCT,
   RC_ANNUAL_PRODUCT,
-  getCountryLifetimeProductId,
   SANDBOX_ENABLED,
   TERMS_URL,
   PRIVACY_URL,
+  TRIAL_DURATION_DAYS,
 } from "@/src/config/subscription";
 import { COVERAGE_SUMMARY } from "@/src/data";
 import { PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
@@ -77,7 +73,7 @@ const FAQ_ITEMS: { question: string; answer: string }[] = [
   },
   {
     question: "Is there a free trial?",
-    answer: "Yes — the Annual Pathfinder includes a 7-day free trial. Cancel before day 7 in your App Store or Google Play subscription settings and you won't be charged. After the trial, the plan renews at $89/year unless cancelled.",
+    answer: "Yes — both the Monthly Explorer and Annual Pathfinder include a 14-day free trial. Cancel before day 14 in your App Store, Google Play, or Stripe billing settings and you won't be charged. After the trial, the plan renews at the listed price unless cancelled.",
   },
   {
     question: "What payment methods are accepted?",
@@ -121,16 +117,6 @@ function logFbPurchaseEvent(type: string, opts?: { slug?: string; priceUSD?: num
     const value = typeof override === "number" && override > 0 ? override : parsePrice(MONTHLY_PRICE);
     logFbEvent("Subscribe", value, { plan: "monthly" });
     return;
-  }
-  if (type === "decision_pass") {
-    const value = typeof override === "number" && override > 0 ? override : parsePrice(DECISION_PASS_PRICE);
-    logFbEvent("Subscribe", value, { plan: "decision_pass" });
-    return;
-  }
-  if (type === "country_lifetime") {
-    const fallback = slug ? (COUNTRY_LIFETIME_PRICES[slug] ?? COUNTRY_LIFETIME_PRICE) : COUNTRY_LIFETIME_PRICE;
-    const value = typeof override === "number" && override > 0 ? override : parsePrice(fallback);
-    logFbEvent("Subscribe", value, { plan: "country_lifetime", country: slug ?? "unknown" });
   }
 }
 
@@ -179,14 +165,8 @@ export function ProPaywall({
     sandboxMode,
     managementURL,
     expirationDate,
-    decisionPassExpiresAt,
-    decisionPassDaysLeft,
-    unlockedCountries,
-    hasCountryAccess,
     setSandboxOverride,
     refresh,
-    recordDecisionPassPurchase,
-    recordCountryUnlock,
     promoCodeActive,
     redeemPromoCode,
     clearPromoCode,
@@ -210,10 +190,7 @@ export function ProPaywall({
     entryPoint ?? (pathwayKey ? "pathway" : resolvedCountrySlug ? "country" : "general");
 
   const countryName = resolvedCountrySlug ? getCountryName(resolvedCountrySlug) : null;
-  const countryPrice = resolvedCountrySlug ? (COUNTRY_LIFETIME_PRICES[resolvedCountrySlug] ?? "$69") : "$69";
   const isLaunch = !resolvedCountrySlug || isLaunchCountry(resolvedCountrySlug);
-
-  const alreadyHasCountry = resolvedCountrySlug ? hasCountryAccess(resolvedCountrySlug) : false;
 
   async function storePendingPurchase(type: string, slug?: string) {
     const pending = JSON.stringify({ type, countrySlug: slug ?? null });
@@ -247,9 +224,7 @@ export function ProPaywall({
 
         if (Platform.OS !== "web") {
           const productId =
-            pending.type === "decision_pass" ? RC_DECISION_PASS_PRODUCT
-            : pending.type === "country_lifetime" && pending.countrySlug ? getCountryLifetimeProductId(pending.countrySlug)
-            : pending.type === "monthly" ? RC_MONTHLY_PRODUCT
+            pending.type === "monthly" ? RC_MONTHLY_PRODUCT
             : pending.type === "annual" ? RC_ANNUAL_PRODUCT
             : null;
 
@@ -407,57 +382,6 @@ export function ProPaywall({
     }
   }
 
-  async function handleDecisionPassPurchase() {
-    if (!user) {
-      console.log("[PURCHASE] Decision Pass tapped but user not logged in — redirecting to auth");
-      await storePendingPurchase("decision_pass", resolvedCountrySlug);
-      router.push("/auth?mode=register");
-      return;
-    }
-    trackEvent("product_selected", { productId: RC_DECISION_PASS_PRODUCT, price: DECISION_PASS_PRICE, type: "decision_pass" });
-    trackEvent("purchase_tapped", { type: "decision_pass", platform: Platform.OS });
-    if (Platform.OS === "web") {
-      if (__DEV__) {
-        console.log("[PURCHASE] DEV MODE: Simulating Decision Pass purchase on web");
-        trackEvent("purchase_success", { type: "decision_pass", platform: "web", status: "dev_simulated" });
-        await refresh();
-        if (onClose) onClose();
-        else router.back();
-        return;
-      }
-      setError("The 30-Day Decision Pass is available on the mobile app. Open ExpatHub on your phone to purchase.");
-      return;
-    }
-    await handleMobilePurchase(RC_DECISION_PASS_PRODUCT, "decision_pass");
-  }
-
-  async function handleCountryUnlock(slugOverride?: string) {
-    const slug = slugOverride ?? resolvedCountrySlug;
-    if (!slug) return;
-    if (!user) {
-      console.log(`[PURCHASE] Country unlock tapped but user not logged in — storing slug=${slug}, redirecting to auth`);
-      await storePendingPurchase("country_lifetime", slug);
-      router.push("/auth?mode=register");
-      return;
-    }
-    const productId = getCountryLifetimeProductId(slug);
-    trackEvent("product_selected", { productId, price: COUNTRY_LIFETIME_PRICE, type: "country_lifetime", country: slug });
-    trackEvent("purchase_tapped", { type: "country_lifetime", country: slug, platform: Platform.OS });
-    if (Platform.OS === "web") {
-      if (__DEV__) {
-        console.log(`[PURCHASE] DEV MODE: Simulating country unlock for ${slug} on web`);
-        trackEvent("purchase_success", { type: "country_lifetime", country: slug, platform: "web", status: "dev_simulated" });
-        await refresh();
-        if (onClose) onClose();
-        else router.back();
-        return;
-      }
-      setError("Country unlocks are available on the mobile app. Open ExpatHub on your phone to purchase.");
-      return;
-    }
-    await handleMobilePurchase(productId, "country_lifetime", slug);
-  }
-
   async function handleMonthlySubscribe() {
     if (!user) {
       console.log("[PURCHASE] Monthly tapped but user not logged in — redirecting to auth");
@@ -480,12 +404,7 @@ export function ProPaywall({
           else router.back();
           return;
         }
-        const priceId = process.env.EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID;
-        if (!priceId) {
-          setError("Payment is not configured yet. Please try again later.");
-          return;
-        }
-        const url = await createCheckoutSession(priceId);
+        const url = await createCheckoutSession("monthly");
         if (url) {
           window.location.href = url;
         }
@@ -521,7 +440,10 @@ export function ProPaywall({
           else router.back();
           return;
         }
-        setError("Annual subscriptions are available on the mobile app. Open ExpatHub on your phone to purchase.");
+        const url = await createCheckoutSession("annual");
+        if (url) {
+          window.location.href = url;
+        }
       } catch (e: any) {
         setError(e?.message ?? "Unknown error");
       } finally {
@@ -653,10 +575,8 @@ export function ProPaywall({
   // Show sticky CTA on the "What you get" and "FAQ" tabs to push conversion for
   // users who scroll without committing. On the Plans tab, the inline plan CTAs
   // already drive action so we hide the sticky bar to avoid duplication.
-  const showBottomCta = !hasFullAccess && !alreadyHasCountry && activeTab !== "plans";
-  const stickyCtaLabel = Platform.OS === "web"
-    ? `Subscribe Monthly — ${MONTHLY_PRICE}/mo`
-    : "Start 7-day free trial";
+  const showBottomCta = !hasFullAccess && activeTab !== "plans";
+  const stickyCtaLabel = `Start ${TRIAL_DURATION_DAYS}-day free trial`;
 
   return (
     <View style={{ flex: 1, backgroundColor: tokens.color.bg }}>
@@ -702,29 +622,13 @@ export function ProPaywall({
               <Ionicons name="checkmark-circle" size={24} color={tokens.color.primary} />
               <Text style={s.activeText}>Your current plan</Text>
               <Text style={s.sourceText}>
-                {accessType === "decision_pass"
-                  ? `Decision Pass — ${decisionPassDaysLeft ?? 0} days left`
-                  : accessType === "subscription"
-                    ? "Active subscription — all countries"
-                    : accessType === "country_lifetime"
-                      ? `${countryName ?? "Country"} — lifetime access`
-                      : accessType === "sandbox"
-                        ? "Sandbox mode (testing)"
-                        : "Active"}
+                {accessType === "subscription"
+                  ? "Active subscription — all countries"
+                  : accessType === "sandbox"
+                    ? "Sandbox mode (testing)"
+                    : "Active"}
               </Text>
-              {unlockedCountries && unlockedCountries.length > 0 ? (
-                <Text style={s.expirationText}>
-                  Countries unlocked: {unlockedCountries.map((c: string) => {
-                    const country = COUNTRIES.find((co) => co.slug === c);
-                    return country?.name ?? c;
-                  }).join(", ")}
-                </Text>
-              ) : null}
-              {decisionPassExpiresAt ? (
-                <Text style={s.expirationText}>
-                  Expires {new Date(decisionPassExpiresAt).toLocaleDateString()}
-                </Text>
-              ) : expirationDate ? (
+              {expirationDate ? (
                 <Text style={s.expirationText}>
                   Renews {new Date(expirationDate).toLocaleDateString()}
                 </Text>
@@ -745,12 +649,6 @@ export function ProPaywall({
             </View>
 
           </>
-        ) : alreadyHasCountry && resolvedCountrySlug ? (
-          <View style={s.activeCard}>
-            <Ionicons name="checkmark-circle" size={24} color={tokens.color.primary} />
-            <Text style={s.activeText}>{countryName} unlocked</Text>
-            <Text style={s.sourceText}>Lifetime access to this country's Decision Briefs</Text>
-          </View>
         ) : (
           <>
             <View style={s.tabRow}>
@@ -816,16 +714,15 @@ export function ProPaywall({
             {activeTab === "plans" ? (
               <>
                 <View style={s.pricingSection}>
-                  {Platform.OS !== "web" ? (
                   <View style={[s.monthlyCard, { borderColor: tokens.color.gold, borderWidth: 2 }]}>
                     <View style={s.bestValueBadge}>
-                      <Text style={s.bestValueText}>7-DAY FREE TRIAL</Text>
+                      <Text style={s.bestValueText}>{TRIAL_DURATION_DAYS}-DAY FREE TRIAL</Text>
                     </View>
                     <View style={s.monthlyHeader}>
                       <Ionicons name="star" size={18} color={tokens.color.gold} />
                       <Text style={s.monthlyTitle}>Annual Pathfinder</Text>
                     </View>
-                    <Text style={s.monthlyMeta}>Free for 7 days, then {ANNUAL_PRICE}/year · Save over 50% vs monthly</Text>
+                    <Text style={s.monthlyMeta}>Free for {TRIAL_DURATION_DAYS} days, then {ANNUAL_PRICE}/year · Save over 50% vs monthly</Text>
                     <Pressable
                       onPress={handleAnnualSubscribe}
                       disabled={busy}
@@ -834,21 +731,20 @@ export function ProPaywall({
                       {busy ? (
                         <ActivityIndicator size="small" color={tokens.color.white} />
                       ) : (
-                        <Text style={s.primaryCtaText}>Start 7-day free trial</Text>
+                        <Text style={s.primaryCtaText}>Start {TRIAL_DURATION_DAYS}-day free trial</Text>
                       )}
                     </Pressable>
                     <Text style={s.trialFinePrint}>
-                      Cancel anytime before day 7 — you won't be charged.
+                      Cancel anytime before day {TRIAL_DURATION_DAYS} — you won't be charged.
                     </Text>
                   </View>
-                  ) : null}
 
                   <View style={s.monthlyCard}>
                     <View style={s.monthlyHeader}>
                       <Ionicons name="calendar-outline" size={18} color={tokens.color.primary} />
                       <Text style={s.monthlyTitle}>Monthly Explorer</Text>
                     </View>
-                    <Text style={s.monthlyMeta}>{MONTHLY_PRICE}/month · auto-renewing</Text>
+                    <Text style={s.monthlyMeta}>Free for {TRIAL_DURATION_DAYS} days, then {MONTHLY_PRICE}/month · auto-renewing</Text>
                     <Pressable
                       onPress={handleMonthlySubscribe}
                       disabled={busy}
@@ -857,9 +753,12 @@ export function ProPaywall({
                       {busy ? (
                         <ActivityIndicator size="small" color={tokens.color.text} />
                       ) : (
-                        <Text style={s.secondaryCtaText}>Subscribe Monthly — {MONTHLY_PRICE}/mo</Text>
+                        <Text style={s.secondaryCtaText}>Start {TRIAL_DURATION_DAYS}-day free trial — {MONTHLY_PRICE}/mo</Text>
                       )}
                     </Pressable>
+                    <Text style={s.trialFinePrint}>
+                      Cancel anytime before day {TRIAL_DURATION_DAYS} — you won't be charged.
+                    </Text>
                   </View>
                 </View>
 
@@ -961,8 +860,8 @@ export function ProPaywall({
           {Platform.OS === "web"
             ? "Payment managed via Stripe. Cancel anytime from the customer portal."
             : Platform.OS === "ios"
-              ? "The Annual Pathfinder includes a 7-day free trial. Cancel before the trial ends in your App Store subscription settings and you won't be charged. Otherwise, payment will be charged to your Apple ID at $89/year on the 8th day. Monthly ($14.99/month) and annual ($89/year) subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period."
-              : "The Annual Pathfinder includes a 7-day free trial. Cancel before the trial ends in Google Play subscription settings and you won't be charged. Otherwise, your account will be charged $89/year on the 8th day. Monthly ($14.99/month) and annual ($89/year) subscriptions automatically renew until cancelled."}
+              ? "Both the Monthly Explorer and Annual Pathfinder include a 14-day free trial. Cancel before the trial ends in your App Store subscription settings and you won't be charged. Otherwise, payment will be charged to your Apple ID on day 15: monthly at $14.99/month, annual at $89/year. Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period."
+              : "Both the Monthly Explorer and Annual Pathfinder include a 14-day free trial. Cancel before the trial ends in Google Play subscription settings and you won't be charged. Otherwise, your account will be charged on day 15: monthly at $14.99/month, annual at $89/year. Subscriptions automatically renew until cancelled."}
         </Text>
 
         <View style={s.legalFooter}>
@@ -997,9 +896,7 @@ export function ProPaywall({
               <Text style={s.bottomCtaText}>{stickyCtaLabel}</Text>
             )}
           </Pressable>
-          {Platform.OS !== "web" ? (
-            <Text style={s.bottomCtaFinePrint}>Cancel anytime before day 7 — you won't be charged.</Text>
-          ) : null}
+          <Text style={s.bottomCtaFinePrint}>Cancel anytime before day {TRIAL_DURATION_DAYS} — you won't be charged.</Text>
         </View>
       ) : null}
     </View>

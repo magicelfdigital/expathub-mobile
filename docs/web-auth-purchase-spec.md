@@ -2,6 +2,19 @@
 
 This document specifies how the ExpatHub website (expathub.world) should implement user authentication, content gating, and the purchase/subscription flow to match the mobile app experience. The web version uses Stripe for payments and shares the same auth backend as the mobile app.
 
+> ⚠️ **Purchase model is out of date (April 2026).** The web side now offers
+> **two recurring plans only** — Monthly Explorer ($14.99/mo) and Annual
+> Pathfinder ($89/yr) — each with a **14-day free trial** applied via Stripe
+> `subscription_data.trial_period_days`. The **`decision_pass`** and
+> **`country_lifetime`** purchase types described in sections below have been
+> removed; the resume-pending-purchase flow now only handles `monthly` and
+> `annual` plan keys. For the current source of truth, see:
+>
+> - `web/src/pages/Pricing.tsx` — the live two-plan layout
+> - `server/routes.ts` → `POST /api/stripe/checkout` — accepts
+>   `{ plan: "monthly" \| "annual" }` and applies the 14-day trial
+> - `docs/store-config-changes.md` — Stripe + RevenueCat operator setup
+
 ---
 
 ## 1. Authentication
