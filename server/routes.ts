@@ -1,8 +1,238 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "node:http";
+import { randomUUID } from "node:crypto";
 import Stripe from "stripe";
 import pg from "pg";
 import { GENERIC_PLAN_STEP_IDS } from "@shared/planSteps";
+
+// ── A/B test config ─────────────────────────────────────────────────────
+//
+// Two independent tests, each toggled by an env flag. Per the backlog the
+// two tests must NOT run simultaneously so we can isolate variables — if
+// both flags are set we honour the paid-intro test and force everyone into
+// the annual control bucket.
+const PRICING_VARIANT_COOKIE = "eh_sid";
+const TEST_PAID_INTRO = "paid_intro_test";
+const TEST_ANNUAL_PRICE = "annual_price_test";
+type PaidIntroVariant = "free_trial" | "paid_intro";
+type AnnualVariant = "annual_89" | "annual_99";
+
+function paidIntroEnabled(): boolean {
+  return process.env.ENABLE_PAID_INTRO_TEST === "1" ||
+    process.env.ENABLE_PAID_INTRO_TEST === "true";
+}
+function annualPriceEnabled(): boolean {
+  // If paid-intro is on, force the annual test off so they don't run together.
+  if (paidIntroEnabled()) return false;
+  return process.env.ENABLE_ANNUAL_PRICE_TEST === "1" ||
+    process.env.ENABLE_ANNUAL_PRICE_TEST === "true";
+}
+
+function parseCookies(req: Request): Record<string, string> {
+  const header = req.headers.cookie || "";
+  const out: Record<string, string> = {};
+  for (const part of header.split(";")) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq < 0) continue;
+    const name = trimmed.slice(0, eq);
+    const value = trimmed.slice(eq + 1);
+    try {
+      out[name] = decodeURIComponent(value);
+    } catch {
+      out[name] = value;
+    }
+  }
+  return out;
+}
+
+function setSessionCookie(res: Response, sessionId: string): void {
+  const oneYear = 60 * 60 * 24 * 365;
+  res.appendHeader(
+    "Set-Cookie",
+    `${PRICING_VARIANT_COOKIE}=${encodeURIComponent(sessionId)}; Path=/; Max-Age=${oneYear}; SameSite=Lax`,
+  );
+}
+
+function pickPaidIntroVariant(): PaidIntroVariant {
+  if (!paidIntroEnabled()) return "free_trial"; // control
+  return Math.random() < 0.5 ? "free_trial" : "paid_intro";
+}
+function pickAnnualVariant(): AnnualVariant {
+  if (!annualPriceEnabled()) return "annual_89"; // control
+  return Math.random() < 0.5 ? "annual_89" : "annual_99";
+}
+
+let abTablesEnsured = false;
+async function ensureAbTables(pool: pg.Pool): Promise<void> {
+  if (abTablesEnsured) return;
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS ab_test_assignments (
+      id SERIAL PRIMARY KEY,
+      session_id VARCHAR(64) NOT NULL,
+      user_id VARCHAR(255),
+      test_name VARCHAR(100) NOT NULL,
+      variant VARCHAR(50) NOT NULL,
+      assigned_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS ab_test_assignments_session_test_idx
+      ON ab_test_assignments (session_id, test_name)
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS conversions (
+      id SERIAL PRIMARY KEY,
+      session_id VARCHAR(64) NOT NULL,
+      user_id VARCHAR(255),
+      test_name VARCHAR(100) NOT NULL,
+      variant VARCHAR(50) NOT NULL,
+      plan VARCHAR(50),
+      converted BOOLEAN DEFAULT FALSE,
+      revenue_day_0 NUMERIC(10,2) DEFAULT 0,
+      revenue_day_60 NUMERIC(10,2) DEFAULT 0,
+      stripe_subscription_id VARCHAR(255),
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  abTablesEnsured = true;
+}
+
+async function getOrAssignVariants(
+  req: Request,
+  res: Response,
+): Promise<{
+  sessionId: string;
+  paidIntroVariant: PaidIntroVariant;
+  annualVariant: AnnualVariant;
+  isNew: boolean;
+}> {
+  const cookies = parseCookies(req);
+  let sessionId = cookies[PRICING_VARIANT_COOKIE];
+  let isNew = false;
+  if (!sessionId || sessionId.length < 8 || sessionId.length > 64) {
+    sessionId = randomUUID();
+    isNew = true;
+    setSessionCookie(res, sessionId);
+  }
+
+  // Defaults if no DB; still serve a sensible response.
+  let paidIntroVariant: PaidIntroVariant = "free_trial";
+  let annualVariant: AnnualVariant = "annual_89";
+
+  const pool = getPool();
+  if (!pool) {
+    return {
+      sessionId,
+      paidIntroVariant: pickPaidIntroVariant(),
+      annualVariant: pickAnnualVariant(),
+      isNew,
+    };
+  }
+
+  try {
+    await ensureAbTables(pool);
+    // Read existing assignments for this session.
+    const existing = await pool.query(
+      `SELECT test_name, variant FROM ab_test_assignments WHERE session_id = $1`,
+      [sessionId],
+    );
+    const map = new Map<string, string>();
+    for (const row of existing.rows) {
+      map.set(row.test_name, row.variant);
+    }
+
+    // ── Read-time flag enforcement ──────────────────────────────────────
+    // A previously-bucketed visitor's stored variant is honoured only when
+    // the test is currently enabled. When a test is disabled (or forced off
+    // because the other test is on), force the visitor into the control arm
+    // even if a treatment variant was previously persisted — this prevents
+    // a stale `paid_intro` or `annual_99` bucket from leaking across into a
+    // period where we expect everyone in control.
+    if (paidIntroEnabled()) {
+      if (map.has(TEST_PAID_INTRO)) {
+        paidIntroVariant = map.get(TEST_PAID_INTRO) as PaidIntroVariant;
+      } else {
+        paidIntroVariant = pickPaidIntroVariant();
+        await pool.query(
+          `INSERT INTO ab_test_assignments (session_id, test_name, variant)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (session_id, test_name) DO NOTHING`,
+          [sessionId, TEST_PAID_INTRO, paidIntroVariant],
+        );
+      }
+    } else {
+      paidIntroVariant = "free_trial"; // forced control while test is off
+    }
+
+    if (annualPriceEnabled()) {
+      if (map.has(TEST_ANNUAL_PRICE)) {
+        annualVariant = map.get(TEST_ANNUAL_PRICE) as AnnualVariant;
+      } else {
+        annualVariant = pickAnnualVariant();
+        await pool.query(
+          `INSERT INTO ab_test_assignments (session_id, test_name, variant)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (session_id, test_name) DO NOTHING`,
+          [sessionId, TEST_ANNUAL_PRICE, annualVariant],
+        );
+      }
+    } else {
+      annualVariant = "annual_89"; // forced control while test is off
+    }
+  } catch (err: any) {
+    console.error("AB assignment error:", err?.message);
+  } finally {
+    await pool.end();
+  }
+
+  return { sessionId, paidIntroVariant, annualVariant, isNew };
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
+function requireAdminBasicAuth(req: Request, res: Response): boolean {
+  const expectedUser = process.env.ADMIN_BASIC_USER || "admin";
+  const expectedPass = process.env.ADMIN_BASIC_PASS;
+  if (!expectedPass) {
+    res.status(503).json({ error: "Admin endpoint not configured (set ADMIN_BASIC_PASS)" });
+    return false;
+  }
+  const header = req.headers.authorization || "";
+  if (!header.startsWith("Basic ")) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="ab-admin"');
+    res.status(401).json({ error: "Authentication required" });
+    return false;
+  }
+  let decoded = "";
+  try {
+    decoded = Buffer.from(header.slice(6), "base64").toString("utf8");
+  } catch {
+    res.status(401).json({ error: "Invalid auth header" });
+    return false;
+  }
+  const sep = decoded.indexOf(":");
+  if (sep < 0) {
+    res.status(401).json({ error: "Invalid auth header" });
+    return false;
+  }
+  const user = decoded.slice(0, sep);
+  const pass = decoded.slice(sep + 1);
+  if (!timingSafeEqual(user, expectedUser) || !timingSafeEqual(pass, expectedPass)) {
+    res.setHeader("WWW-Authenticate", 'Basic realm="ab-admin"');
+    res.status(401).json({ error: "Invalid credentials" });
+    return false;
+  }
+  return true;
+}
 
 const AUTH_API_URL = "https://www.expathub.website";
 const PASSWORD_API_URL = "https://www.expathub.website";
@@ -236,6 +466,188 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ── A/B test endpoints ─────────────────────────────────────────────────
+
+  app.get("/api/ab/me", async (req: Request, res: Response) => {
+    const { sessionId, paidIntroVariant, annualVariant } =
+      await getOrAssignVariants(req, res);
+    res.json({
+      sessionId,
+      tests: {
+        paid_intro: {
+          enabled: paidIntroEnabled(),
+          variant: paidIntroVariant,
+        },
+        annual_price: {
+          enabled: annualPriceEnabled(),
+          variant: annualVariant,
+          // Surface the price the FE should display so the FE never
+          // has to know about the env-flag wiring.
+          priceUsd: annualVariant === "annual_99" ? 99 : 89,
+        },
+      },
+    });
+  });
+
+  app.post("/api/ab/conversion", async (req: Request, res: Response) => {
+    const cookies = parseCookies(req);
+    const sessionId = cookies[PRICING_VARIANT_COOKIE];
+    if (!sessionId) {
+      res.status(400).json({ error: "Missing session cookie" });
+      return;
+    }
+    const { plan, revenue, stripeSubscriptionId } = req.body as {
+      plan?: string;
+      revenue?: number;
+      stripeSubscriptionId?: string;
+    };
+
+    // Only attribute conversions to tests that are currently enabled AND
+    // relevant to the plan being purchased. A historical assignment from a
+    // prior test period is ignored — otherwise a stale row would falsely
+    // bump the active test's conversion rate. The set of active tests for
+    // each plan is fixed:
+    //   - monthly  → paid_intro_test
+    //   - annual   → annual_price_test
+    const activeTests: string[] = [];
+    if (plan === "monthly" && paidIntroEnabled()) activeTests.push(TEST_PAID_INTRO);
+    if (plan === "annual" && annualPriceEnabled()) activeTests.push(TEST_ANNUAL_PRICE);
+
+    if (activeTests.length === 0) {
+      // No experiment is collecting data for this plan right now; nothing
+      // to attribute. Still 200 OK so the FE doesn't display a noisy error.
+      res.json({ ok: true, conversions: 0 });
+      return;
+    }
+
+    const userId = await getUserIdFromToken(req);
+    const pool = getPool();
+    if (!pool) {
+      res.json({ ok: true });
+      return;
+    }
+    try {
+      await ensureAbTables(pool);
+      const assignments = await pool.query(
+        `SELECT test_name, variant FROM ab_test_assignments
+         WHERE session_id = $1 AND test_name = ANY($2::varchar[])`,
+        [sessionId, activeTests],
+      );
+      if (assignments.rows.length === 0) {
+        res.json({ ok: true, conversions: 0 });
+        return;
+      }
+      let inserted = 0;
+      for (const row of assignments.rows) {
+        // Idempotency: don't double-record if the same session_id +
+        // test_name + stripeSubscriptionId combination already converted
+        // (e.g. the user reloaded /account?subscribed=true).
+        const dedupeWhere = stripeSubscriptionId
+          ? `WHERE session_id = $1 AND test_name = $2 AND stripe_subscription_id = $3 AND converted = TRUE`
+          : `WHERE session_id = $1 AND test_name = $2 AND converted = TRUE AND stripe_subscription_id IS NULL`;
+        const dedupeParams: unknown[] = stripeSubscriptionId
+          ? [sessionId, row.test_name, stripeSubscriptionId]
+          : [sessionId, row.test_name];
+        const existing = await pool.query(
+          `SELECT 1 FROM conversions ${dedupeWhere} LIMIT 1`,
+          dedupeParams,
+        );
+        if (existing.rows.length > 0) continue;
+
+        await pool.query(
+          `INSERT INTO conversions
+             (session_id, user_id, test_name, variant, plan, converted,
+              revenue_day_0, stripe_subscription_id)
+           VALUES ($1, $2, $3, $4, $5, TRUE, $6, $7)`,
+          [
+            sessionId,
+            userId,
+            row.test_name,
+            row.variant,
+            plan ?? null,
+            typeof revenue === "number" ? revenue : 0,
+            stripeSubscriptionId ?? null,
+          ],
+        );
+        inserted += 1;
+      }
+      res.json({ ok: true, conversions: inserted });
+    } catch (err: any) {
+      console.error("Conversion record error:", err?.message);
+      res.json({ ok: true });
+    } finally {
+      await pool.end();
+    }
+  });
+
+  app.get("/api/admin/ab-results", async (req: Request, res: Response) => {
+    if (!requireAdminBasicAuth(req, res)) return;
+    const pool = getPool();
+    if (!pool) {
+      res.status(503).json({ error: "Database not configured" });
+      return;
+    }
+    try {
+      await ensureAbTables(pool);
+      const result = await pool.query(`
+        SELECT
+          a.test_name,
+          a.variant,
+          COUNT(DISTINCT a.session_id)::int AS visitors,
+          COUNT(DISTINCT CASE WHEN c.converted THEN a.session_id END)::int AS conversions,
+          COALESCE(SUM(c.revenue_day_0), 0)::float  AS revenue_day_0,
+          COALESCE(SUM(c.revenue_day_60), 0)::float AS revenue_day_60
+        FROM ab_test_assignments a
+        LEFT JOIN conversions c
+          ON c.session_id = a.session_id
+         AND c.test_name  = a.test_name
+        GROUP BY a.test_name, a.variant
+        ORDER BY a.test_name, a.variant
+      `);
+
+      const tests: Record<
+        string,
+        Array<{
+          variant: string;
+          visitors: number;
+          conversions: number;
+          conversion_rate: number;
+          revenue_day_0: number;
+          revenue_day_60: number;
+          arpu_day_60: number;
+        }>
+      > = {};
+      for (const row of result.rows) {
+        const visitors = Number(row.visitors) || 0;
+        const conversions = Number(row.conversions) || 0;
+        const r0 = Number(row.revenue_day_0) || 0;
+        const r60 = Number(row.revenue_day_60) || 0;
+        if (!tests[row.test_name]) tests[row.test_name] = [];
+        tests[row.test_name].push({
+          variant: row.variant,
+          visitors,
+          conversions,
+          conversion_rate: visitors > 0 ? conversions / visitors : 0,
+          revenue_day_0: r0,
+          revenue_day_60: r60,
+          arpu_day_60: visitors > 0 ? r60 / visitors : 0,
+        });
+      }
+      res.json({
+        flags: {
+          paid_intro_enabled: paidIntroEnabled(),
+          annual_price_enabled: annualPriceEnabled(),
+        },
+        tests,
+      });
+    } catch (err: any) {
+      console.error("AB results error:", err?.message);
+      res.status(500).json({ error: "Failed to compute results" });
+    } finally {
+      await pool.end();
+    }
+  });
+
   app.post("/api/stripe/checkout", async (req: Request, res: Response) => {
     const stripe = getStripe();
     if (!stripe) {
@@ -249,38 +661,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return;
     }
 
+    // Resolve variants for this session — drives both the Stripe price and
+    // the trial structure passed to Checkout.
+    const { sessionId, paidIntroVariant, annualVariant } =
+      await getOrAssignVariants(req, res);
+
+    // Variant-specific Stripe prices MUST be configured separately —
+    // never silently fall back to the control SKU because that would
+    // charge the treatment user the wrong amount on day 0 (e.g. a
+    // paid-intro user expects to pay $0.99 today but the recurring
+    // STRIPE_MONTHLY_PRICE_ID would charge $14.99).
     const monthlyId = process.env.STRIPE_MONTHLY_PRICE_ID;
+    const monthlyPaidIntroId = process.env.STRIPE_MONTHLY_PAID_INTRO_PRICE_ID;
     const annualId = process.env.STRIPE_ANNUAL_PRICE_ID;
-    const priceId = plan === "monthly" ? monthlyId : annualId;
-    if (!priceId) {
+    const annual99Id = process.env.STRIPE_ANNUAL_99_PRICE_ID;
+
+    let priceId: string | undefined;
+    let trialDays = 14;
+    let dueToday = 0;
+    let missingEnv: string | null = null;
+
+    if (plan === "monthly") {
+      if (paidIntroVariant === "paid_intro") {
+        priceId = monthlyPaidIntroId;
+        trialDays = 0;
+        dueToday = 0.99;
+        if (!priceId) missingEnv = "STRIPE_MONTHLY_PAID_INTRO_PRICE_ID";
+      } else {
+        priceId = monthlyId;
+        trialDays = 14;
+        dueToday = 0;
+        if (!priceId) missingEnv = "STRIPE_MONTHLY_PRICE_ID";
+      }
+    } else {
+      // annual — both variants enter a 14-day free trial, so day-0 revenue
+      // is $0. The full annual charge ($89 or $99) only lands at trial end
+      // and must be reconciled by the day-60 revenue rollup job from
+      // Stripe invoice events, not from this success URL.
+      if (annualVariant === "annual_99") {
+        priceId = annual99Id;
+        if (!priceId) missingEnv = "STRIPE_ANNUAL_99_PRICE_ID";
+      } else {
+        priceId = annualId;
+        if (!priceId) missingEnv = "STRIPE_ANNUAL_PRICE_ID";
+      }
+      trialDays = 14;
+      dueToday = 0;
+    }
+
+    if (!priceId || missingEnv) {
       res.status(503).json({
-        error: `Stripe ${plan} price ID is not configured. Set ${plan === "monthly" ? "STRIPE_MONTHLY_PRICE_ID" : "STRIPE_ANNUAL_PRICE_ID"}.`,
+        error: `Stripe ${plan} price ID is not configured for variant "${
+          plan === "monthly" ? paidIntroVariant : annualVariant
+        }". Set ${missingEnv}.`,
       });
       return;
     }
 
     try {
       const baseUrl = getBaseUrl(req);
-      const value = plan === "monthly" ? 14.99 : 89;
 
       const successQuery = new URLSearchParams({
         subscribed: "true",
         plan,
-        value: String(value),
+        value: String(dueToday),
         currency: "USD",
+        sid: sessionId,
+        pv: paidIntroVariant,
+        av: annualVariant,
       }).toString();
 
-      const session = await stripe.checkout.sessions.create({
+      const checkoutPayload: Stripe.Checkout.SessionCreateParams = {
         mode: "subscription",
         line_items: [{ price: priceId, quantity: 1 }],
-        subscription_data: {
-          trial_period_days: 14,
-        },
         success_url: `${baseUrl}/account?${successQuery}`,
         cancel_url: `${baseUrl}/pricing?checkout=cancel`,
-      });
+        metadata: {
+          eh_session_id: sessionId,
+          paid_intro_variant: paidIntroVariant,
+          annual_variant: annualVariant,
+          plan,
+        },
+      };
+      if (trialDays > 0) {
+        checkoutPayload.subscription_data = { trial_period_days: trialDays };
+      }
 
-      res.json({ url: session.url });
+      const session = await stripe.checkout.sessions.create(checkoutPayload);
+
+      res.json({
+        url: session.url,
+        variant: { paid_intro: paidIntroVariant, annual: annualVariant },
+      });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

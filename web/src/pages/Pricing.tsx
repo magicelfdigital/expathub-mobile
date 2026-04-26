@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { webApiClient } from "@/lib/api";
 import { trackInitiateCheckout, trackStartTrial } from "@/lib/pixel";
+import { useAbVariants } from "@/hooks/useAbVariants";
 
-const ANNUAL_PRICE_USD = 89;
 const MONTHLY_PRICE_USD = 14.99;
 
 type Plan = "monthly" | "annual";
@@ -10,6 +10,25 @@ type Plan = "monthly" | "annual";
 export default function Pricing() {
   const [busy, setBusy] = useState<Plan | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { variants, isLoading } = useAbVariants();
+
+  // ── Variant-driven copy & price ──────────────────────────────────────
+  // Annual price toggles between the $89 control and the $99 treatment.
+  const annualPrice = variants.annual.priceUsd;
+  // Monthly intro toggles between the 14-day free trial control and the
+  // $0.99 paid-intro treatment (no free trial, charge today, $14.99/mo
+  // afterwards).
+  const isPaidIntro = variants.paidIntro.variant === "paid_intro";
+  const monthlyHeroLine = isPaidIntro
+    ? `Try for $0.99 today, then $${MONTHLY_PRICE_USD}/month.`
+    : `14-day free trial, then $${MONTHLY_PRICE_USD}/month.`;
+  const monthlyCta = isPaidIntro
+    ? "Try for $0.99 today"
+    : "Start 14-day free trial";
+  const annualCta = "Start 14-day free trial";
+  const headerSubtitle = isPaidIntro
+    ? "Try Monthly for just $0.99 today, or start the 14-day free trial on Annual. Cancel anytime."
+    : "Two plans, both with a 14-day free trial. Cancel anytime — you won't be charged until the trial ends.";
 
   async function startCheckout(plan: Plan) {
     if (busy) return;
@@ -17,10 +36,25 @@ export default function Pricing() {
     setBusy(plan);
 
     try {
+      const variantProps = {
+        paid_intro_variant: variants.paidIntro.variant,
+        annual_variant: variants.annual.variant,
+        session_id: variants.sessionId,
+      };
       if (plan === "annual") {
-        trackStartTrial({ value: 0, currency: "USD", plan: "annual", source: "web_pricing" });
+        trackStartTrial({
+          value: 0,
+          currency: "USD",
+          plan: "annual",
+          source: "web_pricing",
+          ...variantProps,
+        });
       } else {
-        trackInitiateCheckout({ funnel: "monthly_subscription", source: "web_pricing" });
+        trackInitiateCheckout({
+          funnel: "monthly_subscription",
+          source: "web_pricing",
+          ...variantProps,
+        });
       }
 
       const { url } = await webApiClient.stripe.checkout(plan);
@@ -44,12 +78,13 @@ export default function Pricing() {
   return (
     <section
       data-testid="page-pricing"
+      data-paid-intro-variant={variants.paidIntro.variant}
+      data-annual-variant={variants.annual.variant}
       className="container-page py-10 sm:py-16"
     >
       <h1 className="font-display text-4xl">Pricing</h1>
       <p className="mt-3 max-w-2xl text-[var(--color-ink-muted)]">
-        Two plans, both with a 14-day free trial. Cancel anytime — you won't be
-        charged until the trial ends.
+        {headerSubtitle}
       </p>
 
       {error ? (
@@ -72,7 +107,7 @@ export default function Pricing() {
             className="absolute -top-3 left-6 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider"
             style={{ background: "var(--color-teal, var(--color-primary))", color: "white" }}
           >
-            Save 50% · Best value
+            {variants.annual.variant === "annual_99" ? "Best value" : "Save 50% · Best value"}
           </div>
           <div
             className="text-sm font-semibold uppercase tracking-wider"
@@ -80,25 +115,30 @@ export default function Pricing() {
           >
             Annual Pathfinder
           </div>
-          <div className="mt-2 font-display text-4xl">${ANNUAL_PRICE_USD}/yr</div>
+          <div
+            data-testid="pricing-annual-amount"
+            className="mt-2 font-display text-4xl"
+          >
+            ${annualPrice}/yr
+          </div>
           <p className="mt-2 text-sm text-[var(--color-ink-muted)]">
-            14-day free trial, then ${ANNUAL_PRICE_USD}/year.
+            14-day free trial, then ${annualPrice}/year.
           </p>
           <ul className="mt-4 space-y-1 text-sm text-[var(--color-ink)]">
             <li>• Full Decision Briefs for all 11 launch countries</li>
             <li>• Relocation planner with country checklists</li>
             <li>• Compare matrix, vendor directory, saved resources</li>
-            <li>• Save over 50% vs monthly</li>
+            <li>• Save vs monthly</li>
           </ul>
           <button
             type="button"
             onClick={() => startCheckout("annual")}
-            disabled={busy !== null}
+            disabled={busy !== null || isLoading}
             className="mt-5 w-full rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
             style={{ background: "var(--color-teal, var(--color-primary))", color: "white" }}
             data-testid="button-start-trial"
           >
-            {busy === "annual" ? "Starting…" : "Start 14-day free trial"}
+            {busy === "annual" ? "Starting…" : annualCta}
           </button>
           <p className="mt-2 text-xs text-[var(--color-ink-muted)]">
             Cancel anytime before day 14 — you won't be charged.
@@ -109,9 +149,14 @@ export default function Pricing() {
           <div className="text-sm font-semibold uppercase tracking-wider text-[var(--color-ink-muted)]">
             Monthly Explorer
           </div>
-          <div className="mt-2 font-display text-4xl">${MONTHLY_PRICE_USD}/mo</div>
+          <div
+            data-testid="pricing-monthly-amount"
+            className="mt-2 font-display text-4xl"
+          >
+            ${MONTHLY_PRICE_USD}/mo
+          </div>
           <p className="mt-2 text-sm text-[var(--color-ink-muted)]">
-            14-day free trial, then ${MONTHLY_PRICE_USD}/month.
+            {monthlyHeroLine}
           </p>
           <ul className="mt-4 space-y-1 text-sm text-[var(--color-ink)]">
             <li>• Full Decision Briefs for all 11 launch countries</li>
@@ -121,15 +166,17 @@ export default function Pricing() {
           <button
             type="button"
             onClick={() => startCheckout("monthly")}
-            disabled={busy !== null}
+            disabled={busy !== null || isLoading}
             className="mt-5 w-full rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-60"
             style={{ background: "var(--color-ink)", color: "white" }}
             data-testid="button-subscribe-monthly"
           >
-            {busy === "monthly" ? "Starting…" : "Start 14-day free trial"}
+            {busy === "monthly" ? "Starting…" : monthlyCta}
           </button>
           <p className="mt-2 text-xs text-[var(--color-ink-muted)]">
-            Cancel anytime before day 14 — you won't be charged.
+            {isPaidIntro
+              ? "Cancel anytime — first month is just $0.99."
+              : "Cancel anytime before day 14 — you won't be charged."}
           </p>
         </div>
       </div>

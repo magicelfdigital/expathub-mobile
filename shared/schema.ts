@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, pgTable, serial, text, timestamp, uniqueIndex, varchar, integer, jsonb } from "drizzle-orm/pg-core";
+import { boolean, pgTable, serial, text, timestamp, uniqueIndex, varchar, integer, jsonb, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -79,6 +79,53 @@ export const moveNotes = pgTable("move_notes", {
   content: text("content").default(""),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// ── A/B test assignments ────────────────────────────────────────────────
+//
+// One row per (sessionId, testName). Variant is the chosen bucket. We keep a
+// single source of truth here so /api/admin/ab-results can join against it
+// and so subsequent visits in the same session always get the same variant.
+export const abTestAssignments = pgTable(
+  "ab_test_assignments",
+  {
+    id: serial("id").primaryKey(),
+    sessionId: varchar("session_id", { length: 64 }).notNull(),
+    userId: varchar("user_id", { length: 255 }),
+    testName: varchar("test_name", { length: 100 }).notNull(),
+    variant: varchar("variant", { length: 50 }).notNull(),
+    assignedAt: timestamp("assigned_at").defaultNow(),
+  },
+  (table) => ({
+    sessionTestUnique: uniqueIndex("ab_test_assignments_session_test_idx").on(
+      table.sessionId,
+      table.testName,
+    ),
+  }),
+);
+export type AbTestAssignment = typeof abTestAssignments.$inferSelect;
+
+// ── Conversions per A/B variant ─────────────────────────────────────────
+//
+// Captures whether a visitor with a given variant assignment converted to a
+// paid trial / subscription, plus revenue at day 0 and day 60. Day 60
+// revenue is back-filled by an aggregation against Stripe data.
+export const conversions = pgTable("conversions", {
+  id: serial("id").primaryKey(),
+  sessionId: varchar("session_id", { length: 64 }).notNull(),
+  userId: varchar("user_id", { length: 255 }),
+  testName: varchar("test_name", { length: 100 }).notNull(),
+  variant: varchar("variant", { length: 50 }).notNull(),
+  plan: varchar("plan", { length: 50 }),
+  converted: boolean("converted").notNull().default(false),
+  // Numeric so SUM()/AVG() in /api/admin/ab-results return real numbers
+  // and so the runtime CREATE TABLE in server/routes.ts (NUMERIC(10,2))
+  // matches the Drizzle schema if the migration is ever generated/applied.
+  revenueDay0: numeric("revenue_day_0", { precision: 10, scale: 2 }).default("0"),
+  revenueDay60: numeric("revenue_day_60", { precision: 10, scale: 2 }).default("0"),
+  stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+export type Conversion = typeof conversions.$inferSelect;
 
 export const exitOffers = pgTable("exit_offers", {
   id: serial("id").primaryKey(),

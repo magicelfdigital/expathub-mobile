@@ -48,6 +48,28 @@ free trial** change applied to both plans.
    the default introductory offer for new subscribers.
 3. Deactivate any one-time / non-recurring SKUs created for the Decision Pass
    or Country Lifetime tiers.
+4. **Billing recovery — Grace period**: for **each** subscription open the
+   **Base plan** → **Account preferences** → **Grace period** and set it to
+   **3 days**. This keeps the user's entitlement active for 3 days while
+   Google retries the failed payment, so a temporary card decline does not
+   immediately drop them from `full_access`.
+5. **Billing recovery — Account hold**: in the same panel, enable
+   **Account hold** with the maximum **30 days**. After grace expires Google
+   pauses the subscription (no entitlement) but the user keeps their slot for
+   30 days; if they fix billing in that window the subscription resumes
+   without re-purchase. RevenueCat surfaces this state as
+   `BILLING_ISSUE` / `subscription paused`.
+6. **In-app messages**: the mobile app calls
+   `Purchases.showInAppMessages([BILLING_ISSUE])` on every Android foreground
+   transition (`AppState` → `active`). This triggers Google Play's native
+   "Update payment method" sheet whenever the user is in grace or account
+   hold. **No Play Console toggle is required** — Play surfaces the message
+   automatically once the SDK call is made — but verify the result by:
+   - Opening Play Console → **Quality → Subscription messaging** to confirm
+     the **"Card declined"** template is **enabled** for the app (it is on
+     by default for new apps; older apps may need it explicitly turned on).
+   - Triggering a test failure with a Google **test card** that always
+     declines after the trial.
 
 ## 4. RevenueCat dashboard
 
@@ -61,6 +83,34 @@ free trial** change applied to both plans.
    entitlements — the app no longer reads them.
 4. Verify Apple + Google service credentials are still valid so trial events
    propagate.
+5. **Experiments (paid intro vs free trial)** — RevenueCat dashboard →
+   **Experiments → New experiment**:
+   - Name: `monthly_paid_intro_vs_free_trial`.
+   - Control offering: the existing **Default** offering with the 14-day
+     free trial on `expathub_explorer`.
+   - Variant offering: clone Default into **paid_intro_test**, replace the
+     monthly package with `expathub_explorer` configured to use a **$0.99
+     intro price for 1 month** (no free trial). Create the matching intro
+     offer in App Store Connect (**Pay As You Go → $0.99 / 1 month**) and in
+     Google Play Console (**Base plan → Offers → Introductory price → $0.99
+     for the first billing period**) before launching the experiment.
+   - Traffic split: 50/50, single audience (no overlap with the annual
+     experiment below).
+   - Stop rule: **statistical significance at 95%** OR **2,000 entitlement
+     starts per arm**, whichever comes first.
+6. **Experiments (annual $89 vs $99)** — only run when the paid-intro
+   experiment is **not** active so we don't compound treatments:
+   - Name: `annual_89_vs_99`.
+   - Control offering: Default (annual = $89).
+   - Variant offering: clone Default into **annual_99_test** with
+     `expathub_pathfinder` priced at **$99/year** (create the $99 SKU in
+     ASC + Play first; both stores require new SKUs for any price change).
+   - Traffic split: 50/50.
+   - Stop rule: same as above.
+7. Web `/pricing` and `/api/stripe/checkout` run their own A/B fork via the
+   `ENABLE_PAID_INTRO_TEST` and `ENABLE_ANNUAL_PRICE_TEST` env flags — keep
+   the RevenueCat experiment in sync (same arm, same dates) so the mobile
+   and web reports describe the same population.
 
 ## 5. Stripe (web checkout)
 
@@ -68,9 +118,22 @@ free trial** change applied to both plans.
    - Monthly — $14.99 USD / month
    - Annual — $89 USD / year
 2. Copy the price IDs into Replit Secrets:
-   - `STRIPE_MONTHLY_PRICE_ID = price_…`
-   - `STRIPE_ANNUAL_PRICE_ID = price_…`
+   - `STRIPE_MONTHLY_PRICE_ID = price_…` (control: 14-day free trial → $14.99/mo)
+   - `STRIPE_ANNUAL_PRICE_ID = price_…` (control: $89/year)
    - `STRIPE_SECRET_KEY = sk_…` (server-side, already required)
+   - **A/B variant prices** (only required if the corresponding env flag is on):
+     - `STRIPE_MONTHLY_PAID_INTRO_PRICE_ID = price_…` — recurring price that
+       charges $0.99 today and $14.99/mo afterwards (no free trial). Falls
+       back to `STRIPE_MONTHLY_PRICE_ID` when unset.
+     - `STRIPE_ANNUAL_99_PRICE_ID = price_…` — $99/year. Falls back to
+       `STRIPE_ANNUAL_PRICE_ID` when unset.
+   - **Experiment toggles** (mutually exclusive — if both are on, only the
+     paid-intro test runs):
+     - `ENABLE_PAID_INTRO_TEST = 1`
+     - `ENABLE_ANNUAL_PRICE_TEST = 1`
+   - **Admin dashboard** (`GET /api/admin/ab-results`):
+     - `ADMIN_BASIC_USER` (default `admin`)
+     - `ADMIN_BASIC_PASS` — required; endpoint returns 503 until set.
 3. Trial length is **set in code** (`subscription_data.trial_period_days: 14`)
    — do **not** also configure a trial on the Price itself, otherwise it will
    compound.

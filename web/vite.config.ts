@@ -11,6 +11,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
+      // Shared with the mobile app so question wording stays in sync.
+      "@quiz-data": path.resolve(__dirname, "..", "src", "data", "quiz.ts"),
     },
   },
   server: {

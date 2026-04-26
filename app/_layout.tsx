@@ -1,7 +1,8 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
+import { AppState, type AppStateStatus, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
@@ -93,6 +94,46 @@ export default function RootLayout() {
     initAnalytics();
     initFbSdk();
     trackEvent("app_opened");
+  }, []);
+
+  // Surface Google Play's native "Update payment method" dialog on Android
+  // whenever the app foregrounds. RevenueCat handles the actual call into the
+  // Play Billing Library; iOS shows billing-issue messaging automatically and
+  // web has no native billing surface, so we no-op on those platforms.
+  const lastAppStateRef = useRef<AppStateStatus>(AppState.currentState);
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+
+    let cancelled = false;
+    async function showBillingMessages(): Promise<void> {
+      try {
+        const mod = await import("react-native-purchases");
+        const Purchases = mod.default;
+        // IN_APP_MESSAGE_TYPE is exposed as a static enum on the Purchases
+        // class (re-exported from @revenuecat/purchases-typescript-internal).
+        // BILLING_ISSUE is the only message type we want to surface here —
+        // it covers expired payment methods and account-hold prompts.
+        const messageType = Purchases.IN_APP_MESSAGE_TYPE.BILLING_ISSUE;
+        if (cancelled) return;
+        await Purchases.showInAppMessages([messageType]);
+      } catch (e) {
+        if (__DEV__) console.log("[Billing] showInAppMessages failed:", e);
+      }
+    }
+
+    void showBillingMessages();
+
+    const sub = AppState.addEventListener("change", (next) => {
+      const prev = lastAppStateRef.current;
+      lastAppStateRef.current = next;
+      if (prev !== "active" && next === "active") {
+        void showBillingMessages();
+      }
+    });
+    return () => {
+      cancelled = true;
+      sub.remove();
+    };
   }, []);
 
   if (!fontsLoaded && !fontError) {

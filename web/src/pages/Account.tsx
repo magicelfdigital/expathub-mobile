@@ -27,19 +27,39 @@ export default function Account() {
     const plan = params.get("plan") ?? "unknown";
     const valueStr = params.get("value");
     const value = valueStr ? Number(valueStr) : 0;
+    const paidIntroVariant = params.get("pv");
+    const annualVariant = params.get("av");
 
     trackSubscribe({
       value: Number.isFinite(value) ? value : 0,
       currency: params.get("currency") ?? "USD",
       plan,
       source: "web_checkout_success",
+      ...(paidIntroVariant ? { paid_intro_variant: paidIntroVariant } : {}),
+      ...(annualVariant ? { annual_variant: annualVariant } : {}),
     });
+
+    // Server-side conversion record for the A/B reporting dashboard. The
+    // server reads the eh_sid cookie + DB assignment to attribute this to
+    // the right variant — we just hand it the plan + revenue.
+    void fetch("/api/ab/conversion", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify({
+        plan,
+        revenue: Number.isFinite(value) ? value : 0,
+      }),
+    }).catch(() => {});
 
     const next = new URLSearchParams(params);
     next.delete("subscribed");
     next.delete("plan");
     next.delete("value");
     next.delete("currency");
+    next.delete("sid");
+    next.delete("pv");
+    next.delete("av");
     setParams(next, { replace: true });
   }, [params, setParams]);
 
