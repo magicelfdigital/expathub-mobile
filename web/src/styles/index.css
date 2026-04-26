@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #3e81dd;
+  --color-primary-dark: #2e6bbf;
+  --color-teal: #33c4dc;
+  --color-gold: #e8991a;
+  --color-navy: #0f2b4d;
+  --color-cream: #fbf8f1;
+  --color-surface: #ffffff;
+  --color-bg: #f7f6f2;
+  --color-ink: #1a1a1a;
+  --color-ink-muted: #5a5a5a;
+  --color-border: #e6e3da;
+
+  --font-sans:
+    "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Lora", "DM Sans", Georgia, serif;
+
+  --radius-card: 16px;
+  --radius-pill: 999px;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv01";
+    line-height: 1.6;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--color-navy);
+    line-height: 1.2;
+  }
+
+  a {
+    color: var(--color-primary);
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition;
+  }
+  .btn-primary {
+    background: var(--color-primary);
+    color: white;
+  }
+  .btn-primary:hover {
+    background: var(--color-primary-dark);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-navy);
+    border: 1px solid var(--color-border);
+  }
+  .btn-ghost:hover {
+    background: var(--color-cream);
+  }
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+  }
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+  }
+}
+
+[data-testid="home-qr"] canvas,
+[data-testid="home-qr"] svg {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}

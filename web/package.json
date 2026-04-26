@@ -1,0 +1,12 @@
+{
+  "name": "expathub-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:all": "concurrently -k -n api,web -c blue,magenta \"NODE_ENV=development tsx ../server/index.ts\" \"vite\"",
+    "build": "vite build",
+    "preview": "vite preview"
+  }
+}

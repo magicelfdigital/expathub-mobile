@@ -3,6 +3,8 @@ import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import * as fs from "fs";
 import * as path from "path";
+import { createProxyMiddleware } from "http-proxy-middleware";
+import { spawnSync } from "child_process";
 
 const app = express();
 const log = console.log;
@@ -97,17 +99,6 @@ function setupRequestLogging(app: express.Application) {
   });
 }
 
-function getAppName(): string {
-  try {
-    const appJsonPath = path.resolve(process.cwd(), "app.json");
-    const appJsonContent = fs.readFileSync(appJsonPath, "utf-8");
-    const appJson = JSON.parse(appJsonContent);
-    return appJson.expo?.name || "App Landing Page";
-  } catch {
-    return "App Landing Page";
-  }
-}
-
 function serveExpoManifest(platform: string, res: Response) {
   const manifestPath = path.resolve(
     process.cwd(),
@@ -130,106 +121,105 @@ function serveExpoManifest(platform: string, res: Response) {
   res.send(manifest);
 }
 
-function serveLandingPage({
-  req,
-  res,
-  landingPageTemplate,
-  appName,
-}: {
-  req: Request;
-  res: Response;
-  landingPageTemplate: string;
-  appName: string;
-}) {
-  const forwardedProto = req.header("x-forwarded-proto");
-  const protocol = forwardedProto || req.protocol || "https";
-  const forwardedHost = req.header("x-forwarded-host");
-  const host = forwardedHost || req.get("host");
-  const baseUrl = `${protocol}://${host}`;
-  const expsUrl = `${host}`;
-
-  log(`baseUrl`, baseUrl);
-  log(`expsUrl`, expsUrl);
-
-  const html = landingPageTemplate
-    .replace(/BASE_URL_PLACEHOLDER/g, baseUrl)
-    .replace(/EXPS_URL_PLACEHOLDER/g, expsUrl)
-    .replace(/APP_NAME_PLACEHOLDER/g, appName);
-
-  res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.status(200).send(html);
-}
-
-function configureExpoAndLanding(app: express.Application) {
-  const templatePath = path.resolve(
-    process.cwd(),
-    "server",
-    "templates",
-    "landing-page.html",
-  );
-  const landingPageTemplate = fs.readFileSync(templatePath, "utf-8");
-  const appName = getAppName();
-
-  log("Serving static Expo files with dynamic manifest routing");
-
+/**
+ * Expo manifest middleware. Mobile clients (Expo Go) hit `/` or `/manifest`
+ * with the `expo-platform: ios|android` header — those are routed to the
+ * Expo manifest. All other requests fall through to the web app.
+ */
+function configureExpoManifest(app: express.Application) {
   app.use((req: Request, res: Response, next: NextFunction) => {
-    if (req.path.startsWith("/api")) {
-      return next();
-    }
-
-    if (req.path === "/privacy" || req.path === "/privacy-policy") {
-      const privacyPath = path.resolve(process.cwd(), "server", "templates", "privacy-policy.html");
-      const privacyHtml = fs.readFileSync(privacyPath, "utf-8");
-      res.setHeader("Content-Type", "text/html; charset=utf-8");
-      return res.status(200).send(privacyHtml);
-    }
-
-    if (req.path === "/terms" || req.path === "/terms-of-service") {
-      const termsPath = path.resolve(process.cwd(), "server", "templates", "terms-of-service.html");
-      const termsHtml = fs.readFileSync(termsPath, "utf-8");
-      res.setHeader("Content-Type", "text/html; charset=utf-8");
-      return res.status(200).send(termsHtml);
-    }
-
-    if (req.path !== "/" && req.path !== "/manifest") {
-      return next();
-    }
-
+    if (req.path !== "/" && req.path !== "/manifest") return next();
     const platform = req.header("expo-platform");
-    if (platform && (platform === "ios" || platform === "android")) {
+    if (platform === "ios" || platform === "android") {
       return serveExpoManifest(platform, res);
     }
-
-    if (req.path === "/") {
-      if (process.env.NODE_ENV === "production") {
-        return next();
-      }
-      return serveLandingPage({
-        req,
-        res,
-        landingPageTemplate,
-        appName,
-      });
-    }
-
-    next();
+    return next();
   });
 
+  // Continue to serve legacy Expo Web static assets (so older Expo Go manifest
+  // asset URLs keep resolving). `index: false` prevents the legacy
+  // static-build/index.html from intercepting `/` — the React web SPA owns
+  // every non-/api route now.
   app.use("/assets", express.static(path.resolve(process.cwd(), "assets")));
-  app.use(express.static(path.resolve(process.cwd(), "static-build")));
+  app.use(
+    express.static(path.resolve(process.cwd(), "static-build"), {
+      index: false,
+      fallthrough: true,
+    }),
+  );
+}
 
-  if (process.env.NODE_ENV === "production") {
-    const webIndexPath = path.resolve(process.cwd(), "static-build", "index.html");
-    app.get("*", (req: Request, res: Response, next: NextFunction) => {
-      if (req.path.startsWith("/api")) return next();
-      if (fs.existsSync(webIndexPath)) {
-        return res.sendFile(webIndexPath);
-      }
-      next();
-    });
+const VITE_DEV_TARGET =
+  process.env.VITE_DEV_SERVER_URL || "http://127.0.0.1:5173";
+
+/**
+ * Dev: proxy all non-API requests to the Vite dev server. Vite handles HMR,
+ * routing, and serves the React SPA.
+ */
+function configureWebDevProxy(app: express.Application) {
+  const proxy = createProxyMiddleware({
+    target: VITE_DEV_TARGET,
+    changeOrigin: true,
+    ws: true,
+    logger: console,
+    pathFilter: (pathname) => !pathname.startsWith("/api"),
+  });
+  app.use(proxy);
+  log(`Web dev proxy → ${VITE_DEV_TARGET}`);
+}
+
+/**
+ * Build the React+Vite web bundle synchronously. Used as a runtime fallback
+ * when `web/dist/` is missing in production (e.g. when the Replit Cloud Run
+ * deploy build step has not yet been updated to include `vite build`).
+ *
+ * Adds ~5-10s to first cold start after deploy, then disk-cached for the
+ * lifetime of the container.
+ */
+function buildWebBundle(distDir: string): boolean {
+  log(`Building web bundle into ${distDir} (one-time)…`);
+  const result = spawnSync(
+    "npx",
+    ["vite", "build", "--config", "web/vite.config.ts"],
+    { cwd: process.cwd(), stdio: "inherit", env: process.env },
+  );
+  if (result.status !== 0) {
+    log(`ERROR: vite build failed with exit code ${result.status}`);
+    return false;
   }
+  return fs.existsSync(distDir);
+}
 
-  log("Expo routing: Checking expo-platform header on / and /manifest");
+/**
+ * Prod: serve the built Vite bundle from web/dist with an SPA fallback.
+ * If the bundle is missing (deploy build did not run vite build), build it
+ * once at startup as a fallback so the deployed site always serves.
+ */
+function configureWebStatic(app: express.Application) {
+  const distDir = path.resolve(process.cwd(), "web", "dist");
+  if (!fs.existsSync(distDir)) {
+    log(
+      `web/dist not found at ${distDir} — attempting runtime build fallback.`,
+    );
+    if (!buildWebBundle(distDir)) {
+      log(
+        "ERROR: web/dist build failed — SPA routes will not be served. " +
+          "Update the Replit deploy build to run " +
+          "`npx vite build --config web/vite.config.ts`.",
+      );
+      return;
+    }
+  }
+  app.use(express.static(distDir, { index: false }));
+
+  const indexPath = path.join(distDir, "index.html");
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.method !== "GET" && req.method !== "HEAD") return next();
+    if (req.path.startsWith("/api")) return next();
+    if (!fs.existsSync(indexPath)) return next();
+    res.sendFile(indexPath);
+  });
+  log(`Web SPA serving from ${distDir}`);
 }
 
 function setupErrorHandler(app: express.Application) {
@@ -258,9 +248,15 @@ function setupErrorHandler(app: express.Application) {
   setupBodyParsing(app);
   setupRequestLogging(app);
 
-  configureExpoAndLanding(app);
+  configureExpoManifest(app);
 
   const server = await registerRoutes(app);
+
+  if (process.env.NODE_ENV === "production") {
+    configureWebStatic(app);
+  } else {
+    configureWebDevProxy(app);
+  }
 
   setupErrorHandler(app);
 

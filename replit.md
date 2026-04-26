@@ -35,6 +35,20 @@ Preferred communication style: Simple, everyday language.
 - **Runtime**: Node.js with TypeScript and Express.
 - **API Structure**: Routes under `/api` prefix, handling data access and authentication.
 - **Data Storage**: Uses an `IStorage` interface, currently with in-memory storage, and a PostgreSQL database.
+- **Web frontend hosting**:
+    - **Production**: Express serves the built React+Vite SPA from `web/dist/` for all non-`/api` routes (SPA fallback to `index.html`).
+    - **Development**: Express proxies all non-`/api` requests to the Vite dev server at `http://127.0.0.1:5173` (HMR works through the proxy). The `Start Backend` workflow boots both Express and Vite together via `concurrently`.
+    - Expo Go manifest serving (mobile dev) still hooks `/` and `/manifest` when the `expo-platform` header is present; legacy `static-build/` assets are still served for backward compatibility.
+
+### Web Frontend (`web/`)
+- **Framework**: React 19 + Vite 6 + TypeScript + Tailwind v4 (via `@tailwindcss/vite`).
+- **Routing**: `react-router-dom` v7 with a shared `<SiteLayout>` (Header + Footer). Routes: `/`, `/pricing`, `/start`, `/account`, `/data-delete`, `/privacy`, `/terms`, plus a 404 page.
+- **Design tokens**: Brand palette and fonts are exposed as Tailwind v4 `@theme` tokens in `web/src/styles/index.css` (primary `#3E81DD`, teal `#33C4DC`, gold `#E8991A`, navy `#0F2B4D`, cream, surface, bg `#F7F6F2`). Fonts are loaded from Google Fonts (DM Sans for UI, Lora for headlines).
+- **Home page (`web/src/pages/Home.tsx`)**: Faithful React port of the old `server/templates/_legacy/landing-page.html` Expo Go onboarding flow — two step cards ("Download Expo Go" with platform-aware App Store / Google Play buttons, and "Scan QR Code" with a QR rendered via the `qr-code-styling` CDN script + an `exps://<host>` deep-link button). On iOS/Android user agents the page auto-redirects to the deep link. Re-styled with the new brand tokens (DM Sans + Lora, navy/cream/primary).
+- **API client**: `web/src/lib/api.ts` exposes `webApiClient` with helpers for `/api/auth/*`, `/api/stripe/*`, and `/api/readiness-lead`. `web/src/hooks/useUser.ts` provides a lightweight `useUser()` session hook (calls `/api/auth/me`, treats failures as anonymous).
+- **Legal pages**: Privacy and Terms are now React pages (`web/src/pages/Privacy.tsx`, `web/src/pages/Terms.tsx`); the originals were moved to `server/templates/_legacy/` as a one-release safety net.
+- **Build**: `npx vite build --config web/vite.config.ts` outputs to `web/dist/`.
+- **Dev server**: `Start Backend` workflow boots Express + Vite together via `concurrently`. `web/package.json` also exposes `npm run dev:all` (run from inside `web/`) that does the same thing — useful when running the stack outside Replit's workflow runner. Root `package.json` is intentionally not edited.
 
 ### Database
 - **ORM**: Drizzle ORM configured for PostgreSQL.
