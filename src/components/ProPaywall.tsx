@@ -20,13 +20,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useEntitlement } from "@/src/contexts/EntitlementContext";
 import { getProOffer, isLaunchCountry } from "@/src/data";
 import type { ProOffer } from "@/src/data";
 import { getOfferings } from "@/src/subscriptions/revenuecat";
+import { showToast } from "@/src/lib/toastBus";
 import { createCheckoutSession, createCustomerPortalSession } from "@/src/subscriptions/stripeWeb";
 import {
-  MONTHLY_PRICE,
-  ANNUAL_PRICE,
   RC_MONTHLY_PRODUCT,
   RC_ANNUAL_PRODUCT,
   SANDBOX_ENABLED,
@@ -107,15 +107,19 @@ function parsePrice(price: string): number {
 }
 
 function logFbPurchaseEvent(type: string, opts?: { slug?: string; priceUSD?: number }) {
-  const slug = opts?.slug;
   const override = opts?.priceUSD;
   if (type === "annual_subscription" || type === "annual") {
     logFbEvent("StartTrial", 0, { plan: "annual" });
     return;
   }
   if (type === "monthly_subscription" || type === "monthly") {
-    const value = typeof override === "number" && override > 0 ? override : parsePrice(MONTHLY_PRICE);
-    logFbEvent("Subscribe", value, { plan: "monthly" });
+    // Only emit a price-bearing event when we have a live price from RC.
+    // We never fall back to a hardcoded constant.
+    if (typeof override === "number" && override > 0) {
+      logFbEvent("Subscribe", override, { plan: "monthly" });
+    } else {
+      logFbEvent("Subscribe", undefined, { plan: "monthly" });
+    }
     return;
   }
 }
@@ -171,6 +175,7 @@ export function ProPaywall({
     redeemPromoCode,
     clearPromoCode,
   } = useSubscription();
+  const { reverseTrialUsed, reverseTrialActive, startReverseTrial } = useEntitlement();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<PaywallTab>("plans");
@@ -178,10 +183,26 @@ export function ProPaywall({
   const [promoCode, setPromoCode] = useState("");
   const [promoError, setPromoError] = useState<string | null>(null);
   const [promoSuccess, setPromoSuccess] = useState(false);
+  const [personalAttrs, setPersonalAttrs] = useState<{ topCountry: string | null; firstName: string | null }>({ topCountry: null, firstName: null });
+  const [livePrices, setLivePrices] = useState<{ monthly: string | null; annual: string | null }>({ monthly: null, annual: null });
   const showPromoCodeFeature = __DEV__;
   const insets = useSafeAreaInsets();
   const resolvedCountrySlug = countrySlug ?? selectedCountrySlug ?? undefined;
   const pendingPurchaseHandled = useRef(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [tc, fn] = await Promise.all([
+          AsyncStorage.getItem("user_top_country"),
+          AsyncStorage.getItem("user_first_name"),
+        ]);
+        if (mounted) setPersonalAttrs({ topCountry: tc ?? null, firstName: fn ?? null });
+      } catch {}
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const offer: ProOffer = getProOffer(resolvedCountrySlug, pathwayKey);
   const mountedAtRef = useRef<number>(Date.now());
@@ -190,6 +211,20 @@ export function ProPaywall({
     entryPoint ?? (pathwayKey ? "pathway" : resolvedCountrySlug ? "country" : "general");
 
   const countryName = resolvedCountrySlug ? getCountryName(resolvedCountrySlug) : null;
+
+  // Spec format: `Your {top_country} roadmap is ready, {first_name}`.
+  // Fallbacks degrade gracefully when one or both attributes are missing.
+  const personalizedHeadline = (() => {
+    if (unlockLabel) return `Unlock: ${unlockLabel}`;
+    const topSlug = personalAttrs.topCountry;
+    const topName = topSlug ? getCountryName(topSlug) : null;
+    const first = personalAttrs.firstName?.trim() || null;
+    const country = topName ?? countryName;
+    if (country && first) return `Your ${country} roadmap is ready, ${first}`;
+    if (country) return `Your ${country} roadmap is ready`;
+    if (first) return `Your relocation roadmap is ready, ${first}`;
+    return "Your relocation roadmap is ready";
+  })();
   const isLaunch = !resolvedCountrySlug || isLaunchCountry(resolvedCountrySlug);
 
   async function storePendingPurchase(type: string, slug?: string) {
@@ -293,6 +328,19 @@ export function ProPaywall({
     });
   }, []);
 
+  // Fire personalized_paywall_viewed once we know the attributes (or know they're absent).
+  const personalizedFiredRef = useRef(false);
+  useEffect(() => {
+    if (personalizedFiredRef.current) return;
+    personalizedFiredRef.current = true;
+    trackEvent("personalized_paywall_viewed", {
+      hasTopCountry: !!personalAttrs.topCountry,
+      hasFirstName: !!personalAttrs.firstName,
+      topCountry: personalAttrs.topCountry ?? "none",
+      country: resolvedCountrySlug ?? "none",
+    });
+  }, [personalAttrs.topCountry, personalAttrs.firstName]);
+
   useEffect(() => {
     if (Platform.OS === "web" || hasActiveSubscription) return;
     getOfferings()
@@ -307,11 +355,20 @@ export function ProPaywall({
         if (result.error) {
           console.log("[PAYWALL-DIAG] Error:", result.error);
         }
+        setLivePrices({
+          monthly: result.monthlyPackage?.priceString ?? null,
+          annual: result.annualPackage?.priceString ?? null,
+        });
       })
       .catch((e) => {
         console.log("[PAYWALL-DIAG] getOfferings failed:", e);
       });
   }, [hasActiveSubscription]);
+
+  // Live prices from RC offerings — no hardcoded fallback. While loading we
+  // show an em dash so the UI is honest about not having the price yet.
+  const monthlyPriceLabel = livePrices.monthly ?? "—";
+  const annualPriceLabel = livePrices.annual ?? "—";
 
   async function handleMobilePurchase(productId: string, type: string, slug?: string) {
     const userId = user!.id.toString();
@@ -389,7 +446,7 @@ export function ProPaywall({
       router.push("/auth?mode=register");
       return;
     }
-    trackEvent("product_selected", { productId: RC_MONTHLY_PRODUCT, price: MONTHLY_PRICE, type: "monthly_subscription" });
+    trackEvent("product_selected", { productId: RC_MONTHLY_PRODUCT, price: livePrices.monthly ?? "unknown", type: "monthly_subscription" });
     trackEvent("purchase_tapped", { type: "monthly_subscription", platform: Platform.OS });
     trackEvent("trial_tapped", { plan: "monthly", platform: Platform.OS });
     if (Platform.OS === "web") {
@@ -425,7 +482,7 @@ export function ProPaywall({
       router.push("/auth?mode=register&purchaseContext=annual_trial");
       return;
     }
-    trackEvent("product_selected", { productId: RC_ANNUAL_PRODUCT, price: ANNUAL_PRICE, type: "annual_subscription" });
+    trackEvent("product_selected", { productId: RC_ANNUAL_PRODUCT, price: livePrices.annual ?? "unknown", type: "annual_subscription" });
     trackEvent("purchase_tapped", { type: "annual_subscription", platform: Platform.OS });
     trackEvent("trial_tapped", { plan: "annual", platform: Platform.OS });
     if (Platform.OS === "web") {
@@ -527,13 +584,30 @@ export function ProPaywall({
     setBusy(false);
   }
 
-  function handleClose() {
+  async function handleClose() {
     trackEvent("paywall_dismissed", {
       countrySlug: resolvedCountrySlug ?? "none",
       pathwayKey: pathwayKey ?? "none",
       timeOnScreenMs: Date.now() - mountedAtRef.current,
       activeTab,
     });
+
+    // Reverse-trial gate: grant 48h preview on first dismiss for non-paying users.
+    // The toast is fired through the global bus so it survives the paywall
+    // unmount that follows immediately after dismissal.
+    if (!hasFullAccess && !reverseTrialActive && !reverseTrialUsed) {
+      try {
+        await startReverseTrial();
+        showToast({
+          message: "Enjoy 48 hours of full access — on us.",
+          variant: "success",
+          durationMs: 3200,
+        });
+      } catch (e: any) {
+        console.log(`[REVERSE-TRIAL] start failed: ${e?.message ?? e}`);
+      }
+    }
+
     if (onClose) onClose();
     else if (router.canGoBack()) router.back();
     else router.replace("/(tabs)" as any);
@@ -596,11 +670,7 @@ export function ProPaywall({
           <View style={s.proIconCircle}>
             <Ionicons name="shield-checkmark" size={28} color={tokens.color.primary} />
           </View>
-          <Text style={s.h1}>
-            {unlockLabel
-              ? `Unlock: ${unlockLabel}`
-              : resolvedCountrySlug ? `Unlock ${countryName}` : "Make a confident relocation decision"}
-          </Text>
+          <Text style={s.h1}>{personalizedHeadline}</Text>
           <Text style={s.lead}>
             Compare countries, understand risks, and avoid costly mistakes
           </Text>
@@ -722,7 +792,7 @@ export function ProPaywall({
                       <Ionicons name="star" size={18} color={tokens.color.gold} />
                       <Text style={s.monthlyTitle}>Annual Pathfinder</Text>
                     </View>
-                    <Text style={s.monthlyMeta}>Free for {TRIAL_DURATION_DAYS} days, then {ANNUAL_PRICE}/year · Save over 50% vs monthly</Text>
+                    <Text style={s.monthlyMeta}>Free for {TRIAL_DURATION_DAYS} days, then {annualPriceLabel}/year · Save over 50% vs monthly</Text>
                     <Pressable
                       onPress={handleAnnualSubscribe}
                       disabled={busy}
@@ -744,7 +814,7 @@ export function ProPaywall({
                       <Ionicons name="calendar-outline" size={18} color={tokens.color.primary} />
                       <Text style={s.monthlyTitle}>Monthly Explorer</Text>
                     </View>
-                    <Text style={s.monthlyMeta}>Free for {TRIAL_DURATION_DAYS} days, then {MONTHLY_PRICE}/month · auto-renewing</Text>
+                    <Text style={s.monthlyMeta}>Free for {TRIAL_DURATION_DAYS} days, then {monthlyPriceLabel}/month · auto-renewing</Text>
                     <Pressable
                       onPress={handleMonthlySubscribe}
                       disabled={busy}
@@ -753,7 +823,7 @@ export function ProPaywall({
                       {busy ? (
                         <ActivityIndicator size="small" color={tokens.color.text} />
                       ) : (
-                        <Text style={s.secondaryCtaText}>Start {TRIAL_DURATION_DAYS}-day free trial — {MONTHLY_PRICE}/mo</Text>
+                        <Text style={s.secondaryCtaText}>Start {TRIAL_DURATION_DAYS}-day free trial — {monthlyPriceLabel}/mo</Text>
                       )}
                     </Pressable>
                     <Text style={s.trialFinePrint}>

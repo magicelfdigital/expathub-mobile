@@ -24,10 +24,13 @@ import type { BackendEntitlements } from "@/src/billing";
 import { hasEntitlement } from "@/src/billing";
 import { shouldRefresh as cooldownAllows, recordRefresh } from "@/src/billing/refreshCooldown";
 
-type EntitlementSource = "revenuecat" | "stripe" | "sandbox" | "none";
-type AccessType = "subscription" | "sandbox" | "none";
+type EntitlementSource = "revenuecat" | "stripe" | "sandbox" | "none" | "reverse_trial";
+type AccessType = "subscription" | "sandbox" | "none" | "reverse_trial";
 
 const PROMO_CODE_KEY = "promo_code_redeemed";
+const REVERSE_TRIAL_STARTED_KEY = "reverseTrial_startedAt";
+const REVERSE_TRIAL_USED_KEY = "reverseTrial_used";
+const REVERSE_TRIAL_DURATION_MS = 48 * 60 * 60 * 1000;
 
 function gateLog(msg: string) {
   console.log(`[GATE] ${msg}`);
@@ -51,6 +54,11 @@ interface EntitlementContextValue {
   redeemPromoCode: (code: string) => Promise<{ success: boolean; error?: string }>;
   clearPromoCode: () => Promise<void>;
   backendEntitlements: BackendEntitlements | null;
+  reverseTrialActive: boolean;
+  reverseTrialUsed: boolean;
+  reverseTrialExpiresAt: number | null;
+  startReverseTrial: () => Promise<{ ok: boolean; expiresAt: number }>;
+  resetReverseTrial: () => Promise<void>;
 }
 
 const EntitlementContext = createContext<EntitlementContextValue | undefined>(undefined);
@@ -69,6 +77,66 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   const [purchasesError, setPurchasesError] = useState<string | null>(null);
   const [promoCodeActive, setPromoCodeActive] = useState(false);
   const [backendEntitlements, setBackendEntitlements] = useState<BackendEntitlements | null>(null);
+  const [reverseTrialStartedAt, setReverseTrialStartedAt] = useState<number | null>(null);
+  const [reverseTrialUsed, setReverseTrialUsed] = useState(false);
+  const [, setNowTick] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [startedRaw, usedRaw] = await Promise.all([
+          AsyncStorage.getItem(REVERSE_TRIAL_STARTED_KEY),
+          AsyncStorage.getItem(REVERSE_TRIAL_USED_KEY),
+        ]);
+        if (!mounted) return;
+        const started = startedRaw ? Number(startedRaw) : null;
+        setReverseTrialStartedAt(Number.isFinite(started ?? NaN) ? started : null);
+        setReverseTrialUsed(usedRaw === "true");
+      } catch {}
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const reverseTrialExpiresAt = reverseTrialStartedAt
+    ? reverseTrialStartedAt + REVERSE_TRIAL_DURATION_MS
+    : null;
+  const reverseTrialActive =
+    !!reverseTrialExpiresAt && reverseTrialExpiresAt > Date.now();
+
+  // Re-render when reverse trial expires so consumers can react.
+  useEffect(() => {
+    if (!reverseTrialExpiresAt) return;
+    const remaining = reverseTrialExpiresAt - Date.now();
+    if (remaining <= 0) return;
+    const t = setTimeout(() => {
+      setNowTick((v) => v + 1);
+      trackEvent?.("reverse_trial_expired", {});
+    }, Math.min(remaining, 2_147_000_000));
+    return () => clearTimeout(t);
+  }, [reverseTrialExpiresAt]);
+
+  const startReverseTrial = useCallback(async () => {
+    const now = Date.now();
+    await AsyncStorage.setItem(REVERSE_TRIAL_STARTED_KEY, String(now));
+    await AsyncStorage.setItem(REVERSE_TRIAL_USED_KEY, "true");
+    setReverseTrialStartedAt(now);
+    setReverseTrialUsed(true);
+    gateLog(`Reverse trial granted; expires at ${new Date(now + REVERSE_TRIAL_DURATION_MS).toISOString()}`);
+    trackEvent?.("reverse_trial_granted", {
+      expiresAt: now + REVERSE_TRIAL_DURATION_MS,
+    });
+    return { ok: true, expiresAt: now + REVERSE_TRIAL_DURATION_MS };
+  }, []);
+
+  const resetReverseTrial = useCallback(async () => {
+    await AsyncStorage.removeItem(REVERSE_TRIAL_STARTED_KEY);
+    await AsyncStorage.removeItem(REVERSE_TRIAL_USED_KEY);
+    setReverseTrialStartedAt(null);
+    setReverseTrialUsed(false);
+  }, []);
 
   const setSandboxOverride = useCallback((value: boolean) => {
     if (!SANDBOX_ENABLED) return;
@@ -256,20 +324,42 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   const hasCountryAccess = useCallback((_slug: string): boolean => {
     if (__DEV__ && SANDBOX_ENABLED && sandboxOverride) return true;
     if (__DEV__ && promoCodeActive) return true;
+    if (reverseTrialActive) return true;
     return hasFullAccess;
-  }, [sandboxOverride, promoCodeActive, hasFullAccess]);
+  }, [sandboxOverride, promoCodeActive, hasFullAccess, reverseTrialActive]);
 
   const devBypass = __DEV__ && ((SANDBOX_ENABLED && sandboxOverride) || promoCodeActive);
+  const effectiveHasFullAccess = devBypass ? true : hasFullAccess || reverseTrialActive;
+  const effectiveHasProAccess = devBypass ? true : hasProAccess || reverseTrialActive;
+  const effectiveAccessType: AccessType = devBypass
+    ? "sandbox"
+    : hasFullAccess
+      ? accessType
+      : reverseTrialActive
+        ? "reverse_trial"
+        : accessType;
+  const effectiveSource: EntitlementSource = devBypass
+    ? "sandbox"
+    : hasFullAccess
+      ? source
+      : reverseTrialActive
+        ? "reverse_trial"
+        : source;
+  const effectiveExpirationDate =
+    !hasFullAccess && reverseTrialActive && reverseTrialExpiresAt
+      ? new Date(reverseTrialExpiresAt).toISOString()
+      : expirationDate;
+
   const value = useMemo<EntitlementContextValue>(
     () => ({
-      hasProAccess: devBypass ? true : hasProAccess,
-      hasFullAccess: devBypass ? true : hasFullAccess,
-      accessType: devBypass ? "sandbox" : accessType,
-      source: devBypass ? "sandbox" : source,
+      hasProAccess: effectiveHasProAccess,
+      hasFullAccess: effectiveHasFullAccess,
+      accessType: effectiveAccessType,
+      source: effectiveSource,
       loading,
       sandboxMode: SANDBOX_ENABLED,
       managementURL,
-      expirationDate,
+      expirationDate: effectiveExpirationDate,
       rcConfigured,
       purchasesError,
       hasCountryAccess,
@@ -279,8 +369,13 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       redeemPromoCode,
       clearPromoCode,
       backendEntitlements,
+      reverseTrialActive,
+      reverseTrialUsed,
+      reverseTrialExpiresAt,
+      startReverseTrial,
+      resetReverseTrial,
     }),
-    [hasProAccess, hasFullAccess, accessType, source, loading, devBypass, managementURL, expirationDate, rcConfigured, purchasesError, hasCountryAccess, setSandboxOverride, refresh, redeemPromoCode, clearPromoCode, backendEntitlements, promoCodeActive]
+    [effectiveHasProAccess, effectiveHasFullAccess, effectiveAccessType, effectiveSource, loading, managementURL, effectiveExpirationDate, rcConfigured, purchasesError, hasCountryAccess, setSandboxOverride, refresh, redeemPromoCode, clearPromoCode, backendEntitlements, promoCodeActive, reverseTrialActive, reverseTrialUsed, reverseTrialExpiresAt, startReverseTrial, resetReverseTrial]
   );
 
   return <EntitlementContext.Provider value={value}>{children}</EntitlementContext.Provider>;

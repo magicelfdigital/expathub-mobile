@@ -6,7 +6,14 @@ import pg from "pg";
 const AUTH_API_URL = "https://www.expathub.website";
 const PASSWORD_API_URL = "https://www.expathub.website";
 
-async function getUserIdFromToken(req: Request): Promise<string | null> {
+type UpstreamUser = {
+  id?: string | number;
+  email?: string | null;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+};
+
+async function getUserFromToken(req: Request): Promise<UpstreamUser | null> {
   const authHeader = req.headers.authorization;
   if (!authHeader) return null;
   try {
@@ -15,11 +22,16 @@ async function getUserIdFromToken(req: Request): Promise<string | null> {
       headers: { "Content-Type": "application/json", Authorization: authHeader },
     });
     if (!upstream.ok) return null;
-    const data = await upstream.json() as { user?: { id?: string | number } };
-    return data?.user?.id?.toString() ?? null;
+    const data = (await upstream.json()) as { user?: UpstreamUser };
+    return data?.user ?? null;
   } catch {
     return null;
   }
+}
+
+async function getUserIdFromToken(req: Request): Promise<string | null> {
+  const user = await getUserFromToken(req);
+  return user?.id?.toString() ?? null;
 }
 
 function getPool(): pg.Pool | null {
@@ -280,9 +292,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return;
     }
 
-    const { customerId } = req.body as { customerId?: string };
+    // Authz: derive customerId from the authenticated user. Any customerId
+    // supplied in the body is ignored — accepting it from the client would
+    // be an IDOR vulnerability (any caller could open another user's
+    // billing portal by guessing/leaking a Stripe customer id).
+    const user = await getUserFromToken(req);
+    if (!user) {
+      res.status(401).json({ error: "Authentication required" });
+      return;
+    }
+    const customerId = user.stripeCustomerId;
     if (!customerId) {
-      res.status(400).json({ error: "customerId is required" });
+      res.status(404).json({ error: "No Stripe customer on file for this account" });
       return;
     }
 
@@ -301,6 +322,304 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/stripe/status", async (_req: Request, res: Response) => {
     res.json({ hasProAccess: false });
+  });
+
+  // ----- Exit-offer (50% off, 3 months, repeating) -----
+  const EXIT_OFFER_COUPON_LOOKUP = "expathub_exit_50off_3mo";
+  let cachedExitCouponId: string | null = null;
+
+  async function ensureExitCoupon(stripe: Stripe): Promise<string> {
+    if (cachedExitCouponId) return cachedExitCouponId;
+    try {
+      const list = await stripe.coupons.list({ limit: 100 });
+      const found = list.data.find(
+        (c) => c.metadata?.lookup_key === EXIT_OFFER_COUPON_LOOKUP,
+      );
+      if (found) {
+        cachedExitCouponId = found.id;
+        return found.id;
+      }
+    } catch {}
+    const created = await stripe.coupons.create({
+      percent_off: 50,
+      duration: "repeating",
+      duration_in_months: 3,
+      name: "ExpatHub — 50% off for 3 months",
+      metadata: { lookup_key: EXIT_OFFER_COUPON_LOOKUP },
+    });
+    cachedExitCouponId = created.id;
+    return created.id;
+  }
+
+  let exitOffersTableEnsured = false;
+  async function ensureExitOffersTable(pool: pg.Pool): Promise<void> {
+    if (exitOffersTableEnsured) return;
+    // Base table (kept compatible with any pre-existing rows).
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS exit_offers (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR(255) NOT NULL,
+        subscription_id VARCHAR(255) NOT NULL,
+        coupon_id VARCHAR(100),
+        shown_at TIMESTAMP DEFAULT NOW(),
+        accepted_at TIMESTAMP,
+        declined_at TIMESTAMP
+      )
+    `);
+    // Per-period tracking column + index.
+    await pool.query(
+      `ALTER TABLE exit_offers ADD COLUMN IF NOT EXISTS period_start TIMESTAMP`,
+    );
+    // Drop the legacy "one row per (user, subscription)" constraint if present
+    // so we can record one row per billing period instead.
+    await pool.query(`
+      DO $$ BEGIN
+        IF EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conname = 'exit_offers_user_id_subscription_id_key'
+        ) THEN
+          ALTER TABLE exit_offers
+            DROP CONSTRAINT exit_offers_user_id_subscription_id_key;
+        END IF;
+      END $$;
+    `);
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS exit_offers_user_sub_period_idx
+        ON exit_offers (user_id, subscription_id, period_start)
+    `);
+    exitOffersTableEnsured = true;
+  }
+
+  // Returns the Stripe subscription's current period start (Date) and
+  // associated customer id. Used to enforce "exit offer once per
+  // subscription period". Returns null on any failure so callers can
+  // fail closed and avoid showing the exit offer when we cannot
+  // determine the billing period.
+  //
+  // In recent Stripe API versions (2024-12+) `current_period_start` was
+  // removed from the top-level Subscription object and now lives on each
+  // SubscriptionItem. We read from `items.data[0]` first and fall back
+  // to the legacy top-level field for older API versions.
+  async function getStripeSubscriptionPeriod(
+    stripe: ReturnType<typeof getStripe>,
+    subscriptionId: string,
+  ): Promise<{ periodStart: Date | null; customerId: string | null }> {
+    if (!stripe) return { periodStart: null, customerId: null };
+    try {
+      const sub = await stripe.subscriptions.retrieve(subscriptionId);
+      const customerId =
+        typeof sub.customer === "string"
+          ? sub.customer
+          : sub.customer?.id ?? null;
+      const item = sub.items?.data?.[0] as
+        | { current_period_start?: number | null }
+        | undefined;
+      const legacyStart = (sub as unknown as { current_period_start?: number })
+        .current_period_start;
+      const startSec = item?.current_period_start ?? legacyStart ?? null;
+      const periodStart =
+        typeof startSec === "number" ? new Date(startSec * 1000) : null;
+      return { periodStart, customerId };
+    } catch (err: any) {
+      console.error(
+        "Stripe subscription retrieve failed:",
+        err?.message ?? err,
+      );
+      return { periodStart: null, customerId: null };
+    }
+  }
+
+  app.get("/api/subscription/exit-offer/eligibility", async (req: Request, res: Response) => {
+    const user = await getUserFromToken(req);
+    if (!user?.id) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const userId = user.id.toString();
+    const { subscriptionId } = req.query as { subscriptionId?: string };
+    if (!subscriptionId) {
+      res.status(400).json({ error: "subscriptionId is required" });
+      return;
+    }
+    // Authz: subscriptionId on the request must match the authenticated user's subscription.
+    if (!user.stripeSubscriptionId || user.stripeSubscriptionId !== subscriptionId) {
+      res.status(403).json({ error: "Subscription does not belong to this user" });
+      return;
+    }
+    const stripe = getStripe();
+    // Resolve current billing period from Stripe (single source of truth).
+    // If we cannot determine it, fail closed (do not offer).
+    const { periodStart, customerId } = await getStripeSubscriptionPeriod(
+      stripe,
+      subscriptionId,
+    );
+    if (!periodStart) {
+      res.json({ eligible: false, alreadyShown: false, reason: "no_period" });
+      return;
+    }
+    if (
+      user.stripeCustomerId &&
+      customerId &&
+      customerId !== user.stripeCustomerId
+    ) {
+      res
+        .status(403)
+        .json({ error: "Subscription customer mismatch" });
+      return;
+    }
+
+    const pool = getPool();
+    if (!pool) {
+      // No DB to enforce per-period dedupe; treat as eligible so the offer
+      // can still be shown in dev/local environments without DATABASE_URL.
+      res.json({
+        eligible: true,
+        alreadyShown: false,
+        periodStart: periodStart.toISOString(),
+      });
+      return;
+    }
+    try {
+      await ensureExitOffersTable(pool);
+      // Once-per-period: any row for this (user, subscription, period_start)
+      // — regardless of accept/decline — locks the offer for that period.
+      const result = await pool.query(
+        `SELECT id, accepted_at, declined_at FROM exit_offers
+         WHERE user_id = $1 AND subscription_id = $2 AND period_start = $3
+         LIMIT 1`,
+        [userId, subscriptionId, periodStart],
+      );
+      const row = result.rows[0];
+      if (!row) {
+        res.json({
+          eligible: true,
+          alreadyShown: false,
+          periodStart: periodStart.toISOString(),
+        });
+        return;
+      }
+      res.json({
+        eligible: false,
+        alreadyShown: true,
+        accepted: !!row.accepted_at,
+        declined: !!row.declined_at,
+        periodStart: periodStart.toISOString(),
+      });
+    } catch (err: any) {
+      console.error("Exit offer eligibility error:", err);
+      // Fail closed on DB errors as well — better to under-show than to
+      // re-show inside the same period.
+      res.json({ eligible: false, alreadyShown: false });
+    } finally {
+      await pool.end();
+    }
+  });
+
+  app.post("/api/subscription/exit-offer", async (req: Request, res: Response) => {
+    const user = await getUserFromToken(req);
+    if (!user?.id) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const userId = user.id.toString();
+    const { subscriptionId, action } = req.body as {
+      subscriptionId?: string;
+      action?: "accept" | "decline" | "shown";
+    };
+    if (!subscriptionId || !action) {
+      res.status(400).json({ error: "subscriptionId and action are required" });
+      return;
+    }
+    // Authz: subscriptionId on the request must match the authenticated user's subscription.
+    if (!user.stripeSubscriptionId || user.stripeSubscriptionId !== subscriptionId) {
+      res.status(403).json({ error: "Subscription does not belong to this user" });
+      return;
+    }
+
+    const stripe = getStripe();
+    const pool = getPool();
+
+    // Resolve the Stripe subscription period (and verify customer) up-front
+    // so every action is bound to a specific billing period.
+    const { periodStart, customerId } = await getStripeSubscriptionPeriod(
+      stripe,
+      subscriptionId,
+    );
+    if (!periodStart) {
+      res
+        .status(503)
+        .json({ error: "Could not resolve subscription period from Stripe" });
+      return;
+    }
+    if (
+      user.stripeCustomerId &&
+      customerId &&
+      customerId !== user.stripeCustomerId
+    ) {
+      res
+        .status(403)
+        .json({ error: "Subscription customer mismatch" });
+      return;
+    }
+
+    let couponId: string | null = null;
+
+    if (action === "accept") {
+      if (!stripe) {
+        res.status(503).json({ error: "Stripe is not configured." });
+        return;
+      }
+      try {
+        couponId = await ensureExitCoupon(stripe);
+        await stripe.subscriptions.update(subscriptionId, {
+          discounts: [{ coupon: couponId }],
+        });
+      } catch (err: any) {
+        console.error("Stripe exit-offer apply failed:", err?.message);
+        res.status(500).json({ error: err?.message ?? "Failed to apply offer" });
+        return;
+      }
+    }
+
+    if (pool) {
+      try {
+        await ensureExitOffersTable(pool);
+        const now = new Date();
+        const acceptedAt = action === "accept" ? now : null;
+        const declinedAt = action === "decline" ? now : null;
+        // One row per (user, subscription, period_start). Subsequent
+        // updates (e.g. shown → accept) stamp the action timestamps.
+        await pool.query(
+          `INSERT INTO exit_offers
+             (user_id, subscription_id, period_start, coupon_id,
+              shown_at, accepted_at, declined_at)
+           VALUES ($1, $2, $3, $4, NOW(), $5, $6)
+           ON CONFLICT (user_id, subscription_id, period_start) DO UPDATE SET
+             coupon_id   = COALESCE(EXCLUDED.coupon_id,   exit_offers.coupon_id),
+             accepted_at = COALESCE(EXCLUDED.accepted_at, exit_offers.accepted_at),
+             declined_at = COALESCE(EXCLUDED.declined_at, exit_offers.declined_at)`,
+          [
+            userId,
+            subscriptionId,
+            periodStart,
+            couponId,
+            acceptedAt,
+            declinedAt,
+          ],
+        );
+      } catch (err: any) {
+        console.error("Exit offer insert error:", err?.message);
+      } finally {
+        await pool.end();
+      }
+    }
+
+    res.json({
+      ok: true,
+      action,
+      couponId,
+      periodStart: periodStart.toISOString(),
+    });
   });
 
   app.post("/api/auth/quiz-lead", async (req: Request, res: Response) => {

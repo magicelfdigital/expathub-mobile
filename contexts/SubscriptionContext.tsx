@@ -4,9 +4,9 @@ import { EntitlementProvider, useEntitlement } from "@/src/contexts/EntitlementC
 type SubscriptionContextValue = {
   hasActiveSubscription: boolean;
   hasFullAccess: boolean;
-  accessType: "subscription" | "sandbox" | "none";
+  accessType: "subscription" | "sandbox" | "none" | "reverse_trial";
   setHasActiveSubscription: (value: boolean) => void;
-  source: "revenuecat" | "stripe" | "sandbox" | "none";
+  source: "revenuecat" | "stripe" | "sandbox" | "none" | "reverse_trial";
   loading: boolean;
   sandboxMode: boolean;
   managementURL: string | null;

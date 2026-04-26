@@ -75,3 +75,55 @@ export function trackSubscribe(params: PurchaseParams = {}): void {
   const { value = 0, currency = "USD", ...rest } = params;
   safeTrack("Subscribe", { value, currency, ...rest });
 }
+
+function postUnifiedAnalytics(event: string, properties: Record<string, string | number | boolean>): void {
+  if (typeof window === "undefined") return;
+  try {
+    fetch("/api/analytics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event, properties: { ...properties, surface: "web" } }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {}
+}
+
+export function trackLockedSectionViewed(
+  params: { section: string; country?: string } & Record<string, string | number>,
+): void {
+  // Required Pixel signal for Meta optimization.
+  safeTrack("ViewContent", {
+    content_type: "locked_section",
+    ...params,
+  });
+  // Required unified analytics event so PostHog/funnel sees the same name as mobile.
+  safeTrack("paywall_locked_section_viewed", { ...params });
+  postUnifiedAnalytics("paywall_locked_section_viewed", { ...params });
+}
+
+type ExitOfferParams = { subscriptionId?: string } & PixelEventParams;
+
+export function trackExitOfferShown(params: ExitOfferParams = {}): void {
+  // Pixel: high-intent signal Meta can optimize against.
+  safeTrack("Lead", { source: "exit_offer", ...params });
+  // Canonical analytics event so the funnel matches the mobile app.
+  postUnifiedAnalytics("exit_offer_shown", { ...params });
+}
+
+export function trackExitOfferAccepted(params: ExitOfferParams = {}): void {
+  safeTrack("CompleteRegistration", {
+    status: "exit_offer_accepted",
+    value: 0,
+    currency: "USD",
+    ...params,
+  });
+  postUnifiedAnalytics("exit_offer_accepted", { ...params });
+}
+
+export function trackExitOfferDeclined(params: ExitOfferParams = {}): void {
+  safeTrack("Lead", {
+    status: "exit_offer_declined",
+    ...params,
+  });
+  postUnifiedAnalytics("exit_offer_declined", { ...params });
+}

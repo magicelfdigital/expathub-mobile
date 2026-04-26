@@ -140,7 +140,15 @@ type AnalyticsEvent =
   | "quiz_save_shown"
   | "quiz_save_submitted"
   | "quiz_save_dismissed"
-  | "paywall_sticky_cta_tapped";
+  | "paywall_sticky_cta_tapped"
+  | "paywall_locked_section_viewed"
+  | "personalized_paywall_viewed"
+  | "reverse_trial_granted"
+  | "reverse_trial_expired"
+  | "reverse_trial_active_unlock"
+  | "exit_offer_shown"
+  | "exit_offer_accepted"
+  | "exit_offer_declined";
 
 type EventProperties = Record<string, string | number | boolean | undefined>;
 

@@ -419,6 +419,30 @@ export async function getManagementURL(): Promise<string | null> {
   return info.managementURL;
 }
 
+export async function setUserAttributes(
+  attrs: Record<string, string | null | undefined>,
+): Promise<void> {
+  if (Platform.OS === "web") return;
+  if (!initialized) {
+    rcLog("setUserAttributes called before init — skipping");
+    return;
+  }
+  const rc = await loadPurchases();
+  if (!rc) return;
+
+  const sanitized: Record<string, string | null> = {};
+  for (const [k, v] of Object.entries(attrs)) {
+    sanitized[k] = v === undefined ? null : v;
+  }
+
+  try {
+    rc.setAttributes(sanitized);
+    rcLog(`setAttributes: ${Object.keys(sanitized).join(", ")}`);
+  } catch (e: any) {
+    rcLog(`setAttributes error: ${e?.message ?? e}`);
+  }
+}
+
 export async function getAppUserId(): Promise<string | null> {
   if (Platform.OS === "web" || !initialized) return null;
   const rc = await loadPurchases();

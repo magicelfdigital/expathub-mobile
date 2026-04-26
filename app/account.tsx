@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Switch, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -40,6 +40,8 @@ export default function AccountScreen() {
   const [restoring, setRestoring] = useState(false);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [exitOfferEligible, setExitOfferEligible] = useState(false);
+  const [exitSubscriptionId, setExitSubscriptionId] = useState<string | null>(null);
   const { width: screenWidth } = useWindowDimensions();
   const isLargeScreen = screenWidth >= 768;
   const WEB_TOP = Platform.OS === "web" ? 67 : 0;
@@ -89,16 +91,129 @@ export default function AccountScreen() {
     }
   };
 
-  const handleManageSubscription = () => {
-    if (hasPaidAccess) {
-      setShowCancelModal(true);
+  const apiBase = Platform.OS === "web"
+    ? getApiUrl().replace(/\/$/, "")
+    : getBackendBase();
+
+  async function resolveSubscriptionIdForExitOffer(): Promise<string | null> {
+    // The exit-offer endpoint only accepts Stripe subscription IDs. On every
+    // platform we resolve it from the authenticated backend user — never
+    // from RevenueCat's productIdentifier, which is an SKU, not a sub id.
+    try {
+      const meRes = await fetch(`${apiBase}/api/auth/me`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        credentials: "include",
+      });
+      if (!meRes.ok) return null;
+      const me: { user?: { stripeSubscriptionId?: string } } | null = await meRes
+        .json()
+        .catch(() => null);
+      const subId = me?.user?.stripeSubscriptionId;
+      return typeof subId === "string" && subId.length > 0 ? subId : null;
+    } catch {
+      return null;
+    }
+  }
+
+  // The Stripe customer id is derived server-side from the auth token
+  // (see /api/stripe/portal in server/routes.ts). The client never sends
+  // a customerId — that would be an IDOR vector.
+  async function openStripePortal(): Promise<boolean> {
+    try {
+      const res = await fetch(`${apiBase}/api/stripe/portal`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) return false;
+      const data = (await res.json().catch(() => null)) as { url?: string } | null;
+      const url = data?.url;
+      if (!url) return false;
+      await Linking.openURL(url);
+      return true;
+    } catch (e: any) {
+      console.log(`[STRIPE_PORTAL] open failed: ${e?.message ?? e}`);
+      return false;
+    }
+  }
+
+  async function fetchExitOfferEligibility(subscriptionId: string): Promise<boolean> {
+    try {
+      const res = await fetch(
+        `${apiBase}/api/subscription/exit-offer/eligibility?subscriptionId=${encodeURIComponent(subscriptionId)}`,
+        {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          credentials: "include",
+        },
+      );
+      if (!res.ok) return false;
+      const data = await res.json().catch(() => null);
+      return !!data?.eligible;
+    } catch {
+      return false;
+    }
+  }
+
+  async function postExitOfferAction(
+    subscriptionId: string,
+    action: "accept" | "decline" | "shown",
+  ) {
+    try {
+      await fetch(`${apiBase}/api/subscription/exit-offer`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({ subscriptionId, action }),
+      });
+    } catch (e: any) {
+      console.log(`[EXIT_OFFER] ${action} error: ${e?.message ?? e}`);
+    }
+  }
+
+  const handleManageSubscription = async () => {
+    if (!hasPaidAccess) {
+      openSubscriptionManagement();
       return;
     }
-    openSubscriptionManagement();
+    const subId = await resolveSubscriptionIdForExitOffer();
+    setExitSubscriptionId(subId);
+    if (subId) {
+      const eligible = source === "stripe"
+        ? await fetchExitOfferEligibility(subId)
+        : false;
+      setExitOfferEligible(eligible);
+      if (eligible) {
+        await postExitOfferAction(subId, "shown");
+      }
+    } else {
+      setExitOfferEligible(false);
+    }
+    setShowCancelModal(true);
   };
 
-  const openSubscriptionManagement = () => {
+  // Routes the user to the right "manage subscription" surface for their
+  // billing source. Stripe subscriptions deep-link into the hosted billing
+  // portal (server derives the customer id from the auth token) — RC
+  // subs (iOS / Android) go to the relevant store.
+  const openSubscriptionManagement = async () => {
     setShowCancelModal(false);
+    if (source === "stripe") {
+      const opened = await openStripePortal();
+      if (opened) return;
+      // Fall through to the generic alert if the portal couldn't open.
+      Alert.alert(
+        "Manage Subscription",
+        "We couldn't open the billing portal. Please try again from the web account page.",
+      );
+      return;
+    }
     if (Platform.OS === "ios") {
       Linking.openURL("https://apps.apple.com/account/subscriptions");
     } else if (Platform.OS === "android") {
@@ -186,7 +301,13 @@ export default function AccountScreen() {
     }
   })();
 
-  const hasPaidAccess = hasActiveSubscription && accessType !== "sandbox" && accessType !== "none";
+  // Reverse-trial users are entitled to read pro content but have NO underlying
+  // billing subscription — they must not enter the cancel/manage flow.
+  const hasPaidAccess =
+    hasActiveSubscription &&
+    accessType !== "sandbox" &&
+    accessType !== "none" &&
+    accessType !== "reverse_trial";
 
   if (deletedSuccess) {
     return (
@@ -430,8 +551,37 @@ export default function AccountScreen() {
 
       <CancellationModal
         visible={showCancelModal}
-        onClose={() => setShowCancelModal(false)}
+        onClose={() => {
+          setShowCancelModal(false);
+          setExitOfferEligible(false);
+        }}
         onProceed={openSubscriptionManagement}
+        exitOffer={
+          exitOfferEligible && exitSubscriptionId
+            ? {
+                eligible: true,
+                subscriptionId: exitSubscriptionId,
+                onAccept: async () => {
+                  // Backend applies the 50%-off-3mo coupon to the subscription
+                  // and records the action. Then we deep-link the user into
+                  // the Stripe billing portal so they can review/manage the
+                  // discounted subscription right away.
+                  await postExitOfferAction(exitSubscriptionId, "accept");
+                  await refresh();
+                  setStatusMsg("50% off applied to your next 3 billing periods.");
+                  await openStripePortal();
+                },
+                onDecline: async () => {
+                  // Decline → record only. CancellationModal advances to its
+                  // existing "before_you_go" confirmation step, where the
+                  // user taps Continue to Cancel → onProceed →
+                  // openSubscriptionManagement() → Stripe portal (or App
+                  // Store / Play, depending on `source`).
+                  await postExitOfferAction(exitSubscriptionId, "decline");
+                },
+              }
+            : undefined
+        }
       />
     </ScrollView>
   );

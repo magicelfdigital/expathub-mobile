@@ -17,6 +17,8 @@ import { tokens } from "@/theme/tokens";
 import { trackEvent, logFbEvent } from "@/src/lib/analytics";
 import { getApiUrl } from "@/lib/query-client";
 import { getBackendBase } from "@/src/billing/backendClient";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { setUserAttributes } from "@/src/subscriptions/revenuecat";
 
 const TIER_COLORS: Record<Tier, string> = {
   dreaming: "#9BA8C0",
@@ -68,11 +70,24 @@ export default function ResultScreen() {
   const { completeOnboarding } = useOnboarding();
   const { user } = useAuth();
 
-  const answers = useMemo(() => {
-    try { return JSON.parse(answersStr ?? "{}"); } catch { return {}; }
+  type AnswersShape = Record<string, unknown> & {
+    firstName?: string;
+    first_name?: string;
+  };
+
+  const answers = useMemo<AnswersShape>(() => {
+    try {
+      const parsed = JSON.parse(answersStr ?? "{}");
+      return parsed && typeof parsed === "object" ? (parsed as AnswersShape) : {};
+    } catch {
+      return {};
+    }
   }, [answersStr]);
 
-  const result = useMemo(() => calculateQuizResult(answers), [answers]);
+  const result = useMemo(
+    () => calculateQuizResult(answers as unknown as Record<number, string>),
+    [answers],
+  );
 
   const viewedRef = React.useRef(false);
   React.useEffect(() => {
@@ -86,8 +101,35 @@ export default function ResultScreen() {
         top_country: result.topMatch?.slug ?? "none",
         tier: result.tier,
       });
+
+      // Persist quiz attributes for personalized paywall + RC analytics
+      const topCountry = result.topMatch?.slug ?? null;
+      const firstNameRaw = answers.firstName ?? answers.first_name ?? null;
+      const firstName: string | null =
+        typeof firstNameRaw === "string" && firstNameRaw.trim().length > 0
+          ? firstNameRaw.trim()
+          : user?.email
+            ? user.email.split("@")[0]
+            : null;
+
+      (async () => {
+        try {
+          if (topCountry) await AsyncStorage.setItem("user_top_country", topCountry);
+          if (firstName) await AsyncStorage.setItem("user_first_name", firstName);
+          await AsyncStorage.setItem("user_quiz_completed", "true");
+        } catch {}
+        try {
+          await setUserAttributes({
+            top_country: topCountry,
+            first_name: firstName,
+            quiz_completed: "true",
+            quiz_tier: result.tier,
+            quiz_score: String(result.score),
+          });
+        } catch {}
+      })();
     }
-  }, [result]);
+  }, [result, answers, user?.email]);
 
   const tierColor = TIER_COLORS[result.tier];
 

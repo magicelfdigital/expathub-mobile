@@ -87,10 +87,32 @@ export const webApiClient = {
         method: "POST",
         json: { plan },
       }),
-    portal: (customerId: string) =>
+    // No-arg: the server derives the Stripe customer id from the
+    // authenticated session/JWT (see /api/stripe/portal). Accepting a
+    // customerId from the client would be an IDOR vector.
+    portal: () =>
       request<{ url: string }>("/api/stripe/portal", {
         method: "POST",
-        json: { customerId },
+        json: {},
+      }),
+  },
+  subscription: {
+    exitOfferEligibility: (subscriptionId: string) =>
+      request<{
+        eligible: boolean;
+        alreadyShown: boolean;
+        accepted?: boolean;
+        declined?: boolean;
+      }>(
+        `/api/subscription/exit-offer/eligibility?subscriptionId=${encodeURIComponent(subscriptionId)}`,
+      ),
+    exitOffer: (
+      subscriptionId: string,
+      action: "accept" | "decline" | "shown",
+    ) =>
+      request<{ ok: boolean; couponId?: string }>("/api/subscription/exit-offer", {
+        method: "POST",
+        json: { subscriptionId, action },
       }),
   },
   readinessLead: (

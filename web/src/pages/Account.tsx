@@ -1,12 +1,23 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useUser } from "@/hooks/useUser";
 import { trackSubscribe } from "@/lib/pixel";
+import CancellationFlow from "@/components/CancellationFlow";
 
 export default function Account() {
   const { user, isLoading } = useUser();
   const [params, setParams] = useSearchParams();
   const firedRef = useRef(false);
+  const [showCancel, setShowCancel] = useState(false);
+
+  // The Stripe customer id is *not* read on the client anymore — the server
+  // derives it from the authenticated session when opening the billing
+  // portal (see /api/stripe/portal). Only the subscription id is needed
+  // here to look up the exit-offer eligibility.
+  const userAny = user as
+    | (typeof user & { stripeSubscriptionId?: string })
+    | null;
+  const subscriptionId = userAny?.stripeSubscriptionId ?? "";
 
   useEffect(() => {
     if (firedRef.current) return;
@@ -53,7 +64,23 @@ export default function Account() {
         <div className="mt-2 font-display text-2xl">
           {isLoading ? "Checking…" : user ? user.email ?? "Signed in" : "Anonymous"}
         </div>
+        {user ? (
+          <button
+            type="button"
+            onClick={() => setShowCancel(true)}
+            className="mt-4 text-sm text-[var(--color-ink-muted)] underline"
+            data-testid="manage-subscription-btn"
+          >
+            Manage or cancel subscription
+          </button>
+        ) : null}
       </div>
+
+      <CancellationFlow
+        open={showCancel}
+        subscriptionId={subscriptionId || undefined}
+        onClose={() => setShowCancel(false)}
+      />
     </section>
   );
 }

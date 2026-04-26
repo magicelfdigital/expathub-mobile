@@ -4,7 +4,16 @@ import { webApiClient } from "@/lib/api";
 export type WebUser = {
   id?: string | number;
   email?: string;
+  stripeSubscriptionId?: string | null;
+  hasProAccess?: boolean;
 } | null;
+
+export function userHasProAccess(u: WebUser): boolean {
+  if (!u) return false;
+  if (u.hasProAccess) return true;
+  if (u.stripeSubscriptionId) return true;
+  return false;
+}
 
 type State = {
   user: WebUser;

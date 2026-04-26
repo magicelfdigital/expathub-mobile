@@ -5,6 +5,7 @@ import Home from "./pages/Home";
 import Pricing from "./pages/Pricing";
 import Start from "./pages/Start";
 import Account from "./pages/Account";
+import CountryDetail from "./pages/CountryDetail";
 import DataDelete from "./pages/DataDelete";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/start" element={<Start />} />
         <Route path="/account" element={<Account />} />
+        <Route path="/country/:slug" element={<CountryDetail />} />
         <Route path="/data-delete" element={<DataDelete />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/privacy-policy" element={<Privacy />} />
