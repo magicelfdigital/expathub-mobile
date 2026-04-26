@@ -15,8 +15,7 @@ import { testCrash, isNativeBuild } from "@/utils/crashlytics";
 import { trackEvent } from "@/src/lib/analytics";
 import { FREE_TIER_DISPLAY_NAME, PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
 import { getOrchestrator, clearRefreshCooldown } from "@/src/billing";
-import { TIER_LABELS } from "@/src/data/quiz";
-import type { Tier } from "@/src/data/quiz";
+import { getReadinessLabel, MAX_SCORE } from "@/src/data/quiz";
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
@@ -382,14 +381,26 @@ export default function AccountScreen() {
 
       </View>
 
-      {quizResult ? (
+      {quizResult ? (() => {
+        const qrMax = quizResult.maxScore ?? MAX_SCORE;
+        const qrReadiness = quizResult.readiness ?? getReadinessLabel(quizResult.score, qrMax);
+        const badgeColor =
+          qrReadiness.level === "ready_to_plan" || qrReadiness.level === "serious_researcher"
+            ? tokens.color.teal
+            : qrReadiness.level === "curious_explorer"
+              ? tokens.color.primary
+              : "#9BA8C0";
+        const fillPct = Math.max(0, Math.min(100, (quizResult.score / Math.max(1, qrMax)) * 100));
+        return (
         <View style={s.card}>
-          <Text style={[s.rowLabel, { marginBottom: 12 }]}>Readiness Assessment</Text>
+          <Text style={[s.rowLabel, { marginBottom: 12 }]}>Relocation readiness</Text>
+          <View style={{ height: 8, backgroundColor: "rgba(28,43,94,0.08)", borderRadius: 4, overflow: "hidden", marginBottom: 12 }}>
+            <View style={{ height: 8, width: `${fillPct}%`, backgroundColor: tokens.color.teal, borderRadius: 4 }} />
+          </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 8 }}>
-            <View style={{ backgroundColor: quizResult.tier === "ready" ? tokens.color.teal : quizResult.tier === "exploring" ? tokens.color.primary : "#9BA8C0", paddingVertical: 4, paddingHorizontal: 14, borderRadius: 12 }}>
-              <Text style={{ color: "#fff", fontSize: 13, fontFamily: tokens.font.bodySemiBold, fontWeight: "600" }}>{TIER_LABELS[quizResult.tier as Tier]}</Text>
+            <View style={{ backgroundColor: badgeColor, paddingVertical: 4, paddingHorizontal: 14, borderRadius: 12 }}>
+              <Text style={{ color: "#fff", fontSize: 13, fontFamily: tokens.font.bodySemiBold, fontWeight: "600" }}>{qrReadiness.label}</Text>
             </View>
-            <Text style={s.rowValue}>Score: {quizResult.score}/16</Text>
           </View>
           {quizResult.topMatch ? (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
@@ -407,7 +418,8 @@ export default function AccountScreen() {
             <Text style={{ fontSize: 15, fontFamily: tokens.font.bodySemiBold, fontWeight: "600", color: tokens.color.primary }}>Retake Quiz</Text>
           </Pressable>
         </View>
-      ) : null}
+        );
+      })() : null}
 
       {__DEV__ ? (
         <View style={s.sandboxToggleRow}>

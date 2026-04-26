@@ -2,6 +2,25 @@ export type QuizAnswer = "yes" | "somewhat" | "not_sure" | "no";
 export type RegionPreference = "southern_europe" | "northern_europe" | "latin_america" | "other";
 export type Tier = "dreaming" | "exploring" | "ready";
 export type BlockerLevel = "critical" | "moderate" | "explore";
+export type ReadinessLevel =
+  | "just_getting_started"
+  | "curious_explorer"
+  | "serious_researcher"
+  | "ready_to_plan";
+
+export interface ReadinessLabel {
+  level: ReadinessLevel;
+  label: string;
+  description: string;
+}
+
+export type TimelineTone = "green" | "amber" | "teal" | "neutral";
+
+export interface TimelineCallout {
+  tone: TimelineTone;
+  icon: "checkmark-circle" | "alert-circle" | "compass" | "time-outline";
+  text: string;
+}
 
 export interface QuizQuestion {
   id: number;
@@ -23,6 +42,10 @@ export interface Blocker {
 export interface QuizResult {
   tier: Tier;
   score: number;
+  /** Maximum possible score; absent on legacy persisted results. Default {@link MAX_SCORE}. */
+  maxScore?: number;
+  /** New 4-tier readiness label; absent on legacy persisted results. Recompute via {@link getReadinessLabel}. */
+  readiness?: ReadinessLabel;
   regionPreference: RegionPreference;
   topMatch?: TopMatch;
   risks: string[];
@@ -111,14 +134,14 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 7,
-    text: "Do you have an exit strategy or fallback plan if things don't work out?",
-    category: "Exit Strategy",
+    text: "What's your backup plan if the move doesn't work out?",
+    category: "Backup Plan",
     type: "yesno",
     options: [
-      { label: "Yes", value: "yes" },
-      { label: "Somewhat", value: "somewhat" },
-      { label: "Not sure yet", value: "not_sure", notSure: true },
-      { label: "No", value: "no" },
+      { label: "I'd push through and adapt", value: "yes" },
+      { label: "I'd move back home", value: "somewhat" },
+      { label: "I'd try another country", value: "not_sure" },
+      { label: "I haven't thought about it", value: "no" },
     ],
   },
   {
@@ -159,6 +182,66 @@ function basePoints(answer: QuizAnswer): number {
 }
 
 const WEIGHTED_MAX = 19;
+
+export const MAX_SCORE = 16;
+
+export function getReadinessLabel(score: number, maxScore: number = MAX_SCORE): ReadinessLabel {
+  const safeMax = maxScore > 0 ? maxScore : MAX_SCORE;
+  const pct = (score / safeMax) * 100;
+  if (pct <= 25) {
+    return {
+      level: "just_getting_started",
+      label: "Just getting started",
+      description:
+        "You're at the very beginning \u2014 exploring the idea, gathering inspiration. Treat this as a starting line, not a verdict.",
+    };
+  }
+  if (pct <= 50) {
+    return {
+      level: "curious_explorer",
+      label: "Curious explorer",
+      description:
+        "You've started looking into things, but a lot of the big questions are still open. Time to turn curiosity into concrete answers.",
+    };
+  }
+  if (pct <= 75) {
+    return {
+      level: "serious_researcher",
+      label: "Serious researcher",
+      description:
+        "You've done real homework. A few important gaps remain before you're ready to commit to a country and a date.",
+    };
+  }
+  return {
+    level: "ready_to_plan",
+    label: "Ready to plan",
+    description:
+      "You've stress-tested the idea and the basics check out. You're close to building a real timeline and pulling the trigger.",
+  };
+}
+
+export const TIMELINE_CALLOUTS: Record<QuizAnswer, TimelineCallout> = {
+  yes: {
+    tone: "green",
+    icon: "checkmark-circle",
+    text: "12\u201324 months is the sweet spot \u2014 enough time to plan properly, not enough to lose momentum.",
+  },
+  somewhat: {
+    tone: "amber",
+    icon: "alert-circle",
+    text: "Outside the 12\u201324 month window means tight visa timelines or losing steam. A backwards plan from your target month helps.",
+  },
+  not_sure: {
+    tone: "teal",
+    icon: "compass",
+    text: "That's okay \u2014 most people start here. Your next step is making one thing concrete: a region, a visa, or a savings number.",
+  },
+  no: {
+    tone: "neutral",
+    icon: "time-outline",
+    text: "No timeline yet usually means there's a real constraint to name. Identifying it is the first move toward a date.",
+  },
+};
 
 const BLOCKER_CONTENT: Record<number, Partial<Record<Exclude<QuizAnswer, "yes">, Omit<Blocker, "questionId">>>> = {
   1: {
@@ -302,24 +385,24 @@ const BLOCKER_CONTENT: Record<number, Partial<Record<Exclude<QuizAnswer, "yes">,
   7: {
     somewhat: {
       level: "moderate",
-      title: "Exit strategy: loosely planned",
-      whatThisMeans: "A loose plan is fine at this stage. What you're protecting against is being abroad 18 months, things not working out, and discovering you don't know how to get back \u2014 financially, practically, or legally.",
+      title: "Backup plan: returning home",
+      whatThisMeans: "Moving home is a clean fallback, but it's not as automatic as people assume. Re-establishing residency, healthcare, a job, and a place to live takes time \u2014 especially if you've been away long enough that paperwork has lapsed.",
       firstAction: "Spend one hour answering four questions in writing: Can you re-establish residency at home? Do you have a storage unit or family address? What happens to your health insurance? What does re-entry to the job market look like?",
-      guideMeLabel: "Walk me through the exit strategy checklist",
+      guideMeLabel: "Walk me through the come-home checklist",
     },
     not_sure: {
-      level: "explore",
-      title: "Exit strategy: haven't thought it through yet",
-      whatThisMeans: "Having a clear fallback is what gives you the confidence to actually go. People who know they can come back are more likely to leave in the first place, and more likely to make good decisions once they're there.",
-      firstAction: "Answer one question: if you moved abroad and needed to return in 12 months, what would you need to have kept in place to make that possible? That answer is your exit strategy.",
-      guideMeLabel: "Help me think through a realistic fallback plan",
+      level: "moderate",
+      title: "Backup plan: try another country",
+      whatThisMeans: "Bouncing to a second country if the first doesn't fit is a real strategy \u2014 but each country has its own visa runway, savings minimum, and lead time. Without a shortlist, you can end up overstaying or scrambling.",
+      firstAction: "Pick a realistic Plan B country. Check whether your income, savings and visa eligibility would still work there \u2014 ideally a country with a longer or easier residency window.",
+      guideMeLabel: "Help me pick a realistic Plan B country",
     },
     no: {
-      level: "moderate",
-      title: "No exit strategy yet",
-      whatThisMeans: "You don't need a detailed exit plan before you start researching. But before you sign a lease or sell a car, you want to know your re-entry baseline. The cost of not having one shows up as paralysis when small things go wrong abroad.",
-      firstAction: "File this as a task for the 6-months-before-move stage, not now. Add it to your move timeline so it doesn't fall through the cracks.",
-      guideMeLabel: "Add this to my move timeline",
+      level: "critical",
+      title: "No backup plan yet",
+      whatThisMeans: "Not having thought about it is the most common pattern, and the most expensive when things go sideways. Without a clear fallback, small problems abroad turn into paralysis instead of decisions.",
+      firstAction: "Answer one question: if you moved abroad and needed to return or relocate in 12 months, what would you need to have kept in place to make that possible? That answer is your backup plan.",
+      guideMeLabel: "Help me think through a realistic backup plan",
     },
   },
   8: {
@@ -376,7 +459,7 @@ export function calculateQuizResult(
     }
   }
 
-  const displayScore = Math.min(16, Math.round((weightedRaw / WEIGHTED_MAX) * 16));
+  const displayScore = Math.min(MAX_SCORE, Math.round((weightedRaw / WEIGHTED_MAX) * MAX_SCORE));
 
   let tier: Tier;
   if (displayScore <= 5) tier = "dreaming";
@@ -385,8 +468,17 @@ export function calculateQuizResult(
 
   const regionPreference = (answers[9] ?? "southern_europe") as RegionPreference;
   const blockers = getBlockers(answers);
+  const readiness = getReadinessLabel(displayScore, MAX_SCORE);
 
-  return { tier, score: displayScore, regionPreference, risks, blockers };
+  return {
+    tier,
+    score: displayScore,
+    maxScore: MAX_SCORE,
+    readiness,
+    regionPreference,
+    risks,
+    blockers,
+  };
 }
 
 export const TIER_LABELS: Record<Tier, string> = {

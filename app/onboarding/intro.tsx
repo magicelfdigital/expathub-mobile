@@ -24,7 +24,7 @@ const BG = "#F7F6F2";
 const BENEFITS = [
   {
     icon: "locate-outline" as const,
-    text: "A readiness score (0\u201316) and your tier \u2014 Dreaming, Exploring, or Ready to Act",
+    text: "Your relocation readiness on a clear scale \u2014 from just getting started to ready to plan",
   },
   {
     icon: "checkmark-circle-outline" as const,
@@ -39,21 +39,18 @@ const BENEFITS = [
 const TESTIMONIALS = [
   {
     quote:
-      "I\u2019d been researching Portugal for months. The quiz told me in 2 minutes that my income type was the wrong fit for the D7 \u2014 saved me from a very expensive mistake.",
-    name: "James R.",
-    detail: "Beta tester \u00B7 moved to Spain instead",
+      "I\u2019d been pinning Lisbon photos for two years before I finally took this. Two minutes in it told me the D7 wouldn\u2019t work for my income \u2014 which actually pointed me at a visa I\u2019d never heard of. We landed in March.",
+    attribution: "Sarah, Lisbon",
   },
   {
     quote:
-      "I thought I was ready. The gap analysis flagged my exit strategy and timeline. Both were real problems I hadn\u2019t thought through.",
-    name: "Priya M.",
-    detail: "Beta tester \u00B7 currently applying for NLV",
+      "I thought I had Spain figured out. The quiz flagged that my partner and I weren\u2019t actually on the same page about leaving. That conversation took six months \u2014 really glad we had it before we packed.",
+    attribution: "Marcus, Spain",
   },
   {
     quote:
-      "Brutally honest. Didn\u2019t tell me what I wanted to hear \u2014 told me what I needed to fix. That\u2019s rare.",
-    name: "David K.",
-    detail: "Beta tester \u00B7 Exploring tier, targeting 2026",
+      "I kept telling myself I\u2019d figure it out \u201cnext year.\u201D This made me admit I had no real timeline and no backup plan. Two months later I had both. Living in the Algarve now.",
+    attribution: "Jamie, Algarve",
   },
 ];
 
@@ -111,20 +108,17 @@ export default function IntroScreen() {
           </View>
 
           <View style={s.previewBody}>
-            <View style={s.scoreRow}>
-              <Text style={s.scoreLabel}>Readiness Score</Text>
-              <Text style={s.scoreValue}>11 / 16</Text>
-            </View>
+            <Text style={s.scoreLabel}>Relocation readiness</Text>
             <View style={s.progressTrack}>
               <View style={[s.progressFill, { width: "69%" }]} />
             </View>
 
             <View style={s.tierRow}>
               <View style={s.tierBadge}>
-                <Text style={s.tierBadgeText}>Exploring</Text>
+                <Text style={s.tierBadgeText}>Serious researcher</Text>
               </View>
               <Text style={s.tierDesc}>
-                Serious, but a few gaps to close before committing.
+                You&rsquo;ve done real homework. A few gaps to close before committing.
               </Text>
             </View>
 
@@ -155,9 +149,8 @@ export default function IntroScreen() {
         <View style={s.testimonialList}>
           {TESTIMONIALS.map((t, i) => (
             <View key={i} style={s.testimonialCard}>
-              <Text style={s.testimonialQuote}>"{t.quote}"</Text>
-              <Text style={s.testimonialName}>{t.name}</Text>
-              <Text style={s.testimonialDetail}>{t.detail}</Text>
+              <Text style={s.testimonialQuote}>&ldquo;{t.quote}&rdquo;</Text>
+              <Text style={s.testimonialAttribution}>&mdash; {t.attribution}</Text>
             </View>
           ))}
         </View>
@@ -299,21 +292,13 @@ const s = StyleSheet.create({
     gap: 14,
   },
 
-  scoreRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
   scoreLabel: {
-    fontSize: 14,
-    fontFamily: tokens.font.body,
-    color: BODY_COLOR,
-  },
-  scoreValue: {
-    fontSize: 16,
-    fontFamily: tokens.font.bodyBold,
-    fontWeight: "700",
-    color: HEADING_COLOR,
+    fontSize: 12,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600",
+    color: SECTION_LABEL,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
   },
   progressTrack: {
     height: 8,
@@ -476,23 +461,19 @@ const s = StyleSheet.create({
     padding: 16,
   },
   testimonialQuote: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: tokens.font.body,
     fontStyle: "italic",
     color: BODY_COLOR,
-    lineHeight: 21,
-    marginBottom: 10,
+    lineHeight: 20,
+    marginBottom: 8,
+    textAlign: "left",
   },
-  testimonialName: {
-    fontSize: 13,
-    fontFamily: tokens.font.bodySemiBold,
-    fontWeight: "600",
-    color: HEADING_COLOR,
-    marginBottom: 2,
-  },
-  testimonialDetail: {
+  testimonialAttribution: {
     fontSize: 13,
     fontFamily: tokens.font.body,
-    color: BODY_COLOR,
+    fontStyle: "italic",
+    color: HEADING_COLOR,
+    textAlign: "left",
   },
 });

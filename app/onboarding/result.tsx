@@ -5,11 +5,11 @@ import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, T
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   calculateQuizResult,
-  TIER_LABELS,
-  TIER_DESCRIPTIONS,
+  getReadinessLabel,
+  MAX_SCORE,
   type Blocker,
   type BlockerLevel,
-  type Tier,
+  type ReadinessLevel,
 } from "@/src/data/quiz";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,10 +20,11 @@ import { getBackendBase } from "@/src/billing/backendClient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setUserAttributes } from "@/src/subscriptions/revenuecat";
 
-const TIER_COLORS: Record<Tier, string> = {
-  dreaming: "#9BA8C0",
-  exploring: tokens.color.primary,
-  ready: tokens.color.teal,
+const READINESS_COLORS: Record<ReadinessLevel, string> = {
+  just_getting_started: "#9BA8C0",
+  curious_explorer: tokens.color.primary,
+  serious_researcher: tokens.color.teal,
+  ready_to_plan: tokens.color.teal,
 };
 
 const LEVEL_COLORS: Record<BlockerLevel, { border: string; bg: string; label: string; chip: string }> = {
@@ -89,17 +90,23 @@ export default function ResultScreen() {
     [answers],
   );
 
+  const readiness = useMemo(
+    () => result.readiness ?? getReadinessLabel(result.score, result.maxScore ?? MAX_SCORE),
+    [result.readiness, result.score, result.maxScore],
+  );
+  const maxScore = result.maxScore ?? MAX_SCORE;
+
   const viewedRef = React.useRef(false);
   React.useEffect(() => {
     if (!viewedRef.current) {
       viewedRef.current = true;
       trackEvent("result_screen_viewed", {
         matchScore: result.score,
-        tier: result.tier,
+        tier: readiness.level,
       });
       logFbEvent("CompletedQuiz", undefined, {
         top_country: result.topMatch?.slug ?? "none",
-        tier: result.tier,
+        tier: readiness.level,
       });
 
       // Persist quiz attributes for personalized paywall + RC analytics
@@ -123,15 +130,16 @@ export default function ResultScreen() {
             top_country: topCountry,
             first_name: firstName,
             quiz_completed: "true",
-            quiz_tier: result.tier,
+            quiz_tier: readiness.level,
             quiz_score: String(result.score),
           });
         } catch {}
       })();
     }
-  }, [result, answers, user?.email]);
+  }, [result, readiness, answers, user?.email]);
 
-  const tierColor = TIER_COLORS[result.tier];
+  const tierColor = READINESS_COLORS[readiness.level];
+  const fillPct = Math.max(0, Math.min(100, (result.score / Math.max(1, maxScore)) * 100));
 
   const grouped = useMemo(() => {
     const g: Record<BlockerLevel, Blocker[]> = { critical: [], moderate: [], explore: [] };
@@ -153,28 +161,28 @@ export default function ResultScreen() {
       await fetch(`${base}/api/readiness-lead`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: addr, score: result.score, tier: result.tier, risks: result.risks, answers }),
+        body: JSON.stringify({ email: addr, score: result.score, tier: readiness.level, risks: result.risks, answers }),
       });
       setEmailSent(true);
-      trackEvent("readiness_lead_saved", { tier: result.tier, score: result.score });
+      trackEvent("readiness_lead_saved", { tier: readiness.level, score: result.score });
     } catch {} finally { setEmailSending(false); }
   };
 
   const handleCreateAccount = async () => {
     await completeOnboarding(result, false);
-    trackEvent("quiz_completed", { tier: result.tier, score: result.score, action: "create_account" });
+    trackEvent("quiz_completed", { tier: readiness.level, score: result.score, action: "create_account" });
     router.replace("/auth?mode=register");
   };
 
   const handleContinue = async () => {
     await completeOnboarding(result, true);
-    trackEvent("quiz_completed", { tier: result.tier, score: result.score, action: "continue" });
+    trackEvent("quiz_completed", { tier: readiness.level, score: result.score, action: "continue" });
     router.replace("/(tabs)/(home)");
   };
 
   const handleUnlockRoadmap = async () => {
     await completeOnboarding(result, true);
-    trackEvent("paywall_unlock_tapped", { source: "result_screen", tier: result.tier });
+    trackEvent("paywall_unlock_tapped", { source: "result_screen", tier: readiness.level });
     router.push("/subscribe");
   };
 
@@ -270,19 +278,17 @@ export default function ResultScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Your Readiness Score</Text>
-          <View style={styles.scoreRow}>
-            <View style={[styles.scoreCircle, { borderColor: tierColor }]}>
-              <Text style={[styles.scoreNumber, { color: tierColor }]}>{result.score}</Text>
-              <Text style={styles.scoreMax}>/16</Text>
-            </View>
-            <View style={{ flex: 1, marginLeft: 20 }}>
-              <View style={[styles.tierBadge, { backgroundColor: tierColor }]}>
-                <Text style={styles.tierBadgeText}>{TIER_LABELS[result.tier]}</Text>
-              </View>
-              <Text style={styles.tierDescription}>{TIER_DESCRIPTIONS[result.tier]}</Text>
-            </View>
+          <Text style={styles.readinessLabel}>Relocation readiness</Text>
+          <View style={styles.readinessBarTrack} testID="readiness-bar-track">
+            <View
+              style={[styles.readinessBarFill, { width: `${fillPct}%`, backgroundColor: tokens.color.teal }]}
+              testID="readiness-bar-fill"
+            />
           </View>
+          <View style={[styles.tierBadge, { backgroundColor: tierColor }]} testID="readiness-tier-badge">
+            <Text style={styles.tierBadgeText}>{readiness.label}</Text>
+          </View>
+          <Text style={styles.tierDescription}>{readiness.description}</Text>
         </View>
 
         {renderBlockerSection("critical")}
@@ -337,39 +343,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(28,43,94,0.08)",
   },
-  sectionLabel: {
+  readinessLabel: {
     fontSize: 13,
     fontFamily: tokens.font.bodySemiBold,
     fontWeight: "600",
     color: tokens.color.subtext,
     textTransform: "uppercase",
     letterSpacing: 1,
+    marginBottom: 12,
+  },
+  readinessBarTrack: {
+    height: 10,
+    backgroundColor: "rgba(28,43,94,0.08)",
+    borderRadius: 5,
+    overflow: "hidden",
     marginBottom: 14,
   },
-  scoreRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  scoreCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    borderWidth: 4,
-    justifyContent: "center",
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 2,
-  },
-  scoreNumber: {
-    fontSize: 30,
-    fontFamily: tokens.font.display,
-    fontWeight: "600",
-  },
-  scoreMax: {
-    fontSize: 14,
-    fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
-    marginTop: 6,
+  readinessBarFill: {
+    height: 10,
+    borderRadius: 5,
   },
   tierBadge: {
     alignSelf: "flex-start",

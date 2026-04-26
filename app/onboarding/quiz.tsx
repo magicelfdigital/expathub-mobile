@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import { Animated, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { QUIZ_QUESTIONS } from "@/src/data/quiz";
+import { QUIZ_QUESTIONS, TIMELINE_CALLOUTS, type QuizAnswer, type TimelineTone } from "@/src/data/quiz";
 import { QuizSaveModal } from "@/src/components/QuizSaveModal";
 import { tokens } from "@/theme/tokens";
 import { trackEvent } from "@/src/lib/analytics";
@@ -11,6 +11,14 @@ import { trackEvent } from "@/src/lib/analytics";
 const TOTAL = QUIZ_QUESTIONS.length;
 const SAVE_PROMPT_TRIGGER_INDEX = 4; // After Q5
 const SAVE_PROMPT_NO_THRESHOLD = 3;
+const TIMELINE_QUESTION_ID = 8;
+
+const CALLOUT_TONE_COLORS: Record<TimelineTone, { bg: string; border: string; fg: string }> = {
+  green: { bg: "rgba(46, 160, 105, 0.10)", border: "rgba(46, 160, 105, 0.35)", fg: "#1F7A4D" },
+  amber: { bg: "rgba(232, 153, 26, 0.12)", border: "rgba(232, 153, 26, 0.40)", fg: "#A1660C" },
+  teal: { bg: "rgba(51, 196, 220, 0.12)", border: "rgba(51, 196, 220, 0.40)", fg: "#0E7A8A" },
+  neutral: { bg: "rgba(28, 43, 94, 0.06)", border: "rgba(28, 43, 94, 0.18)", fg: "#5A6785" },
+};
 
 export default function QuizScreen() {
   const router = useRouter();
@@ -71,6 +79,36 @@ export default function QuizScreen() {
     });
   }, [slideAnim, screenWidth]);
 
+  const advanceFromAnswers = useCallback(
+    (newAnswers: Record<number, string>) => {
+      if (currentIndex < TOTAL - 1) {
+        const noCount = Object.values(newAnswers).filter((v) => v === "no").length;
+        const shouldPrompt =
+          currentIndex === SAVE_PROMPT_TRIGGER_INDEX &&
+          noCount >= SAVE_PROMPT_NO_THRESHOLD &&
+          !savePromptShownRef.current;
+
+        if (shouldPrompt) {
+          savePromptShownRef.current = true;
+          setSavePromptNoCount(noCount);
+          setSavePromptVisible(true);
+          trackEvent("quiz_save_shown", { questionIndex: currentIndex, noCount });
+          return;
+        }
+
+        animateTransition("forward", () => setCurrentIndex(currentIndex + 1));
+      } else {
+        completedRef.current = true;
+        trackEvent("quiz_completed", { totalQuestions: TOTAL });
+        router.push({
+          pathname: "/onboarding/result",
+          params: { answers: JSON.stringify(newAnswers) },
+        });
+      }
+    },
+    [currentIndex, animateTransition, router],
+  );
+
   const selectAnswer = useCallback((value: string) => {
     const q = QUIZ_QUESTIONS[currentIndex];
     const questionId = q.id;
@@ -84,31 +122,17 @@ export default function QuizScreen() {
       answer: value,
     });
 
-    if (currentIndex < TOTAL - 1) {
-      const noCount = Object.values(newAnswers).filter((v) => v === "no").length;
-      const shouldPrompt =
-        currentIndex === SAVE_PROMPT_TRIGGER_INDEX &&
-        noCount >= SAVE_PROMPT_NO_THRESHOLD &&
-        !savePromptShownRef.current;
-
-      if (shouldPrompt) {
-        savePromptShownRef.current = true;
-        setSavePromptNoCount(noCount);
-        setSavePromptVisible(true);
-        trackEvent("quiz_save_shown", { questionIndex: currentIndex, noCount });
-        return;
-      }
-
-      animateTransition("forward", () => setCurrentIndex(currentIndex + 1));
-    } else {
-      completedRef.current = true;
-      trackEvent("quiz_completed", { totalQuestions: TOTAL });
-      router.push({
-        pathname: "/onboarding/result",
-        params: { answers: JSON.stringify(newAnswers) },
-      });
+    // Timeline question: don't auto-advance — show inline callout + Next button.
+    if (questionId === TIMELINE_QUESTION_ID) {
+      return;
     }
-  }, [currentIndex, answers, animateTransition, router]);
+
+    advanceFromAnswers(newAnswers);
+  }, [currentIndex, answers, advanceFromAnswers]);
+
+  const handleNext = useCallback(() => {
+    advanceFromAnswers(answers);
+  }, [advanceFromAnswers, answers]);
 
   const handleSavePromptContinue = useCallback(() => {
     setSavePromptVisible(false);
@@ -172,6 +196,26 @@ export default function QuizScreen() {
             );
           })}
         </View>
+
+        {question.id === TIMELINE_QUESTION_ID && answers[TIMELINE_QUESTION_ID] ? (
+          <TimelineCallout value={answers[TIMELINE_QUESTION_ID] as QuizAnswer} />
+        ) : null}
+
+        {question.id === TIMELINE_QUESTION_ID ? (
+          <Pressable
+            onPress={handleNext}
+            disabled={!answers[TIMELINE_QUESTION_ID]}
+            style={({ pressed }) => [
+              styles.nextBtn,
+              !answers[TIMELINE_QUESTION_ID] && styles.nextBtnDisabled,
+              pressed && answers[TIMELINE_QUESTION_ID] && { opacity: 0.9 },
+            ]}
+            testID="quiz-timeline-next"
+          >
+            <Text style={styles.nextBtnText}>See your results</Text>
+            <Ionicons name="arrow-forward" size={18} color="#fff" />
+          </Pressable>
+        ) : null}
       </Animated.View>
 
       <QuizSaveModal
@@ -271,4 +315,57 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: tokens.color.primary,
   },
+  callout: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    marginTop: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  calloutIcon: {
+    marginTop: 1,
+  },
+  calloutText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+    fontFamily: tokens.font.body,
+  },
+  nextBtn: {
+    marginTop: 18,
+    backgroundColor: tokens.color.primary,
+    height: 52,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  nextBtnDisabled: {
+    opacity: 0.4,
+  },
+  nextBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600",
+  },
 });
+
+function TimelineCallout({ value }: { value: QuizAnswer }) {
+  const callout = TIMELINE_CALLOUTS[value];
+  if (!callout) return null;
+  const tone = CALLOUT_TONE_COLORS[callout.tone];
+  return (
+    <View
+      style={[styles.callout, { backgroundColor: tone.bg, borderColor: tone.border }]}
+      testID={`timeline-callout-${callout.tone}`}
+    >
+      <Ionicons name={callout.icon} size={14} color={tone.fg} style={styles.calloutIcon} />
+      <Text style={[styles.calloutText, { color: tone.fg }]}>{callout.text}</Text>
+    </View>
+  );
+}
