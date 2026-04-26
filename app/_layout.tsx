@@ -26,7 +26,7 @@ import {
   DMSans_700Bold,
 } from "@expo-google-fonts/dm-sans";
 import { initCrashlytics } from "@/utils/crashlytics";
-import { initAnalytics, trackEvent } from "@/src/lib/analytics";
+import { initAnalytics, initFbSdk, trackEvent } from "@/src/lib/analytics";
 import { tokens } from "@/theme/tokens";
 
 SplashScreen.preventAutoHideAsync();
@@ -89,6 +89,7 @@ export default function RootLayout() {
   useEffect(() => {
     initCrashlytics();
     initAnalytics();
+    initFbSdk();
     trackEvent("app_opened");
   }, []);
 

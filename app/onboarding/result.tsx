@@ -14,7 +14,7 @@ import {
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { tokens } from "@/theme/tokens";
-import { trackEvent } from "@/src/lib/analytics";
+import { trackEvent, logFbEvent } from "@/src/lib/analytics";
 import { getApiUrl } from "@/lib/query-client";
 import { getBackendBase } from "@/src/billing/backendClient";
 
@@ -80,6 +80,10 @@ export default function ResultScreen() {
       viewedRef.current = true;
       trackEvent("result_screen_viewed", {
         matchScore: result.score,
+        tier: result.tier,
+      });
+      logFbEvent("CompletedQuiz", undefined, {
+        top_country: result.topMatch?.slug ?? "none",
         tier: result.tier,
       });
     }

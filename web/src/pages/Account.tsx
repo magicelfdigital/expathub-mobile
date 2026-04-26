@@ -1,7 +1,36 @@
+import { useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useUser } from "@/hooks/useUser";
+import { trackSubscribe } from "@/lib/pixel";
 
 export default function Account() {
   const { user, isLoading } = useUser();
+  const [params, setParams] = useSearchParams();
+  const firedRef = useRef(false);
+
+  useEffect(() => {
+    if (firedRef.current) return;
+    if (params.get("subscribed") !== "true") return;
+    firedRef.current = true;
+
+    const plan = params.get("plan") ?? "unknown";
+    const valueStr = params.get("value");
+    const value = valueStr ? Number(valueStr) : 0;
+
+    trackSubscribe({
+      value: Number.isFinite(value) ? value : 0,
+      currency: params.get("currency") ?? "USD",
+      plan,
+      source: "web_checkout_success",
+    });
+
+    const next = new URLSearchParams(params);
+    next.delete("subscribed");
+    next.delete("plan");
+    next.delete("value");
+    next.delete("currency");
+    setParams(next, { replace: true });
+  }, [params, setParams]);
 
   return (
     <section

@@ -2,6 +2,82 @@ import { Platform } from "react-native";
 import PostHog from "posthog-react-native";
 import { getBackendBase } from "@/src/billing/backendClient";
 
+type FbSdkModule = {
+  Settings: {
+    setAppID: (id: string) => void;
+    setClientToken: (token: string) => void;
+    setAdvertiserIDCollectionEnabled: (enabled: boolean) => void;
+    setAdvertiserTrackingEnabled?: (enabled: boolean) => Promise<void> | void;
+    setAutoLogAppEventsEnabled: (enabled: boolean) => void;
+    initializeSDK: () => void;
+  };
+  AppEventsLogger: {
+    logEvent: (name: string, valueOrParams?: number | Record<string, string | number>, params?: Record<string, string | number>) => void;
+    logPurchase: (amount: number, currency: string, params?: Record<string, string | number>) => void;
+  };
+};
+
+let fbSdk: FbSdkModule | null = null;
+let fbInitialized = false;
+
+export function initFbSdk() {
+  if (fbInitialized) return;
+  if (Platform.OS === "web") {
+    fbInitialized = true;
+    return;
+  }
+  const appId = process.env.EXPO_PUBLIC_META_APP_ID;
+  const clientToken = process.env.EXPO_PUBLIC_META_CLIENT_TOKEN;
+  if (!appId || !clientToken) {
+    if (__DEV__) {
+      console.log("[Analytics] Meta SDK keys missing (EXPO_PUBLIC_META_APP_ID / EXPO_PUBLIC_META_CLIENT_TOKEN); skipping init");
+    }
+    fbInitialized = true;
+    return;
+  }
+  try {
+    const mod = require("react-native-fbsdk-next") as FbSdkModule;
+    mod.Settings.setAppID(appId);
+    mod.Settings.setClientToken(clientToken);
+    mod.Settings.setAdvertiserIDCollectionEnabled(false);
+    mod.Settings.setAutoLogAppEventsEnabled(true);
+    mod.Settings.initializeSDK();
+    fbSdk = mod;
+    fbInitialized = true;
+    if (__DEV__) console.log("[Analytics] Meta SDK initialized");
+  } catch (e) {
+    fbInitialized = true;
+    if (__DEV__) console.log("[Analytics] Meta SDK init error", e);
+  }
+}
+
+export type FbStandardEvent =
+  | "CompletedQuiz"
+  | "ViewedPaywall"
+  | "StartTrial"
+  | "Subscribe";
+
+export function logFbEvent(
+  eventName: FbStandardEvent,
+  value?: number,
+  params?: Record<string, string | number>,
+) {
+  if (!fbInitialized) initFbSdk();
+  if (!fbSdk) {
+    if (__DEV__) console.log(`[Analytics] FB no-op: ${eventName}`, value, params);
+    return;
+  }
+  try {
+    if (typeof value === "number") {
+      fbSdk.AppEventsLogger.logEvent(eventName, value, { fb_currency: "USD", ...(params ?? {}) });
+    } else {
+      fbSdk.AppEventsLogger.logEvent(eventName, params);
+    }
+  } catch (e) {
+    if (__DEV__) console.log(`[Analytics] FB log error for ${eventName}`, e);
+  }
+}
+
 type AnalyticsEvent =
   | "app_opened"
   | "onboarding_started"

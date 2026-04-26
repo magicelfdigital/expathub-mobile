@@ -1,4 +1,5 @@
-import { Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
 import SiteLayout from "./components/SiteLayout";
 import Home from "./pages/Home";
 import Pricing from "./pages/Pricing";
@@ -8,10 +9,23 @@ import DataDelete from "./pages/DataDelete";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
+import { initPixel, trackPageView } from "./lib/pixel";
+
+function PixelTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    initPixel();
+  }, []);
+  useEffect(() => {
+    trackPageView();
+  }, [location.pathname]);
+  return null;
+}
 
 export default function App() {
   return (
     <SiteLayout>
+      <PixelTracker />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/pricing" element={<Pricing />} />

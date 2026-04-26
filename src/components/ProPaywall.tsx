@@ -40,7 +40,7 @@ import {
 } from "@/src/config/subscription";
 import { COVERAGE_SUMMARY } from "@/src/data";
 import { PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
-import { trackEvent } from "@/src/lib/analytics";
+import { trackEvent, logFbEvent } from "@/src/lib/analytics";
 import { tokens } from "@/theme/tokens";
 import { COUNTRIES } from "@/data/countries";
 import {
@@ -103,6 +103,45 @@ function FAQItem({ item }: { item: { question: string; answer: string } }) {
       {expanded ? <Text style={s.faqAnswer}>{item.answer}</Text> : null}
     </Pressable>
   );
+}
+
+function parsePrice(price: string): number {
+  const n = Number(price.replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function logFbPurchaseEvent(type: string, opts?: { slug?: string; priceUSD?: number }) {
+  const slug = opts?.slug;
+  const override = opts?.priceUSD;
+  if (type === "annual_subscription" || type === "annual") {
+    logFbEvent("StartTrial", 0, { plan: "annual" });
+    return;
+  }
+  if (type === "monthly_subscription" || type === "monthly") {
+    const value = typeof override === "number" && override > 0 ? override : parsePrice(MONTHLY_PRICE);
+    logFbEvent("Subscribe", value, { plan: "monthly" });
+    return;
+  }
+  if (type === "decision_pass") {
+    const value = typeof override === "number" && override > 0 ? override : parsePrice(DECISION_PASS_PRICE);
+    logFbEvent("Subscribe", value, { plan: "decision_pass" });
+    return;
+  }
+  if (type === "country_lifetime") {
+    const fallback = slug ? (COUNTRY_LIFETIME_PRICES[slug] ?? COUNTRY_LIFETIME_PRICE) : COUNTRY_LIFETIME_PRICE;
+    const value = typeof override === "number" && override > 0 ? override : parsePrice(fallback);
+    logFbEvent("Subscribe", value, { plan: "country_lifetime", country: slug ?? "unknown" });
+  }
+}
+
+async function getActualPriceUSD(productId: string): Promise<number | undefined> {
+  try {
+    const offerings = await getOfferings();
+    const pkg = offerings.current.find((p) => p.productId === productId);
+    return typeof pkg?.price === "number" && pkg.price > 0 ? pkg.price : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 type PaywallEntryPoint = "compare" | "brief" | "pathway" | "general" | "country";
@@ -226,9 +265,11 @@ export function ProPaywall({
           console.log(`[PURCHASE] Resuming ${pending.type} via orchestrator: productId=${productId}`);
 
           try {
+            const priceUSD = await getActualPriceUSD(productId);
             const result = await orchestrator.purchase(productId, userId);
             if (result.status === "confirmed") {
               trackEvent("purchase_success", { type: pending.type, platform: Platform.OS, status: "confirmed" });
+              logFbPurchaseEvent(pending.type, { slug: pending.countrySlug ?? undefined, priceUSD });
               await refresh();
               closePurchaseModal();
             } else {
@@ -271,6 +312,10 @@ export function ProPaywall({
     };
     trackEvent("paywall_shown", props);
     trackEvent("paywall_viewed", props);
+    logFbEvent("ViewedPaywall", undefined, {
+      entry_point: resolvedEntryPoint,
+      top_country: resolvedCountrySlug ?? "none",
+    });
   }, []);
 
   useEffect(() => {
@@ -301,11 +346,14 @@ export function ProPaywall({
     setBusy(true);
     console.log(`[PURCHASE] ${type} purchase via orchestrator: productId=${productId}`);
 
+    const priceUSD = await getActualPriceUSD(productId);
+
     try {
       const result = await orchestrator.purchase(productId, userId);
 
       if (result.status === "confirmed") {
         trackEvent("purchase_success", { type, platform: Platform.OS, status: "confirmed" });
+        logFbPurchaseEvent(type, { slug, priceUSD });
         if (type === "monthly_subscription") {
           trackEvent("trial_started", { plan: "monthly", platform: Platform.OS });
         } else if (type === "annual_subscription") {
@@ -324,6 +372,7 @@ export function ProPaywall({
         if (__DEV__) {
           console.log(`[PURCHASE] DEV MODE: ${type} cancelled — simulating success`);
           trackEvent("purchase_success", { type, platform: Platform.OS, status: "dev_simulated" });
+          logFbPurchaseEvent(type, { slug, priceUSD });
           await refresh();
           if (onClose) onClose();
           else router.back();
@@ -343,6 +392,7 @@ export function ProPaywall({
       if (__DEV__) {
         console.log(`[PURCHASE] DEV MODE: ${type} error (${e?.message}) — simulating success`);
         trackEvent("purchase_success", { type, platform: Platform.OS, status: "dev_simulated" });
+        logFbPurchaseEvent(type, { slug, priceUSD });
         await refresh();
         if (onClose) onClose();
         else router.back();

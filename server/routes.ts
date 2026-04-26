@@ -238,11 +238,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const baseUrl = getBaseUrl(req);
+
+      const knownPlans: Record<string, { plan: string; value: number }> = {};
+      const monthlyId = process.env.STRIPE_MONTHLY_PRICE_ID;
+      const annualId = process.env.STRIPE_ANNUAL_PRICE_ID;
+      if (monthlyId) knownPlans[monthlyId] = { plan: "monthly", value: 14.99 };
+      if (annualId) knownPlans[annualId] = { plan: "annual", value: 89 };
+      const meta = knownPlans[priceId] ?? { plan: "unknown", value: 0 };
+
+      const successQuery = new URLSearchParams({
+        subscribed: "true",
+        plan: meta.plan,
+        value: String(meta.value),
+        currency: "USD",
+      }).toString();
+
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
         line_items: [{ price: priceId, quantity: 1 }],
-        success_url: `${baseUrl}/?checkout=success`,
-        cancel_url: `${baseUrl}/?checkout=cancel`,
+        success_url: `${baseUrl}/account?${successQuery}`,
+        cancel_url: `${baseUrl}/pricing?checkout=cancel`,
       });
 
       res.json({ url: session.url });
