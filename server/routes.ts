@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "node:http";
 import Stripe from "stripe";
 import pg from "pg";
+import { GENERIC_PLAN_STEP_IDS } from "@shared/planSteps";
 
 const AUTH_API_URL = "https://www.expathub.website";
 const PASSWORD_API_URL = "https://www.expathub.website";
@@ -888,6 +889,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (err: any) {
       console.error("Note save error:", err);
       res.status(500).json({ error: "Failed to save note" });
+    } finally {
+      await pool.end();
+    }
+  });
+
+  // ── Planner progress ──
+
+  const GENERIC_PROGRESS_STEP_IDS = GENERIC_PLAN_STEP_IDS;
+
+  async function seedDefaultProgress(
+    pool: pg.Pool,
+    userId: string,
+    country: string,
+  ): Promise<void> {
+    for (const stepId of GENERIC_PROGRESS_STEP_IDS) {
+      await pool.query(
+        `INSERT INTO user_progress
+           (user_id, step_id, target_country, completed, completed_at)
+         VALUES ($1, $2, $3, FALSE, NULL)
+         ON CONFLICT (user_id, step_id, target_country) DO NOTHING`,
+        [userId, stepId, country],
+      );
+    }
+  }
+
+  async function getProgressPercentForUser(
+    userId: string,
+    country: string,
+  ): Promise<number> {
+    const pool = getPool();
+    if (!pool) return 0;
+    try {
+      const total: number = GENERIC_PROGRESS_STEP_IDS.length;
+      const result = await pool.query(
+        `SELECT COUNT(*)::int AS done
+           FROM user_progress
+          WHERE user_id = $1
+            AND target_country = $2
+            AND completed = TRUE
+            AND step_id = ANY($3::text[])`,
+        [userId, country, [...GENERIC_PROGRESS_STEP_IDS]],
+      );
+      const done = Number(result.rows[0]?.done ?? 0);
+      return total === 0 ? 0 : Math.round((done / total) * 100);
+    } finally {
+      await pool.end();
+    }
+  }
+
+  app.get("/api/progress", async (req: Request, res: Response) => {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const country = (req.query.country as string | undefined) ?? "";
+    if (!country) { res.status(400).json({ error: "country is required" }); return; }
+    const pool = getPool();
+    if (!pool) { res.json([]); return; }
+    try {
+      await seedDefaultProgress(pool, userId, country);
+      const result = await pool.query(
+        `SELECT step_id, completed, completed_at
+           FROM user_progress
+          WHERE user_id = $1 AND target_country = $2`,
+        [userId, country],
+      );
+      res.json(
+        result.rows.map((r: any) => ({
+          stepId: r.step_id,
+          completed: !!r.completed,
+          completedAt: r.completed_at,
+        })),
+      );
+    } catch (err: any) {
+      console.error("Progress fetch error:", err);
+      res.status(500).json({ error: "Failed to fetch progress" });
+    } finally {
+      await pool.end();
+    }
+  });
+
+  app.get("/api/progress/percent", async (req: Request, res: Response) => {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const country = (req.query.country as string | undefined) ?? "";
+    if (!country) { res.status(400).json({ error: "country is required" }); return; }
+    const claimedUserId = (req.query.userId as string | undefined) ?? "";
+    if (claimedUserId && claimedUserId !== userId) {
+      res.status(403).json({ error: "userId does not match authenticated user" });
+      return;
+    }
+    try {
+      const percent = await getProgressPercentForUser(userId, country);
+      res.json({ country, percent });
+    } catch (err: any) {
+      console.error("Progress percent error:", err);
+      res.status(500).json({ error: "Failed to compute progress" });
+    }
+  });
+
+  app.post("/api/progress", async (req: Request, res: Response) => {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const { country, stepId, completed } = req.body as {
+      country?: string;
+      stepId?: string;
+      completed?: boolean;
+    };
+    if (!country || !stepId || typeof completed !== "boolean") {
+      res.status(400).json({ error: "country, stepId and completed are required" });
+      return;
+    }
+    if (!(GENERIC_PROGRESS_STEP_IDS as readonly string[]).includes(stepId)) {
+      res.status(400).json({ error: "Unknown stepId" });
+      return;
+    }
+    const pool = getPool();
+    if (!pool) { res.status(503).json({ error: "Database not configured" }); return; }
+    try {
+      const completedAt = completed ? new Date() : null;
+      await pool.query(
+        `INSERT INTO user_progress
+           (user_id, step_id, target_country, completed, completed_at)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (user_id, step_id, target_country)
+         DO UPDATE SET
+           completed = EXCLUDED.completed,
+           completed_at = CASE
+             WHEN user_progress.completed = TRUE AND EXCLUDED.completed = TRUE
+               THEN user_progress.completed_at
+             ELSE EXCLUDED.completed_at
+           END`,
+        [userId, stepId, country, completed, completedAt],
+      );
+      res.json({ ok: true, stepId, completed });
+    } catch (err: any) {
+      console.error("Progress save error:", err);
+      res.status(500).json({ error: "Failed to save progress" });
     } finally {
       await pool.end();
     }

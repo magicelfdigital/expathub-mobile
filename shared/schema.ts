@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, serial, text, timestamp, varchar, integer, jsonb } from "drizzle-orm/pg-core";
+import { boolean, pgTable, serial, text, timestamp, uniqueIndex, varchar, integer, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -94,3 +94,26 @@ export const exitOffers = pgTable("exit_offers", {
 });
 
 export type ExitOffer = typeof exitOffers.$inferSelect;
+
+export const userProgress = pgTable(
+  "user_progress",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id", { length: 255 }).notNull(),
+    stepId: text("step_id").notNull(),
+    completed: boolean("completed").notNull().default(false),
+    completedAt: timestamp("completed_at"),
+    targetCountry: varchar("target_country", { length: 100 }).notNull(),
+  },
+  (table) => ({
+    userStepCountryUnique: uniqueIndex("user_progress_user_step_country_idx").on(
+      table.userId,
+      table.stepId,
+      table.targetCountry,
+    ),
+  }),
+);
+
+export type UserProgress = typeof userProgress.$inferSelect;

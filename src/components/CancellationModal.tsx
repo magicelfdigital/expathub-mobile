@@ -10,6 +10,9 @@ import {
 } from "react-native";
 
 import { useBookmarks } from "@/contexts/BookmarkContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePlan } from "@/src/contexts/PlanContext";
+import { getProgressPercent } from "@/src/lib/getProgressPercent";
 import { tokens } from "@/theme/tokens";
 import { trackEvent } from "@/src/lib/analytics";
 
@@ -31,6 +34,21 @@ type Step = "exit_offer" | "before_you_go";
 
 export function CancellationModal({ visible, onClose, onProceed, exitOffer }: Props) {
   const { bookmarkCount, notesCount } = useBookmarks();
+  const { user } = useAuth();
+  const { activeCountrySlug } = usePlan();
+  const [progressPercent, setProgressPercent] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!visible || !user?.id || !activeCountrySlug) {
+      setProgressPercent(0);
+      return;
+    }
+    getProgressPercent(String(user.id), activeCountrySlug).then((p) => {
+      if (!cancelled) setProgressPercent(p);
+    });
+    return () => { cancelled = true; };
+  }, [visible, user?.id, activeCountrySlug]);
 
   const initialStep: Step = exitOffer?.eligible ? "exit_offer" : "before_you_go";
   const [step, setStep] = useState<Step>(initialStep);
@@ -86,6 +104,7 @@ export function CancellationModal({ visible, onClose, onProceed, exitOffer }: Pr
     { icon: "bookmark" as const, label: "Saved countries", value: bookmarkCount.toString(), color: tokens.color.gold },
     { icon: "document-text" as const, label: "Move notes", value: notesCount.toString(), color: tokens.color.teal },
     { icon: "git-compare" as const, label: "Compare access", value: "Full", color: tokens.color.primary },
+    { icon: "trophy" as const, label: "Plan progress", value: `${progressPercent}%`, color: tokens.color.teal },
   ];
 
   return (

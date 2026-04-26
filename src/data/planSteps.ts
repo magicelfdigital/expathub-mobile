@@ -138,6 +138,131 @@ export function getStep3Checklist(countrySlug: string | null): ChecklistItem[] {
   return STEP3_CHECKLISTS[countrySlug] ?? DEFAULT_STEP3_CHECKLIST;
 }
 
+export type PlanStageKey = "research" | "visa" | "money" | "logistics";
+
+export type GenericPlanStep = {
+  id: string;
+  title: string;
+  description: string;
+  stage: PlanStageKey;
+  autoCompleteHint?: string;
+  legacyModuleIds?: LegacyModuleId[];
+};
+
+export type LegacyModuleId =
+  | "confirm_pathway"
+  | "validate_finances"
+  | "prepare_docs"
+  | "execute_residency"
+  | "register_local"
+  | "post_arrival";
+
+export const PLAN_STAGES: { key: PlanStageKey; title: string }[] = [
+  { key: "research", title: "Research" },
+  { key: "visa", title: "Visa & Legal" },
+  { key: "money", title: "Money & Tax" },
+  { key: "logistics", title: "Logistics & Move" },
+];
+
+export const GENERIC_PLAN_STEPS: GenericPlanStep[] = [
+  {
+    id: "research_quiz",
+    title: "Take the readiness quiz",
+    description: "Get a baseline of your relocation readiness and your top country match.",
+    stage: "research",
+    autoCompleteHint: "Auto-completes when you finish the quiz.",
+  },
+  {
+    id: "shortlist_built",
+    title: "Build your shortlist",
+    description: "Save at least two countries so you can compare options side by side.",
+    stage: "research",
+    autoCompleteHint: "Auto-completes when you bookmark 2 or more countries.",
+  },
+  {
+    id: "visa_pathway",
+    title: "Identify a visa pathway",
+    description: "Pick the visa category that fits your situation and long-term goals.",
+    stage: "visa",
+    legacyModuleIds: ["confirm_pathway"],
+  },
+  {
+    id: "visa_selected",
+    title: "Submit your visa application",
+    description: "Gather documents, book your appointment, attend the interview, and track your approval.",
+    stage: "visa",
+    legacyModuleIds: ["prepare_docs", "execute_residency"],
+  },
+  {
+    id: "finances_reviewed",
+    title: "Review your finances",
+    description: "Confirm income, savings, and proof-of-funds requirements are met.",
+    stage: "money",
+    legacyModuleIds: ["validate_finances"],
+  },
+  {
+    id: "tax_research",
+    title: "Plan your tax strategy",
+    description: "Understand local tax residency, register with local systems on arrival, and stay aligned with renewal rules back home.",
+    stage: "money",
+    legacyModuleIds: ["register_local", "post_arrival"],
+  },
+  {
+    id: "housing_research",
+    title: "Research housing",
+    description: "Pick a target neighbourhood and line up a short-term or long-term rental.",
+    stage: "logistics",
+  },
+  {
+    id: "school_research",
+    title: "Research schools (if applicable)",
+    description: "Look up schooling options for any dependants moving with you.",
+    stage: "logistics",
+  },
+  {
+    id: "flight_booked",
+    title: "Book your flight",
+    description: "Lock in arrival travel once your visa is secure. If you're moving with a pet, plan for import requirements.",
+    stage: "logistics",
+  },
+  {
+    id: "move_date_set",
+    title: "Set your move date",
+    description: "Lock in your departure date and arrange shipping or storage of your belongings.",
+    stage: "logistics",
+  },
+];
+
+export { GENERIC_PLAN_STEP_IDS } from "@shared/planSteps";
+export const GENERIC_STEP_IDS = GENERIC_PLAN_STEPS.map((s) => s.id);
+
+export const PLAN_UPSELL_COPY = {
+  title: "Unlock to track progress",
+  body: "Step tracking, the planner, and saved notes are part of ExpatHub Pro.",
+  cta: "View plans",
+  freePreviewProgressLabel: (total: number) => `0 of ${total} steps tracked`,
+  freePreviewProgressSub: (tierName: string) => `Unlock ${tierName} to track your move.`,
+  comingSoonTitle: "Planner coming soon",
+  comingSoonBody: (countryName: string) =>
+    `The structured planner for ${countryName} is not yet available. Check back soon.`,
+};
+
+export function computePercentFromCompletedIds(
+  completedStepIds: string[],
+): number {
+  const total = GENERIC_PLAN_STEPS.length;
+  if (total === 0) return 0;
+  const completed = GENERIC_PLAN_STEPS.filter((s) =>
+    completedStepIds.includes(s.id),
+  ).length;
+  return Math.round((completed / total) * 100);
+}
+
+export function getCompletedStepCount(completedStepIds: string[]): number {
+  return GENERIC_PLAN_STEPS.filter((s) => completedStepIds.includes(s.id))
+    .length;
+}
+
 export const PLAN_STEPS: PlanStep[] = [
   {
     id: "confirm_pathway",
