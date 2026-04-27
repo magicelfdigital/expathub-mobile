@@ -5,9 +5,13 @@ codebase changes from the **4-tier (Decision Pass, Country Lifetime, Monthly,
 Annual) → 2-tier (Monthly + Annual)** simplification, and the **7-day → 14-day
 free trial** change applied to both plans.
 
+> **Scope:** ExpatHub ships on **iOS + Web only**. Google Play Console / Android
+> billing configuration is intentionally out of scope and has been removed from
+> this checklist.
+>
 > The code only references two SKUs and one trial length. None of the steps
 > below run automatically — they must be done by an operator with App Store
-> Connect, Google Play Console, RevenueCat, and Stripe access.
+> Connect, RevenueCat, and Stripe access.
 
 ---
 
@@ -39,39 +43,7 @@ free trial** change applied to both plans.
    **Cleared for Sale → No** so they stop appearing in offerings.
 4. Submit the changes for review with a screenshot of the new paywall.
 
-## 3. Google Play Console (Android)
-
-1. **Monetize → Products → Subscriptions**: confirm only
-   `expathub_explorer` and `expathub_pathfinder` exist.
-2. For each subscription, open the **Base plan** → **Offers** and create /
-   keep a single **Free trial** offer with **Billing period: 14 days**, set as
-   the default introductory offer for new subscribers.
-3. Deactivate any one-time / non-recurring SKUs created for the Decision Pass
-   or Country Lifetime tiers.
-4. **Billing recovery — Grace period**: for **each** subscription open the
-   **Base plan** → **Account preferences** → **Grace period** and set it to
-   **3 days**. This keeps the user's entitlement active for 3 days while
-   Google retries the failed payment, so a temporary card decline does not
-   immediately drop them from `full_access`.
-5. **Billing recovery — Account hold**: in the same panel, enable
-   **Account hold** with the maximum **30 days**. After grace expires Google
-   pauses the subscription (no entitlement) but the user keeps their slot for
-   30 days; if they fix billing in that window the subscription resumes
-   without re-purchase. RevenueCat surfaces this state as
-   `BILLING_ISSUE` / `subscription paused`.
-6. **In-app messages**: the mobile app calls
-   `Purchases.showInAppMessages([BILLING_ISSUE])` on every Android foreground
-   transition (`AppState` → `active`). This triggers Google Play's native
-   "Update payment method" sheet whenever the user is in grace or account
-   hold. **No Play Console toggle is required** — Play surfaces the message
-   automatically once the SDK call is made — but verify the result by:
-   - Opening Play Console → **Quality → Subscription messaging** to confirm
-     the **"Card declined"** template is **enabled** for the app (it is on
-     by default for new apps; older apps may need it explicitly turned on).
-   - Triggering a test failure with a Google **test card** that always
-     declines after the trial.
-
-## 4. RevenueCat dashboard
+## 3. RevenueCat dashboard
 
 1. **Products**: ensure only `expathub_explorer` and `expathub_pathfinder` are
    active. Archive the Decision Pass and Country Lifetime products so they
@@ -91,9 +63,8 @@ free trial** change applied to both plans.
    - Variant offering: clone Default into **paid_intro_test**, replace the
      monthly package with `expathub_explorer` configured to use a **$0.99
      intro price for 1 month** (no free trial). Create the matching intro
-     offer in App Store Connect (**Pay As You Go → $0.99 / 1 month**) and in
-     Google Play Console (**Base plan → Offers → Introductory price → $0.99
-     for the first billing period**) before launching the experiment.
+     offer in App Store Connect (**Pay As You Go → $0.99 / 1 month**) before
+     launching the experiment.
    - Traffic split: 50/50, single audience (no overlap with the annual
      experiment below).
    - Stop rule: **statistical significance at 95%** OR **2,000 entitlement
@@ -104,7 +75,7 @@ free trial** change applied to both plans.
    - Control offering: Default (annual = $89).
    - Variant offering: clone Default into **annual_99_test** with
      `expathub_pathfinder` priced at **$99/year** (create the $99 SKU in
-     ASC + Play first; both stores require new SKUs for any price change).
+     App Store Connect first; ASC requires a new SKU for any price change).
    - Traffic split: 50/50.
    - Stop rule: same as above.
 7. Web `/pricing` and `/api/stripe/checkout` run their own A/B fork via the
@@ -112,7 +83,7 @@ free trial** change applied to both plans.
    the RevenueCat experiment in sync (same arm, same dates) so the mobile
    and web reports describe the same population.
 
-## 5. Stripe (web checkout)
+## 4. Stripe (web checkout)
 
 1. In the Stripe dashboard, create / confirm two recurring **Prices**:
    - Monthly — $14.99 USD / month
@@ -158,14 +129,12 @@ free trial** change applied to both plans.
    - Make sure the email branding (logo, support address) is set to the
      ExpatHub account so the reminder looks legitimate.
 
-## 6. Verification checklist
+## 5. Verification checklist
 
 - [ ] iOS sandbox purchase of `expathub_pathfinder` shows the **14-day free
       trial** introductory offer in the App Store sheet.
 - [ ] iOS sandbox purchase of `expathub_explorer` shows the **14-day free
       trial** introductory offer.
-- [ ] Android internal-test purchase shows the same 14-day trials on both
-      plans.
 - [ ] RevenueCat customer info reports a single `full_access` entitlement
       after either purchase.
 - [ ] Web `/pricing` → "Start 14-day free trial" → Stripe Checkout shows
