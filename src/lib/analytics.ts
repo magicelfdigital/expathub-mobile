@@ -148,7 +148,9 @@ type AnalyticsEvent =
   | "reverse_trial_active_unlock"
   | "exit_offer_shown"
   | "exit_offer_accepted"
-  | "exit_offer_declined";
+  | "exit_offer_declined"
+  | "planner_step_completed"
+  | "planner_completed";
 
 type EventProperties = Record<string, string | number | boolean | undefined>;
 

@@ -27,6 +27,7 @@ import { usePlan } from "@/src/contexts/PlanContext";
 import { PlannerConfetti } from "@/src/components/PlannerConfetti";
 import { PlannerLegacyStepBody } from "@/src/components/PlannerLegacyStepBody";
 import { useProgress } from "@/src/hooks/useProgress";
+import { trackEvent } from "@/src/lib/analytics";
 import {
   GENERIC_PLAN_STEPS,
   PLAN_STAGES,
@@ -406,14 +407,20 @@ export default function PlannerScreen() {
   const [showConfetti, setShowConfetti] = useState(false);
   const firedConfettiRef = useRef(false);
   useEffect(() => {
-    if (percent === 100 && !firedConfettiRef.current && hasPlanForThisCountry) {
+    if (
+      percent === 100 &&
+      !firedConfettiRef.current &&
+      hasPlanForThisCountry &&
+      isPaidUser
+    ) {
       firedConfettiRef.current = true;
       setShowConfetti(true);
+      trackEvent("planner_completed", { country: countrySlug });
     }
     if (percent < 100) {
       firedConfettiRef.current = false;
     }
-  }, [percent, hasPlanForThisCountry]);
+  }, [percent, hasPlanForThisCountry, isPaidUser, countrySlug]);
 
   const [confettiSize, setConfettiSize] = useState({ width: 360, height: 600 });
   const onLayout = useCallback((e: LayoutChangeEvent) => {

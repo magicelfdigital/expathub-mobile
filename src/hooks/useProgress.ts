@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { getApiUrl } from "@/lib/query-client";
+import { trackEvent } from "@/src/lib/analytics";
 import { getBackendBase } from "@/src/billing/backendClient";
 import {
   GENERIC_PLAN_STEPS,
@@ -99,7 +100,22 @@ export function useProgress(countrySlug: string | null | undefined) {
         completedAt: input.completed ? new Date().toISOString() : null,
       });
       qc.setQueryData(key, next);
-      return { prev };
+      const nextCompletedIds = next
+        .filter((s) => s.completed)
+        .map((s) => s.stepId);
+      const nextPercent = computePercentFromCompletedIds(nextCompletedIds);
+      const nextCompletedCount = nextCompletedIds.length;
+      return { prev, nextPercent, nextCompletedCount };
+    },
+    onSuccess: (_data, input, ctx) => {
+      if (input.completed && countrySlug) {
+        trackEvent("planner_step_completed", {
+          stepId: input.stepId,
+          country: countrySlug,
+          percent: ctx?.nextPercent ?? 0,
+          completedCount: ctx?.nextCompletedCount ?? 0,
+        });
+      }
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(progressKey(countrySlug), ctx.prev);
