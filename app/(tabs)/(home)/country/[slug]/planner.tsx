@@ -393,6 +393,26 @@ export default function PlannerScreen() {
   }, [isStepComplete]);
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const trackedExpansionsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    trackedExpansionsRef.current = new Set();
+  }, [countrySlug]);
+
+  const handleSetExpandedId = useCallback(
+    (nextId: string | null) => {
+      if (nextId !== null && nextId !== expandedId && isPaidUser) {
+        if (!trackedExpansionsRef.current.has(nextId)) {
+          trackedExpansionsRef.current.add(nextId);
+          trackEvent("planner_step_expanded", {
+            stepId: nextId,
+            country: countrySlug,
+          });
+        }
+      }
+      setExpandedId(nextId);
+    },
+    [expandedId, isPaidUser, countrySlug],
+  );
 
   const handleUpsell = useCallback(() => {
     router.push({
@@ -458,7 +478,7 @@ export default function PlannerScreen() {
                   onToggle={toggleStep}
                   onUpsell={handleUpsell}
                   expandedId={expandedId}
-                  setExpandedId={setExpandedId}
+                  setExpandedId={handleSetExpandedId}
                 />
               ))}
             </>
@@ -520,7 +540,7 @@ export default function PlannerScreen() {
                   onToggle={() => undefined}
                   onUpsell={handleUpsell}
                   expandedId={expandedId}
-                  setExpandedId={setExpandedId}
+                  setExpandedId={handleSetExpandedId}
                 />
               ))}
 

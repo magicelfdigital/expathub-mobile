@@ -151,6 +151,7 @@ type AnalyticsEvent =
   | "exit_offer_declined"
   | "planner_step_completed"
   | "planner_completed"
+  | "planner_step_expanded"
   | "password_reset_opened"
   | "password_reset_submitted"
   | "password_reset_success"
