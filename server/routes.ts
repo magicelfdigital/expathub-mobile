@@ -4,6 +4,10 @@ import { randomUUID } from "node:crypto";
 import Stripe from "stripe";
 import pg from "pg";
 import { GENERIC_PLAN_STEP_IDS } from "@shared/planSteps";
+import {
+  ensureUserProgressCreatedAt,
+  registerPlannerAnalyticsRoutes,
+} from "./plannerAnalytics";
 
 // ── A/B test config ─────────────────────────────────────────────────────
 //
@@ -284,6 +288,12 @@ function getBaseUrl(req: Request): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Internal admin tooling — Basic-Auth-protected dashboards aggregating
+  // planner usage. Registered before the SPA fallback so /admin and
+  // /api/admin/planner-analytics resolve to these handlers, not the React
+  // app.
+  registerPlannerAnalyticsRoutes(app, { requireAdminBasicAuth, getPool });
+
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
       const upstream = await fetch(`${AUTH_API_URL}/api/auth/login`, {
@@ -655,6 +665,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           annual_price_enabled: annualPriceEnabled(),
         },
         tests,
+        // Cross-link to other internal tools so anyone who lands on this
+        // JSON endpoint can find the full admin index and the planner
+        // analytics dashboard without grep-hunting through routes.ts.
+        links: {
+          admin_index: "/admin",
+          planner_analytics_html: "/admin/planner-analytics",
+          planner_analytics_json: "/api/admin/planner-analytics",
+        },
       });
     } catch (err: any) {
       console.error("AB results error:", err?.message);
@@ -1391,6 +1409,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     userId: string,
     country: string,
   ): Promise<void> {
+    // Lazy migration — adds created_at to user_progress so freshly seeded
+    // rows pick up DEFAULT NOW() (used by /api/admin/planner-analytics as
+    // the "plan_focus_started" timestamp). The helper itself is idempotent
+    // and process-cached; see plannerAnalytics.ts for the canonical impl.
+    await ensureUserProgressCreatedAt(pool);
     for (const stepId of GENERIC_PROGRESS_STEP_IDS) {
       await pool.query(
         `INSERT INTO user_progress

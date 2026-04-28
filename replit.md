@@ -41,6 +41,10 @@ Preferred communication style: Simple, everyday language.
 - **API Structure**: Routes under `/api` prefix for data and authentication.
 - **Data Storage**: `IStorage` interface, currently supporting in-memory and PostgreSQL.
 - **Web frontend hosting**: Express serves static built React+Vite SPA for production; proxies to Vite dev server for development.
+- **Internal admin tooling**: Basic-Auth-protected dashboards (set `ADMIN_BASIC_USER` / `ADMIN_BASIC_PASS`):
+    - `/admin` — index page linking to all internal tools.
+    - `/admin/planner-analytics` (HTML) and `/api/admin/planner-analytics` (JSON) — planner completion rate per step, % of plans reaching 100%, median days from start to completion, and drop-off by stage. **Note**: metrics are derived from the `user_progress` table (proxy for `plan_focus_started` / `planner_step_completed` / `planner_completed` analytics events) rather than from PostHog event rollups, so they reflect authoritative DB state but won't match raw event counts exactly. The `created_at` column is added via an idempotent lazy migration; `ensureUserProgressCreatedAt` in `server/plannerAnalytics.ts` is the single source of truth and is also called from the progress-seed path in `server/routes.ts`. Implemented in `server/plannerAnalytics.ts`.
+    - `/api/admin/ab-results` (JSON) — A/B test variant performance.
 
 ### Web Frontend (`web/`)
 - **Framework**: React 19, Vite 6, TypeScript, Tailwind v4.

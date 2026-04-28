@@ -153,6 +153,10 @@ export const userProgress = pgTable(
     completed: boolean("completed").notNull().default(false),
     completedAt: timestamp("completed_at"),
     targetCountry: varchar("target_country", { length: 100 }).notNull(),
+    // Stamped on first INSERT (seeded when the user first opens the planner
+    // for a country). Used by /api/admin/planner-analytics as the
+    // `plan_focus_started` timestamp for time-to-100% calculations.
+    createdAt: timestamp("created_at").defaultNow(),
   },
   (table) => ({
     userStepCountryUnique: uniqueIndex("user_progress_user_step_country_idx").on(
