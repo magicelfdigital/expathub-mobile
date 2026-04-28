@@ -225,9 +225,16 @@ describe("BillingOrchestrator", () => {
   });
 
   describe("restore()", () => {
-    it("calls restorePurchases, backend refresh, polls entitlements", async () => {
+    it("calls restorePurchases, backend refresh, and re-fetches entitlements after refresh", async () => {
       const rc = mockRCClient();
-      const backend = mockBackendClient();
+      let callCount = 0;
+      const backend = mockBackendClient({
+        getEntitlements: jest.fn().mockImplementation(async () => {
+          callCount++;
+          if (callCount === 1) return makeInactiveEntitlements();
+          return makeActiveEntitlements();
+        }),
+      });
       const orchestrator = new BillingOrchestrator(rc, backend, {
         intervalMs: 100,
         timeoutMs: 5000,
@@ -246,8 +253,9 @@ describe("BillingOrchestrator", () => {
           action: "restore",
         }),
       );
-      expect(backend.getEntitlements).toHaveBeenCalled();
+      expect(backend.getEntitlements).toHaveBeenCalledTimes(2);
       expect(result.status).toBe("confirmed");
+      expect(result.entitlements.hasFullAccess).toBe(true);
     });
   });
 
