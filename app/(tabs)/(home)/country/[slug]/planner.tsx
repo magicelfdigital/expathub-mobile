@@ -314,7 +314,7 @@ export default function PlannerScreen() {
   const router = useRouter();
   const { slug } = useLocalSearchParams<{ slug?: string }>();
   const { selectedCountrySlug } = useCountry();
-  const { hasActiveSubscription, hasFullAccess, hasCountryAccess } = useSubscription();
+  const { hasActiveSubscription, hasFullAccess } = useSubscription();
   const { activeCountrySlug: planCountrySlug, activePathwayId, startPlan } = usePlan();
   const { quizResult } = useOnboarding();
   const { bookmarkCount } = useBookmarks();
@@ -330,8 +330,9 @@ export default function PlannerScreen() {
   const pathways = useMemo(() => getPathways(countrySlug), [countrySlug]);
   const isLaunch = useMemo(() => isLaunchCountry(countrySlug), [countrySlug]);
   const hasPlanForThisCountry = planCountrySlug === countrySlug;
-  // Canonical entitlement: full subscription OR country-scoped access (e.g., one-off purchases)
-  const isPaidUser = hasActiveSubscription || hasFullAccess || hasCountryAccess(countrySlug);
+  // Canonical entitlement: full subscription access. Per-country lifetime
+  // unlocks were dropped in the 2-tier model.
+  const isPaidUser = hasActiveSubscription || hasFullAccess;
 
   const {
     isStepComplete,

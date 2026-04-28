@@ -4,10 +4,8 @@ import type { BackendEntitlements } from "./types";
  * Gate function: returns true only if the user has full subscription access.
  *
  * Decision Pass and Country Lifetime tiers were removed in v1.5 (2-tier
- * pricing). The `decisionPass` and `countryUnlocks` fields on
- * `BackendEntitlements` are kept for backwards-compat with the legacy backend
- * payload but are intentionally ignored here — anything that previously
- * checked them now treats the user as not entitled.
+ * pricing) and the corresponding `decisionPass` / `countryUnlocks` fields
+ * have been dropped from both the backend payload and `BackendEntitlements`.
  */
 export function hasEntitlement(
   entitlements: BackendEntitlements | null | undefined,

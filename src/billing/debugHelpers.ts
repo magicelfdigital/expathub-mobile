@@ -111,7 +111,7 @@ export async function debugFetchEntitlements(
       rcAppUserId,
       action: "fetch_entitlements",
       result: "success",
-      entitlementCount: (ent.countryUnlocks?.length ?? 0) + (ent.hasFullAccess ? 1 : 0),
+      entitlementCount: ent.hasFullAccess ? 1 : 0,
     });
     return { success: true, entitlements: ent };
   } catch (e: any) {
@@ -166,7 +166,7 @@ export async function debugForceRefresh(
     rcAppUserId,
     action: "force_refresh",
     result: refreshSuccess ? "success" : `error: ${refreshError}`,
-    entitlementCount: (entitlements?.countryUnlocks?.length ?? 0) + (entitlements?.hasFullAccess ? 1 : 0),
+    entitlementCount: entitlements?.hasFullAccess ? 1 : 0,
   });
 
   return { refreshSuccess, refreshError, entitlements, entitlementError };

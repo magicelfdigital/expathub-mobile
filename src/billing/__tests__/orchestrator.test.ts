@@ -15,8 +15,6 @@ function makeInactiveEntitlements(): BackendEntitlements {
     hasFullAccess: false,
     accessSource: null,
     subscription: null,
-    decisionPass: null,
-    countryUnlocks: [],
   };
 }
 
@@ -31,8 +29,6 @@ function makeActiveEntitlements(
       currentPeriodEnd: "2026-12-31T00:00:00Z",
       platform: "ios",
     },
-    decisionPass: null,
-    countryUnlocks: [],
   };
 }
 

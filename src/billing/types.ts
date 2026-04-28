@@ -52,11 +52,6 @@ export interface BackendEntitlements {
     currentPeriodEnd: string;
     platform: "web" | "ios" | "android";
   } | null;
-  decisionPass: {
-    expiresAt: string;
-    active: boolean;
-  } | null;
-  countryUnlocks: string[];
 }
 
 export interface BackendClient {

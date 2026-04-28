@@ -47,7 +47,6 @@ interface EntitlementContextValue {
   expirationDate: string | null;
   rcConfigured: boolean;
   purchasesError: string | null;
-  hasCountryAccess: (slug: string) => boolean;
   setSandboxOverride: (value: boolean) => void;
   refresh: () => Promise<void>;
   promoCodeActive: boolean;
@@ -321,13 +320,6 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     return () => { mounted = false; };
   }, [refresh]);
 
-  const hasCountryAccess = useCallback((_slug: string): boolean => {
-    if (__DEV__ && SANDBOX_ENABLED && sandboxOverride) return true;
-    if (__DEV__ && promoCodeActive) return true;
-    if (reverseTrialActive) return true;
-    return hasFullAccess;
-  }, [sandboxOverride, promoCodeActive, hasFullAccess, reverseTrialActive]);
-
   const devBypass = __DEV__ && ((SANDBOX_ENABLED && sandboxOverride) || promoCodeActive);
   const effectiveHasFullAccess = devBypass ? true : hasFullAccess || reverseTrialActive;
   const effectiveHasProAccess = devBypass ? true : hasProAccess || reverseTrialActive;
@@ -362,7 +354,6 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       expirationDate: effectiveExpirationDate,
       rcConfigured,
       purchasesError,
-      hasCountryAccess,
       setSandboxOverride,
       refresh,
       promoCodeActive,
@@ -375,7 +366,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       startReverseTrial,
       resetReverseTrial,
     }),
-    [effectiveHasProAccess, effectiveHasFullAccess, effectiveAccessType, effectiveSource, loading, managementURL, effectiveExpirationDate, rcConfigured, purchasesError, hasCountryAccess, setSandboxOverride, refresh, redeemPromoCode, clearPromoCode, backendEntitlements, promoCodeActive, reverseTrialActive, reverseTrialUsed, reverseTrialExpiresAt, startReverseTrial, resetReverseTrial]
+    [effectiveHasProAccess, effectiveHasFullAccess, effectiveAccessType, effectiveSource, loading, managementURL, effectiveExpirationDate, rcConfigured, purchasesError, setSandboxOverride, refresh, redeemPromoCode, clearPromoCode, backendEntitlements, promoCodeActive, reverseTrialActive, reverseTrialUsed, reverseTrialExpiresAt, startReverseTrial, resetReverseTrial]
   );
 
   return <EntitlementContext.Provider value={value}>{children}</EntitlementContext.Provider>;

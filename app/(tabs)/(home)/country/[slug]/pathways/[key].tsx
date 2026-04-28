@@ -24,7 +24,7 @@ export default function PathwayScreen() {
   const { slug, key } = useLocalSearchParams<{ slug?: string; key?: string }>();
   const { user } = useAuth();
   const { selectedCountrySlug } = useCountry();
-  const { hasFullAccess, hasCountryAccess, loading } = useSubscription();
+  const { hasFullAccess, loading } = useSubscription();
 
   const urlSlug = typeof slug === "string" ? slug : "";
   const countrySlug = urlSlug || selectedCountrySlug || "";
@@ -45,7 +45,7 @@ export default function PathwayScreen() {
 
   const resolvedSlug = countrySlug || selectedCountrySlug || undefined;
 
-  const hasAccess = !pathway?.premium || hasFullAccess || (resolvedSlug ? hasCountryAccess(resolvedSlug) : false);
+  const hasAccess = !pathway?.premium || hasFullAccess;
 
   const briefOpenedRef = useRef(false);
   useEffect(() => {
@@ -64,12 +64,10 @@ export default function PathwayScreen() {
       console.log(`[GATE] Brief shown: pathway "${pathwayKey}" is not premium (free content)`);
     } else if (hasFullAccess) {
       console.log(`[GATE] Brief shown: hasFullAccess=true for premium pathway "${pathwayKey}"`);
-    } else if (resolvedSlug && hasCountryAccess(resolvedSlug)) {
-      console.log(`[GATE] Brief shown: hasCountryAccess("${resolvedSlug}")=true for premium pathway "${pathwayKey}"`);
     } else {
       console.log(`[GATE] Paywall shown: no entitlement for premium pathway "${pathwayKey}" in "${countrySlug}"`);
     }
-  }, [loading, pathway, hasFullAccess, resolvedSlug, hasCountryAccess, pathwayKey, countrySlug]);
+  }, [loading, pathway, hasFullAccess, resolvedSlug, pathwayKey, countrySlug]);
 
   async function openInApp(url: string) {
     await WebBrowser.openBrowserAsync(url, {

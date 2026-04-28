@@ -18,8 +18,6 @@ beforeEach(() => {
         hasFullAccess: true,
         accessSource: "revenuecat",
         subscription: { status: "active", currentPeriodEnd: "2026-12-31T00:00:00Z", platform: "ios" },
-        decisionPass: null,
-        countryUnlocks: [],
       }),
       text: async () => "ok",
     };
@@ -165,7 +163,7 @@ describe("createBackendClient — route structure", () => {
 
     const result = await client.getEntitlements(MOCK_USER_ID);
     expect(result.hasFullAccess).toBe(false);
-    expect(result.countryUnlocks).toEqual([]);
+    expect(result.subscription).toBeNull();
   });
 
   it("throws on non-OK response for refreshMobileBilling", async () => {
@@ -188,15 +186,32 @@ describe("createBackendClient — route structure", () => {
         hasFullAccess: false,
         accessSource: "stripe",
         subscription: null,
-        decisionPass: { expiresAt: "2026-03-15T00:00:00Z", active: true },
-        countryUnlocks: ["portugal", "spain"],
       }),
     }));
 
     const result = await client.getEntitlements(MOCK_USER_ID);
     expect(result.hasFullAccess).toBe(false);
     expect(result.accessSource).toBe("stripe");
-    expect(result.decisionPass).toEqual({ expiresAt: "2026-03-15T00:00:00Z", active: true });
-    expect(result.countryUnlocks).toEqual(["portugal", "spain"]);
+    expect(result.subscription).toBeNull();
+  });
+
+  it("ignores legacy decisionPass / countryUnlocks fields if backend still sends them", async () => {
+    (global as any).fetch = jest.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        hasFullAccess: true,
+        accessSource: "revenuecat",
+        subscription: { status: "active", currentPeriodEnd: "2026-12-31T00:00:00Z", platform: "ios" },
+        decisionPass: { expiresAt: "2026-03-15T00:00:00Z", active: true },
+        countryUnlocks: ["portugal", "spain"],
+      }),
+    }));
+
+    const result = await client.getEntitlements(MOCK_USER_ID);
+    expect(result.hasFullAccess).toBe(true);
+    expect(result.accessSource).toBe("revenuecat");
+    expect(result).not.toHaveProperty("decisionPass");
+    expect(result).not.toHaveProperty("countryUnlocks");
   });
 });

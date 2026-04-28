@@ -6,8 +6,6 @@ function makeBase(): BackendEntitlements {
     hasFullAccess: false,
     accessSource: null,
     subscription: null,
-    decisionPass: null,
-    countryUnlocks: [],
   };
 }
 
@@ -51,24 +49,6 @@ describe("hasEntitlement (2-tier model)", () => {
     ).toBe(false);
   });
 
-  it("ignores legacy active decision pass (treated as not entitled)", () => {
-    expect(
-      hasEntitlement({
-        ...makeBase(),
-        decisionPass: { expiresAt: "2026-12-31T00:00:00Z", active: true },
-      }),
-    ).toBe(false);
-  });
-
-  it("ignores legacy country unlocks (treated as not entitled)", () => {
-    expect(
-      hasEntitlement(
-        { ...makeBase(), countryUnlocks: ["portugal"] },
-        "country_lifetime_portugal",
-      ),
-    ).toBe(false);
-  });
-
   it("returns true for any productKey when hasFullAccess is true", () => {
     expect(
       hasEntitlement(
@@ -83,15 +63,6 @@ describe("hasCountryEntitlement (2-tier model)", () => {
   it("returns false for null entitlements", () => {
     expect(hasCountryEntitlement(null, "portugal")).toBe(false);
     expect(hasCountryEntitlement(undefined, "portugal")).toBe(false);
-  });
-
-  it("returns false when only legacy country unlock present", () => {
-    expect(
-      hasCountryEntitlement(
-        { ...makeBase(), countryUnlocks: ["portugal", "spain"] },
-        "portugal",
-      ),
-    ).toBe(false);
   });
 
   it("returns true when hasFullAccess regardless of country", () => {
@@ -119,15 +90,7 @@ describe("hasCountryEntitlement (2-tier model)", () => {
     ).toBe(true);
   });
 
-  it("ignores legacy active decision pass", () => {
-    expect(
-      hasCountryEntitlement(
-        {
-          ...makeBase(),
-          decisionPass: { expiresAt: "2026-12-31T00:00:00Z", active: true },
-        },
-        "ecuador",
-      ),
-    ).toBe(false);
+  it("returns false when no access", () => {
+    expect(hasCountryEntitlement(makeBase(), "ecuador")).toBe(false);
   });
 });

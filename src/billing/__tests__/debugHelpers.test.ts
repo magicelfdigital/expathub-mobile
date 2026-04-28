@@ -86,12 +86,10 @@ describe("formatEntitlements", () => {
       hasFullAccess: true,
       accessSource: "revenuecat" as const,
       subscription: { status: "active" as const, currentPeriodEnd: "2026-12-31", platform: "ios" as const },
-      decisionPass: null,
-      countryUnlocks: ["portugal"],
     };
     const result = formatEntitlements(ent);
     expect(result).toContain('"hasFullAccess": true');
-    expect(result).toContain('"portugal"');
+    expect(result).toContain('"revenuecat"');
     expect(result).not.toContain("[REDACTED]");
   });
 });
@@ -184,8 +182,6 @@ describe("debugFetchEntitlements", () => {
       hasFullAccess: true,
       accessSource: "revenuecat",
       subscription: null,
-      decisionPass: null,
-      countryUnlocks: ["portugal"],
     };
     (global as any).fetch = jest.fn(async () => ({
       ok: true,
@@ -236,8 +232,6 @@ describe("debugForceRefresh", () => {
           hasFullAccess: true,
           accessSource: "revenuecat",
           subscription: null,
-          decisionPass: null,
-          countryUnlocks: [],
         }),
       };
     });
@@ -265,8 +259,6 @@ describe("debugForceRefresh", () => {
           hasFullAccess: false,
           accessSource: null,
           subscription: null,
-          decisionPass: null,
-          countryUnlocks: [],
         }),
       };
     });

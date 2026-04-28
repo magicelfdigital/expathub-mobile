@@ -5,8 +5,6 @@ const EMPTY_ENTITLEMENTS: BackendEntitlements = {
   hasFullAccess: false,
   accessSource: null,
   subscription: null,
-  decisionPass: null,
-  countryUnlocks: [],
 };
 
 function billingLog(msg: string) {
@@ -79,11 +77,9 @@ export function createBackendClient(getToken: () => string | null): BackendClien
         hasFullAccess: Boolean(data.hasFullAccess ?? data.hasProAccess),
         accessSource: data.accessSource ?? data.source ?? null,
         subscription: data.subscription ?? null,
-        decisionPass: data.decisionPass ?? null,
-        countryUnlocks: data.countryUnlocks ?? [],
       };
 
-      billingLog(`entitlements: hasFullAccess=${entitlements.hasFullAccess}, source=${entitlements.accessSource}, countries=[${entitlements.countryUnlocks.join(",")}]`);
+      billingLog(`entitlements: hasFullAccess=${entitlements.hasFullAccess}, source=${entitlements.accessSource}`);
       return entitlements;
     },
   };

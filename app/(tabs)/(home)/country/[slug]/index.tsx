@@ -82,7 +82,7 @@ function CoverageRow({ label, status }: { label: string; status: "decision-ready
 export default function CountryDetailScreen() {
   const router = useRouter();
   const { selectedCountrySlug } = useCountry();
-  const { hasActiveSubscription, hasFullAccess, hasCountryAccess, accessType } = useSubscription();
+  const { hasActiveSubscription, hasFullAccess, accessType } = useSubscription();
   const { activeCountrySlug: planCountrySlug, startPlan } = usePlan();
   const { recordView } = useContinue();
   const { isTablet } = useLayout();
@@ -101,7 +101,7 @@ export default function CountryDetailScreen() {
   const hasCoverage = coverage.ready.length > 0 || coverage.soon.length > 0;
   const isLaunch = isLaunchCountry(countrySlug);
 
-  const hasAccess = hasFullAccess || hasCountryAccess(countrySlug);
+  const hasAccess = hasFullAccess;
   const hasPlanForThisCountry = planCountrySlug === countrySlug;
   const isPaidUser = hasActiveSubscription;
   const { percent: planPercent } = useProgressPercent(

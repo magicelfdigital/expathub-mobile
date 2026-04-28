@@ -444,9 +444,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const text = await upstream.text();
       res.status(upstream.status);
-      upstream.headers.forEach((value, key) => {
-        if (key.toLowerCase() === "content-type") res.setHeader(key, value);
-      });
+      const upstreamContentType = upstream.headers.get("content-type") ?? "";
+      if (upstreamContentType) res.setHeader("content-type", upstreamContentType);
+
+      // Strip dropped legacy fields (`decisionPass`, `countryUnlocks`) from
+      // the upstream payload before forwarding. The 2-tier pricing model
+      // ignores these fields client-side; sending them is dead weight.
+      if (upstreamContentType.includes("application/json")) {
+        try {
+          const parsed = JSON.parse(text);
+          if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            delete (parsed as Record<string, unknown>).decisionPass;
+            delete (parsed as Record<string, unknown>).countryUnlocks;
+          }
+          res.send(JSON.stringify(parsed));
+          return;
+        } catch {
+          // Fall through and forward original text if parse fails.
+        }
+      }
       res.send(text);
     } catch (err: any) {
       res.status(502).json({ error: "Entitlements service unavailable" });

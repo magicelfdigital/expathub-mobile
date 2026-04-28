@@ -133,7 +133,7 @@ export default function DebugBillingScreen() {
         rcAppUserId,
         action: "restore_purchases",
         result: result.status,
-        entitlementCount: (result.entitlements.countryUnlocks?.length ?? 0) + (result.entitlements.hasFullAccess ? 1 : 0),
+        entitlementCount: result.entitlements.hasFullAccess ? 1 : 0,
       });
       Alert.alert("Restore Complete", `Status: ${result.status}`);
     } catch (e: any) {
@@ -168,7 +168,7 @@ export default function DebugBillingScreen() {
         rcAppUserId,
         action: "rc_logout_login",
         result: result.status,
-        entitlementCount: (result.entitlements.countryUnlocks?.length ?? 0) + (result.entitlements.hasFullAccess ? 1 : 0),
+        entitlementCount: result.entitlements.hasFullAccess ? 1 : 0,
       });
       Alert.alert("RC Re-Login Complete", `Status: ${result.status}`);
     } catch (e: any) {

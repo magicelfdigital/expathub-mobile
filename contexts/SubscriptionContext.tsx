@@ -13,7 +13,6 @@ type SubscriptionContextValue = {
   expirationDate: string | null;
   rcConfigured: boolean;
   purchasesError: string | null;
-  hasCountryAccess: (slug: string) => boolean;
   setSandboxOverride: (value: boolean) => void;
   refresh: () => Promise<void>;
   promoCodeActive: boolean;
@@ -35,7 +34,6 @@ function SubscriptionBridge({ children }: { children: React.ReactNode }) {
     expirationDate,
     rcConfigured,
     purchasesError,
-    hasCountryAccess,
     setSandboxOverride,
     refresh,
     promoCodeActive,
@@ -64,14 +62,13 @@ function SubscriptionBridge({ children }: { children: React.ReactNode }) {
       expirationDate,
       rcConfigured,
       purchasesError,
-      hasCountryAccess,
       setSandboxOverride,
       refresh,
       promoCodeActive,
       redeemPromoCode,
       clearPromoCode,
     }),
-    [hasProAccess, hasFullAccess, accessType, source, loading, sandboxMode, managementURL, expirationDate, rcConfigured, purchasesError, hasCountryAccess, setSandboxOverride, refresh, promoCodeActive, redeemPromoCode, clearPromoCode]
+    [hasProAccess, hasFullAccess, accessType, source, loading, sandboxMode, managementURL, expirationDate, rcConfigured, purchasesError, setSandboxOverride, refresh, promoCodeActive, redeemPromoCode, clearPromoCode]
   );
 
   return <SubscriptionContext.Provider value={value}>{children}</SubscriptionContext.Provider>;
