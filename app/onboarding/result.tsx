@@ -102,11 +102,11 @@ export default function ResultScreen() {
       viewedRef.current = true;
       trackEvent("result_screen_viewed", {
         matchScore: result.score,
-        tier: readiness.level,
+        readiness_level: readiness.level,
       });
       logFbEvent("CompletedQuiz", undefined, {
         top_country: result.topMatch?.slug ?? "none",
-        tier: readiness.level,
+        readiness_level: readiness.level,
       });
 
       // Persist quiz attributes for personalized paywall + RC analytics
@@ -130,7 +130,7 @@ export default function ResultScreen() {
             top_country: topCountry,
             first_name: firstName,
             quiz_completed: "true",
-            quiz_tier: readiness.level,
+            quiz_readiness_level: readiness.level,
             quiz_score: String(result.score),
           });
         } catch {}
@@ -161,28 +161,38 @@ export default function ResultScreen() {
       await fetch(`${base}/api/readiness-lead`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: addr, score: result.score, tier: readiness.level, risks: result.risks, answers }),
+        body: JSON.stringify({
+          email: addr,
+          score: result.score,
+          readiness_level: readiness.level,
+          // `tier` is kept for backend compatibility — the readiness_leads
+          // table column is still named `tier`. Server cleanup will drop
+          // this once the column/payload is renamed.
+          tier: readiness.level,
+          risks: result.risks,
+          answers,
+        }),
       });
       setEmailSent(true);
-      trackEvent("readiness_lead_saved", { tier: readiness.level, score: result.score });
+      trackEvent("readiness_lead_saved", { readiness_level: readiness.level, score: result.score });
     } catch {} finally { setEmailSending(false); }
   };
 
   const handleCreateAccount = async () => {
     await completeOnboarding(result, false);
-    trackEvent("quiz_completed", { tier: readiness.level, score: result.score, action: "create_account" });
+    trackEvent("quiz_completed", { readiness_level: readiness.level, score: result.score, action: "create_account" });
     router.replace("/auth?mode=register");
   };
 
   const handleContinue = async () => {
     await completeOnboarding(result, true);
-    trackEvent("quiz_completed", { tier: readiness.level, score: result.score, action: "continue" });
+    trackEvent("quiz_completed", { readiness_level: readiness.level, score: result.score, action: "continue" });
     router.replace("/(tabs)/(home)");
   };
 
   const handleUnlockRoadmap = async () => {
     await completeOnboarding(result, true);
-    trackEvent("paywall_unlock_tapped", { source: "result_screen", tier: readiness.level });
+    trackEvent("paywall_unlock_tapped", { source: "result_screen", readiness_level: readiness.level });
     router.push("/subscribe");
   };
 
