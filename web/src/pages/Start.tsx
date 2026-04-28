@@ -10,6 +10,7 @@ import {
 import LockedSection from "@/components/LockedSection";
 import { webApiClient } from "@/lib/api";
 import {
+  identifyByEmail,
   trackCompletedQuiz,
   trackInitiateCheckout,
   trackLead,
@@ -369,6 +370,14 @@ export default function Start() {
     setSubmitting(true);
     setError(null);
     try {
+      // Identify the visitor before we fire any post-email events so the
+      // `Lead`/`quiz_completed` pair below already carries the email-keyed
+      // distinct_id. PostHog will then alias the pre-email anon id to this
+      // one (via `$anon_distinct_id`) and later, after account creation,
+      // re-alias the email id to the real user id (see `useUser`).
+      // Awaited but never thrown — analytics must never block the form.
+      await identifyByEmail(email).catch(() => {});
+
       const computed = result ?? calculateQuizResult(answers);
       const tier: Tier = computed.tier;
       // Use the 4-value readiness level for analytics so web events line up
