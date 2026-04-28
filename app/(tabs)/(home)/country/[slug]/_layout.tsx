@@ -28,7 +28,7 @@ function BackButton({ fallback }: { fallback?: string }) {
         }
       }}
       hitSlop={12}
-      style={{ padding: 8 }}
+      style={{ paddingVertical: 8, paddingRight: 8, paddingLeft: 16 }}
     >
       <Ionicons name="chevron-back" size={24} color={tokens.color.primary} />
     </Pressable>
@@ -43,7 +43,7 @@ function HomeButton() {
         router.navigate("/(tabs)" as any);
       }}
       hitSlop={12}
-      style={{ padding: 8 }}
+      style={{ paddingVertical: 8, paddingRight: 8, paddingLeft: 16 }}
     >
       <Ionicons name="chevron-back" size={24} color={tokens.color.primary} />
     </Pressable>
@@ -65,10 +65,23 @@ function CountryBackButton() {
         }
       }}
       hitSlop={12}
-      style={{ padding: 8 }}
+      style={{ paddingVertical: 8, paddingRight: 8, paddingLeft: 16 }}
     >
       <Ionicons name="chevron-back" size={24} color={tokens.color.primary} />
     </Pressable>
+  );
+}
+
+function HeaderBackground() {
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: tokens.color.bg,
+        borderBottomWidth: 1,
+        borderBottomColor: tokens.color.border,
+      }}
+    />
   );
 }
 
@@ -103,9 +116,8 @@ export default function CountrySlugLayout() {
         headerTitleAlign: "center",
         headerBackTitle: "",
         headerShadowVisible: false,
-        headerStyle: { backgroundColor: tokens.color.bg, borderBottomWidth: 1, borderBottomColor: tokens.color.border },
+        headerBackground: () => <HeaderBackground />,
         headerLeft: () => <BackButton />,
-        headerLeftContainerStyle: { paddingLeft: 8 },
         title: "",
       }}
     >

@@ -46,13 +46,14 @@ function VendorsContent({ countrySlug }: { countrySlug: string }) {
   const vendors = useMemo(() => {
     const countryVendors = getVendors(countrySlug);
     if (countryVendors.length > 0) return countryVendors;
-    return [
+    const fallback: Array<{ name: string; category: string; url: string; note?: string }> = [
       {
         name: "Find licensed providers (search)",
         category: "Directory",
         url: `https://www.google.com/search?q=${encodeURIComponent(countryName + " immigration lawyer directory")}`,
       },
     ];
+    return fallback;
   }, [countrySlug, countryName]);
 
   return (

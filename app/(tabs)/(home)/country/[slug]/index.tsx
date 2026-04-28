@@ -398,7 +398,7 @@ const styles = {
 
   convertBannerTitle: {
     fontSize: tokens.text.body,
-    fontWeight: tokens.weight.semiBold,
+    fontWeight: tokens.weight.semibold,
     fontFamily: tokens.font.bodySemiBold,
     color: tokens.color.text,
   },

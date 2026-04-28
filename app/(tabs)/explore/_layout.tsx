@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
 import React from "react";
-import { Image, Pressable } from "react-native";
+import { Image, Pressable, View } from "react-native";
 import { tokens } from "@/theme/tokens";
 
 function AppHeaderTitle() {
@@ -38,6 +38,19 @@ const topicScreenOptions = {
   headerLeft: () => <BackButton />,
 };
 
+function HeaderBackground() {
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: tokens.color.bg,
+        borderBottomWidth: 1,
+        borderBottomColor: tokens.color.border,
+      }}
+    />
+  );
+}
+
 export default function ExploreLayout() {
   return (
     <Stack
@@ -46,7 +59,7 @@ export default function ExploreLayout() {
         headerTitle: () => <AppHeaderTitle />,
         headerTitleAlign: "center",
         headerShadowVisible: false,
-        headerStyle: { backgroundColor: tokens.color.bg, borderBottomWidth: 1, borderBottomColor: tokens.color.border },
+        headerBackground: () => <HeaderBackground />,
         title: "",
       }}
     >

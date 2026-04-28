@@ -150,7 +150,11 @@ type AnalyticsEvent =
   | "exit_offer_accepted"
   | "exit_offer_declined"
   | "planner_step_completed"
-  | "planner_completed";
+  | "planner_completed"
+  | "password_reset_opened"
+  | "password_reset_submitted"
+  | "password_reset_success"
+  | "password_reset_error";
 
 type EventProperties = Record<string, string | number | boolean | undefined>;
 
