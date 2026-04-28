@@ -45,24 +45,114 @@ const STEP_TITLES: Record<string, string> = {
   move_date_set: "Set your move date",
 };
 
-let createdAtColumnEnsured = false;
+// Process-level memoization is held as a Promise so concurrent callers
+// share the in-flight work instead of racing the migration, AND so that
+// a failure clears the memo and the next caller retries. (Storing a bare
+// boolean would lock us into the failed state until restart.)
+let createdAtColumnPromise: Promise<void> | null = null;
+let createdAtBackfillPromise: Promise<void> | null = null;
+
 // Single source of truth for the user_progress.created_at lazy migration.
-// Idempotent and process-cached: subsequent callers are no-ops. Both the
-// /api/progress seed flow and /api/admin/planner-analytics route through
-// here so the column always exists before any reader/writer that depends
-// on it. Postgres back-fills existing rows with the migration-time NOW(),
-// which means historical plans started before this column existed will
-// look like they were started at the migration moment — acceptable since
-// their median contribution will simply be small until new data accrues.
-export async function ensureUserProgressCreatedAt(
+// Idempotent and process-cached: subsequent callers re-await the same
+// promise. Both the /api/progress seed flow and /api/admin/planner-analytics
+// route through here so the column always exists before any reader/writer
+// that depends on it. Postgres back-fills existing rows with the
+// migration-time NOW(), which would otherwise make historical plans look
+// like they all started at the migration moment and pull the time-to-100%
+// median toward zero. We follow the column add with a one-shot data
+// backfill that rewrites the migration-stamped rows to a more honest
+// estimate.
+export function ensureUserProgressCreatedAt(pool: pg.Pool): Promise<void> {
+  if (createdAtColumnPromise) return createdAtColumnPromise;
+  createdAtColumnPromise = (async () => {
+    try {
+      await pool.query(
+        `ALTER TABLE user_progress
+           ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`,
+      );
+      await backfillUserProgressMigrationCreatedAt(pool);
+    } catch (err) {
+      // Drop the memo so the next caller retries instead of inheriting
+      // the failure for the lifetime of the process.
+      createdAtColumnPromise = null;
+      throw err;
+    }
+  })();
+  return createdAtColumnPromise;
+}
+
+// One-shot data fix-up for rows that were stamped with the migration-time
+// NOW() when the created_at column was first added. Those rows all share
+// an identical timestamp (a single ALTER TABLE evaluates DEFAULT NOW()
+// once for the bulk back-fill), which pulls the time-to-100% median
+// toward zero. Real seeded inserts come in batches of
+// GENERIC_PLAN_STEP_IDS.length rows per (user, country) pair via separate
+// auto-commit INSERTs, so any timestamp shared by strictly more rows than
+// one seed batch can only be the migration moment.
+//
+// For each detected migration timestamp we replace created_at with the
+// earliest completed_at for the same (user_id, target_country) — the best
+// proxy we have for when the plan was actually being worked on. Rows
+// whose plan has no completions get NULL, which the median query
+// explicitly excludes so historical noise stops polluting the metric.
+//
+// Process-cached via a memoized promise: concurrent callers share the
+// in-flight run, successful runs short-circuit forever, and a failure
+// clears the memo so the next caller retries (avoiding a permanent
+// half-backfilled state until restart).
+export function backfillUserProgressMigrationCreatedAt(
   pool: pg.Pool,
 ): Promise<void> {
-  if (createdAtColumnEnsured) return;
-  await pool.query(
-    `ALTER TABLE user_progress
-       ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`,
-  );
-  createdAtColumnEnsured = true;
+  if (createdAtBackfillPromise) return createdAtBackfillPromise;
+  createdAtBackfillPromise = (async () => {
+    try {
+      const seedBatchSize = GENERIC_PLAN_STEP_IDS.length;
+      const candidates = await pool.query(
+        `SELECT created_at
+           FROM user_progress
+          WHERE created_at IS NOT NULL
+          GROUP BY created_at
+         HAVING COUNT(*) > $1`,
+        [seedBatchSize],
+      );
+
+      for (const row of candidates.rows) {
+        const ts = row.created_at;
+        // Step 1 — promote rows that have any completion in their plan
+        // to the earliest completion timestamp for that (user, country)
+        // pair.
+        await pool.query(
+          `UPDATE user_progress AS up
+              SET created_at = sub.first_completion
+             FROM (
+               SELECT user_id,
+                      target_country,
+                      MIN(completed_at) AS first_completion
+                 FROM user_progress
+                WHERE completed_at IS NOT NULL
+                GROUP BY user_id, target_country
+             ) AS sub
+            WHERE up.created_at = $1
+              AND up.user_id = sub.user_id
+              AND up.target_country = sub.target_country`,
+          [ts],
+        );
+        // Step 2 — anything still pinned to the migration timestamp has
+        // no completion to anchor to; null it out so the median query
+        // skips it.
+        await pool.query(
+          `UPDATE user_progress
+              SET created_at = NULL
+            WHERE created_at = $1`,
+          [ts],
+        );
+      }
+    } catch (err) {
+      createdAtBackfillPromise = null;
+      throw err;
+    }
+  })();
+  return createdAtBackfillPromise;
 }
 
 export type PlannerAnalyticsResult = {
@@ -124,6 +214,12 @@ export async function computePlannerAnalytics(
   // Per-plan rollup: how many of the generic steps each (user, country) has
   // completed, and the time bounds we need for time-to-100%. Used for the
   // overall plansStarted, plansCompleted, and median calculations.
+  //
+  // started_at IS NOT NULL is a deliberate filter: the migration backfill
+  // (see backfillUserProgressMigrationCreatedAt) nulls out created_at on
+  // pre-migration rows whose plan never produced a completion to anchor
+  // to. Excluding them from the median keeps historical noise out of the
+  // time-to-100% metric.
   const perPlan = await pool.query(
     `WITH per_plan AS (
        SELECT user_id,

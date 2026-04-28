@@ -155,7 +155,12 @@ export const userProgress = pgTable(
     targetCountry: varchar("target_country", { length: 100 }).notNull(),
     // Stamped on first INSERT (seeded when the user first opens the planner
     // for a country). Used by /api/admin/planner-analytics as the
-    // `plan_focus_started` timestamp for time-to-100% calculations.
+    // `plan_focus_started` timestamp for time-to-100% calculations. Nullable
+    // because the lazy migration that added this column originally stamped
+    // every pre-existing row with the same NOW(); a one-shot backfill
+    // (see backfillUserProgressMigrationCreatedAt) rewrites those rows to
+    // the earliest completed_at for the plan, or NULL if no completion
+    // exists, so the median metric isn't skewed by historical noise.
     createdAt: timestamp("created_at").defaultNow(),
   },
   (table) => ({
