@@ -13,6 +13,12 @@ import {
   trackLead,
   trackLockedSectionViewed,
 } from "@/lib/pixel";
+import {
+  clearQuizState,
+  loadQuizState,
+  saveQuizState,
+  type QuizPersistedState,
+} from "@/lib/quiz";
 import { useUser, userHasProAccess } from "@/hooks/useUser";
 
 // Five questions per the funnel spec — first 4 yes/no readiness questions
@@ -197,8 +203,27 @@ type Step =
   | { kind: "results" };
 
 export default function Start() {
-  const [step, setStep] = useState<Step>({ kind: "intro" });
-  const [answers, setAnswers] = useState<Record<number, string>>({});
+  // Restore any in-progress quiz from localStorage so a refresh doesn't reset
+  // the funnel. We use lazy initializers so we only touch storage once on mount.
+  const initialPersisted = useMemo<QuizPersistedState | null>(
+    () => loadQuizState(),
+    [],
+  );
+  const [step, setStep] = useState<Step>(() => {
+    const persisted = initialPersisted;
+    if (!persisted) return { kind: "intro" };
+    if (persisted.step.kind === "question") {
+      const idx = persisted.step.index;
+      if (idx >= 0 && idx < FUNNEL_QUESTIONS.length) {
+        return { kind: "question", index: idx };
+      }
+      return { kind: "intro" };
+    }
+    return persisted.step;
+  });
+  const [answers, setAnswers] = useState<Record<number, string>>(
+    () => initialPersisted?.answers ?? {},
+  );
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -211,6 +236,28 @@ export default function Start() {
     introFiredRef.current = true;
     trackInitiateCheckout({ funnel: "web_quiz_funnel", surface: "web" });
   }, []);
+
+  // Persist progress on every meaningful state change. Intro is skipped (no
+  // answers yet). The 900ms calculating spinner is persisted as `email` so a
+  // refresh during that brief window resumes at the email gate rather than
+  // dropping the just-selected final answer back to the last question.
+  useEffect(() => {
+    if (step.kind === "question") {
+      saveQuizState({ step: { kind: "question", index: step.index }, answers });
+    } else if (step.kind === "email" || step.kind === "calculating") {
+      saveQuizState({ step: { kind: "email" }, answers });
+    } else if (step.kind === "results") {
+      saveQuizState({ step: { kind: "results" }, answers });
+    }
+  }, [step, answers]);
+
+  function restartQuiz(): void {
+    clearQuizState();
+    setAnswers({});
+    setEmail("");
+    setError(null);
+    setStep({ kind: "intro" });
+  }
 
   const result = useMemo(() => {
     if (step.kind !== "results" && step.kind !== "email" && step.kind !== "calculating") {
@@ -334,6 +381,7 @@ export default function Start() {
           tier={result.tier}
           score={result.score}
           hasAccess={hasAccess}
+          onRestart={restartQuiz}
         />
       ) : null}
     </section>
@@ -554,11 +602,13 @@ function ResultsView({
   tier,
   score,
   hasAccess,
+  onRestart,
 }: {
   matches: CountryMatch[];
   tier: Tier;
   score: number;
   hasAccess: boolean;
+  onRestart: () => void;
 }) {
   const top = matches[0];
   const rest = matches.slice(1);
@@ -681,7 +731,7 @@ function ResultsView({
           Pro unlocks visa, cost-of-living, healthcare, schools, and the
           relocation planner for every country we cover.
         </p>
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap items-center gap-4">
           <Link
             to="/pricing"
             data-testid="quiz-results-pricing"
@@ -689,6 +739,14 @@ function ResultsView({
           >
             See plans
           </Link>
+          <button
+            type="button"
+            onClick={onRestart}
+            data-testid="quiz-restart"
+            className="text-sm text-[var(--color-ink-muted)] underline-offset-2 hover:underline"
+          >
+            Restart quiz
+          </button>
         </div>
       </div>
     </div>
