@@ -17,31 +17,49 @@ This checklist assumes the SDK + Pixel work in this task is already merged and a
 
 Before changing campaigns, verify the funnel events are landing in **Meta Events Manager**.
 
+> **Pre-flight (do this first, before opening Events Manager):**
+> Run `node scripts/check-meta-events.mjs` from the repo root. This is a static
+> check that asserts every event listed below still has a call site in source
+> and that no obvious PII fields (email, userId, firstName, etc.) are being
+> forwarded into a Meta payload. If this fails, do not bother with a TestFlight
+> build — fix the call sites first. The check is the source of truth for which
+> call sites must exist; if you intentionally rename or move an event, update
+> the script and this doc in the same commit.
+
 ### Mobile app (iOS, react-native-fbsdk-next)
 
 1. Open **Events Manager** → select the **App** dataset for ExpatHub (App ID `2089699021599989`).
-2. Open **Test Events**.
-3. On a real iOS device with the dev build (or TestFlight), trigger:
-   - Open the app → expect SDK init (no event yet — auto-logged events show up as "Activate App").
-   - Complete the readiness quiz → expect `CompletedQuiz` with `top_country` parameter.
-   - Open the paywall → expect `ViewedPaywall`.
-   - Tap the annual / 14-day-trial button and confirm purchase (sandbox account) → expect `StartTrial` (value `0`).
-   - Buy the monthly plan after the trial → expect `Subscribe` with the actual USD amount.
-4. Confirm **no PII** appears in any payload (no email, no name, no user ID — only `top_country`, `value`, `plan`, `entry_point`).
+2. Open **Test Events** and pair your iOS test device.
+3. Install the latest TestFlight build on a real iOS device (the SDK no-ops in Expo Go, so a real native build is required).
+4. Walk through the funnel and tick each row below. Each event must arrive in Test Events with the parameters listed and **no other** identifying fields.
+
+| # | User action | Expected event | Required params | Source of truth |
+|---|---|---|---|---|
+| 1 | Cold-launch the app | _Activate App_ (auto-logged by SDK) | — | `src/lib/analytics.ts` → `initFbSdk()` |
+| 2 | Finish the readiness quiz, land on the result screen | `CompletedQuiz` | `top_country`, `tier` | `app/onboarding/result.tsx` (`logFbEvent("CompletedQuiz", …)`) |
+| 3 | Open the paywall (any entry point) | `ViewedPaywall` | `entry_point`, `top_country` | `src/components/ProPaywall.tsx` (`logFbEvent("ViewedPaywall", …)`) |
+| 4 | Tap the annual / 14-day-trial CTA, confirm in sandbox | `StartTrial` | `plan: "annual"`, `value: 0`, `fb_currency: "USD"` | `src/components/ProPaywall.tsx` → `logFbPurchaseEvent("annual_subscription")` |
+| 5 | After the trial flow, buy the monthly plan in sandbox | `Subscribe` | `plan: "monthly"`, `value` = live RC price (USD), `fb_currency: "USD"` | `src/components/ProPaywall.tsx` → `logFbPurchaseEvent("monthly_subscription")` |
+
+5. PII guardrail — for **every** event above, confirm Test Events shows **only** the params listed. There must be no `email`, `userId`, `uid`, `firstName`, or `lastName` field. If any of these appear, stop and file a bug; do not proceed.
 
 ### Website (react-facebook-pixel, Pixel ID `2089699021599989`)
 
 1. Install the **Meta Pixel Helper** Chrome extension.
-2. Visit the production / staging website. The extension should show the Pixel firing.
-3. Verify these fire at the right moments:
-   - Any route change → `PageView`.
-   - Land on `/start` → `InitiateCheckout` (`funnel: readiness_quiz`).
-   - Submit the quiz email capture (when the web quiz funnel ships) → `Lead`.
-   - Start a Stripe trial (when web pricing ships) → `StartTrial` with `value: 0`.
-   - Stripe purchase success page → `Subscribe` with `value` set to the actual price.
-4. Cross-check in **Events Manager** → **Test Events** → enter the test browser ID.
+2. Visit the production website. The extension should show the Pixel firing.
+3. Walk through the funnel and tick each row below.
 
-If any of the above does **not** fire, stop and fix before proceeding to campaign work.
+| # | User action | Expected event | Required params | Source of truth |
+|---|---|---|---|---|
+| 1 | Any route change | `PageView` | — | `web/src/App.tsx` → `trackPageView()` |
+| 2 | Land on `/start` | `InitiateCheckout` | `funnel: "readiness_quiz"` | `web/src/pages/Start.tsx` → `trackInitiateCheckout(...)` |
+| 3 | Submit the quiz email capture | `Lead` | `funnel: "readiness_quiz"` | `web/src/pages/Start.tsx` → `trackLead(...)` |
+| 4 | Land on `/pricing` and start the annual trial | `StartTrial` | `value: 0`, `currency: "USD"`, `plan: "annual"`, `source: "web_pricing"` | `web/src/pages/Pricing.tsx` → `trackStartTrial(...)` |
+| 5 | Stripe checkout returns to `/account?subscribed=true&...` | `Subscribe` | `value` (from URL), `currency`, `plan`, `source: "web_checkout_success"` | `web/src/pages/Account.tsx` → `trackSubscribe(...)` |
+
+4. Cross-check in **Events Manager** → **Test Events** → enter the test browser ID and confirm each row above shows up with the expected params and nothing else.
+
+If any row in either table does **not** fire — or fires with extra fields — stop and fix before proceeding to campaign work.
 
 ---
 
