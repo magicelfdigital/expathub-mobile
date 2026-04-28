@@ -127,3 +127,62 @@ export function trackExitOfferDeclined(params: ExitOfferParams = {}): void {
   });
   postUnifiedAnalytics("exit_offer_declined", { ...params });
 }
+
+// ── Quiz funnel events ────────────────────────────────────────────────────
+// Mirror the mobile event names + payload shapes from src/lib/analytics.ts
+// (see app/onboarding/quiz.tsx and app/onboarding/result.tsx) so the existing
+// PostHog / backend dashboards work for the web /start funnel without
+// per-surface special-casing.
+
+type QuizEventParams = Record<string, string | number | boolean>;
+
+export function trackQuizStarted(params: QuizEventParams = {}): void {
+  safeTrack("quiz_started", params);
+  postUnifiedAnalytics("quiz_started", params);
+}
+
+export function trackQuizQuestionAnswered(params: {
+  questionId: number;
+  questionIndex: number;
+  category: string;
+  answer: string;
+}): void {
+  safeTrack("quiz_question_answered", params);
+  postUnifiedAnalytics("quiz_question_answered", params);
+}
+
+export function trackQuizCompleted(params: QuizEventParams): void {
+  safeTrack("quiz_completed", params);
+  postUnifiedAnalytics("quiz_completed", params);
+}
+
+export function trackQuizAbandoned(params: {
+  lastQuestionIndex: number;
+  answered: number;
+  totalQuestions: number;
+}): void {
+  safeTrack("quiz_abandoned", params);
+  postUnifiedAnalytics("quiz_abandoned", params);
+}
+
+export function trackResultScreenViewed(params: {
+  matchScore: number;
+  tier: string;
+}): void {
+  safeTrack("result_screen_viewed", params);
+  postUnifiedAnalytics("result_screen_viewed", params);
+}
+
+// Mirrors mobile's `logFbEvent("CompletedQuiz", undefined, { top_country, tier })`.
+// Fires the Meta Pixel "CompletedQuiz" custom event so the same Meta dashboards
+// the mobile app uses pick up web completions too. Intentionally Meta-only —
+// mobile's `logFbEvent` does NOT also call PostHog/unified analytics, and the
+// per-funnel-step coverage in unified analytics is already provided by
+// `result_screen_viewed`. Sending it to unified analytics would create a
+// duplicate event series with a non-snake_case name.
+export function trackCompletedQuiz(params: {
+  top_country: string;
+  tier: string;
+}): void {
+  safeTrack("CompletedQuiz", params);
+}

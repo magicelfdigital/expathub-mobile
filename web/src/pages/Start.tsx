@@ -3,15 +3,22 @@ import { Link } from "react-router-dom";
 import {
   QUIZ_QUESTIONS,
   calculateQuizResult,
+  type ReadinessLevel,
   type RegionPreference,
   type Tier,
 } from "@quiz-data";
 import LockedSection from "@/components/LockedSection";
 import { webApiClient } from "@/lib/api";
 import {
+  trackCompletedQuiz,
   trackInitiateCheckout,
   trackLead,
   trackLockedSectionViewed,
+  trackQuizAbandoned,
+  trackQuizCompleted,
+  trackQuizQuestionAnswered,
+  trackQuizStarted,
+  trackResultScreenViewed,
 } from "@/lib/pixel";
 import {
   clearQuizState,
@@ -228,13 +235,62 @@ export default function Start() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const introFiredRef = useRef(false);
+  const startedFiredRef = useRef(false);
+  const completedRef = useRef(false);
+  const abandonedFiredRef = useRef(false);
+  const answersRef = useRef<Record<number, string>>({});
+  const lastQuestionIndexRef = useRef(0);
   const { user } = useUser();
   const hasAccess = userHasProAccess(user);
 
+  // Keep refs in sync so the abandonment cleanup (which runs after the
+  // component unmounts and therefore can't read state directly) sees the
+  // final answers + last visited question.
   useEffect(() => {
-    if (introFiredRef.current) return;
-    introFiredRef.current = true;
-    trackInitiateCheckout({ funnel: "web_quiz_funnel", surface: "web" });
+    answersRef.current = answers;
+  }, [answers]);
+  useEffect(() => {
+    if (step.kind === "question") {
+      lastQuestionIndexRef.current = step.index;
+    }
+  }, [step]);
+
+  useEffect(() => {
+    // Only the once-per-session tracking calls are guarded by the ref.
+    // The pagehide listener + cleanup must always be registered, otherwise
+    // React StrictMode's mount→cleanup→remount cycle would leave the second
+    // mount with no listener and no cleanup.
+    if (!introFiredRef.current) {
+      introFiredRef.current = true;
+      // Meta optimization signal — fires on intro view (top of funnel).
+      // `quiz_started` is intentionally NOT fired here — see `startQuiz()`.
+      trackInitiateCheckout({ funnel: "web_quiz_funnel", surface: "web" });
+    }
+
+    const fireAbandonedIfApplicable = () => {
+      if (abandonedFiredRef.current) return;
+      if (completedRef.current) return;
+      const answeredCount = Object.keys(answersRef.current).length;
+      if (answeredCount > 0 && answeredCount < FUNNEL_QUESTIONS.length) {
+        abandonedFiredRef.current = true;
+        trackQuizAbandoned({
+          lastQuestionIndex: lastQuestionIndexRef.current,
+          answered: answeredCount,
+          totalQuestions: FUNNEL_QUESTIONS.length,
+        });
+      }
+    };
+
+    // `pagehide` covers tab close / hard navigation; the unmount cleanup
+    // covers SPA route changes. The abandonedFiredRef guard prevents
+    // double-fires when both fire (e.g. unmount caused by navigation).
+    const onPageHide = () => fireAbandonedIfApplicable();
+    window.addEventListener("pagehide", onPageHide);
+
+    return () => {
+      window.removeEventListener("pagehide", onPageHide);
+      fireAbandonedIfApplicable();
+    };
   }, []);
 
   // Persist progress on every meaningful state change. Intro is skipped (no
@@ -275,7 +331,20 @@ export default function Start() {
     const q = FUNNEL_QUESTIONS[step.index];
     const next = { ...answers, [q.id]: value };
     setAnswers(next);
+    // Mirror mobile's per-question event so we can see drop-off by question.
+    trackQuizQuestionAnswered({
+      questionId: q.id,
+      questionIndex: step.index,
+      category: q.category,
+      answer: value,
+    });
     if (step.index + 1 >= FUNNEL_QUESTIONS.length) {
+      // Mark complete before transitioning so the abandonment cleanup
+      // doesn't misclassify a finished quiz that happens to unmount mid-route.
+      completedRef.current = true;
+      // Mirror mobile's `quiz_completed` fired when the last question is
+      // answered. Email-gate completion fires a second event below.
+      trackQuizCompleted({ totalQuestions: FUNNEL_QUESTIONS.length });
       setStep({ kind: "calculating" });
       // Brief "calculating…" pause so users register the result is theirs.
       window.setTimeout(() => setStep({ kind: "email" }), 900);
@@ -302,6 +371,12 @@ export default function Start() {
     try {
       const computed = result ?? calculateQuizResult(answers);
       const tier: Tier = computed.tier;
+      // Use the 4-value readiness level for analytics so web events line up
+      // with mobile's `tier` field (mobile sends `readiness.level`, not the
+      // 3-value Tier). Fresh `getReadinessLabel(...)` always returns a value;
+      // the optional chain is defensive against legacy persisted shapes.
+      const readinessLevel: ReadinessLevel =
+        computed.readiness?.level ?? "curious_explorer";
       await webApiClient.readinessLead({
         email: email.trim(),
         score: computed.score,
@@ -332,6 +407,15 @@ export default function Start() {
         tier,
         region,
       });
+      // Mirror mobile's result-screen `quiz_completed` (with tier/score/action)
+      // so the funnel dashboards can split lead capture from quiz finish.
+      // The web's email submit IS the lead-capture/account-start moment, so
+      // we use `action: "create_account"` to match mobile's vocabulary.
+      trackQuizCompleted({
+        tier: readinessLevel,
+        score: computed.score,
+        action: "create_account",
+      });
       setStep({ kind: "results" });
     } catch (err: unknown) {
       const message =
@@ -350,7 +434,26 @@ export default function Start() {
       className="container-page py-10 sm:py-16"
     >
       {step.kind === "intro" ? (
-        <IntroView onStart={() => setStep({ kind: "question", index: 0 })} />
+        <IntroView
+          onStart={() => {
+            // Mirror mobile's `quiz_started` semantics: fire when the user
+            // actually enters the quiz (mobile fires it on quiz-screen mount,
+            // which is the equivalent of clicking "Start the quiz" on web).
+            // The ref guards against double-fires if the user navigates
+            // back to intro and re-starts within the same page mount —
+            // mobile fires it once per quiz screen mount, so we do the same.
+            if (!startedFiredRef.current) {
+              startedFiredRef.current = true;
+              // Strict mobile-parity: mobile fires `quiz_started` with no
+              // properties (see `trackEvent("quiz_started")` in
+              // `app/onboarding/quiz.tsx`). The `postUnifiedAnalytics` helper
+              // already merges `surface: "web"` into every payload, so we
+              // don't need to pass it explicitly here.
+              trackQuizStarted();
+            }
+            setStep({ kind: "question", index: 0 });
+          }}
+        />
       ) : null}
 
       {step.kind === "question" ? (
@@ -379,6 +482,7 @@ export default function Start() {
         <ResultsView
           matches={matches}
           tier={result.tier}
+          readinessLevel={result.readiness?.level ?? "curious_explorer"}
           score={result.score}
           hasAccess={hasAccess}
           onRestart={restartQuiz}
@@ -600,12 +704,14 @@ function EmailGateView({
 function ResultsView({
   matches,
   tier,
+  readinessLevel,
   score,
   hasAccess,
   onRestart,
 }: {
   matches: CountryMatch[];
   tier: Tier;
+  readinessLevel: ReadinessLevel;
   score: number;
   hasAccess: boolean;
   onRestart: () => void;
@@ -620,7 +726,9 @@ function ResultsView({
         : "Curious explorer";
 
   // Fire a single locked-section signal once on results render so PostHog +
-  // Pixel can attribute the funnel without waiting on scroll.
+  // Pixel can attribute the funnel without waiting on scroll. We also mirror
+  // mobile's `result_screen_viewed` + Meta `CompletedQuiz` events here so the
+  // existing funnel + Meta dashboards work for the web /start funnel too.
   const firedRef = useRef(false);
   useEffect(() => {
     if (firedRef.current) return;
@@ -629,7 +737,16 @@ function ResultsView({
       section: "web_quiz_results",
       country: top?.slug ?? "none",
     });
-  }, [top]);
+    // Use the 4-value readiness level for `tier` so web events line up with
+    // mobile's `tier` field (mobile sends `readiness.level`, not the 3-value
+    // Tier). The visible `tierLabel` in the UI keeps using `tier` since the
+    // copy was designed around the 3-bucket framing.
+    trackResultScreenViewed({ matchScore: score, tier: readinessLevel });
+    trackCompletedQuiz({
+      top_country: top?.slug ?? "none",
+      tier: readinessLevel,
+    });
+  }, [top, score, readinessLevel]);
 
   return (
     <div data-testid="quiz-results" className="max-w-3xl">
