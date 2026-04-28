@@ -27,6 +27,7 @@ import { usePlan } from "@/src/contexts/PlanContext";
 import { PlannerConfetti } from "@/src/components/PlannerConfetti";
 import { PlannerLegacyStepBody } from "@/src/components/PlannerLegacyStepBody";
 import { useProgress } from "@/src/hooks/useProgress";
+import { useAutoCompletePlannerSteps } from "@/src/hooks/useAutoCompletePlannerSteps";
 import { trackEvent } from "@/src/lib/analytics";
 import {
   GENERIC_PLAN_STEPS,
@@ -345,65 +346,17 @@ export default function PlannerScreen() {
     isLoading: progressLoading,
   } = useProgress(hasPlanForThisCountry ? countrySlug : null);
 
-  const autoMarkingQuiz = useRef(false);
-  const autoMarkedQuiz = useRef(false);
-  const autoMarkingShortlist = useRef(false);
-  const autoMarkedShortlist = useRef(false);
-  const lastAutoCountry = useRef<string | null>(null);
-  useEffect(() => {
-    if (lastAutoCountry.current !== countrySlug) {
-      lastAutoCountry.current = countrySlug;
-      autoMarkingQuiz.current = false;
-      autoMarkedQuiz.current = false;
-      autoMarkingShortlist.current = false;
-      autoMarkedShortlist.current = false;
-    }
-  }, [countrySlug]);
-  useEffect(() => {
-    if (!isPaidUser || !isReady || progressLoading || !hasPlanForThisCountry) return;
-    if (
-      !autoMarkedQuiz.current &&
-      !autoMarkingQuiz.current &&
-      quizResult &&
-      !isStepComplete("research_quiz")
-    ) {
-      autoMarkingQuiz.current = true;
-      setStep("research_quiz", true, {
-        onSuccess: () => {
-          autoMarkedQuiz.current = true;
-          autoMarkingQuiz.current = false;
-        },
-        onError: () => {
-          autoMarkingQuiz.current = false;
-        },
-      });
-    }
-    if (
-      !autoMarkedShortlist.current &&
-      !autoMarkingShortlist.current &&
-      bookmarkCount >= 2 &&
-      !isStepComplete("shortlist_built")
-    ) {
-      autoMarkingShortlist.current = true;
-      setStep("shortlist_built", true, {
-        onSuccess: () => {
-          autoMarkedShortlist.current = true;
-          autoMarkingShortlist.current = false;
-        },
-        onError: () => {
-          autoMarkingShortlist.current = false;
-        },
-      });
-    }
-  }, [
+  useAutoCompletePlannerSteps({
+    countrySlug,
     isPaidUser,
     isReady,
+    progressLoading,
     hasPlanForThisCountry,
     quizResult,
     bookmarkCount,
     isStepComplete,
     setStep,
-  ]);
+  });
 
   const [showConfetti, setShowConfetti] = useState(false);
   const firedConfettiRef = useRef(false);

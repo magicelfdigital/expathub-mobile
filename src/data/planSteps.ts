@@ -258,6 +258,8 @@ export function computePercentFromCompletedIds(
   return Math.round((completed / total) * 100);
 }
 
+export const getProgressPercent = computePercentFromCompletedIds;
+
 export function getCompletedStepCount(completedStepIds: string[]): number {
   return GENERIC_PLAN_STEPS.filter((s) => completedStepIds.includes(s.id))
     .length;
