@@ -9,6 +9,7 @@ import { useCountry } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { usePlan } from "@/src/contexts/PlanContext";
 import { useLayout } from "@/src/hooks/useLayout";
+import { useProgressPercent } from "@/src/hooks/useProgress";
 import { getCountry, getPathways, getCountryCoverage, isDecisionReady, isLaunchCountry } from "@/src/data";
 import { useContinue } from "@/src/contexts/ContinueContext";
 import { tokens } from "@/theme/tokens";
@@ -103,6 +104,9 @@ export default function CountryDetailScreen() {
   const hasAccess = hasFullAccess || hasCountryAccess(countrySlug);
   const hasPlanForThisCountry = planCountrySlug === countrySlug;
   const isPaidUser = hasActiveSubscription;
+  const { percent: planPercent } = useProgressPercent(
+    hasPlanForThisCountry ? countrySlug : null,
+  );
 
   const go = (leaf: string) => {
     if (!countrySlug) return;
@@ -165,11 +169,36 @@ export default function CountryDetailScreen() {
           </Pressable>
         ) : null}
 
-        {(hasPlanForThisCountry || (isPaidUser && isLaunch && pathways.length > 0)) ? (
+        {hasPlanForThisCountry ? (
+          <Pressable
+            onPress={() => go("planner")}
+            style={({ pressed }) => [styles.planCta, pressed && styles.cardPressed]}
+            testID="country-open-plan-cta"
+          >
+            <View style={styles.planCtaTopRow}>
+              <View style={styles.planCtaIcon}>
+                <Ionicons name="flag" size={18} color={tokens.color.white} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.planCtaTitle}>Open relocation plan</Text>
+                <Text style={styles.planCtaSubtitle}>{planPercent}% complete</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={tokens.color.white} />
+            </View>
+            <View style={styles.planCtaBarTrack}>
+              <View
+                style={[
+                  styles.planCtaBarFill,
+                  { width: `${Math.max(0, Math.min(100, planPercent))}%` },
+                ]}
+              />
+            </View>
+          </Pressable>
+        ) : isPaidUser && isLaunch && pathways.length > 0 ? (
           <NavCard
-            title={hasPlanForThisCountry ? "Your Plan" : "Relocation Planner"}
-            subtitle={hasPlanForThisCountry ? "Continue your step-by-step plan" : "Create a structured relocation plan"}
-            icon={hasPlanForThisCountry ? "flag" : "flag-outline"}
+            title="Relocation Planner"
+            subtitle="Create a structured relocation plan"
+            icon="flag-outline"
             onPress={() => go("planner")}
           />
         ) : null}
@@ -657,6 +686,50 @@ const styles = {
     color: tokens.color.subtext,
     lineHeight: 20,
     textAlign: "center" as const,
+  },
+
+  planCta: {
+    backgroundColor: tokens.color.primary,
+    borderRadius: tokens.radius.lg,
+    paddingHorizontal: tokens.space.lg,
+    paddingVertical: tokens.space.md,
+    gap: tokens.space.sm,
+  },
+  planCtaTopRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 12,
+  },
+  planCtaIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  planCtaTitle: {
+    fontSize: tokens.text.body,
+    fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.white,
+  },
+  planCtaSubtitle: {
+    fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
+    color: "rgba(255,255,255,0.85)",
+    marginTop: 2,
+  },
+  planCtaBarTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    overflow: "hidden" as const,
+  },
+  planCtaBarFill: {
+    height: "100%" as any,
+    backgroundColor: tokens.color.white,
+    borderRadius: 3,
   },
 
 } as const;

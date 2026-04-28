@@ -170,3 +170,9 @@ export function useProgress(countrySlug: string | null | undefined) {
     isReady: !!user,
   };
 }
+
+export function useProgressPercent(countrySlug: string | null | undefined) {
+  const { percent, completedCount, totalSteps, isLoading, isReady } =
+    useProgress(countrySlug);
+  return { percent, completedCount, totalSteps, isLoading, isReady };
+}

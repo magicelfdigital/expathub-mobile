@@ -9,8 +9,11 @@ import { BookmarkButton } from "@/src/components/BookmarkButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
 import { useOnboarding } from "@/contexts/OnboardingContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useContinue } from "@/src/contexts/ContinueContext";
+import { usePlan } from "@/src/contexts/PlanContext";
 import { useLayout } from "@/src/hooks/useLayout";
+import { useProgressPercent } from "@/src/hooks/useProgress";
 import { getCountries, getCountry, REGION_ORDER, sortCountriesAlpha, isLaunchCountry } from "@/src/data";
 import { COVERAGE_SUMMARY } from "@/src/data";
 import { tokens } from "@/theme/tokens";
@@ -25,6 +28,21 @@ export default function HomeScreen() {
   const { lastViewedCountrySlug, lastViewedSection, clearContinue } = useContinue();
   const { shouldShowBanner, dismissBanner } = useOnboarding();
   const { isTablet } = useLayout();
+  const { activeCountrySlug } = usePlan();
+  const { hasActiveSubscription } = useSubscription();
+  const { percent: planPercent } = useProgressPercent(activeCountrySlug);
+
+  const planCountry = useMemo(
+    () => (activeCountrySlug ? getCountry(activeCountrySlug) ?? null : null),
+    [activeCountrySlug],
+  );
+  const goPlanner = () => {
+    if (!activeCountrySlug) return;
+    router.push({
+      pathname: "/(tabs)/(home)/country/[slug]/planner" as any,
+      params: { slug: activeCountrySlug },
+    });
+  };
 
   const continueCountry = useMemo(() => {
     const slug = lastViewedCountrySlug || selectedCountrySlug;
@@ -190,6 +208,58 @@ export default function HomeScreen() {
                 </Pressable>
               </View>
             )}
+
+            {planCountry ? (
+              <View style={styles.planCardWrap}>
+                {hasActiveSubscription ? (
+                  <Pressable
+                    onPress={goPlanner}
+                    style={({ pressed }) => [styles.planCard, pressed && styles.planCardPressed]}
+                    testID="home-continue-plan-card"
+                  >
+                    <View style={styles.planCardRow}>
+                      <View style={styles.planCardIcon}>
+                        <Ionicons name="flag" size={16} color={tokens.color.primary} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.planCardTitle}>Continue your plan</Text>
+                        <Text style={styles.planCardSub}>
+                          {planCountry.name} - {planPercent}% complete
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color={tokens.color.primary} />
+                    </View>
+                    <View style={styles.planCardBarTrack}>
+                      <View
+                        style={[
+                          styles.planCardBarFill,
+                          { width: `${Math.max(0, Math.min(100, planPercent))}%` },
+                        ]}
+                      />
+                    </View>
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    onPress={goPlanner}
+                    style={({ pressed }) => [styles.planUpsellCard, pressed && styles.planCardPressed]}
+                    testID="home-plan-upsell-card"
+                  >
+                    <View style={styles.planCardRow}>
+                      <View style={styles.planUpsellIcon}>
+                        <Ionicons name="lock-closed" size={14} color={tokens.color.gold} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.planCardTitle}>Unlock your {planCountry.name} plan</Text>
+                        <Text style={styles.planCardSub}>
+                          Start a 14-day free trial to track your 10-step relocation plan.
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={18} color={tokens.color.gold} />
+                    </View>
+                  </Pressable>
+                )}
+              </View>
+            ) : null}
 
             <View style={styles.countriesSection}>
               <Text style={styles.sectionTitle}>Choose a destination</Text>
@@ -612,5 +682,74 @@ const styles = {
     fontFamily: tokens.font.bodySemiBold,
     fontWeight: "600" as const,
     color: tokens.color.primary,
+  },
+
+  planCardWrap: {
+    paddingHorizontal: tokens.space.xl,
+    paddingTop: tokens.space.sm,
+  },
+  planCard: {
+    backgroundColor: tokens.color.primarySoft,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.primaryBorder,
+    padding: tokens.space.md,
+    gap: tokens.space.sm,
+  },
+  planUpsellCard: {
+    backgroundColor: tokens.color.goldLight,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.gold,
+    padding: tokens.space.md,
+  },
+  planCardPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.99 }],
+  },
+  planCardRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 10,
+  },
+  planCardIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: tokens.color.surface,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  planUpsellIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: tokens.color.surface,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  planCardTitle: {
+    fontSize: tokens.text.body,
+    fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.text,
+  },
+  planCardSub: {
+    fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
+    marginTop: 1,
+    lineHeight: 16,
+  },
+  planCardBarTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(28,43,94,0.12)",
+    overflow: "hidden" as const,
+  },
+  planCardBarFill: {
+    height: "100%" as any,
+    backgroundColor: tokens.color.primary,
+    borderRadius: 3,
   },
 } as const;
