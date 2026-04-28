@@ -184,9 +184,31 @@ export function initAnalytics() {
   }
 }
 
-export function identifyUser(userId: string, traits?: Record<string, any>) {
+// Canonical PostHog distinct_id shape for a logged-in user. Must match the
+// web implementation in `web/src/lib/pixel.ts` (`identifyWebUser`) so a single
+// human who uses both surfaces resolves to one PostHog person, which is what
+// makes cross-surface funnels (quiz-on-web → purchase-on-mobile) work.
+function userDistinctId(userId: string | number): string {
+  return `user:${String(userId)}`;
+}
+
+let lastIdentifiedDistinctId: string | null = null;
+
+export function identifyUser(userId: string | number, traits?: Record<string, any>) {
+  const id = String(userId);
+  if (!id) return;
+  const distinctId = userDistinctId(id);
+  // Idempotent: PostHog will dedupe internally too, but skipping here also
+  // avoids re-emitting `$identify` events on every app open.
+  if (lastIdentifiedDistinctId === distinctId) return;
+  // If PostHog hasn't initialized yet (e.g. identify called before
+  // `initAnalytics`, or the API key was missing so init was a no-op), don't
+  // mark the user as identified — otherwise a later call once the client
+  // exists would be silently skipped by the idempotency guard above.
+  if (!posthogClient) return;
   try {
-    posthogClient?.identify(userId, traits);
+    posthogClient.identify(distinctId, traits);
+    lastIdentifiedDistinctId = distinctId;
   } catch {}
 }
 

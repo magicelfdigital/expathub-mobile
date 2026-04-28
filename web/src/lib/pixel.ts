@@ -246,6 +246,11 @@ export async function identifyByEmail(email: string): Promise<void> {
  * AND the live distinct_id — if local storage was partially cleared (e.g.
  * the distinct_id key was wiped but the identified-user key wasn't, or vice
  * versa), we still re-emit the identify so the join doesn't silently drop.
+ *
+ * The `user:<id>` prefix is the canonical PostHog distinct_id shape for a
+ * logged-in user and must stay in sync with mobile's `identifyUser` in
+ * `src/lib/analytics.ts`. Same shape on both surfaces is what makes a single
+ * human resolve to one PostHog person across web ↔ mobile.
  */
 export function identifyWebUser(
   userId: string | number,
