@@ -45,6 +45,7 @@ import {
   RevenueCatPurchaseError,
   clearRefreshCooldown,
 } from "@/src/billing";
+import { applyReverseTrialOnDismiss } from "@/src/lib/conversionLifts";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -594,19 +595,16 @@ export function ProPaywall({
 
     // Reverse-trial gate: grant 48h preview on first dismiss for non-paying users.
     // The toast is fired through the global bus so it survives the paywall
-    // unmount that follows immediately after dismissal.
-    if (!hasFullAccess && !reverseTrialActive && !reverseTrialUsed) {
-      try {
-        await startReverseTrial();
-        showToast({
-          message: "Enjoy 48 hours of full access — on us.",
-          variant: "success",
-          durationMs: 3200,
-        });
-      } catch (e: any) {
-        console.log(`[REVERSE-TRIAL] start failed: ${e?.message ?? e}`);
-      }
-    }
+    // unmount that follows immediately after dismissal. Orchestration lives
+    // in `src/lib/conversionLifts.ts` so jest tests exercise the same code
+    // path (no duplicated logic in tests).
+    await applyReverseTrialOnDismiss({
+      state: { hasFullAccess, reverseTrialActive, reverseTrialUsed },
+      startReverseTrial,
+      showToast,
+      onError: (e: any) =>
+        console.log(`[REVERSE-TRIAL] start failed: ${e?.message ?? e}`),
+    });
 
     if (onClose) onClose();
     else if (router.canGoBack()) router.back();

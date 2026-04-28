@@ -15,6 +15,10 @@ import { usePlan } from "@/src/contexts/PlanContext";
 import { getProgressPercent } from "@/src/lib/getProgressPercent";
 import { tokens } from "@/theme/tokens";
 import { trackEvent } from "@/src/lib/analytics";
+import {
+  getInitialCancellationStep,
+  trackExitOfferAction,
+} from "@/src/lib/conversionLifts";
 
 type ExitOfferConfig = {
   eligible: boolean;
@@ -50,7 +54,7 @@ export function CancellationModal({ visible, onClose, onProceed, exitOffer }: Pr
     return () => { cancelled = true; };
   }, [visible, user?.id, activeCountrySlug]);
 
-  const initialStep: Step = exitOffer?.eligible ? "exit_offer" : "before_you_go";
+  const initialStep: Step = getInitialCancellationStep(exitOffer);
   const [step, setStep] = useState<Step>(initialStep);
   const [busy, setBusy] = useState(false);
   const shownRef = React.useRef(false);
@@ -60,15 +64,15 @@ export function CancellationModal({ visible, onClose, onProceed, exitOffer }: Pr
       shownRef.current = false;
       return;
     }
-    setStep(exitOffer?.eligible ? "exit_offer" : "before_you_go");
+    setStep(getInitialCancellationStep(exitOffer));
   }, [visible, exitOffer?.eligible]);
 
   useEffect(() => {
     if (!visible || step !== "exit_offer" || shownRef.current) return;
     shownRef.current = true;
-    trackEvent("exit_offer_shown", {
-      surface: "mobile_cancellation_modal",
-      subscriptionId: exitOffer?.subscriptionId ?? "none",
+    trackExitOfferAction("shown", {
+      subscriptionId: exitOffer?.subscriptionId,
+      trackEvent,
     });
   }, [visible, step, exitOffer?.subscriptionId]);
 
@@ -76,9 +80,9 @@ export function CancellationModal({ visible, onClose, onProceed, exitOffer }: Pr
     setBusy(true);
     try {
       await exitOffer?.onAccept();
-      trackEvent("exit_offer_accepted", {
-        surface: "mobile_cancellation_modal",
-        subscriptionId: exitOffer?.subscriptionId ?? "none",
+      trackExitOfferAction("accept", {
+        subscriptionId: exitOffer?.subscriptionId,
+        trackEvent,
       });
       onClose();
     } finally {
@@ -90,9 +94,9 @@ export function CancellationModal({ visible, onClose, onProceed, exitOffer }: Pr
     setBusy(true);
     try {
       await exitOffer?.onDecline?.();
-      trackEvent("exit_offer_declined", {
-        surface: "mobile_cancellation_modal",
-        subscriptionId: exitOffer?.subscriptionId ?? "none",
+      trackExitOfferAction("decline", {
+        subscriptionId: exitOffer?.subscriptionId,
+        trackEvent,
       });
       setStep("before_you_go");
     } finally {

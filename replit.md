@@ -54,6 +54,10 @@ Preferred communication style: Simple, everyday language.
 - **ORM**: Drizzle ORM configured for PostgreSQL.
 - **Schema**: Defined in `shared/schema.ts` for user data, leads, country interest, and waitlist.
 
+### Automated Testing
+- **Mobile harness (Jest)**: `src/billing/__tests__/conversionLifts.test.ts` exercises the pure predicates in `src/lib/conversionLifts.ts` (`shouldGrantReverseTrialOnDismiss`, `getInitialCancellationStep`). Both `ProPaywall` and `CancellationModal` import these helpers, so the harness verifies the production code path.
+- **Web e2e (Playwright)**: `tests/e2e/locked-section.spec.ts` and `tests/e2e/cancellation-exit-offer.spec.ts`. Config in `playwright.config.ts`. Run with `PLAYWRIGHT_BASE_URL=http://localhost:5000 npx playwright test` once the backend workflow is up.
+
 ### Data Layer
 - **Access**: Centralized access point.
 - **Content Storage**: Core content (countries, pathways, etc.) stored in static TypeScript files.
