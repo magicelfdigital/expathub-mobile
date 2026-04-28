@@ -16,6 +16,9 @@ import { trackEvent } from "@/src/lib/analytics";
 import { FREE_TIER_DISPLAY_NAME, PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
 import { getOrchestrator, clearRefreshCooldown } from "@/src/billing";
 import { getReadinessLabel, MAX_SCORE } from "@/src/data/quiz";
+import { usePlan } from "@/src/contexts/PlanContext";
+import { useProgressPercent } from "@/src/hooks/useProgress";
+import { getCountry } from "@/src/data";
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
@@ -33,6 +36,22 @@ export default function AccountScreen() {
   } = useSubscription();
 
   const { quizResult, clearForRetake } = useOnboarding();
+  const { activeCountrySlug } = usePlan();
+  const { percent: planPercent } = useProgressPercent(activeCountrySlug);
+  const planCountry = activeCountrySlug ? getCountry(activeCountrySlug) ?? null : null;
+  const planCountryName =
+    planCountry?.name ??
+    (activeCountrySlug
+      ? activeCountrySlug.charAt(0).toUpperCase() + activeCountrySlug.slice(1).replace(/-/g, " ")
+      : null);
+
+  const goActivePlan = useCallback(() => {
+    if (!activeCountrySlug) return;
+    router.push({
+      pathname: "/(tabs)/(home)/country/[slug]/planner",
+      params: { slug: activeCountrySlug },
+    });
+  }, [activeCountrySlug, router]);
 
   const [deleting, setDeleting] = useState(false);
   const [deletedSuccess, setDeletedSuccess] = useState(false);
@@ -380,6 +399,35 @@ export default function AccountScreen() {
         ) : null}
 
       </View>
+
+      {activeCountrySlug && planCountryName ? (
+        <Pressable
+          onPress={goActivePlan}
+          style={({ pressed }) => [s.planCard, pressed && { opacity: 0.7 }]}
+          testID="account-active-plan-card"
+        >
+          <View style={s.planCardRow}>
+            <View style={s.planCardIcon}>
+              <Ionicons name="flag" size={16} color={tokens.color.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.planCardTitle}>Active plan</Text>
+              <Text style={s.planCardSub}>
+                {planCountryName} – {planPercent}% complete
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={tokens.color.primary} />
+          </View>
+          <View style={s.planCardBarTrack}>
+            <View
+              style={[
+                s.planCardBarFill,
+                { width: `${Math.max(0, Math.min(100, planPercent))}%` },
+              ]}
+            />
+          </View>
+        </Pressable>
+      ) : null}
 
       {quizResult ? (() => {
         const qrMax = quizResult.maxScore ?? MAX_SCORE;
@@ -750,6 +798,58 @@ const s = {
     fontWeight: tokens.weight.black,
     fontFamily: tokens.font.bodyBold,
     color: tokens.color.text,
+  } as const,
+
+  planCard: {
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.lg,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: tokens.color.primaryBorder,
+    marginBottom: 24,
+  } as const,
+
+  planCardRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 12,
+  } as const,
+
+  planCardIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: tokens.color.primarySoft,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  } as const,
+
+  planCardTitle: {
+    fontSize: tokens.text.body,
+    fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.text,
+  } as const,
+
+  planCardSub: {
+    fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
+    marginTop: 2,
+  } as const,
+
+  planCardBarTrack: {
+    marginTop: 12,
+    height: 6,
+    backgroundColor: "rgba(28,43,94,0.08)",
+    borderRadius: 3,
+    overflow: "hidden" as const,
+  } as const,
+
+  planCardBarFill: {
+    height: 6,
+    backgroundColor: tokens.color.primary,
+    borderRadius: 3,
   } as const,
 
   statusBox: {
