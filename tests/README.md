@@ -14,6 +14,15 @@ Web (Playwright, `tests/e2e/`):
   - `paywall_locked_section_viewed` is POSTed to `/api/analytics`
     with the right `section`/`country` fields.
   - Pro users see no overlay and no analytics fires.
+- `identity-join.spec.ts`
+  - Drives `/start`: takes the quiz, submits an email, then simulates an
+    authenticated session and asserts the analytics chain stays joined.
+  - All pre-email-gate events share a single anonymous `distinct_id`.
+  - The email gate fires `$identify` whose `$anon_distinct_id` is that
+    anon id and whose new `distinct_id` is `email:<sha256>`.
+  - Subsequent events use the new email-keyed id.
+  - Once `/api/auth/me` resolves, `useUser` fires a follow-up `$identify`
+    that reconciles the email id to `user:<userId>`.
 - `cancellation-exit-offer.spec.ts`
   - When `/api/subscription/exit-offer/eligibility` returns
     `eligible: true`, the 50%-off card shows on `/account`.
