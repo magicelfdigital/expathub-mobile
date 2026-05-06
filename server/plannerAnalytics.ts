@@ -960,6 +960,15 @@ export function renderAdminIndexHtml(): string {
       </div>
     </li>
     <li>
+      <a href="/admin/quiz-save-analytics">Quiz save-prompt analytics</a>
+      <div class="desc">
+        Impressions, submissions, dismissals and recovery rate for the soft
+        "save your progress" modal in the quiz, split by surface (web vs
+        mobile), with email-gate captures shown side-by-side so cannibalisation
+        is visible. JSON at <code>/api/admin/quiz-save-analytics</code>.
+      </div>
+    </li>
+    <li>
       <a href="/api/admin/ab-results">A/B test results (JSON)</a>
       <div class="desc">
         Variant-level visitors, conversions, day-0 / day-60 revenue and ARPU

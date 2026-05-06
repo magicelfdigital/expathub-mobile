@@ -140,6 +140,52 @@ describe("POST /api/analytics — $identify payload inspection", () => {
     expect(getIdentifyMissingAnonIdCount()).toBe(0);
   });
 
+  it("persists quiz_save_* events to quiz_save_events while still forwarding upstream", async () => {
+    fetchMock.mockResolvedValueOnce(upstreamOk());
+    queryMock.mockResolvedValue({ rows: [] });
+
+    const res = await request(app)
+      .post("/api/analytics")
+      .send({
+        event: "quiz_save_submitted",
+        distinct_id: "anon_xyz",
+        properties: { surface: "web", distinct_id: "anon_xyz" },
+      });
+
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    // Wait a tick so the fire-and-forget persistence path completes.
+    await new Promise((resolve) => setImmediate(resolve));
+    const insertCall = queryMock.mock.calls.find(([text]) =>
+      /INSERT INTO quiz_save_events/.test(text),
+    );
+    expect(insertCall).toBeDefined();
+    expect(insertCall?.[1]).toEqual([
+      "quiz_save_submitted",
+      "web",
+      "anon_xyz",
+    ]);
+  });
+
+  it("does not persist non-quiz-save events even if a pool is available", async () => {
+    fetchMock.mockResolvedValueOnce(upstreamOk());
+    queryMock.mockResolvedValue({ rows: [] });
+
+    await request(app)
+      .post("/api/analytics")
+      .send({
+        event: "quiz_completed",
+        distinct_id: "anon_qc",
+        properties: { surface: "web" },
+      });
+
+    await new Promise((resolve) => setImmediate(resolve));
+    const insertCall = queryMock.mock.calls.find(([text]) =>
+      /INSERT INTO quiz_save_events/.test(text),
+    );
+    expect(insertCall).toBeUndefined();
+  });
+
   it("still responds 200 (and warns once) when the upstream proxy throws", async () => {
     fetchMock.mockRejectedValueOnce(new Error("network down"));
 

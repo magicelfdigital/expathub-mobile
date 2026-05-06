@@ -8,6 +8,10 @@ import {
   ensureUserProgressCreatedAt,
   registerPlannerAnalyticsRoutes,
 } from "./plannerAnalytics";
+import {
+  recordQuizSaveEvent,
+  registerQuizSaveAnalyticsRoutes,
+} from "./quizSaveAnalytics";
 
 // ── A/B test config ─────────────────────────────────────────────────────
 //
@@ -336,6 +340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // /api/admin/planner-analytics resolve to these handlers, not the React
   // app.
   registerPlannerAnalyticsRoutes(app, { requireAdminBasicAuth, getPool });
+  registerQuizSaveAnalyticsRoutes(app, { requireAdminBasicAuth, getPool });
 
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
@@ -524,6 +529,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/analytics", async (req: Request, res: Response) => {
     inspectIdentifyPayload(req.body);
+    // Persist quiz-save modal events locally (in addition to forwarding
+    // upstream) so /admin/quiz-save-analytics can compute the recovery
+    // rate without depending on PostHog's API. Failures are swallowed —
+    // forwarding upstream is the source of truth for everything else.
+    const persistPool = getPool();
+    if (persistPool) {
+      recordQuizSaveEvent(persistPool, req.body)
+        .catch((err) => {
+          console.warn(
+            "[analytics] failed to persist quiz_save event:",
+            err?.message ?? err,
+          );
+        })
+        .finally(() => {
+          persistPool.end().catch(() => {});
+        });
+    }
     try {
       const upstream = await fetch(`${AUTH_API_URL}/api/analytics`, {
         method: "POST",
