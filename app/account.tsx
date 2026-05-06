@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, Switch, Text, View, useWindowDimensions } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Linking, Modal, Platform, Pressable, ScrollView, Switch, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,7 +19,7 @@ import { EntitlementPollingTimeoutError } from "@/src/billing/errors";
 import { getReadinessLabel, MAX_SCORE } from "@/src/data/quiz";
 import { usePlan } from "@/src/contexts/PlanContext";
 import { useProgressPercent } from "@/src/hooks/useProgress";
-import { getCountry } from "@/src/data";
+import { getCountries, getCountry, getPathways, isLaunchCountry, sortCountriesAlpha } from "@/src/data";
 
 export default function AccountScreen() {
   const insets = useSafeAreaInsets();
@@ -37,7 +37,7 @@ export default function AccountScreen() {
   } = useSubscription();
 
   const { quizResult, clearForRetake } = useOnboarding();
-  const { activeCountrySlug } = usePlan();
+  const { activeCountrySlug, startPlan, resetPlan } = usePlan();
   const { percent: planPercent } = useProgressPercent(activeCountrySlug);
   const planCountry = activeCountrySlug ? getCountry(activeCountrySlug) ?? null : null;
   const planCountryName =
@@ -46,6 +46,16 @@ export default function AccountScreen() {
       ? activeCountrySlug.charAt(0).toUpperCase() + activeCountrySlug.slice(1).replace(/-/g, " ")
       : null);
 
+  const [showPlanSwitcher, setShowPlanSwitcher] = useState(false);
+
+  const switchableCountries = useMemo(
+    () =>
+      getCountries()
+        .filter((c) => isLaunchCountry(c.slug) && c.slug !== activeCountrySlug)
+        .sort(sortCountriesAlpha),
+    [activeCountrySlug],
+  );
+
   const goActivePlan = useCallback(() => {
     if (!activeCountrySlug) return;
     router.push({
@@ -53,6 +63,41 @@ export default function AccountScreen() {
       params: { slug: activeCountrySlug },
     });
   }, [activeCountrySlug, router]);
+
+  const handlePickSwitchCountry = useCallback(
+    (slug: string, name: string) => {
+      const pathways = getPathways(slug);
+      const firstPathway = pathways[0];
+      if (!firstPathway) return;
+      setShowPlanSwitcher(false);
+      // Defer so the Modal finishes dismissing before the native confirmation
+      // alert in PlanContext.startPlan opens (avoids overlapping presentations
+      // on iOS).
+      setTimeout(() => {
+        startPlan(slug, firstPathway.key, name);
+      }, 0);
+    },
+    [startPlan],
+  );
+
+  const handleResetPlan = useCallback(async () => {
+    const confirmed = Platform.OS === "web"
+      ? window.confirm("Reset your active plan? Your step progress will be cleared.")
+      : await new Promise<boolean>((resolve) => {
+          Alert.alert(
+            "Reset plan?",
+            "This clears your active plan and step progress. You can start a new plan from any country anytime.",
+            [
+              { text: "Keep plan", style: "cancel", onPress: () => resolve(false) },
+              { text: "Reset", style: "destructive", onPress: () => resolve(true) },
+            ],
+            { cancelable: true, onDismiss: () => resolve(false) },
+          );
+        });
+      if (!confirmed) return;
+      setShowPlanSwitcher(false);
+      resetPlan();
+  }, [resetPlan]);
 
   const [deleting, setDeleting] = useState(false);
   const [deletedSuccess, setDeletedSuccess] = useState(false);
@@ -411,32 +456,43 @@ export default function AccountScreen() {
       </View>
 
       {activeCountrySlug && planCountryName ? (
-        <Pressable
-          onPress={goActivePlan}
-          style={({ pressed }) => [s.planCard, pressed && { opacity: 0.7 }]}
-          testID="account-active-plan-card"
-        >
-          <View style={s.planCardRow}>
-            <View style={s.planCardIcon}>
-              <Ionicons name="flag" size={16} color={tokens.color.primary} />
+        <View style={s.planCardWrap}>
+          <Pressable
+            onPress={goActivePlan}
+            style={({ pressed }) => [s.planCard, pressed && { opacity: 0.7 }]}
+            testID="account-active-plan-card"
+          >
+            <View style={s.planCardRow}>
+              <View style={s.planCardIcon}>
+                <Ionicons name="flag" size={16} color={tokens.color.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.planCardTitle}>Active plan</Text>
+                <Text style={s.planCardSub}>
+                  {planCountryName} – {planPercent}% complete
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={tokens.color.primary} />
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.planCardTitle}>Active plan</Text>
-              <Text style={s.planCardSub}>
-                {planCountryName} – {planPercent}% complete
-              </Text>
+            <View style={s.planCardBarTrack}>
+              <View
+                style={[
+                  s.planCardBarFill,
+                  { width: `${Math.max(0, Math.min(100, planPercent))}%` },
+                ]}
+              />
             </View>
-            <Ionicons name="chevron-forward" size={18} color={tokens.color.primary} />
-          </View>
-          <View style={s.planCardBarTrack}>
-            <View
-              style={[
-                s.planCardBarFill,
-                { width: `${Math.max(0, Math.min(100, planPercent))}%` },
-              ]}
-            />
-          </View>
-        </Pressable>
+          </Pressable>
+          <Pressable
+            onPress={() => setShowPlanSwitcher(true)}
+            style={({ pressed }) => [s.planSwitchLink, pressed && { opacity: 0.6 }]}
+            hitSlop={8}
+            testID="account-active-plan-switch"
+          >
+            <Ionicons name="swap-horizontal" size={14} color={tokens.color.primary} />
+            <Text style={s.planSwitchLinkText}>Switch or reset</Text>
+          </Pressable>
+        </View>
       ) : null}
 
       {quizResult ? (() => {
@@ -653,6 +709,79 @@ export default function AccountScreen() {
             : undefined
         }
       />
+
+      <Modal
+        visible={showPlanSwitcher}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPlanSwitcher(false)}
+      >
+        <Pressable
+          style={s.switchOverlay}
+          onPress={() => setShowPlanSwitcher(false)}
+        >
+          <Pressable
+            style={s.switchSheet}
+            onPress={(e) => e.stopPropagation()}
+            testID="account-plan-switch-sheet"
+          >
+            <View style={s.switchHeader}>
+              <Text style={s.switchTitle}>Switch or reset plan</Text>
+              <Pressable
+                onPress={() => setShowPlanSwitcher(false)}
+                hitSlop={12}
+                testID="account-plan-switch-close"
+              >
+                <Ionicons name="close" size={22} color={tokens.color.text} />
+              </Pressable>
+            </View>
+
+            {planCountryName ? (
+              <Text style={s.switchSub}>
+                Active: {planCountryName}
+              </Text>
+            ) : null}
+
+            {switchableCountries.length > 0 ? (
+              <>
+                <Text style={s.switchSectionLabel}>Switch focus to</Text>
+                <ScrollView
+                  style={s.switchList}
+                  contentContainerStyle={{ gap: 6 }}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {switchableCountries.map((c) => (
+                    <Pressable
+                      key={c.slug}
+                      onPress={() => handlePickSwitchCountry(c.slug, c.name)}
+                      style={({ pressed }) => [s.switchCountryRow, pressed && { opacity: 0.7 }]}
+                      testID={`account-plan-switch-country-${c.slug}`}
+                    >
+                      <Ionicons name="flag-outline" size={16} color={tokens.color.primary} />
+                      <Text style={s.switchCountryText}>{c.name}</Text>
+                      <Ionicons
+                        name="chevron-forward"
+                        size={16}
+                        color={tokens.color.subtext}
+                        style={{ marginLeft: "auto" as any }}
+                      />
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </>
+            ) : null}
+
+            <Pressable
+              onPress={handleResetPlan}
+              style={({ pressed }) => [s.switchResetBtn, pressed && { opacity: 0.85 }]}
+              testID="account-plan-reset"
+            >
+              <Ionicons name="refresh" size={16} color="#991b1b" />
+              <Text style={s.switchResetText}>Reset active plan</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScrollView>
   );
 }
@@ -810,13 +939,122 @@ const s = {
     color: tokens.color.text,
   } as const,
 
+  planCardWrap: {
+    marginBottom: 24,
+    gap: 8,
+  } as const,
+
   planCard: {
     backgroundColor: tokens.color.surface,
     borderRadius: tokens.radius.lg,
     padding: 16,
     borderWidth: 1,
     borderColor: tokens.color.primaryBorder,
-    marginBottom: 24,
+  } as const,
+
+  planSwitchLink: {
+    alignSelf: "flex-end" as const,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  } as const,
+
+  planSwitchLinkText: {
+    fontSize: tokens.text.small,
+    fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.primary,
+  } as const,
+
+  switchOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    paddingHorizontal: 24,
+  } as const,
+
+  switchSheet: {
+    width: "100%" as const,
+    maxWidth: 420,
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.lg,
+    padding: 20,
+    gap: 12,
+  } as const,
+
+  switchHeader: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+  } as const,
+
+  switchTitle: {
+    fontSize: tokens.text.h3,
+    fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.text,
+  } as const,
+
+  switchSub: {
+    fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
+  } as const,
+
+  switchSectionLabel: {
+    fontSize: tokens.text.small,
+    fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.subtext,
+    textTransform: "uppercase" as const,
+    letterSpacing: 1,
+    marginTop: 4,
+  } as const,
+
+  switchList: {
+    maxHeight: 320,
+  } as const,
+
+  switchCountryRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    backgroundColor: tokens.color.bg,
+  } as const,
+
+  switchCountryText: {
+    fontSize: tokens.text.body,
+    fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.text,
+  } as const,
+
+  switchResetBtn: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    borderColor: "#fecaca",
+    backgroundColor: "#fef2f2",
+    marginTop: 4,
+  } as const,
+
+  switchResetText: {
+    fontSize: tokens.text.body,
+    fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
+    color: "#991b1b",
   } as const,
 
   planCardRow: {
