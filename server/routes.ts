@@ -287,6 +287,49 @@ function getBaseUrl(req: Request): string {
   return `${proto}://${host}`;
 }
 
+// ── Analytics payload inspection ──────────────────────────────────────────
+// PostHog stitches pre-account quiz events to the post-account user via the
+// `$anon_distinct_id` property on `$identify`. The web client always sends it
+// (see `web/src/lib/pixel.ts`'s `sendIdentify`) and a Playwright check guards
+// that surface, but the `/api/analytics` proxy itself forwards anything the
+// client posts. To catch a future regression in any other surface (mobile,
+// new web entry point, etc.) we inspect every `$identify` event server-side
+// and surface a warning when the join field is missing. The inspection is
+// strictly observational — events are still forwarded upstream so live data
+// is never dropped.
+
+let identifyMissingAnonIdCount = 0;
+
+export function getIdentifyMissingAnonIdCount(): number {
+  return identifyMissingAnonIdCount;
+}
+
+export function resetIdentifyMissingAnonIdCount(): void {
+  identifyMissingAnonIdCount = 0;
+}
+
+function inspectIdentifyPayload(body: unknown): void {
+  if (!body || typeof body !== "object") return;
+  const event = (body as { event?: unknown }).event;
+  if (event !== "$identify") return;
+  const properties = (body as { properties?: unknown }).properties;
+  const anonId =
+    properties && typeof properties === "object"
+      ? (properties as { $anon_distinct_id?: unknown }).$anon_distinct_id
+      : undefined;
+  if (typeof anonId !== "string" || anonId.length === 0) {
+    identifyMissingAnonIdCount += 1;
+    const distinctId = (body as { distinct_id?: unknown }).distinct_id;
+    console.warn(
+      "[analytics] $identify event missing $anon_distinct_id; PostHog cannot stitch pre-account events",
+      {
+        distinct_id: typeof distinctId === "string" ? distinctId : undefined,
+        missing_count: identifyMissingAnonIdCount,
+      },
+    );
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Internal admin tooling — Basic-Auth-protected dashboards aggregating
   // planner usage. Registered before the SPA fallback so /admin and
@@ -480,6 +523,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/analytics", async (req: Request, res: Response) => {
+    inspectIdentifyPayload(req.body);
     try {
       const upstream = await fetch(`${AUTH_API_URL}/api/analytics`, {
         method: "POST",
