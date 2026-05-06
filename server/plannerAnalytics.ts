@@ -226,6 +226,16 @@ export type PlannerAnalyticsResult = {
     plansFinishingStage: number;
     plansFinishingStagePct: number;
   }>;
+  // ISO-week buckets, oldest-first, covering the most recent 8 weeks
+  // (inclusive of the current in-progress week). Each row is keyed by the
+  // Monday of the week that the plan was *started* in. Weeks with no
+  // plans started still appear as zero rows so the time series is dense.
+  weekly: Array<{
+    weekStart: string; // YYYY-MM-DD (Monday of the ISO week)
+    plansStarted: number;
+    plansCompleted: number;
+    medianDaysToCompletion: number | null;
+  }>;
 };
 
 export async function computePlannerAnalytics(
@@ -375,6 +385,63 @@ export async function computePlannerAnalytics(
   });
   const stageDropOff = await Promise.all(stageDropOffPromises);
 
+  // Weekly time series: bucket plans by the ISO week of their started_at,
+  // restricted to the most recent 8 weeks (Monday..Sunday, inclusive of the
+  // current in-progress week). We left-join against a generated 8-row series
+  // so weeks with zero plans-started still appear as explicit zero rows —
+  // otherwise a quiet week would silently disappear from the dashboard and
+  // hide a regression. date_trunc('week', ...) in Postgres uses ISO week
+  // semantics (Monday-start), which is what the task asks for.
+  const weeklyRows = await pool.query(
+    `WITH per_plan AS (
+       SELECT user_id,
+              target_country,
+              MIN(created_at)                              AS started_at,
+              MAX(completed_at) FILTER (WHERE completed)   AS last_completed_at,
+              COUNT(*) FILTER (WHERE completed)::int       AS done_steps
+         FROM user_progress
+        WHERE step_id = ANY($1::text[])
+        GROUP BY user_id, target_country
+     ),
+     weeks AS (
+       SELECT (date_trunc('week', NOW())::date
+                 - (n * INTERVAL '7 days'))::date AS week_start
+         FROM generate_series(0, 7) AS n
+     ),
+     per_week AS (
+       SELECT date_trunc('week', started_at)::date AS week_start,
+              COUNT(*)::int                        AS plans_started,
+              COUNT(*) FILTER (WHERE done_steps = $2)::int AS plans_completed,
+              PERCENTILE_CONT(0.5) WITHIN GROUP (
+                ORDER BY EXTRACT(EPOCH FROM (last_completed_at - started_at))
+                         / 86400.0
+              ) FILTER (WHERE done_steps = $2) AS median_days
+         FROM per_plan
+        WHERE started_at IS NOT NULL
+        GROUP BY 1
+     )
+     SELECT to_char(w.week_start, 'YYYY-MM-DD')        AS week_start,
+            COALESCE(p.plans_started, 0)::int          AS plans_started,
+            COALESCE(p.plans_completed, 0)::int        AS plans_completed,
+            p.median_days                              AS median_days
+       FROM weeks w
+       LEFT JOIN per_week p ON p.week_start = w.week_start
+      ORDER BY w.week_start ASC`,
+    [stepIds, totalSteps],
+  );
+  const weekly = weeklyRows.rows.map((row) => {
+    const median =
+      row.median_days === null || row.median_days === undefined
+        ? null
+        : Math.round(Number(row.median_days) * 10) / 10;
+    return {
+      weekStart: String(row.week_start),
+      plansStarted: Number(row.plans_started) || 0,
+      plansCompleted: Number(row.plans_completed) || 0,
+      medianDaysToCompletion: median,
+    };
+  });
+
   return {
     generatedAt: new Date().toISOString(),
     totalSteps,
@@ -392,6 +459,7 @@ export async function computePlannerAnalytics(
     },
     stepCompletion,
     stageDropOff,
+    weekly,
   };
 }
 
@@ -458,6 +526,27 @@ export function renderPlannerAnalyticsHtml(
     )
     .join("");
 
+  const weeklyRowsHtml = data.weekly
+    .map((w) => {
+      const completionPct =
+        w.plansStarted > 0
+          ? `${(Math.round((w.plansCompleted / w.plansStarted) * 1000) / 10).toFixed(1)}%`
+          : "—";
+      const medianCell =
+        w.medianDaysToCompletion === null
+          ? "—"
+          : `${w.medianDaysToCompletion.toFixed(1)} days`;
+      return `
+      <tr>
+        <td><code>${escapeHtml(w.weekStart)}</code></td>
+        <td class="num">${w.plansStarted.toLocaleString()}</td>
+        <td class="num">${w.plansCompleted.toLocaleString()}</td>
+        <td class="num">${escapeHtml(completionPct)}</td>
+        <td class="num">${escapeHtml(medianCell)}</td>
+      </tr>`;
+    })
+    .join("");
+
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -520,6 +609,20 @@ export function renderPlannerAnalyticsHtml(
       </div>
     </div>
   </div>
+
+  <h2>Last 8 weeks</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Week starting (Mon)</th>
+        <th class="num">Plans started</th>
+        <th class="num">Reached 100%</th>
+        <th class="num">% reaching 100%</th>
+        <th class="num">Median time-to-100%</th>
+      </tr>
+    </thead>
+    <tbody>${weeklyRowsHtml}</tbody>
+  </table>
 
   <h2>Completion rate per step</h2>
   <table>
