@@ -142,6 +142,17 @@ export const exitOffers = pgTable("exit_offers", {
 
 export type ExitOffer = typeof exitOffers.$inferSelect;
 
+// Records every lazy DDL migration applied at runtime by the server. The
+// `applied_at` value is the exact timestamp captured at the moment the
+// migration ran, so downstream backfills can identify pre-migration rows
+// by exact match instead of guessing from row-count heuristics.
+export const schemaMigrations = pgTable("schema_migrations", {
+  name: text("name").primaryKey(),
+  appliedAt: timestamp("applied_at").notNull(),
+});
+
+export type SchemaMigration = typeof schemaMigrations.$inferSelect;
+
 export const userProgress = pgTable(
   "user_progress",
   {
@@ -158,9 +169,10 @@ export const userProgress = pgTable(
     // `plan_focus_started` timestamp for time-to-100% calculations. Nullable
     // because the lazy migration that added this column originally stamped
     // every pre-existing row with the same NOW(); a one-shot backfill
-    // (see backfillUserProgressMigrationCreatedAt) rewrites those rows to
-    // the earliest completed_at for the plan, or NULL if no completion
-    // exists, so the median metric isn't skewed by historical noise.
+    // (see backfillUserProgressMigrationCreatedAt) targets exactly those
+    // rows by matching against the timestamp recorded in
+    // `schema_migrations` at migration time, then rewrites them to the
+    // earliest completed_at for the plan or NULL if no completion exists.
     createdAt: timestamp("created_at").defaultNow(),
   },
   (table) => ({
