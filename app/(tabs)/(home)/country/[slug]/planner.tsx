@@ -394,25 +394,62 @@ export default function PlannerScreen() {
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const trackedExpansionsRef = useRef<Set<string>>(new Set());
+  const openedStepRef = useRef<
+    { stepId: string; country: string; openedAt: number } | null
+  >(null);
+  const isPaidUserRef = useRef(isPaidUser);
+  useEffect(() => {
+    isPaidUserRef.current = isPaidUser;
+  }, [isPaidUser]);
   useEffect(() => {
     trackedExpansionsRef.current = new Set();
   }, [countrySlug]);
 
+  const fireCollapsed = useCallback(() => {
+    const open = openedStepRef.current;
+    if (!open || !isPaidUserRef.current) {
+      openedStepRef.current = null;
+      return;
+    }
+    trackEvent("planner_step_collapsed", {
+      stepId: open.stepId,
+      country: open.country,
+      msOpen: Date.now() - open.openedAt,
+    });
+    openedStepRef.current = null;
+  }, []);
+
   const handleSetExpandedId = useCallback(
     (nextId: string | null) => {
-      if (nextId !== null && nextId !== expandedId && isPaidUser) {
-        if (!trackedExpansionsRef.current.has(nextId)) {
-          trackedExpansionsRef.current.add(nextId);
-          trackEvent("planner_step_expanded", {
+      if (nextId !== expandedId && isPaidUser) {
+        if (openedStepRef.current) {
+          fireCollapsed();
+        }
+        if (nextId !== null) {
+          openedStepRef.current = {
             stepId: nextId,
             country: countrySlug,
-          });
+            openedAt: Date.now(),
+          };
+          if (!trackedExpansionsRef.current.has(nextId)) {
+            trackedExpansionsRef.current.add(nextId);
+            trackEvent("planner_step_expanded", {
+              stepId: nextId,
+              country: countrySlug,
+            });
+          }
         }
       }
       setExpandedId(nextId);
     },
-    [expandedId, isPaidUser, countrySlug],
+    [expandedId, isPaidUser, countrySlug, fireCollapsed],
   );
+
+  useEffect(() => {
+    return () => {
+      fireCollapsed();
+    };
+  }, [fireCollapsed]);
 
   const handleUpsell = useCallback(() => {
     router.push({

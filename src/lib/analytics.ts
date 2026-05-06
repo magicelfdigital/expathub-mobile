@@ -152,6 +152,7 @@ type AnalyticsEvent =
   | "planner_step_completed"
   | "planner_completed"
   | "planner_step_expanded"
+  | "planner_step_collapsed"
   | "password_reset_opened"
   | "password_reset_submitted"
   | "password_reset_success"
