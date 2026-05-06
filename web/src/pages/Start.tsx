@@ -8,6 +8,7 @@ import {
   type Tier,
 } from "@quiz-data";
 import LockedSection from "@/components/LockedSection";
+import { QuizSaveModal } from "@/components/QuizSaveModal";
 import { webApiClient } from "@/lib/api";
 import {
   identifyByEmail,
@@ -18,6 +19,7 @@ import {
   trackQuizAbandoned,
   trackQuizCompleted,
   trackQuizQuestionAnswered,
+  trackQuizSaveShown,
   trackQuizStarted,
   trackResultScreenViewed,
 } from "@/lib/pixel";
@@ -38,6 +40,14 @@ const FUNNEL_QUESTIONS = FUNNEL_QUESTION_IDS.map((id) => {
   if (!q) throw new Error(`Missing quiz question ${id}`);
   return q;
 });
+
+// Mirrors mobile's `SAVE_PROMPT_TRIGGER_INDEX` / `SAVE_PROMPT_NO_THRESHOLD`
+// (see app/onboarding/quiz.tsx). On web the funnel ends at Q5, so the
+// recovery prompt fires immediately after the 5th answer when the user has
+// signalled they're not ready ("no" 3+ times) — surfacing a softer email
+// capture before the regular email gate so we don't lose them entirely.
+const SAVE_PROMPT_TRIGGER_INDEX = 4;
+const SAVE_PROMPT_NO_THRESHOLD = 3;
 
 type CountryMatch = {
   slug: string;
@@ -235,10 +245,13 @@ export default function Start() {
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savePromptVisible, setSavePromptVisible] = useState(false);
+  const [savePromptNoCount, setSavePromptNoCount] = useState(0);
   const introFiredRef = useRef(false);
   const startedFiredRef = useRef(false);
   const completedRef = useRef(false);
   const abandonedFiredRef = useRef(false);
+  const savePromptShownRef = useRef(false);
   const answersRef = useRef<Record<number, string>>({});
   const lastQuestionIndexRef = useRef(0);
   const { user } = useUser();
@@ -327,6 +340,18 @@ export default function Start() {
     (answers[9] as RegionPreference | undefined) ?? "southern_europe";
   const matches = useMemo(() => pickTopMatches(region), [region]);
 
+  function finishQuizAfterLastAnswer(): void {
+    // Mark complete before transitioning so the abandonment cleanup
+    // doesn't misclassify a finished quiz that happens to unmount mid-route.
+    completedRef.current = true;
+    // Mirror mobile's `quiz_completed` fired when the last question is
+    // answered. Email-gate completion fires a second event in submitEmail().
+    trackQuizCompleted({ totalQuestions: FUNNEL_QUESTIONS.length });
+    setStep({ kind: "calculating" });
+    // Brief "calculating…" pause so users register the result is theirs.
+    window.setTimeout(() => setStep({ kind: "email" }), 900);
+  }
+
   function answerCurrentAndAdvance(value: string): void {
     if (step.kind !== "question") return;
     const q = FUNNEL_QUESTIONS[step.index];
@@ -340,18 +365,40 @@ export default function Start() {
       answer: value,
     });
     if (step.index + 1 >= FUNNEL_QUESTIONS.length) {
-      // Mark complete before transitioning so the abandonment cleanup
-      // doesn't misclassify a finished quiz that happens to unmount mid-route.
-      completedRef.current = true;
-      // Mirror mobile's `quiz_completed` fired when the last question is
-      // answered. Email-gate completion fires a second event below.
-      trackQuizCompleted({ totalQuestions: FUNNEL_QUESTIONS.length });
-      setStep({ kind: "calculating" });
-      // Brief "calculating…" pause so users register the result is theirs.
-      window.setTimeout(() => setStep({ kind: "email" }), 900);
+      // Recovery prompt: mirrors `app/onboarding/quiz.tsx`'s save-modal
+      // trigger. If the user has signalled they aren't ready ("no" 3+
+      // times), surface the soft email capture before the regular email
+      // gate. The web funnel ends at Q5 so this fires after the last
+      // answer; on mobile the same trigger fires mid-quiz because there
+      // are 11 more questions to come.
+      const noCount = Object.values(next).filter((v) => v === "no").length;
+      if (
+        !savePromptShownRef.current &&
+        step.index === SAVE_PROMPT_TRIGGER_INDEX &&
+        noCount >= SAVE_PROMPT_NO_THRESHOLD
+      ) {
+        savePromptShownRef.current = true;
+        setSavePromptNoCount(noCount);
+        setSavePromptVisible(true);
+        trackQuizSaveShown({ questionIndex: step.index, noCount });
+        return;
+      }
+      finishQuizAfterLastAnswer();
     } else {
       setStep({ kind: "question", index: step.index + 1 });
     }
+  }
+
+  function handleSavePromptClose(): void {
+    setSavePromptVisible(false);
+    // Don't strand the user on the answered question — proceed to the
+    // calculating step the same way they would have without the modal.
+    finishQuizAfterLastAnswer();
+  }
+
+  function handleSavePromptContinue(): void {
+    setSavePromptVisible(false);
+    finishQuizAfterLastAnswer();
   }
 
   function back(): void {
@@ -497,6 +544,13 @@ export default function Start() {
           onRestart={restartQuiz}
         />
       ) : null}
+
+      <QuizSaveModal
+        visible={savePromptVisible}
+        noCount={savePromptNoCount}
+        onClose={handleSavePromptClose}
+        onContinue={handleSavePromptContinue}
+      />
     </section>
   );
 }

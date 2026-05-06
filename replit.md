@@ -53,6 +53,7 @@ Preferred communication style: Simple, everyday language.
 - **Home page**: React port of the legacy landing page, providing Expo Go download and QR scan options.
 - **API client**: `web/src/lib/api.ts` for interacting with `/api/auth/*`, `/api/stripe/*`, etc.
 - **Legal pages**: React pages for Privacy and Terms.
+- **Quiz funnel** (`web/src/pages/Start.tsx`): 5-question quiz mirroring the mobile readiness check. After Q5, if 3+ "no" answers were given, surfaces `QuizSaveModal` (`web/src/components/QuizSaveModal.tsx`) — a soft email-capture prompt that writes to `quiz_leads` with `source: "web_funnel_save"` and fires `quiz_save_shown` / `quiz_save_submitted` / `quiz_save_dismissed` analytics matching the mobile app.
 
 ### Database
 - **ORM**: Drizzle ORM configured for PostgreSQL.

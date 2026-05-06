@@ -358,6 +358,30 @@ export function trackResultScreenViewed(params: {
   postUnifiedAnalytics("result_screen_viewed", params);
 }
 
+// Mirrors mobile's mid-quiz "save your progress" modal events from
+// `components/QuizSaveModal.tsx` + `app/onboarding/quiz.tsx`. Same payload
+// shapes so PostHog dashboards line up across surfaces.
+export function trackQuizSaveShown(params: {
+  questionIndex: number;
+  noCount: number;
+}): void {
+  safeTrack("quiz_save_shown", params);
+  postUnifiedAnalytics("quiz_save_shown", params);
+}
+
+export function trackQuizSaveSubmitted(params: { noCount: number }): void {
+  safeTrack("quiz_save_submitted", params);
+  postUnifiedAnalytics("quiz_save_submitted", params);
+}
+
+export function trackQuizSaveDismissed(params: {
+  noCount: number;
+  submitted: boolean;
+}): void {
+  safeTrack("quiz_save_dismissed", params);
+  postUnifiedAnalytics("quiz_save_dismissed", params);
+}
+
 // Mirrors mobile's `logFbEvent("CompletedQuiz", undefined, { top_country, tier })`.
 // Fires the Meta Pixel "CompletedQuiz" custom event so the same Meta dashboards
 // the mobile app uses pick up web completions too. Intentionally Meta-only —
