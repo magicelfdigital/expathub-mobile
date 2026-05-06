@@ -163,6 +163,14 @@ export type PlannerAnalyticsResult = {
     plansCompleted: number;
     completionRatePct: number;
     medianDaysToCompletion: number | null;
+    // How many completed plans were excluded from the median because
+    // their start time is unknown (created_at IS NULL — see
+    // backfillUserProgressMigrationCreatedAt). Surfaced so admins can
+    // judge how trustworthy the median is: a small included-N or a
+    // large excluded share materially weakens the headline.
+    medianSampleSize: number;
+    medianExcludedUnknownStart: number;
+    medianExcludedUnknownStartPct: number;
   };
   stepCompletion: Array<{
     stepId: string;
@@ -234,6 +242,12 @@ export async function computePlannerAnalytics(
      SELECT
        COUNT(*)::int                                    AS plans_started,
        COUNT(*) FILTER (WHERE done_steps = $2)::int     AS plans_completed,
+       COUNT(*) FILTER (
+         WHERE done_steps = $2 AND started_at IS NOT NULL
+       )::int                                           AS median_sample_size,
+       COUNT(*) FILTER (
+         WHERE done_steps = $2 AND started_at IS NULL
+       )::int                                           AS median_excluded_unknown_start,
        PERCENTILE_CONT(0.5) WITHIN GROUP (
          ORDER BY EXTRACT(EPOCH FROM (last_completed_at - started_at)) / 86400.0
        ) FILTER (WHERE done_steps = $2 AND started_at IS NOT NULL)
@@ -243,6 +257,14 @@ export async function computePlannerAnalytics(
   );
   const plansStarted = Number(perPlan.rows[0]?.plans_started ?? 0);
   const plansCompleted = Number(perPlan.rows[0]?.plans_completed ?? 0);
+  const medianSampleSize = Number(perPlan.rows[0]?.median_sample_size ?? 0);
+  const medianExcludedUnknownStart = Number(
+    perPlan.rows[0]?.median_excluded_unknown_start ?? 0,
+  );
+  const medianExcludedUnknownStartPct =
+    plansCompleted > 0
+      ? Math.round((medianExcludedUnknownStart / plansCompleted) * 1000) / 10
+      : 0;
   const medianDaysRaw = perPlan.rows[0]?.median_days;
   const medianDaysToCompletion =
     medianDaysRaw === null || medianDaysRaw === undefined
@@ -326,6 +348,9 @@ export async function computePlannerAnalytics(
           ? Math.round((plansCompleted / plansStarted) * 1000) / 10
           : 0,
       medianDaysToCompletion,
+      medianSampleSize,
+      medianExcludedUnknownStart,
+      medianExcludedUnknownStartPct,
     },
     stepCompletion,
     stageDropOff,
@@ -348,6 +373,25 @@ export function renderPlannerAnalyticsHtml(
     data.totals.medianDaysToCompletion === null
       ? "—"
       : `${data.totals.medianDaysToCompletion.toFixed(1)} days`;
+  const {
+    medianSampleSize,
+    medianExcludedUnknownStart,
+    medianExcludedUnknownStartPct,
+  } = data.totals;
+  // Sub-line beneath the median tile so the headline isn't read in
+  // isolation. Spell out the included sample size and how many completed
+  // plans were dropped because their start time is unknown — small N or a
+  // big excluded share both warrant skepticism.
+  const sampleNoun = medianSampleSize === 1 ? "plan" : "plans";
+  const medianBasis = `Based on ${medianSampleSize.toLocaleString()} ${sampleNoun}`;
+  const medianExclusionNote =
+    medianExcludedUnknownStart > 0
+      ? `${medianExcludedUnknownStart.toLocaleString()} completed ${
+          medianExcludedUnknownStart === 1 ? "plan" : "plans"
+        } excluded (unknown start, ${medianExcludedUnknownStartPct.toFixed(
+          1,
+        )}% of completed)`
+      : "0 completed plans excluded";
 
   const stepRowsHtml = data.stepCompletion
     .map(
@@ -396,6 +440,8 @@ export function renderPlannerAnalyticsHtml(
     .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 10px; padding: 16px; }
     .card .label { color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
     .card .value { font-size: 24px; font-weight: 600; margin-top: 6px; }
+    .card .sub { color: #666; font-size: 11px; margin-top: 6px; line-height: 1.4; }
+    .card .sub .excluded { display: block; color: #8a4b00; }
     table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e5e5e5; border-radius: 10px; overflow: hidden; }
     th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #f0f0f0; }
     th { background: #f6f6f6; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: #555; }
@@ -430,6 +476,10 @@ export function renderPlannerAnalyticsHtml(
     <div class="card">
       <div class="label">Median time-to-100%</div>
       <div class="value">${escapeHtml(median)}</div>
+      <div class="sub">
+        <span>${escapeHtml(medianBasis)}</span>
+        <span class="excluded">${escapeHtml(medianExclusionNote)}</span>
+      </div>
     </div>
   </div>
 
