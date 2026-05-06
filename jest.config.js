@@ -56,6 +56,22 @@ module.exports = {
       testMatch: ["**/__tests__/**/*.test.ts"],
     },
     {
+      displayName: "lib",
+      preset: "ts-jest",
+      testEnvironment: "node",
+      roots: ["<rootDir>/src/lib"],
+      moduleNameMapper: {
+        ...sharedModuleNameMapper,
+        "^react-native$": "<rootDir>/src/billing/__mocks__/react-native.ts",
+        "^@react-native-async-storage/async-storage$":
+          "<rootDir>/src/lib/__mocks__/async-storage.ts",
+        "^posthog-react-native$":
+          "<rootDir>/src/lib/__mocks__/posthog-react-native.ts",
+      },
+      transform: tsJestTransform,
+      testMatch: ["**/__tests__/**/*.test.ts"],
+    },
+    {
       displayName: "hooks",
       preset: "ts-jest",
       testEnvironment: "jsdom",

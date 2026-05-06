@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import PostHog from "posthog-react-native";
 import { getBackendBase } from "@/src/billing/backendClient";
 
@@ -169,6 +170,10 @@ export function initAnalytics() {
   if (posthogInitialized) return;
   posthogInitialized = true;
 
+  // Kick off anon distinct_id hydration as early as possible so the very
+  // first `trackEvent` POST after launch already carries a stable id.
+  hydrateAnonDistinctId();
+
   const apiKey = process.env.EXPO_PUBLIC_POSTHOG_KEY;
   if (!apiKey) {
     if (__DEV__) {
@@ -196,10 +201,102 @@ function userDistinctId(userId: string | number): string {
 
 let lastIdentifiedDistinctId: string | null = null;
 
+// Stable distinct_id attached to every backend `/api/analytics` POST so the
+// server-side log can join mobile events to the same person PostHog sees.
+// Mirrors the web `getDistinctId` shape from `web/src/lib/pixel.ts`:
+//   - `user:<id>` once the user is identified
+//   - an `anon:<random>` device id beforehand, persisted in AsyncStorage so
+//     it survives app restarts (so a pre-login funnel can later be aliased
+//     to the user id without losing the steps that came before).
+const ANON_DISTINCT_ID_STORAGE_KEY = "mobile_anon_distinct_id";
+
+let currentDistinctId: string | null = null;
+let anonDistinctIdHydration: Promise<string> | null = null;
+
+function generateAnonDistinctId(): string {
+  // Avoid `crypto.randomUUID` / the `uuid` package — both have RN pitfalls
+  // (see the React Native Pitfalls section in the expo skill). 16+ chars of
+  // url-safe randomness is more than enough collision resistance for a
+  // per-device id.
+  return (
+    "anon:" +
+    Date.now().toString(36) +
+    "-" +
+    Math.random().toString(36).slice(2, 10) +
+    Math.random().toString(36).slice(2, 10)
+  );
+}
+
+function hydrateAnonDistinctId(): Promise<string> {
+  if (anonDistinctIdHydration) return anonDistinctIdHydration;
+  anonDistinctIdHydration = (async () => {
+    let stored: string | null = null;
+    try {
+      stored = await AsyncStorage.getItem(ANON_DISTINCT_ID_STORAGE_KEY);
+    } catch {}
+    // If `identifyUser` already promoted us to `user:<id>` (or persisted one
+    // from a previous session is `user:<id>`), keep that — never demote the
+    // live id back to an older anon id.
+    if (currentDistinctId && currentDistinctId.startsWith("user:")) {
+      try {
+        await AsyncStorage.setItem(
+          ANON_DISTINCT_ID_STORAGE_KEY,
+          currentDistinctId,
+        );
+      } catch {}
+      return currentDistinctId;
+    }
+    if (stored) {
+      currentDistinctId = stored;
+      return stored;
+    }
+    const fresh = currentDistinctId ?? generateAnonDistinctId();
+    currentDistinctId = fresh;
+    try {
+      await AsyncStorage.setItem(ANON_DISTINCT_ID_STORAGE_KEY, fresh);
+    } catch {}
+    return fresh;
+  })();
+  return anonDistinctIdHydration;
+}
+
+export function getMobileDistinctId(): string {
+  // Always return a non-null id so every backend `/api/analytics` POST is
+  // joinable — even early-launch events fired before AsyncStorage hydration
+  // resolves. If hydration later finds a previously persisted id, it will
+  // adopt it (see `hydrateAnonDistinctId`); the brief sync-fallback window
+  // means the very first events of a returning user's session may use a
+  // throwaway id rather than `null`, which is strictly better for joining
+  // events fired in that window to each other.
+  if (!currentDistinctId) {
+    currentDistinctId = generateAnonDistinctId();
+  }
+  if (!anonDistinctIdHydration) {
+    hydrateAnonDistinctId();
+  }
+  return currentDistinctId;
+}
+
+// Test-only: reset module state between cases. Not exported via index — only
+// the analytics test imports it directly.
+export function _resetAnalyticsForTests() {
+  currentDistinctId = null;
+  anonDistinctIdHydration = null;
+  lastIdentifiedDistinctId = null;
+  posthogClient = null;
+  posthogInitialized = false;
+}
+
 export function identifyUser(userId: string | number, traits?: Record<string, any>) {
   const id = String(userId);
   if (!id) return;
   const distinctId = userDistinctId(id);
+  // Always promote the canonical `user:<id>` to the live mobile distinct_id
+  // and persist it so every subsequent backend `/api/analytics` POST is
+  // joined to this user — including events fired before PostHog initializes
+  // (e.g. when the API key is missing in dev/test).
+  currentDistinctId = distinctId;
+  AsyncStorage.setItem(ANON_DISTINCT_ID_STORAGE_KEY, distinctId).catch(() => {});
   // Idempotent: PostHog will dedupe internally too, but skipping here also
   // avoids re-emitting `$identify` events on every app open.
   if (lastIdentifiedDistinctId === distinctId) return;
@@ -242,12 +339,23 @@ export function trackEvent(
     try {
       const base = getBackendBase();
       if (base) {
+        // Attach the same canonical distinct_id PostHog uses so the
+        // backend `/api/analytics` log can join mobile events to the same
+        // person — `user:<id>` once identified, the persisted anon device
+        // id beforehand. Mirrors `postUnifiedAnalytics` in
+        // `web/src/lib/pixel.ts`: top-level for ingestion convention,
+        // duplicated inside `properties` for backends that only inspect
+        // the properties bag. `getMobileDistinctId()` is guaranteed to
+        // return a non-null id (synthesizing a sync fallback if hydration
+        // hasn't finished), so we never POST an anonymous event.
+        const distinctId = getMobileDistinctId();
         fetch(`${base}/api/analytics`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             event,
-            properties,
+            distinct_id: distinctId,
+            properties: { ...properties, distinct_id: distinctId },
             platform: Platform.OS,
             timestamp: new Date().toISOString(),
           }),
