@@ -259,6 +259,62 @@ describe("BillingOrchestrator", () => {
     });
   });
 
+  describe("restore() — delayed webhook path", () => {
+    it("polls entitlements after backend refresh until they become active", async () => {
+      const rc = mockRCClient();
+      let callCount = 0;
+      const backend = mockBackendClient({
+        getEntitlements: jest.fn().mockImplementation(async () => {
+          callCount++;
+          // Call 1 = pre-check before RC restore (must be inactive so we
+          // proceed to refresh + poll). Calls 2-4 simulate the webhook
+          // arriving late; call 5 is when the backend finally reflects
+          // the active entitlement.
+          if (callCount < 5) return makeInactiveEntitlements();
+          return makeActiveEntitlements();
+        }),
+      });
+
+      const orchestrator = new BillingOrchestrator(rc, backend, {
+        intervalMs: 100,
+        timeoutMs: 10000,
+      });
+
+      const resultPromise = orchestrator.restore("usr_123");
+      jest.runAllTimersAsync();
+      const result = await resultPromise;
+
+      expect(rc.restorePurchases).toHaveBeenCalledTimes(1);
+      expect(backend.refreshMobileBilling).toHaveBeenCalledTimes(1);
+      // 1 pre-check + 4 polls (3 inactive + 1 active) = 5 total calls.
+      expect(backend.getEntitlements).toHaveBeenCalledTimes(5);
+      expect(result.status).toBe("confirmed");
+      expect(result.entitlements.hasFullAccess).toBe(true);
+    });
+  });
+
+  describe("restore() — timeout path", () => {
+    it("throws EntitlementPollingTimeoutError when entitlements never become active", async () => {
+      const rc = mockRCClient();
+      const backend = mockBackendClient({
+        getEntitlements: jest.fn().mockResolvedValue(makeInactiveEntitlements()),
+      });
+
+      const orchestrator = new BillingOrchestrator(rc, backend, {
+        intervalMs: 100,
+        timeoutMs: 500,
+      });
+
+      const resultPromise = orchestrator.restore("usr_123");
+      jest.runAllTimersAsync();
+
+      await expect(resultPromise).rejects.toThrow(EntitlementPollingTimeoutError);
+      await expect(resultPromise).rejects.toMatchObject({
+        code: "ENTITLEMENT_POLLING_TIMEOUT",
+      });
+    });
+  });
+
   describe("syncOnLogin()", () => {
     it("calls RC logIn with userId, backend refresh, fetches entitlements", async () => {
       const rc = mockRCClient();

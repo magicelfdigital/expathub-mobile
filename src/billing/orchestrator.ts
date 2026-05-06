@@ -76,11 +76,7 @@ export class BillingOrchestrator {
       );
     }
 
-    const refreshed = await this.backendClient.getEntitlements(userId);
-    return {
-      entitlements: refreshed,
-      status: hasEntitlement(refreshed) ? "confirmed" : "pending",
-    };
+    return this.pollEntitlements(userId);
   }
 
   async syncOnLogin(userId: string): Promise<OrchestratorResult> {

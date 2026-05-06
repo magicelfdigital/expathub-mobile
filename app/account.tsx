@@ -15,6 +15,7 @@ import { testCrash, isNativeBuild } from "@/utils/crashlytics";
 import { trackEvent } from "@/src/lib/analytics";
 import { FREE_TIER_DISPLAY_NAME, PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
 import { getOrchestrator, clearRefreshCooldown } from "@/src/billing";
+import { EntitlementPollingTimeoutError } from "@/src/billing/errors";
 import { getReadinessLabel, MAX_SCORE } from "@/src/data/quiz";
 import { usePlan } from "@/src/contexts/PlanContext";
 import { useProgressPercent } from "@/src/hooks/useProgress";
@@ -102,8 +103,17 @@ export default function AccountScreen() {
       } else {
         setStatusMsg("No active purchases found for your account.");
       }
-    } catch {
-      setStatusMsg("Restore failed. Please try again later.");
+    } catch (err) {
+      // Refresh anyway — even on a polling timeout the backend may have
+      // partially updated, and we want the UI to reflect whatever it has.
+      await refresh().catch(() => {});
+      if (err instanceof EntitlementPollingTimeoutError) {
+        setStatusMsg(
+          "Your purchase is still being processed. This can take a minute — please try again shortly.",
+        );
+      } else {
+        setStatusMsg("Restore failed. Please try again later.");
+      }
     } finally {
       setRestoring(false);
     }
