@@ -1,7 +1,9 @@
 import {
   computePlannerAnalytics,
   renderPlannerAnalyticsHtml,
+  type PlannerAnalyticsResult,
 } from "../plannerAnalytics";
+import { GENERIC_PLAN_STEP_IDS } from "@shared/planSteps";
 
 type QueryFn = (text: string, values?: any[]) => Promise<{ rows: any[] }>;
 
@@ -9,6 +11,22 @@ function makePool(handler: QueryFn) {
   return {
     query: jest.fn(handler),
   } as any;
+}
+
+type QueryCall = { text: string; values: unknown[] };
+
+type FakeRow = Record<string, unknown>;
+
+function makeFakePool(handler: (call: QueryCall) => { rows: FakeRow[] }) {
+  const calls: QueryCall[] = [];
+  const pool = {
+    query: jest.fn(async (text: string, values?: unknown[]) => {
+      const call: QueryCall = { text, values: values ?? [] };
+      calls.push(call);
+      return handler(call);
+    }),
+  } as unknown as Parameters<typeof computePlannerAnalytics>[0];
+  return { pool, calls };
 }
 
 describe("computePlannerAnalytics — weekly time series", () => {
@@ -124,9 +142,11 @@ describe("computePlannerAnalytics — weekly time series", () => {
 });
 
 describe("renderPlannerAnalyticsHtml — Last 8 weeks table", () => {
-  const baseResult = {
+  const baseResult: PlannerAnalyticsResult = {
     generatedAt: "2026-04-28T00:00:00.000Z",
     totalSteps: 10,
+    filter: { country: null, minPlansForCountryBreakdown: 3 },
+    countries: [],
     totals: {
       plansStarted: 0,
       plansCompleted: 0,
@@ -135,6 +155,8 @@ describe("renderPlannerAnalyticsHtml — Last 8 weeks table", () => {
     },
     stepCompletion: [],
     stageDropOff: [],
+    weekly: [],
+    byCountry: [],
   };
 
   it("renders one row per weekly bucket with the week-start date", () => {
@@ -162,5 +184,370 @@ describe("renderPlannerAnalyticsHtml — Last 8 weeks table", () => {
     expect(html).toMatch(/33\.3%/);
     // empty week renders an em-dash placeholder rather than NaN%
     expect(html).not.toMatch(/NaN/);
+  });
+});
+
+function rowsForUnfilteredFixture(text: string, values: unknown[]): FakeRow[] {
+  // ALTER TABLE migration — return nothing.
+  if (text.includes("ALTER TABLE user_progress")) return [];
+  // Per-step counts.
+  if (text.includes("FROM user_progress") && text.includes("GROUP BY step_id")) {
+    return GENERIC_PLAN_STEP_IDS.map((stepId) => ({
+      step_id: stepId,
+      completed: 4,
+      started: 10,
+    }));
+  }
+  // Stage drop-off CTE — recognize "GROUP BY user_id, target_country" + "done = $2".
+  if (
+    text.includes("WITH per_plan AS") &&
+    text.includes("done = $2") &&
+    !text.includes("done_steps")
+  ) {
+    return [{ finished: 2 }];
+  }
+  // Per-plan rollup (no GROUP BY target_country in SELECT).
+  if (
+    text.includes("WITH per_plan AS") &&
+    text.includes("done_steps = $2") &&
+    !text.includes("GROUP BY target_country")
+  ) {
+    return [{ plans_started: 10, plans_completed: 3, median_days: 12.4 }];
+  }
+  // Per-country breakdown.
+  if (
+    text.includes("WITH per_plan AS") &&
+    text.includes("GROUP BY target_country")
+  ) {
+    return [
+      {
+        target_country: "portugal",
+        plans_started: 6,
+        plans_completed: 2,
+        median_days: 10,
+      },
+      {
+        target_country: "spain",
+        plans_started: 4,
+        plans_completed: 1,
+        median_days: null,
+      },
+    ];
+  }
+  // Distinct countries for dropdown.
+  if (text.includes("SELECT DISTINCT target_country")) {
+    return [{ target_country: "portugal" }, { target_country: "spain" }];
+  }
+  return [];
+}
+
+describe("computePlannerAnalytics", () => {
+  describe("with no country filter", () => {
+    let result: PlannerAnalyticsResult;
+    let calls: QueryCall[];
+
+    beforeEach(async () => {
+      const fake = makeFakePool((call) =>
+        ({ rows: rowsForUnfilteredFixture(call.text, call.values) }),
+      );
+      calls = fake.calls;
+      result = await computePlannerAnalytics(fake.pool);
+    });
+
+    it("returns the unfiltered totals", () => {
+      expect(result.totals).toEqual({
+        plansStarted: 10,
+        plansCompleted: 3,
+        completionRatePct: 30.0,
+        medianDaysToCompletion: 12.4,
+      });
+    });
+
+    it("does not pass a country parameter to the per-step query", () => {
+      const perStep = calls.find((c) =>
+        c.text.includes("GROUP BY step_id"),
+      ) as QueryCall;
+      expect(perStep).toBeDefined();
+      expect(perStep.values).toHaveLength(1);
+      expect(perStep.text).not.toMatch(/AND target_country = \$/);
+    });
+
+    it("returns every country (above the threshold) in the breakdown", () => {
+      expect(result.byCountry.map((c) => c.country)).toEqual([
+        "portugal",
+        "spain",
+      ]);
+      expect(result.byCountry[0]).toMatchObject({
+        country: "portugal",
+        plansStarted: 6,
+        plansCompleted: 2,
+        completionRatePct: 33.3,
+        medianDaysToCompletion: 10,
+      });
+      expect(result.byCountry[1].medianDaysToCompletion).toBeNull();
+    });
+
+    it("populates the countries dropdown list", () => {
+      expect(result.countries).toEqual(["portugal", "spain"]);
+    });
+
+    it("reports the active filter as null", () => {
+      expect(result.filter.country).toBeNull();
+      expect(result.filter.minPlansForCountryBreakdown).toBe(3);
+    });
+
+    it("uses the minPlans threshold (HAVING) on the breakdown query", () => {
+      const breakdown = calls.find(
+        (c) =>
+          c.text.includes("WITH per_plan AS") &&
+          c.text.includes("GROUP BY target_country"),
+      ) as QueryCall;
+      expect(breakdown).toBeDefined();
+      expect(breakdown.text).toMatch(/HAVING COUNT\(\*\) >= \$3/);
+      expect(breakdown.values[2]).toBe(3);
+    });
+  });
+
+  describe("with ?country=portugal filter", () => {
+    let result: PlannerAnalyticsResult;
+    let calls: QueryCall[];
+
+    beforeEach(async () => {
+      const fake = makeFakePool((call) => {
+        if (call.text.includes("ALTER TABLE user_progress")) return { rows: [] };
+        if (
+          call.text.includes("FROM user_progress") &&
+          call.text.includes("GROUP BY step_id")
+        ) {
+          return {
+            rows: GENERIC_PLAN_STEP_IDS.map((stepId) => ({
+              step_id: stepId,
+              completed: 3,
+              started: 6,
+            })),
+          };
+        }
+        if (
+          call.text.includes("WITH per_plan AS") &&
+          call.text.includes("done = $2") &&
+          !call.text.includes("done_steps")
+        ) {
+          return { rows: [{ finished: 1 }] };
+        }
+        if (
+          call.text.includes("WITH per_plan AS") &&
+          call.text.includes("done_steps = $2") &&
+          !call.text.includes("GROUP BY target_country")
+        ) {
+          return {
+            rows: [{ plans_started: 6, plans_completed: 2, median_days: 8 }],
+          };
+        }
+        if (
+          call.text.includes("WITH per_plan AS") &&
+          call.text.includes("GROUP BY target_country")
+        ) {
+          return {
+            rows: [
+              {
+                target_country: "portugal",
+                plans_started: 6,
+                plans_completed: 2,
+                median_days: 8,
+              },
+            ],
+          };
+        }
+        if (call.text.includes("SELECT DISTINCT target_country")) {
+          return {
+            rows: [
+              { target_country: "portugal" },
+              { target_country: "spain" },
+            ],
+          };
+        }
+        return { rows: [] };
+      });
+      calls = fake.calls;
+      result = await computePlannerAnalytics(fake.pool, { country: "Portugal" });
+    });
+
+    it("normalizes the filter to lower-case", () => {
+      expect(result.filter.country).toBe("portugal");
+    });
+
+    it("threads the country into the per-step query as a parameter", () => {
+      const perStep = calls.find((c) =>
+        c.text.includes("GROUP BY step_id"),
+      ) as QueryCall;
+      expect(perStep.text).toMatch(/AND target_country = \$2/);
+      expect(perStep.values).toEqual([
+        [...GENERIC_PLAN_STEP_IDS],
+        "portugal",
+      ]);
+    });
+
+    it("threads the country into the per-plan rollup", () => {
+      const perPlan = calls.find(
+        (c) =>
+          c.text.includes("WITH per_plan AS") &&
+          c.text.includes("done_steps = $2") &&
+          !c.text.includes("GROUP BY target_country"),
+      ) as QueryCall;
+      expect(perPlan.text).toMatch(/AND target_country = \$3/);
+      expect(perPlan.values[2]).toBe("portugal");
+    });
+
+    it("threads the country into stage drop-off queries", () => {
+      const stage = calls.find(
+        (c) =>
+          c.text.includes("WITH per_plan AS") &&
+          c.text.includes("done = $2") &&
+          !c.text.includes("done_steps"),
+      ) as QueryCall;
+      expect(stage.text).toMatch(/AND target_country = \$3/);
+      expect(stage.values[2]).toBe("portugal");
+    });
+
+    it("narrows the per-country breakdown to only the selected country (no HAVING)", () => {
+      const breakdown = calls.find(
+        (c) =>
+          c.text.includes("WITH per_plan AS") &&
+          c.text.includes("GROUP BY target_country"),
+      ) as QueryCall;
+      expect(breakdown.text).toMatch(/AND target_country = \$3/);
+      expect(breakdown.text).not.toMatch(/HAVING/);
+      expect(breakdown.values[2]).toBe("portugal");
+
+      expect(result.byCountry).toEqual([
+        {
+          country: "portugal",
+          plansStarted: 6,
+          plansCompleted: 2,
+          completionRatePct: 33.3,
+          medianDaysToCompletion: 8,
+        },
+      ]);
+    });
+
+    it("reports filter-narrowed totals", () => {
+      expect(result.totals.plansStarted).toBe(6);
+      expect(result.totals.plansCompleted).toBe(2);
+      expect(result.totals.completionRatePct).toBe(33.3);
+    });
+  });
+
+  describe("minPlans option", () => {
+    it("forwards a custom minPlans value to the breakdown query", async () => {
+      const fake = makeFakePool((call) => ({
+        rows: rowsForUnfilteredFixture(call.text, call.values),
+      }));
+      await computePlannerAnalytics(fake.pool, {
+        minPlansForCountryBreakdown: 25,
+      });
+      const breakdown = fake.calls.find(
+        (c) =>
+          c.text.includes("WITH per_plan AS") &&
+          c.text.includes("GROUP BY target_country"),
+      ) as QueryCall;
+      expect(breakdown.values[2]).toBe(25);
+    });
+
+    it("clamps non-positive minPlans values to 1", async () => {
+      const fake = makeFakePool((call) => ({
+        rows: rowsForUnfilteredFixture(call.text, call.values),
+      }));
+      const result = await computePlannerAnalytics(fake.pool, {
+        minPlansForCountryBreakdown: 0,
+      });
+      expect(result.filter.minPlansForCountryBreakdown).toBe(1);
+    });
+  });
+});
+
+describe("renderPlannerAnalyticsHtml", () => {
+  function baseResult(
+    overrides: Partial<PlannerAnalyticsResult> = {},
+  ): PlannerAnalyticsResult {
+    return {
+      generatedAt: "2026-04-28T00:00:00.000Z",
+      totalSteps: 10,
+      filter: { country: null, minPlansForCountryBreakdown: 3 },
+      countries: ["portugal", "spain"],
+      totals: {
+        plansStarted: 10,
+        plansCompleted: 3,
+        completionRatePct: 30,
+        medianDaysToCompletion: 12.4,
+      },
+      stepCompletion: [],
+      stageDropOff: [],
+      byCountry: [
+        {
+          country: "portugal",
+          plansStarted: 6,
+          plansCompleted: 2,
+          completionRatePct: 33.3,
+          medianDaysToCompletion: 10,
+        },
+      ],
+      ...overrides,
+    };
+  }
+
+  it("renders a country dropdown with one option per known country", () => {
+    const html = renderPlannerAnalyticsHtml(baseResult());
+    expect(html).toContain('<option value="portugal">Portugal</option>');
+    expect(html).toContain('<option value="spain">Spain</option>');
+    expect(html).toContain('<option value="">All countries</option>');
+  });
+
+  it("marks the active filter option as selected and shows a clear link", () => {
+    const html = renderPlannerAnalyticsHtml(
+      baseResult({
+        filter: { country: "portugal", minPlansForCountryBreakdown: 3 },
+      }),
+    );
+    expect(html).toContain('<option value="portugal" selected>Portugal</option>');
+    expect(html).toMatch(/Filtered to <strong>Portugal<\/strong>/);
+    expect(html).toContain('href="/admin/planner-analytics"');
+  });
+
+  it("renders the per-country breakdown rows with country links when unfiltered", () => {
+    const html = renderPlannerAnalyticsHtml(baseResult());
+    expect(html).toContain(
+      'href="/admin/planner-analytics?country=portugal"',
+    );
+    expect(html).toContain("33.3%");
+    expect(html).toContain("10.0 days");
+  });
+
+  it("does not render drill-in links in the breakdown when a filter is already active", () => {
+    const html = renderPlannerAnalyticsHtml(
+      baseResult({
+        filter: { country: "portugal", minPlansForCountryBreakdown: 3 },
+      }),
+    );
+    // The country cell in the breakdown table should be plain text, not a link.
+    expect(html).toMatch(/<td>Portugal<\/td>/);
+    expect(html).toMatch(
+      /Showing only <strong>Portugal<\/strong> because the country filter is active/,
+    );
+  });
+
+  it("includes the active country in the JSON link href", () => {
+    const html = renderPlannerAnalyticsHtml(
+      baseResult({
+        filter: { country: "portugal", minPlansForCountryBreakdown: 3 },
+      }),
+    );
+    expect(html).toContain(
+      'href="/api/admin/planner-analytics?country=portugal"',
+    );
+  });
+
+  it("shows an empty-state message when no countries qualify", () => {
+    const html = renderPlannerAnalyticsHtml(baseResult({ byCountry: [] }));
+    expect(html).toContain("No countries have at least 3 plans started yet.");
   });
 });

@@ -50,6 +50,12 @@ const STEP_TITLES: Record<string, string> = {
 // timestamp captured at column-add time.
 const USER_PROGRESS_CREATED_AT_MIGRATION = "user_progress_created_at";
 
+// Default minimum number of plans started a country must have to be included
+// in the per-country breakdown table. Suppresses single-row noise (typos,
+// throwaway accounts) from skewing the comparison view. Override per-request
+// via the `minPlans` query parameter.
+const DEFAULT_MIN_PLANS_FOR_COUNTRY_BREAKDOWN = 3;
+
 // Process-level memoization is held as a Promise so concurrent callers
 // share the in-flight work instead of racing the migration, AND so that
 // a failure clears the memo and the next caller retries. (Storing a bare
@@ -193,9 +199,22 @@ export function backfillUserProgressMigrationCreatedAt(
   return createdAtBackfillPromise;
 }
 
+export type CountryBreakdown = {
+  country: string;
+  plansStarted: number;
+  plansCompleted: number;
+  completionRatePct: number;
+  medianDaysToCompletion: number | null;
+};
+
 export type PlannerAnalyticsResult = {
   generatedAt: string;
   totalSteps: number;
+  filter: {
+    country: string | null;
+    minPlansForCountryBreakdown: number;
+  };
+  countries: string[];
   totals: {
     plansStarted: number;
     plansCompleted: number;
@@ -236,28 +255,59 @@ export type PlannerAnalyticsResult = {
     plansCompleted: number;
     medianDaysToCompletion: number | null;
   }>;
+  byCountry: CountryBreakdown[];
 };
+
+export type PlannerAnalyticsOptions = {
+  country?: string | null;
+  minPlansForCountryBreakdown?: number;
+};
+
+function normalizeCountry(value: string | null | undefined): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim().toLowerCase();
+  return trimmed.length > 0 ? trimmed : null;
+}
 
 export async function computePlannerAnalytics(
   pool: pg.Pool,
+  options: PlannerAnalyticsOptions = {},
 ): Promise<PlannerAnalyticsResult> {
   await ensureUserProgressCreatedAt(pool);
 
   const stepIds = [...GENERIC_PLAN_STEP_IDS];
   const totalSteps = stepIds.length;
+  const country = normalizeCountry(options.country ?? null);
+  const minPlans = Math.max(
+    1,
+    Math.floor(
+      options.minPlansForCountryBreakdown ??
+        DEFAULT_MIN_PLANS_FOR_COUNTRY_BREAKDOWN,
+    ),
+  );
 
   // Per-step completion counts. Denominator (plans started) is the count of
   // distinct (user_id, target_country) pairs that have any seeded row for
   // a generic step — since seedDefaultProgress inserts all 10 step rows on
-  // first GET, this is equivalent to the number of plans ever opened.
+  // first GET, this is equivalent to the number of plans ever opened. When
+  // a country filter is supplied, all queries below add an
+  // `AND target_country = $N` predicate so totals/steps/stages narrow
+  // accordingly.
+  type SqlParam = string | number | string[];
+  const perStepParams: SqlParam[] = [stepIds];
+  let perStepCountryClause = "";
+  if (country) {
+    perStepParams.push(country);
+    perStepCountryClause = ` AND target_country = $${perStepParams.length}`;
+  }
   const perStep = await pool.query(
     `SELECT step_id,
             COUNT(*) FILTER (WHERE completed)::int AS completed,
             COUNT(*)::int                          AS started
        FROM user_progress
-      WHERE step_id = ANY($1::text[])
+      WHERE step_id = ANY($1::text[])${perStepCountryClause}
       GROUP BY step_id`,
-    [stepIds],
+    perStepParams,
   );
   const stepRows = new Map<string, { completed: number; started: number }>();
   for (const row of perStep.rows) {
@@ -276,6 +326,12 @@ export async function computePlannerAnalytics(
   // pre-migration rows whose plan never produced a completion to anchor
   // to. Excluding them from the median keeps historical noise out of the
   // time-to-100% metric.
+  const perPlanParams: SqlParam[] = [stepIds, totalSteps];
+  let perPlanCountryClause = "";
+  if (country) {
+    perPlanParams.push(country);
+    perPlanCountryClause = ` AND target_country = $${perPlanParams.length}`;
+  }
   const perPlan = await pool.query(
     `WITH per_plan AS (
        SELECT user_id,
@@ -284,7 +340,7 @@ export async function computePlannerAnalytics(
               MAX(completed_at) FILTER (WHERE completed)   AS last_completed_at,
               COUNT(*) FILTER (WHERE completed)::int       AS done_steps
          FROM user_progress
-        WHERE step_id = ANY($1::text[])
+        WHERE step_id = ANY($1::text[])${perPlanCountryClause}
         GROUP BY user_id, target_country
      )
      SELECT
@@ -301,7 +357,7 @@ export async function computePlannerAnalytics(
        ) FILTER (WHERE done_steps = $2 AND started_at IS NOT NULL)
                                                         AS median_days
      FROM per_plan`,
-    [stepIds, totalSteps],
+    perPlanParams,
   );
   const plansStarted = Number(perPlan.rows[0]?.plans_started ?? 0);
   const plansCompleted = Number(perPlan.rows[0]?.plans_completed ?? 0);
@@ -358,17 +414,23 @@ export async function computePlannerAnalytics(
       stageCompletionRates.reduce((a, b) => a + b, 0) /
       stageCompletionRates.length;
 
+    const stageParams: SqlParam[] = [stageSteps, stageSteps.length];
+    let stageCountryClause = "";
+    if (country) {
+      stageParams.push(country);
+      stageCountryClause = ` AND target_country = $${stageParams.length}`;
+    }
     const stageDone = await pool.query(
       `WITH per_plan AS (
          SELECT user_id, target_country,
                 COUNT(*) FILTER (WHERE completed)::int AS done
            FROM user_progress
-          WHERE step_id = ANY($1::text[])
+          WHERE step_id = ANY($1::text[])${stageCountryClause}
           GROUP BY user_id, target_country
        )
        SELECT COUNT(*) FILTER (WHERE done = $2)::int AS finished
          FROM per_plan`,
-      [stageSteps, stageSteps.length],
+      stageParams,
     );
     const finished = Number(stageDone.rows[0]?.finished ?? 0);
     return {
@@ -391,7 +453,15 @@ export async function computePlannerAnalytics(
   // so weeks with zero plans-started still appear as explicit zero rows —
   // otherwise a quiet week would silently disappear from the dashboard and
   // hide a regression. date_trunc('week', ...) in Postgres uses ISO week
-  // semantics (Monday-start), which is what the task asks for.
+  // semantics (Monday-start), which is what the task asks for. The country
+  // filter (if active) is propagated here so the trend tracks the same
+  // narrowed slice as the headline totals.
+  const weeklyParams: SqlParam[] = [stepIds, totalSteps];
+  let weeklyCountryClause = "";
+  if (country) {
+    weeklyParams.push(country);
+    weeklyCountryClause = ` AND target_country = $${weeklyParams.length}`;
+  }
   const weeklyRows = await pool.query(
     `WITH per_plan AS (
        SELECT user_id,
@@ -400,7 +470,7 @@ export async function computePlannerAnalytics(
               MAX(completed_at) FILTER (WHERE completed)   AS last_completed_at,
               COUNT(*) FILTER (WHERE completed)::int       AS done_steps
          FROM user_progress
-        WHERE step_id = ANY($1::text[])
+        WHERE step_id = ANY($1::text[])${weeklyCountryClause}
         GROUP BY user_id, target_country
      ),
      weeks AS (
@@ -427,7 +497,7 @@ export async function computePlannerAnalytics(
        FROM weeks w
        LEFT JOIN per_week p ON p.week_start = w.week_start
       ORDER BY w.week_start ASC`,
-    [stepIds, totalSteps],
+    weeklyParams,
   );
   const weekly = weeklyRows.rows.map((row) => {
     const median =
@@ -442,9 +512,86 @@ export async function computePlannerAnalytics(
     };
   });
 
+  // Per-country breakdown. When the `country` option is supplied the
+  // breakdown narrows to that single country (matching the rest of the
+  // filtered dashboard) and the minPlans threshold is bypassed so the
+  // selected country always appears. Without a filter, every country with
+  // at least minPlans plans started is returned for cross-country
+  // comparison.
+  const byCountryParams: SqlParam[] = [stepIds, totalSteps];
+  let byCountryWhere = "";
+  let byCountryHaving = "";
+  if (country) {
+    byCountryParams.push(country);
+    byCountryWhere = ` AND target_country = $${byCountryParams.length}`;
+  } else {
+    byCountryParams.push(minPlans);
+    byCountryHaving = `\n     HAVING COUNT(*) >= $${byCountryParams.length}`;
+  }
+  const byCountryQuery = await pool.query(
+    `WITH per_plan AS (
+       SELECT user_id,
+              target_country,
+              MIN(created_at)                              AS started_at,
+              MAX(completed_at) FILTER (WHERE completed)   AS last_completed_at,
+              COUNT(*) FILTER (WHERE completed)::int       AS done_steps
+         FROM user_progress
+        WHERE step_id = ANY($1::text[])
+          AND target_country IS NOT NULL${byCountryWhere}
+        GROUP BY user_id, target_country
+     )
+     SELECT target_country,
+            COUNT(*)::int                                  AS plans_started,
+            COUNT(*) FILTER (WHERE done_steps = $2)::int   AS plans_completed,
+            PERCENTILE_CONT(0.5) WITHIN GROUP (
+              ORDER BY EXTRACT(EPOCH FROM (last_completed_at - started_at)) / 86400.0
+            ) FILTER (WHERE done_steps = $2 AND started_at IS NOT NULL)
+                                                           AS median_days
+       FROM per_plan
+      GROUP BY target_country${byCountryHaving}
+      ORDER BY plans_started DESC, target_country ASC`,
+    byCountryParams,
+  );
+  const byCountry: CountryBreakdown[] = byCountryQuery.rows.map((row) => {
+    const started = Number(row.plans_started) || 0;
+    const completed = Number(row.plans_completed) || 0;
+    const median =
+      row.median_days === null || row.median_days === undefined
+        ? null
+        : Math.round(Number(row.median_days) * 10) / 10;
+    return {
+      country: String(row.target_country),
+      plansStarted: started,
+      plansCompleted: completed,
+      completionRatePct:
+        started > 0 ? Math.round((completed / started) * 1000) / 10 : 0,
+      medianDaysToCompletion: median,
+    };
+  });
+
+  // Distinct list of countries for the dashboard's filter dropdown. Drawn
+  // from the same user_progress table (no min-plans threshold) so even
+  // brand-new countries show up immediately as a filter option.
+  const allCountriesQuery = await pool.query(
+    `SELECT DISTINCT target_country
+       FROM user_progress
+      WHERE step_id = ANY($1::text[])
+        AND target_country IS NOT NULL
+      ORDER BY target_country`,
+    [stepIds],
+  );
+  const countries = allCountriesQuery.rows
+    .map((row) => String(row.target_country))
+    .filter((c) => c.length > 0);
+
   return {
     generatedAt: new Date().toISOString(),
     totalSteps,
+    filter: {
+      country,
+      minPlansForCountryBreakdown: minPlans,
+    },
+    countries,
     totals: {
       plansStarted,
       plansCompleted,
@@ -460,6 +607,7 @@ export async function computePlannerAnalytics(
     stepCompletion,
     stageDropOff,
     weekly,
+    byCountry,
   };
 }
 
@@ -470,6 +618,13 @@ function escapeHtml(value: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function titleCaseCountry(country: string): string {
+  return country
+    .split(/[\s_-]+/)
+    .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : ""))
+    .join(" ");
 }
 
 export function renderPlannerAnalyticsHtml(
@@ -547,6 +702,60 @@ export function renderPlannerAnalyticsHtml(
     })
     .join("");
 
+  const activeCountry = data.filter.country;
+  const minPlans = data.filter.minPlansForCountryBreakdown;
+
+  const countryOptionsHtml = data.countries
+    .map((c) => {
+      const selected = c === activeCountry ? " selected" : "";
+      return `<option value="${escapeHtml(c)}"${selected}>${escapeHtml(
+        titleCaseCountry(c),
+      )}</option>`;
+    })
+    .join("");
+
+  const emptyMessage = activeCountry
+    ? `No plans started yet for ${escapeHtml(titleCaseCountry(activeCountry))}.`
+    : `No countries have at least ${minPlans} plan${
+        minPlans === 1 ? "" : "s"
+      } started yet.`;
+  const byCountryRowsHtml = data.byCountry.length
+    ? data.byCountry
+        .map((row) => {
+          const medianCell =
+            row.medianDaysToCompletion === null
+              ? "—"
+              : `${row.medianDaysToCompletion.toFixed(1)} days`;
+          const filterHref = `/admin/planner-analytics?country=${encodeURIComponent(
+            row.country,
+          )}`;
+          const countryCell = activeCountry
+            ? escapeHtml(titleCaseCountry(row.country))
+            : `<a href="${escapeHtml(filterHref)}">${escapeHtml(
+                titleCaseCountry(row.country),
+              )}</a>`;
+          return `
+      <tr>
+        <td>${countryCell}</td>
+        <td class="num">${row.plansStarted.toLocaleString()}</td>
+        <td class="num">${row.plansCompleted.toLocaleString()}</td>
+        <td class="num">${row.completionRatePct.toFixed(1)}%</td>
+        <td class="num">${escapeHtml(medianCell)}</td>
+      </tr>`;
+        })
+        .join("")
+    : `<tr><td colspan="5" class="empty">${emptyMessage}</td></tr>`;
+
+  const filterBadge = activeCountry
+    ? `<span class="badge">Filtered to <strong>${escapeHtml(
+        titleCaseCountry(activeCountry),
+      )}</strong> · <a href="/admin/planner-analytics">clear</a></span>`
+    : `<span class="badge muted">All countries</span>`;
+
+  const jsonHref = activeCountry
+    ? `/api/admin/planner-analytics?country=${encodeURIComponent(activeCountry)}`
+    : `/api/admin/planner-analytics`;
+
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -562,7 +771,7 @@ export function renderPlannerAnalyticsHtml(
     }
     h1 { margin: 0 0 4px; font-size: 22px; }
     h2 { margin: 32px 0 12px; font-size: 16px; text-transform: uppercase; letter-spacing: 0.04em; color: #555; }
-    .meta { color: #666; font-size: 12px; margin-bottom: 24px; }
+    .meta { color: #666; font-size: 12px; margin-bottom: 16px; }
     .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
     .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 10px; padding: 16px; }
     .card .label { color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -574,9 +783,33 @@ export function renderPlannerAnalyticsHtml(
     th { background: #f6f6f6; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: #555; }
     tr:last-child td { border-bottom: none; }
     .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .empty { text-align: center; color: #777; font-style: italic; }
     code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
     a { color: #0a66c2; }
     .nav { font-size: 12px; margin-bottom: 16px; }
+    .filter-bar {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      background: #fff; border: 1px solid #e5e5e5; border-radius: 10px;
+      padding: 12px 16px; margin: 16px 0 24px;
+    }
+    .filter-bar form { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .filter-bar label { font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 0.04em; }
+    .filter-bar select {
+      font: inherit; padding: 6px 10px; border-radius: 6px;
+      border: 1px solid #d0d0d0; background: #fff; color: #111;
+    }
+    .filter-bar button {
+      font: inherit; padding: 6px 12px; border-radius: 6px;
+      border: 1px solid #0a66c2; background: #0a66c2; color: #fff; cursor: pointer;
+    }
+    .filter-bar button.secondary {
+      background: #fff; color: #0a66c2;
+    }
+    .badge {
+      display: inline-block; padding: 4px 10px; border-radius: 999px;
+      background: #e8f0fe; color: #0a66c2; font-size: 12px;
+    }
+    .badge.muted { background: #f0f0f0; color: #555; }
   </style>
 </head>
 <body>
@@ -584,8 +817,21 @@ export function renderPlannerAnalyticsHtml(
   <h1>Planner completion analytics</h1>
   <p class="meta">
     Aggregated from <code>user_progress</code>. Generated ${escapeHtml(data.generatedAt)}.
-    Equivalent JSON at <a href="/api/admin/planner-analytics"><code>/api/admin/planner-analytics</code></a>.
+    Equivalent JSON at <a href="${escapeHtml(jsonHref)}"><code>${escapeHtml(jsonHref)}</code></a>.
   </p>
+
+  <div class="filter-bar">
+    <form method="get" action="/admin/planner-analytics">
+      <label for="country">Country</label>
+      <select id="country" name="country">
+        <option value="">All countries</option>
+        ${countryOptionsHtml}
+      </select>
+      <button type="submit">Apply</button>
+      ${activeCountry ? `<a href="/admin/planner-analytics"><button type="button" class="secondary">Clear</button></a>` : ""}
+    </form>
+    ${filterBadge}
+  </div>
 
   <div class="cards">
     <div class="card">
@@ -652,6 +898,27 @@ export function renderPlannerAnalyticsHtml(
     </thead>
     <tbody>${stageRowsHtml}</tbody>
   </table>
+
+  <h2>Breakdown by country</h2>
+  <p class="meta">
+    ${
+      activeCountry
+        ? `Showing only <strong>${escapeHtml(titleCaseCountry(activeCountry))}</strong> because the country filter is active. Clear the filter to compare every country side by side.`
+        : `Includes any country with at least ${minPlans} plan${minPlans === 1 ? "" : "s"} started — adjust via <code>?minPlans=N</code>. Click a country name to drill in.`
+    }
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>Country</th>
+        <th class="num">Plans started</th>
+        <th class="num">Reached 100%</th>
+        <th class="num">% reaching 100%</th>
+        <th class="num">Median time-to-100%</th>
+      </tr>
+    </thead>
+    <tbody>${byCountryRowsHtml}</tbody>
+  </table>
 </body>
 </html>`;
 }
@@ -686,7 +953,9 @@ export function renderAdminIndexHtml(): string {
       <a href="/admin/planner-analytics">Planner completion analytics</a>
       <div class="desc">
         Completion rate per step, % of users reaching 100%, median days to
-        completion, and drop-off by planner stage. JSON at
+        completion, and drop-off by planner stage. Includes a per-country
+        breakdown and a <code>?country=</code> filter to narrow the totals
+        to a single country. JSON at
         <code>/api/admin/planner-analytics</code>.
       </div>
     </li>
@@ -700,6 +969,25 @@ export function renderAdminIndexHtml(): string {
   </ul>
 </body>
 </html>`;
+}
+
+function readQueryString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function readQueryNumber(value: unknown): number | undefined {
+  if (typeof value !== "string") return undefined;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function readPlannerAnalyticsOptions(req: Request): PlannerAnalyticsOptions {
+  return {
+    country: readQueryString(req.query.country),
+    minPlansForCountryBreakdown: readQueryNumber(req.query.minPlans),
+  };
 }
 
 export function registerPlannerAnalyticsRoutes(
@@ -717,7 +1005,10 @@ export function registerPlannerAnalyticsRoutes(
       return;
     }
     try {
-      const data = await computePlannerAnalytics(pool);
+      const data = await computePlannerAnalytics(
+        pool,
+        readPlannerAnalyticsOptions(req),
+      );
       res.json(data);
     } catch (err: any) {
       console.error("Planner analytics error:", err?.message);
@@ -740,7 +1031,10 @@ export function registerPlannerAnalyticsRoutes(
       return;
     }
     try {
-      const data = await computePlannerAnalytics(pool);
+      const data = await computePlannerAnalytics(
+        pool,
+        readPlannerAnalyticsOptions(req),
+      );
       res.type("text/html").send(renderPlannerAnalyticsHtml(data));
     } catch (err: any) {
       console.error("Planner analytics HTML error:", err?.message);
