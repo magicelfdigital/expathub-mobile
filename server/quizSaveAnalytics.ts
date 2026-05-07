@@ -127,11 +127,28 @@ export interface EmailGateMetrics {
   unavailable: boolean;
 }
 
+export interface WeeklyMetrics {
+  // Monday of the ISO week, formatted YYYY-MM-DD.
+  weekStart: string;
+  shown: number;
+  submitted: number;
+  dismissed: number;
+  // submitted ÷ shown — null when shown is 0 so the UI can render "—".
+  recoveryRate: number | null;
+}
+
 export interface QuizSaveAnalytics {
   windowDays: number;
   totals: SurfaceMetrics;
   bySurface: Record<Surface, SurfaceMetrics>;
   emailGate: EmailGateMetrics;
+  // ISO-week buckets, oldest-first, covering the most recent 8 weeks
+  // (inclusive of the current in-progress week). Weeks with no events
+  // still appear as explicit zero rows so a quiet week doesn't silently
+  // disappear and hide a regression. Independent of `windowDays`: this
+  // series always covers 8 weeks regardless of the dashboard window so
+  // trends stay comparable across visits with different ?days= values.
+  weekly: WeeklyMetrics[];
 }
 
 function metricsRow(rows: Array<{ event: string; n: string | number }>): SurfaceMetrics {
@@ -232,7 +249,56 @@ export async function computeQuizSaveAnalytics(
     };
   }
 
-  return { windowDays, totals, bySurface, emailGate };
+  // Weekly time series: bucket events by the ISO week of their created_at,
+  // restricted to the most recent 8 weeks (Monday..Sunday, inclusive of the
+  // current in-progress week). We left-join against a generated 8-row series
+  // so weeks with zero events still appear as explicit zero rows — otherwise
+  // a quiet week would silently disappear from the dashboard and hide a
+  // regression. date_trunc('week', ...) in Postgres uses ISO week semantics
+  // (Monday-start). This always covers 8 weeks regardless of the dashboard
+  // `windowDays` filter so the trend chart stays comparable across visits.
+  const weeklyResult = await pool.query<{
+    week_start: string;
+    shown: string | number;
+    submitted: string | number;
+    dismissed: string | number;
+  }>(
+    `WITH weeks AS (
+       SELECT (date_trunc('week', NOW())::date
+                 - (n * INTERVAL '7 days'))::date AS week_start
+         FROM generate_series(0, 7) AS n
+     ),
+     per_week AS (
+       SELECT date_trunc('week', created_at)::date AS week_start,
+              COUNT(*) FILTER (WHERE event = 'quiz_save_shown')::int     AS shown,
+              COUNT(*) FILTER (WHERE event = 'quiz_save_submitted')::int AS submitted,
+              COUNT(*) FILTER (WHERE event = 'quiz_save_dismissed')::int AS dismissed
+         FROM quiz_save_events
+        WHERE created_at >= date_trunc('week', NOW()) - INTERVAL '7 weeks'
+        GROUP BY 1
+     )
+     SELECT to_char(w.week_start, 'YYYY-MM-DD')   AS week_start,
+            COALESCE(p.shown, 0)::int             AS shown,
+            COALESCE(p.submitted, 0)::int         AS submitted,
+            COALESCE(p.dismissed, 0)::int         AS dismissed
+       FROM weeks w
+       LEFT JOIN per_week p ON p.week_start = w.week_start
+      ORDER BY w.week_start ASC`,
+  );
+  const weekly: WeeklyMetrics[] = weeklyResult.rows.map((row) => {
+    const shown = Number(row.shown) || 0;
+    const submitted = Number(row.submitted) || 0;
+    const dismissed = Number(row.dismissed) || 0;
+    return {
+      weekStart: String(row.week_start),
+      shown,
+      submitted,
+      dismissed,
+      recoveryRate: shown > 0 ? submitted / shown : null,
+    };
+  });
+
+  return { windowDays, totals, bySurface, emailGate, weekly };
 }
 
 function escapeHtml(value: string): string {
@@ -262,8 +328,143 @@ function metricsCells(m: SurfaceMetrics): string {
   `;
 }
 
+function renderWeeklyChartSvg(weeks: WeeklyMetrics[]): string {
+  // Compact inline SVG so the dashboard stays a single static HTML file (no
+  // chart library, no JS). Two stacked bars per week (impressions + submitted)
+  // plus a recovery-rate line on a secondary axis.
+  const width = 720;
+  const height = 220;
+  const padLeft = 44;
+  const padRight = 44;
+  const padTop = 16;
+  const padBottom = 36;
+  const innerW = width - padLeft - padRight;
+  const innerH = height - padTop - padBottom;
+  const n = weeks.length;
+  const maxShown = Math.max(1, ...weeks.map((w) => w.shown));
+  const slot = innerW / Math.max(n, 1);
+  const barW = Math.max(6, Math.min(28, slot * 0.55));
+
+  const yBar = (v: number) => padTop + innerH - (v / maxShown) * innerH;
+  const xCenter = (i: number) => padLeft + slot * (i + 0.5);
+  const yRate = (r: number | null) =>
+    r === null ? null : padTop + innerH - r * innerH;
+
+  const bars = weeks
+    .map((w, i) => {
+      const cx = xCenter(i);
+      const shownTop = yBar(w.shown);
+      const submittedTop = yBar(w.submitted);
+      const baseY = padTop + innerH;
+      return `
+      <g>
+        <rect x="${cx - barW / 2}" y="${shownTop}" width="${barW}" height="${baseY - shownTop}" fill="#cfe1f7" rx="2"><title>${escapeHtml(
+          w.weekStart,
+        )}: ${fmtInt(w.shown)} shown</title></rect>
+        <rect x="${cx - barW / 2}" y="${submittedTop}" width="${barW}" height="${baseY - submittedTop}" fill="#0a66c2" rx="2"><title>${escapeHtml(
+          w.weekStart,
+        )}: ${fmtInt(w.submitted)} submitted</title></rect>
+      </g>`;
+    })
+    .join("");
+
+  // Recovery-rate line: skip weeks where shown=0 (no rate). Draw segments
+  // between consecutive weeks that both have a rate so a gap of inactivity
+  // doesn't fake a "drop to 0%".
+  const linePoints = weeks.map((w, i) => ({
+    x: xCenter(i),
+    y: yRate(w.recoveryRate),
+    rate: w.recoveryRate,
+    weekStart: w.weekStart,
+  }));
+  const segments: string[] = [];
+  for (let i = 1; i < linePoints.length; i++) {
+    const a = linePoints[i - 1];
+    const b = linePoints[i];
+    if (a.y !== null && b.y !== null) {
+      segments.push(
+        `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#d97706" stroke-width="2" />`,
+      );
+    }
+  }
+  const dots = linePoints
+    .filter((p) => p.y !== null)
+    .map(
+      (p) =>
+        `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="#d97706"><title>${escapeHtml(
+          p.weekStart,
+        )}: ${fmtPct(p.rate)} recovery</title></circle>`,
+    )
+    .join("");
+
+  // X-axis labels: short MM-DD so 8 of them fit comfortably.
+  const xLabels = weeks
+    .map((w, i) => {
+      const short = w.weekStart.slice(5); // MM-DD
+      return `<text x="${xCenter(i)}" y="${
+        padTop + innerH + 18
+      }" text-anchor="middle" font-size="10" fill="#666">${escapeHtml(short)}</text>`;
+    })
+    .join("");
+
+  // Y-axis labels: counts on the left, percent on the right. Keep it light
+  // — just min/mid/max ticks so the chart stays readable at this size.
+  const yTicks = [0, 0.5, 1].map((frac) => {
+    const y = padTop + innerH - frac * innerH;
+    const count = Math.round(maxShown * frac);
+    const pct = `${Math.round(frac * 100)}%`;
+    return `
+      <line x1="${padLeft}" y1="${y}" x2="${padLeft + innerW}" y2="${y}" stroke="#eee" stroke-width="1" />
+      <text x="${padLeft - 6}" y="${y + 3}" text-anchor="end" font-size="10" fill="#666">${fmtInt(count)}</text>
+      <text x="${padLeft + innerW + 6}" y="${y + 3}" text-anchor="start" font-size="10" fill="#d97706">${pct}</text>
+    `;
+  }).join("");
+
+  return `
+  <svg viewBox="0 0 ${width} ${height}" width="100%" role="img" aria-label="Weekly save-prompt impressions, submissions, and recovery rate" style="background:#fff;border:1px solid #e5e5e5;border-radius:10px">
+    ${yTicks}
+    ${bars}
+    ${segments.join("")}
+    ${dots}
+    ${xLabels}
+  </svg>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#555">
+    <span><span style="display:inline-block;width:10px;height:10px;background:#cfe1f7;border-radius:2px;vertical-align:middle"></span> Shown</span>
+    <span><span style="display:inline-block;width:10px;height:10px;background:#0a66c2;border-radius:2px;vertical-align:middle"></span> Submitted</span>
+    <span><span style="display:inline-block;width:14px;height:2px;background:#d97706;vertical-align:middle"></span> Recovery rate</span>
+  </div>`;
+}
+
+function renderWeeklyTable(weeks: WeeklyMetrics[]): string {
+  const rows = weeks
+    .map(
+      (w) => `
+      <tr>
+        <td><code>${escapeHtml(w.weekStart)}</code></td>
+        <td style="text-align:right">${fmtInt(w.shown)}</td>
+        <td style="text-align:right">${fmtInt(w.submitted)}</td>
+        <td style="text-align:right">${fmtInt(w.dismissed)}</td>
+        <td style="text-align:right"><strong>${fmtPct(w.recoveryRate)}</strong></td>
+      </tr>`,
+    )
+    .join("");
+  return `
+  <table>
+    <thead>
+      <tr>
+        <th>Week starting (Mon)</th>
+        <th style="text-align:right">Shown</th>
+        <th style="text-align:right">Submitted</th>
+        <th style="text-align:right">Dismissed</th>
+        <th style="text-align:right">Recovery rate</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
 export function renderQuizSaveAnalyticsHtml(data: QuizSaveAnalytics): string {
-  const { totals, bySurface, emailGate, windowDays } = data;
+  const { totals, bySurface, emailGate, windowDays, weekly } = data;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -302,6 +503,11 @@ export function renderQuizSaveAnalyticsHtml(data: QuizSaveAnalytics): string {
       )
       .join("")}
   </div>
+
+  <h2>Weekly trend (last 8 weeks)</h2>
+  <p class="desc">Always covers the most recent 8 ISO weeks (Mon–Sun) regardless of the window above, so trends remain comparable as you change the filter. Bars use the left axis (counts); the line uses the right axis (recovery rate).</p>
+  ${renderWeeklyChartSvg(weekly)}
+  ${renderWeeklyTable(weekly)}
 
   <h2>Save-prompt funnel by surface</h2>
   <p class="desc">Mobile fires the same event names mid-quiz from <code>app/onboarding/quiz.tsx</code>; web fires them from <code>web/src/components/QuizSaveModal.tsx</code>.</p>

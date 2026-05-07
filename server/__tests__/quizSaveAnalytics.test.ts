@@ -146,8 +146,23 @@ describe("computeQuizSaveAnalytics", () => {
       { source: null, n: "5" },
     ];
 
+    const weeklyRows = [
+      { week_start: "2026-03-09", shown: 0, submitted: 0, dismissed: 0 },
+      { week_start: "2026-03-16", shown: 0, submitted: 0, dismissed: 0 },
+      { week_start: "2026-03-23", shown: 10, submitted: 1, dismissed: 8 },
+      { week_start: "2026-03-30", shown: 20, submitted: 4, dismissed: 14 },
+      { week_start: "2026-04-06", shown: 30, submitted: 6, dismissed: 22 },
+      { week_start: "2026-04-13", shown: 25, submitted: 5, dismissed: 18 },
+      { week_start: "2026-04-20", shown: 40, submitted: 7, dismissed: 30 },
+      { week_start: "2026-04-27", shown: 25, submitted: 2, dismissed: 18 },
+    ];
+
     const { pool } = makeFakePool((call) => {
       if (/CREATE TABLE/.test(call.text)) return { rows: [] };
+      // The weekly bucket query also reads from quiz_save_events but selects
+      // a different shape (week_start/shown/submitted/dismissed), so match it
+      // first via its CTE name before falling through to the totals query.
+      if (/per_week/.test(call.text)) return { rows: weeklyRows };
       if (/FROM quiz_save_events/.test(call.text)) return { rows: eventRows };
       if (/FROM quiz_leads/.test(call.text)) return { rows: leadRows };
       return { rows: [] };
@@ -181,6 +196,25 @@ describe("computeQuizSaveAnalytics", () => {
       saveShareOfCaptures: 20 / 85,
       unavailable: false,
     });
+    // Weekly buckets: 8 rows oldest-first, recoveryRate computed per week
+    // and null when shown is 0 so a quiet week renders as "—" instead of 0%.
+    expect(result.weekly).toHaveLength(8);
+    expect(result.weekly[0]).toEqual({
+      weekStart: "2026-03-09",
+      shown: 0,
+      submitted: 0,
+      dismissed: 0,
+      recoveryRate: null,
+    });
+    expect(result.weekly[2]).toEqual({
+      weekStart: "2026-03-23",
+      shown: 10,
+      submitted: 1,
+      dismissed: 8,
+      recoveryRate: 0.1,
+    });
+    expect(result.weekly[7].weekStart).toBe("2026-04-27");
+    expect(result.weekly[7].recoveryRate).toBeCloseTo(2 / 25);
   });
 
   it("returns null recoveryRate / saveShare when there's no data", async () => {
