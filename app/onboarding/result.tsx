@@ -19,6 +19,15 @@ import { getApiUrl } from "@/lib/query-client";
 import { getBackendBase } from "@/src/billing/backendClient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setUserAttributes } from "@/src/subscriptions/revenuecat";
+import {
+  buildLeadSavePayload,
+  buildResultCtaPayload,
+  deriveResultFirstName,
+  getResultFillPercent,
+  groupBlockersByLevel,
+  isValidResultEmail,
+  shouldShowPaywallAfterUrgent,
+} from "@/src/onboarding/resultFlow";
 
 const READINESS_COLORS: Record<ReadinessLevel, string> = {
   just_getting_started: "#9BA8C0",
@@ -111,13 +120,10 @@ export default function ResultScreen() {
 
       // Persist quiz attributes for personalized paywall + RC analytics
       const topCountry = result.topMatch?.slug ?? null;
-      const firstNameRaw = answers.firstName ?? answers.first_name ?? null;
-      const firstName: string | null =
-        typeof firstNameRaw === "string" && firstNameRaw.trim().length > 0
-          ? firstNameRaw.trim()
-          : user?.email
-            ? user.email.split("@")[0]
-            : null;
+      const firstName = deriveResultFirstName({
+        answers,
+        userEmail: user?.email ?? null,
+      });
 
       (async () => {
         try {
@@ -139,13 +145,12 @@ export default function ResultScreen() {
   }, [result, readiness, answers, user?.email]);
 
   const tierColor = READINESS_COLORS[readiness.level];
-  const fillPct = Math.max(0, Math.min(100, (result.score / Math.max(1, maxScore)) * 100));
+  const fillPct = getResultFillPercent(result.score, maxScore);
 
-  const grouped = useMemo(() => {
-    const g: Record<BlockerLevel, Blocker[]> = { critical: [], moderate: [], explore: [] };
-    for (const b of result.blockers) g[b.level].push(b);
-    return g;
-  }, [result.blockers]);
+  const grouped = useMemo(
+    () => groupBlockersByLevel(result.blockers),
+    [result.blockers],
+  );
 
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
@@ -154,11 +159,11 @@ export default function ResultScreen() {
 
   const handleEmailResults = async () => {
     const addr = email;
-    if (!addr || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr)) return;
+    if (!isValidResultEmail(addr)) return;
     setEmailSending(true);
     try {
       const base = getBaseUrl();
-      await fetch(`${base}/api/readiness-lead`, {
+      const res = await fetch(`${base}/api/readiness-lead`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -173,20 +178,46 @@ export default function ResultScreen() {
           answers,
         }),
       });
-      setEmailSent(true);
-      trackEvent("readiness_lead_saved", { readiness_level: readiness.level, score: result.score });
+      // Only mark "sent" and fire the funnel event if the backend
+      // actually accepted the lead. A 4xx/5xx must NOT count as a saved
+      // lead (would over-report conversions in PostHog and confuse the
+      // user with a "we got it" UI when we didn't).
+      if (res?.ok) {
+        setEmailSent(true);
+        trackEvent(
+          "readiness_lead_saved",
+          buildLeadSavePayload({
+            readinessLevel: readiness.level,
+            score: result.score,
+          }),
+        );
+      }
     } catch {} finally { setEmailSending(false); }
   };
 
   const handleCreateAccount = async () => {
     await completeOnboarding(result, false);
-    trackEvent("quiz_completed", { readiness_level: readiness.level, score: result.score, action: "create_account" });
+    trackEvent(
+      "quiz_completed",
+      buildResultCtaPayload({
+        action: "create_account",
+        readinessLevel: readiness.level,
+        score: result.score,
+      }),
+    );
     router.replace("/auth?mode=register");
   };
 
   const handleContinue = async () => {
     await completeOnboarding(result, true);
-    trackEvent("quiz_completed", { readiness_level: readiness.level, score: result.score, action: "continue" });
+    trackEvent(
+      "quiz_completed",
+      buildResultCtaPayload({
+        action: "continue",
+        readinessLevel: readiness.level,
+        score: result.score,
+      }),
+    );
     router.replace("/(tabs)/(home)");
   };
 
@@ -279,7 +310,7 @@ export default function ResultScreen() {
     </Pressable>
   );
 
-  const showPaywallAfterUrgent = grouped.critical.length > 0 || grouped.moderate.length > 0;
+  const showPaywallAfterUrgent = shouldShowPaywallAfterUrgent(result.blockers);
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>

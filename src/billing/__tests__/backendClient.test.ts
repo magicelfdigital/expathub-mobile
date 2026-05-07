@@ -154,16 +154,16 @@ describe("createBackendClient — route structure", () => {
     expect(headers["Content-Type"]).toBe("application/json");
   });
 
-  it("returns empty entitlements on non-OK response for getEntitlements", async () => {
+  it("throws on a non-OK response for getEntitlements so EntitlementContext.refresh hits its fail-closed catch path", async () => {
     (global as any).fetch = jest.fn(async () => ({
       ok: false,
       status: 401,
       text: async () => "Unauthorized",
     }));
 
-    const result = await client.getEntitlements(MOCK_USER_ID);
-    expect(result.hasFullAccess).toBe(false);
-    expect(result.subscription).toBeNull();
+    await expect(client.getEntitlements(MOCK_USER_ID)).rejects.toThrow(
+      /Backend entitlements failed: 401/,
+    );
   });
 
   it("throws on non-OK response for refreshMobileBilling", async () => {

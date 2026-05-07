@@ -23,6 +23,7 @@ import { getBackendClientInstance } from "@/src/billing";
 import type { BackendEntitlements } from "@/src/billing";
 import { hasEntitlement } from "@/src/billing";
 import { shouldRefresh as cooldownAllows, recordRefresh } from "@/src/billing/refreshCooldown";
+import { deriveEntitlement } from "@/src/contexts/entitlementDerivation";
 
 type EntitlementSource = "revenuecat" | "stripe" | "sandbox" | "none" | "reverse_trial";
 type AccessType = "subscription" | "sandbox" | "none" | "reverse_trial";
@@ -320,27 +321,23 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     return () => { mounted = false; };
   }, [refresh]);
 
-  const devBypass = __DEV__ && ((SANDBOX_ENABLED && sandboxOverride) || promoCodeActive);
-  const effectiveHasFullAccess = devBypass ? true : hasFullAccess || reverseTrialActive;
-  const effectiveHasProAccess = devBypass ? true : hasProAccess || reverseTrialActive;
-  const effectiveAccessType: AccessType = devBypass
-    ? "sandbox"
-    : hasFullAccess
-      ? accessType
-      : reverseTrialActive
-        ? "reverse_trial"
-        : accessType;
-  const effectiveSource: EntitlementSource = devBypass
-    ? "sandbox"
-    : hasFullAccess
-      ? source
-      : reverseTrialActive
-        ? "reverse_trial"
-        : source;
-  const effectiveExpirationDate =
-    !hasFullAccess && reverseTrialActive && reverseTrialExpiresAt
-      ? new Date(reverseTrialExpiresAt).toISOString()
-      : expirationDate;
+  const derived = deriveEntitlement({
+    isDev: !!__DEV__,
+    sandboxOverrideActive: SANDBOX_ENABLED && sandboxOverride,
+    promoCodeActive,
+    hasFullAccess,
+    hasProAccess,
+    rawAccessType: accessType,
+    rawSource: source,
+    rawExpirationDate: expirationDate,
+    reverseTrialActive,
+    reverseTrialExpiresAt,
+  });
+  const effectiveHasFullAccess = derived.hasFullAccess;
+  const effectiveHasProAccess = derived.hasProAccess;
+  const effectiveAccessType: AccessType = derived.accessType;
+  const effectiveSource: EntitlementSource = derived.source;
+  const effectiveExpirationDate = derived.expirationDate;
 
   const value = useMemo<EntitlementContextValue>(
     () => ({

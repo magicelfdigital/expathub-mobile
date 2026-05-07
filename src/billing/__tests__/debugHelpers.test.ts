@@ -199,7 +199,7 @@ describe("debugFetchEntitlements", () => {
     expect(log[0].result).toBe("success");
   });
 
-  it("returns error on failure and logs it", async () => {
+  it("returns success=false with the underlying error message when getEntitlements throws on non-OK", async () => {
     (global as any).fetch = jest.fn(async () => ({
       ok: false,
       status: 401,
@@ -208,8 +208,9 @@ describe("debugFetchEntitlements", () => {
     process.env.EXPO_PUBLIC_BACKEND_URL = "https://test.example.com";
 
     const result = await debugFetchEntitlements(() => "tok", "42", null);
-    expect(result.success).toBe(true);
-    expect(result.entitlements?.hasFullAccess).toBe(false);
+    expect(result.success).toBe(false);
+    expect(result.entitlements).toBeNull();
+    expect(result.error).toMatch(/Backend entitlements failed: 401/);
   });
 });
 

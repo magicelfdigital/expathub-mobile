@@ -71,7 +71,11 @@ export function createBackendClient(getToken: () => string | null): BackendClien
 
       if (!res.ok) {
         billingLog(`getEntitlements failed: ${res.status}`);
-        return EMPTY_ENTITLEMENTS;
+        // Surface as a thrown error so the caller (EntitlementContext.refresh)
+        // hits its fail-closed catch path explicitly rather than silently
+        // accepting an empty-entitlements response that's indistinguishable
+        // from a legitimate "user has no subscription" response.
+        throw new Error(`Backend entitlements failed: ${res.status}`);
       }
 
       const data = await res.json();

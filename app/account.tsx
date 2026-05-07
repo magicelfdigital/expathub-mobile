@@ -17,6 +17,7 @@ import { FREE_TIER_DISPLAY_NAME, PAID_TIER_DISPLAY_NAME } from "@/constants/tier
 import { getOrchestrator, clearRefreshCooldown } from "@/src/billing";
 import { EntitlementPollingTimeoutError } from "@/src/billing/errors";
 import { getReadinessLabel, MAX_SCORE } from "@/src/data/quiz";
+import { getReadinessBadgeColor, getReadinessFillPercent } from "@/src/data/readinessUi";
 import { usePlan } from "@/src/contexts/PlanContext";
 import { useProgressPercent } from "@/src/hooks/useProgress";
 import { getCountries, getCountry, getPathways, isLaunchCountry, sortCountriesAlpha } from "@/src/data";
@@ -498,13 +499,8 @@ export default function AccountScreen() {
       {quizResult ? (() => {
         const qrMax = quizResult.maxScore ?? MAX_SCORE;
         const qrReadiness = quizResult.readiness ?? getReadinessLabel(quizResult.score, qrMax);
-        const badgeColor =
-          qrReadiness.level === "ready_to_plan" || qrReadiness.level === "serious_researcher"
-            ? tokens.color.teal
-            : qrReadiness.level === "curious_explorer"
-              ? tokens.color.primary
-              : "#9BA8C0";
-        const fillPct = Math.max(0, Math.min(100, (quizResult.score / Math.max(1, qrMax)) * 100));
+        const badgeColor = getReadinessBadgeColor(qrReadiness.level);
+        const fillPct = getReadinessFillPercent(quizResult.score, qrMax);
         return (
         <View style={s.card}>
           <Text style={[s.rowLabel, { marginBottom: 12 }]}>Relocation readiness</Text>

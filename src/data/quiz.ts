@@ -186,8 +186,13 @@ const WEIGHTED_MAX = 19;
 export const MAX_SCORE = 16;
 
 export function getReadinessLabel(score: number, maxScore: number = MAX_SCORE): ReadinessLabel {
-  const safeMax = maxScore > 0 ? maxScore : MAX_SCORE;
-  const pct = (score / safeMax) * 100;
+  // Defensive: undefined / NaN inputs from legacy persisted state must
+  // not crash and must not bucket as "ready_to_plan" via NaN-comparison
+  // fall-through. Treat any non-finite score as 0.
+  const safeScore = Number.isFinite(score) ? score : 0;
+  const safeMax =
+    Number.isFinite(maxScore) && maxScore > 0 ? maxScore : MAX_SCORE;
+  const pct = (safeScore / safeMax) * 100;
   if (pct <= 25) {
     return {
       level: "just_getting_started",

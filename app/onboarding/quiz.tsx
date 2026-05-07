@@ -7,11 +7,15 @@ import { QUIZ_QUESTIONS, TIMELINE_CALLOUTS, type QuizAnswer, type TimelineTone }
 import { QuizSaveModal } from "@/src/components/QuizSaveModal";
 import { tokens } from "@/theme/tokens";
 import { trackEvent } from "@/src/lib/analytics";
+import {
+  buildQuizAnsweredPayload,
+  decideQuizAdvance,
+  shouldDeferAdvanceForTimeline,
+  shouldFireAbandonment,
+  TIMELINE_QUESTION_ID,
+} from "@/src/onboarding/quizFlow";
 
 const TOTAL = QUIZ_QUESTIONS.length;
-const SAVE_PROMPT_TRIGGER_INDEX = 4; // After Q5
-const SAVE_PROMPT_NO_THRESHOLD = 3;
-const TIMELINE_QUESTION_ID = 8;
 
 const CALLOUT_TONE_COLORS: Record<TimelineTone, { bg: string; border: string; fg: string }> = {
   green: { bg: "rgba(46, 160, 105, 0.10)", border: "rgba(46, 160, 105, 0.35)", fg: "#1F7A4D" },
@@ -49,7 +53,13 @@ export default function QuizScreen() {
     }
     return () => {
       const answeredCount = Object.keys(answersRef.current).length;
-      if (!completedRef.current && answeredCount > 0 && answeredCount < TOTAL) {
+      if (
+        shouldFireAbandonment({
+          answeredCount,
+          total: TOTAL,
+          completed: completedRef.current,
+        })
+      ) {
         trackEvent("quiz_abandoned", {
           lastQuestionIndex: lastIndexRef.current,
           answered: answeredCount,
@@ -81,30 +91,33 @@ export default function QuizScreen() {
 
   const advanceFromAnswers = useCallback(
     (newAnswers: Record<number, string>) => {
-      if (currentIndex < TOTAL - 1) {
-        const noCount = Object.values(newAnswers).filter((v) => v === "no").length;
-        const shouldPrompt =
-          currentIndex === SAVE_PROMPT_TRIGGER_INDEX &&
-          noCount >= SAVE_PROMPT_NO_THRESHOLD &&
-          !savePromptShownRef.current;
-
-        if (shouldPrompt) {
-          savePromptShownRef.current = true;
-          setSavePromptNoCount(noCount);
-          setSavePromptVisible(true);
-          trackEvent("quiz_save_shown", { questionIndex: currentIndex, noCount });
-          return;
-        }
-
-        animateTransition("forward", () => setCurrentIndex(currentIndex + 1));
-      } else {
-        completedRef.current = true;
-        trackEvent("quiz_completed", { totalQuestions: TOTAL });
-        router.push({
-          pathname: "/onboarding/result",
-          params: { answers: JSON.stringify(newAnswers) },
+      const decision = decideQuizAdvance({
+        currentIndex,
+        total: TOTAL,
+        answers: newAnswers,
+        savePromptAlreadyShown: savePromptShownRef.current,
+      });
+      if (decision.kind === "save_prompt") {
+        savePromptShownRef.current = true;
+        setSavePromptNoCount(decision.noCount);
+        setSavePromptVisible(true);
+        trackEvent("quiz_save_shown", {
+          questionIndex: currentIndex,
+          noCount: decision.noCount,
         });
+        return;
       }
+      if (decision.kind === "next") {
+        animateTransition("forward", () => setCurrentIndex(currentIndex + 1));
+        return;
+      }
+      // finish
+      completedRef.current = true;
+      trackEvent("quiz_completed", { totalQuestions: TOTAL });
+      router.push({
+        pathname: "/onboarding/result",
+        params: { answers: JSON.stringify(newAnswers) },
+      });
     },
     [currentIndex, animateTransition, router],
   );
@@ -115,15 +128,18 @@ export default function QuizScreen() {
     const newAnswers = { ...answers, [questionId]: value };
     setAnswers(newAnswers);
 
-    trackEvent("quiz_question_answered", {
-      questionId,
-      questionIndex: currentIndex,
-      category: q.category,
-      answer: value,
-    });
+    trackEvent(
+      "quiz_question_answered",
+      buildQuizAnsweredPayload({
+        questionId,
+        questionIndex: currentIndex,
+        category: q.category,
+        answer: value,
+      }),
+    );
 
     // Timeline question: don't auto-advance — show inline callout + Next button.
-    if (questionId === TIMELINE_QUESTION_ID) {
+    if (shouldDeferAdvanceForTimeline(questionId)) {
       return;
     }
 

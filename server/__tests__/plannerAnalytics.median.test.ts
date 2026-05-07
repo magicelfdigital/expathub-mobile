@@ -26,6 +26,19 @@ function makeComputePool(perPlanRow: {
   const query = jest.fn(async (text: string) => {
     const trimmed = text.replace(/\s+/g, " ").trim();
     if (trimmed.startsWith("ALTER TABLE user_progress")) return { rows: [] };
+    if (trimmed.startsWith("DO $do$")) return { rows: [] };
+    if (trimmed.startsWith("CREATE TABLE IF NOT EXISTS schema_migrations"))
+      return { rows: [] };
+    if (trimmed.startsWith("SELECT name FROM schema_migrations"))
+      return { rows: [{ name: "user_progress_created_at_backfill" }] };
+    if (trimmed.startsWith("SELECT applied_at FROM schema_migrations"))
+      return { rows: [{ applied_at: new Date("2026-01-01T00:00:00Z") }] };
+    if (trimmed.startsWith("INSERT INTO schema_migrations"))
+      return { rows: [] };
+    if (trimmed.startsWith("UPDATE user_progress")) return { rowCount: 0 };
+    if (trimmed.startsWith("SELECT DISTINCT target_country")) return { rows: [] };
+    if (trimmed.startsWith("SELECT date_trunc")) return { rows: [] };
+    if (trimmed.startsWith("SELECT target_country")) return { rows: [] };
     if (
       trimmed.startsWith("SELECT created_at FROM user_progress") &&
       trimmed.includes("HAVING COUNT(*) >")
@@ -47,6 +60,8 @@ function baseData(
   return {
     generatedAt: "2026-04-28T12:00:00.000Z",
     totalSteps: 10,
+    filter: { country: null, minPlansForCountryBreakdown: 3 },
+    countries: [],
     totals: {
       plansStarted: 100,
       plansCompleted: 25,
@@ -59,6 +74,8 @@ function baseData(
     },
     stepCompletion: [],
     stageDropOff: [],
+    weekly: [],
+    byCountry: [],
   };
 }
 

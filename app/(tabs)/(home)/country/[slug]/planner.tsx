@@ -36,6 +36,10 @@ import {
   type GenericPlanStep,
   type PlanStageKey,
 } from "@/src/data/planSteps";
+import {
+  shouldFirePlannerCompleted,
+  shouldResetPlannerCompletionGuard,
+} from "@/src/data/plannerCompletion";
 import { getCountry, getPathways, isLaunchCountry } from "@/src/data";
 import { tokens } from "@/theme/tokens";
 import { PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
@@ -362,16 +366,18 @@ export default function PlannerScreen() {
   const firedConfettiRef = useRef(false);
   useEffect(() => {
     if (
-      percent === 100 &&
-      !firedConfettiRef.current &&
-      hasPlanForThisCountry &&
-      isPaidUser
+      shouldFirePlannerCompleted({
+        percent,
+        hasPlanForThisCountry,
+        isPaidUser,
+        alreadyFired: firedConfettiRef.current,
+      })
     ) {
       firedConfettiRef.current = true;
       setShowConfetti(true);
       trackEvent("planner_completed", { country: countrySlug });
     }
-    if (percent < 100) {
+    if (shouldResetPlannerCompletionGuard(percent)) {
       firedConfettiRef.current = false;
     }
   }, [percent, hasPlanForThisCountry, isPaidUser, countrySlug]);

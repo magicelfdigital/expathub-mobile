@@ -152,6 +152,9 @@ describe("renderPlannerAnalyticsHtml — Last 8 weeks table", () => {
       plansCompleted: 0,
       completionRatePct: 0,
       medianDaysToCompletion: null,
+      medianSampleSize: 0,
+      medianExcludedUnknownStart: 0,
+      medianExcludedUnknownStartPct: 0,
     },
     stepCompletion: [],
     stageDropOff: [],
@@ -255,12 +258,14 @@ describe("computePlannerAnalytics", () => {
     });
 
     it("returns the unfiltered totals", () => {
-      expect(result.totals).toEqual({
-        plansStarted: 10,
-        plansCompleted: 3,
-        completionRatePct: 30.0,
-        medianDaysToCompletion: 12.4,
-      });
+      expect(result.totals).toEqual(
+        expect.objectContaining({
+          plansStarted: 10,
+          plansCompleted: 3,
+          completionRatePct: 30.0,
+          medianDaysToCompletion: 12.4,
+        }),
+      );
     });
 
     it("does not pass a country parameter to the per-step query", () => {
@@ -479,9 +484,13 @@ describe("renderPlannerAnalyticsHtml", () => {
         plansCompleted: 3,
         completionRatePct: 30,
         medianDaysToCompletion: 12.4,
+        medianSampleSize: 3,
+        medianExcludedUnknownStart: 0,
+        medianExcludedUnknownStartPct: 0,
       },
       stepCompletion: [],
       stageDropOff: [],
+      weekly: [],
       byCountry: [
         {
           country: "portugal",
