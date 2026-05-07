@@ -5,6 +5,7 @@ import { Pressable, Text, View } from "react-native";
 import type { DecisionBrief, DisplayConfidenceLevel } from "@/src/data";
 import { trackEvent } from "@/src/lib/analytics";
 import { tokens } from "@/theme/tokens";
+import { FreshnessBanner } from "@/src/components/FreshnessBanner";
 
 type DecisionBriefCardProps = {
   brief: DecisionBrief;
@@ -126,6 +127,8 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
         <Text style={s.headline}>{brief.headline}</Text>
         <Text style={s.summary}>{brief.decisionSummary}</Text>
       </View>
+
+      <FreshnessBanner lastReviewedAt={brief.lastReviewedAt} />
 
       <View style={[s.confidenceBadge, { backgroundColor: conf.bg, borderColor: conf.border }]}>
         <Ionicons

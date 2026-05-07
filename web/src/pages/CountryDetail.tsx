@@ -2,6 +2,17 @@ import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import LockedSection from "@/components/LockedSection";
 import { useUser, userHasProAccess } from "@/hooks/useUser";
+import { getDecisionBrief } from "@brief-data";
+
+function formatReviewedDate(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ];
+  return `${months[d.getMonth()]} ${d.getFullYear()}`;
+}
 
 type CountryFact = {
   name: string;
@@ -37,7 +48,7 @@ const COUNTRY_FACTS: Record<string, CountryFact> = {
     brief:
       "Portugal still tops most lists, but the D7, D8 (digital nomad), and HQA visas now route applicants through very different timelines and tax outcomes.",
     highlights: [
-      "D8 Digital Nomad Visa requires ~€3,480/mo in remote income and grants a 5-year path to permanent residency.",
+      "D8 Digital Nomad Visa requires ~€3,680/mo in remote income (4× the 2026 Portuguese minimum wage) and grants a 5-year path to permanent residency.",
       "NHR 2.0 (the IFICI regime) replaced the old NHR — eligibility is now narrower and tied to qualifying scientific/tech roles.",
       "Lisbon rents have risen ~40% in 3 years; Porto, Braga, and the Silver Coast remain materially cheaper.",
     ],
@@ -144,6 +155,21 @@ export default function CountryDetail() {
           <p className="mt-1 text-[var(--color-ink-muted)]">{fact.region}</p>
         </div>
       </header>
+
+      {(() => {
+        const overviewBrief = slug ? getDecisionBrief(slug) : undefined;
+        if (!overviewBrief) return null;
+        return (
+          <p
+            data-testid="country-freshness-banner"
+            data-reviewed-at={overviewBrief.lastReviewedAt}
+            className="mt-4 inline-flex items-center gap-2 rounded-md border border-[var(--color-ink-muted)]/20 bg-[var(--color-bg)] px-3 py-2 text-xs text-[var(--color-ink-muted)]"
+          >
+            <span aria-hidden="true">ⓘ</span>
+            Information current as of {formatReviewedDate(overviewBrief.lastReviewedAt)} — verify with official sources before acting.
+          </p>
+        );
+      })()}
 
       <div
         data-testid="country-teaser"

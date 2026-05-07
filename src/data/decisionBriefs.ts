@@ -93,7 +93,7 @@ const BRIEFS: DecisionBrief[] = [
       "Visa application to approval: 2-6 months depending on consulate",
       "AIMA residency appointment after arrival: currently 6-18 months backlog",
       "Path to permanent residency: 5 years of legal residence",
-      "Citizenship eligibility: 5 years (one of the shortest in the EU)",
+      "Citizenship eligibility: currently 5 years, but a May 2026 nationality-law reform signed by the President raises this to 7 years for CPLP nationals and 10 years for everyone else once published in the Diário da República. Plan around the longer timeline.",
     ],
     riskFlags: [
       "AIMA (immigration agency) is severely understaffed. Appointment backlogs have exceeded 12 months. This is not a temporary problem.",
@@ -136,7 +136,13 @@ const BRIEFS: DecisionBrief[] = [
       "Portugal is one of the safest countries in the world (Global Peace Index top 10). Violent crime is extremely rare. Petty theft in tourist areas of Lisbon is the main concern. Most cities are highly walkable.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-07",
+    sourceLinks: [
+      { label: "Governo de Portugal — Salário mínimo 2026 (€920)", url: "https://portugal.gov.pt/gc25/comunicacao/noticias/governo-aumenta-salario-minimo-para-920-euros-em-2026", type: "official" },
+      { label: "AIMA — Agência para a Integração, Migrações e Asilo", url: "https://aima.gov.pt/", type: "official" },
+      { label: "Presidência da República — promulgação da Lei da Nacionalidade (3 maio 2026)", url: "https://www.presidencia.pt/atualidade/toda-a-atualidade/", type: "official" },
+      { label: "Diário da República — Lei da Nacionalidade (consultar publicação)", url: "https://diariodarepublica.pt/dr", type: "official" },
+    ],
   },
   {
     id: "portugal-d7",
@@ -146,7 +152,7 @@ const BRIEFS: DecisionBrief[] = [
     decisionSummary:
       "The D7 is strictly for passive income: pensions, dividends, rental income. If you earn money by doing work — even remotely — this is the wrong visa and your application will be rejected or create problems at renewal. Most people who think they qualify for a D7 actually need a D8.",
     recommendedFor: [
-      "Retirees with pension or state pension providing 760+ EUR/month",
+      "Retirees with pension or state pension providing ~920+ EUR/month (2026 Portuguese minimum wage baseline)",
       "Investors living off dividends, rental income, or interest — with 12+ months of documentation",
       "People who genuinely will not work in any capacity while in Portugal",
     ],
@@ -164,7 +170,7 @@ const BRIEFS: DecisionBrief[] = [
       "Clean criminal record certificate — apostilled and translated into Portuguese",
     ],
     financialReality: [
-      "Minimum income: ~870 EUR/month (pegged to minimum wage, updated annually). But consulates want to see well above this.",
+      "Minimum income: ~920 EUR/month in 2026 (pegged to the Portuguese minimum wage, which rose from €870 in 2025 to €920 in 2026). Consulates want to see well above this.",
       "Visa fee: ~90 EUR. Residency permit: ~170 EUR. These are the cheap parts.",
       "Real costs: NIF agent (200-400 EUR), apostilles and translations (500-1,500 EUR), immigration lawyer if needed (1,000-3,000 EUR)",
       "Health insurance: 50-200 EUR/month. Over-55 applicants pay 150-300 EUR/month.",
@@ -201,7 +207,7 @@ const BRIEFS: DecisionBrief[] = [
       "Some D7 holders try to maintain businesses abroad while claiming passive income. Immigration is increasingly sophisticated at identifying this. LinkedIn profiles, company registrations, and invoicing patterns are checked.",
     ],
     familyAndDependents: [
-      "D7 allows dependents: spouse and minor children can be included. Each dependent adds approximately 50% of the minimum income requirement (~435 EUR/month per dependent).",
+      "D7 allows dependents: spouse and minor children can be included. Each dependent adds approximately 50% of the minimum income requirement (~460 EUR/month per dependent at the 2026 €920 minimum wage).",
       "Dependent applications are processed together with the primary applicant but each needs their own health insurance, criminal record check, and biometrics.",
       "Public schools are free for resident children and are taught in Portuguese. International schools in Lisbon: 8,000-18,000 EUR/year. Porto has fewer options and they fill quickly.",
       "Healthcare coverage extends to dependents through the same private insurance requirement. Family policies cost 200-500 EUR/month depending on ages. SNS (public healthcare) becomes available after residency is established.",
@@ -215,7 +221,11 @@ const BRIEFS: DecisionBrief[] = [
       "Safety is excellent for retirees. Portugal has very low violent crime, healthcare is accessible, and most towns are walkable with good public transport between cities.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-07",
+    sourceLinks: [
+      { label: "Governo de Portugal — Salário mínimo 2026 (€920)", url: "https://portugal.gov.pt/gc25/comunicacao/noticias/governo-aumenta-salario-minimo-para-920-euros-em-2026", type: "official" },
+      { label: "AIMA — Agência para a Integração, Migrações e Asilo", url: "https://aima.gov.pt/", type: "official" },
+    ],
   },
   {
     id: "portugal-d8",
@@ -227,7 +237,7 @@ const BRIEFS: DecisionBrief[] = [
     recommendedFor: [
       "Remote employees with a single, clear employment contract from a non-Portuguese company",
       "Freelancers with 2-3 stable foreign clients and 12+ months of invoicing history",
-      "Digital nomads earning at least 3,480 EUR/month (~4x minimum wage) with bank statements to prove it",
+      "Digital nomads earning at least 3,680 EUR/month (~4x the 2026 €920 Portuguese minimum wage) with bank statements to prove it",
     ],
     notRecommendedFor: [
       "Gig workers with 10+ small clients and no single contract — your income looks unstable on paper",
@@ -237,13 +247,13 @@ const BRIEFS: DecisionBrief[] = [
     ],
     keyRequirements: [
       "Proof of remote employment or freelance contracts with non-Portuguese entities",
-      "Minimum income: 4x Portuguese minimum wage (~3,480 EUR/month in 2025). This is a hard floor, not a target.",
+      "Minimum income: 4x Portuguese minimum wage (~3,680 EUR/month in 2026, up from ~3,480 EUR/month in 2025). This is a hard floor, not a target.",
       "Portuguese NIF and bank account",
       "Private health insurance valid in Portugal",
       "Clean criminal record — apostilled and translated",
     ],
     financialReality: [
-      "Income threshold: ~3,480 EUR/month (4x minimum wage). Consulates want to see this consistently, not just in a good month.",
+      "Income threshold: ~3,680 EUR/month in 2026 (4x the €920 Portuguese minimum wage). Consulates want to see this consistently, not just in a good month.",
       "Visa fee: ~90 EUR + residency permit: ~170 EUR",
       "Agent and document fees: 1,000-2,500 EUR realistically (NIF agent, translations, apostilles, possibly a lawyer)",
       "Tax reality: once you are a tax resident (183+ days), you owe Portuguese income tax at 14.5-48%. Plan for this. NHR replacement benefits are narrow.",
@@ -262,7 +272,7 @@ const BRIEFS: DecisionBrief[] = [
       "Portuguese tax obligations hit hard. Budget 20-30% of income for taxes once you are a resident. Many digital nomads are shocked by this.",
     ],
     commonMistakes: [
-      "Showing 3,480 EUR/month average but having 2 months below that. Consulates look at consistency, not averages.",
+      "Showing 3,680 EUR/month average but having 2 months below that. Consulates look at consistency, not averages.",
       "Submitting PayPal screenshots instead of formal invoices and contracts. The consulate wants professional documentation.",
       "Confusing D8 with D7 and applying based on a blog post from 2022 that does not distinguish between them clearly",
       "Not planning for Portuguese taxes. You cannot legally avoid tax residency if you live there 183+ days. The bill will come.",
@@ -282,7 +292,7 @@ const BRIEFS: DecisionBrief[] = [
     ],
     familyAndDependents: [
       "D8 allows dependents (spouse, minor children). Each dependent must meet their own documentation requirements: health insurance, criminal record, and biometrics. Budget 90 EUR visa fee per dependent.",
-      "Dependent income thresholds add approximately 50% per additional adult and 30% per child to the 3,480 EUR/month base requirement.",
+      "Dependent income thresholds add approximately 50% per additional adult and 30% per child to the 3,680 EUR/month (2026) base requirement.",
       "Spouses on D8 dependent visas get the same work rights — they can also work remotely for non-Portuguese companies. They cannot take local employment without a separate work visa.",
       "International schools in Lisbon: 8,000-20,000 EUR/year. Porto: 6,000-15,000 EUR/year. Public schools are free but entirely in Portuguese — expect a 6-12 month adjustment period for children.",
       "Childcare (creche) costs 200-500 EUR/month. Public options have long waitlists. Private nurseries are more accessible. Finding English-language childcare outside Lisbon is difficult.",
@@ -295,7 +305,11 @@ const BRIEFS: DecisionBrief[] = [
       "Portugal is extremely safe and walkable. Lisbon's hills are iconic but exhausting — most neighborhoods are accessible by tram, metro, or the many elevators (elevadores). Porto is flatter in the center.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-07",
+    sourceLinks: [
+      { label: "Governo de Portugal — Salário mínimo 2026 (€920)", url: "https://portugal.gov.pt/gc25/comunicacao/noticias/governo-aumenta-salario-minimo-para-920-euros-em-2026", type: "official" },
+      { label: "AIMA — Agência para a Integração, Migrações e Asilo", url: "https://aima.gov.pt/", type: "official" },
+    ],
   },
   {
     id: "portugal-student",
@@ -317,7 +331,7 @@ const BRIEFS: DecisionBrief[] = [
     ],
     keyRequirements: [
       "Acceptance letter from a Portuguese institution recognized by DGES",
-      "Proof of sufficient funds: ~870 EUR/month for living expenses",
+      "Proof of sufficient funds: ~920 EUR/month for living expenses (pegged to the 2026 Portuguese minimum wage)",
       "Health insurance valid in Portugal",
       "Clean criminal record — apostilled",
       "Proof of paid tuition or tuition arrangement",
@@ -354,7 +368,7 @@ const BRIEFS: DecisionBrief[] = [
       "After graduation, converting to a work visa requires a separate application and a qualifying job offer. There is no automatic post-study work permit like in Canada or the UK.",
     ],
     familyAndDependents: [
-      "Student visa holders can bring dependents, but must prove sufficient funds for the entire family — approximately 870 EUR/month per additional person on top of tuition.",
+      "Student visa holders can bring dependents, but must prove sufficient funds for the entire family — approximately 920 EUR/month per additional person (2026 Portuguese minimum wage) on top of tuition.",
       "Dependent spouses of student visa holders have limited work rights. They may need their own visa if they want to work full-time.",
       "Public schools for children are free and taught in Portuguese. A child entering mid-year will struggle without language support, which some schools provide but many do not.",
       "Student family housing is extremely limited. University accommodation rarely accepts families. You will need private rental — budget 700-1,200 EUR/month for a 2-bedroom in Lisbon.",
@@ -368,6 +382,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "AIMA — Agência para a Integração, Migrações e Asilo", url: "https://aima.gov.pt/", type: "official" },
+    ],
   },
 
   // ─── SPAIN ────────────────────────────────────────────────
@@ -426,7 +443,7 @@ const BRIEFS: DecisionBrief[] = [
       "Moving without a rental contract signed first. You need a legal address for NIE, empadronamiento, and visa processing.",
     ],
     betterAlternatives: [
-      "Portugal — lower bureaucratic friction (despite its own problems) and faster path to citizenship (5 years vs 10)",
+      "Portugal — lower bureaucratic friction (despite its own problems); citizenship is currently 5 years but the May 2026 nationality reform extends it to 7 (CPLP) / 10 (others) once published",
       "Italy — cheaper in the south, similar lifestyle, and the flat tax option benefits high earners",
       "France — if you prioritize world-class healthcare and infrastructure, and can stomach the cost and bureaucracy",
     ],
@@ -453,6 +470,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Ministerio de Asuntos Exteriores — Visados", url: "https://www.exteriores.gob.es/", type: "official" },
+    ],
   },
   {
     id: "spain-nlv",
@@ -508,7 +528,7 @@ const BRIEFS: DecisionBrief[] = [
     ],
     betterAlternatives: [
       "Spain Digital Nomad Visa — if you have any active income at all, this is your visa. Plus you get the Beckham Law 24% flat tax for 6 years.",
-      "Portugal D7 — similar concept but lower income threshold (870 EUR/month) and faster citizenship path (5 years vs 10)",
+      "Portugal D7 — similar concept but lower income threshold (~920 EUR/month in 2026); Portugal's citizenship path is currently 5 years but the May 2026 nationality reform raises it to 7 (CPLP) / 10 (others) once published",
       "Italy Elective Residency — if you want Mediterranean passive-income living with flat tax options for high earners",
     ],
     workReality: [
@@ -533,6 +553,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Ministerio de Asuntos Exteriores — Visados", url: "https://www.exteriores.gob.es/", type: "official" },
+    ],
   },
   {
     id: "spain-dnv",
@@ -542,25 +565,25 @@ const BRIEFS: DecisionBrief[] = [
     decisionSummary:
       "Spain's DNV is the best digital nomad visa in Europe for one reason: the Beckham Law gives you a flat 24% income tax rate for 6 years instead of the standard 19-47% progressive rate. But the application demands clean documentation, professional qualifications proof, and income stability. Fragmented freelance income or informal contracts will get you rejected.",
     recommendedFor: [
-      "Remote employees with a clear W-2 or employment contract from a non-Spanish company earning 2,763+ EUR/month",
+      "Remote employees with a clear W-2 or employment contract from a non-Spanish company earning 2,849+ EUR/month",
       "Freelancers with 2-3 stable foreign clients, formal contracts, and 12+ months of consistent invoicing",
       "Entrepreneurs running a non-Spanish business with documented revenue and corporate structure",
     ],
     notRecommendedFor: [
       "Gig workers with many small clients and no formal contracts — the documentation burden will sink you",
       "Anyone who cannot prove 3+ years of professional experience or relevant qualifications — this is a hard requirement",
-      "People whose income is below 2,763 EUR/month — you do not meet the threshold and will be rejected",
+      "People whose income is below 2,849 EUR/month — you do not meet the threshold and will be rejected",
       "Applicants who started freelancing recently and have less than 6 months of income history",
     ],
     keyRequirements: [
       "Remote work contract or proof of freelance activity with non-Spanish companies",
-      "Income threshold: 200% of Spanish minimum wage (~2,763 EUR/month in 2025)",
+      "Income threshold: 200% of the annualised Spanish SMI (~2,849 EUR/month in 2026, based on the €1,221/mo SMI × 14 payments ÷ 12)",
       "Professional qualifications: university degree OR 3+ years of documented experience in your field",
       "Private health insurance with comprehensive coverage in Spain",
       "Clean criminal record — apostilled",
     ],
     financialReality: [
-      "Income threshold: ~2,763 EUR/month (200% interprofessional minimum wage). This is a floor, not a target — showing more helps.",
+      "Income threshold: ~2,849 EUR/month in 2026 (200% of the SMI annualised over 14 payments — most consulates use this method). This is a floor, not a target — showing more helps.",
       "Visa and permit fees: 200-400 EUR total",
       "Qualifying health insurance: 100-300 EUR/month. Must meet Spanish standards.",
       "Beckham Law benefit: 24% flat tax on Spanish-source income for 6 years. Foreign income (dividends, capital gains abroad) is exempt. This saves most people 5,000-15,000 EUR/year.",
@@ -576,7 +599,7 @@ const BRIEFS: DecisionBrief[] = [
     riskFlags: [
       "Multi-client freelancers face the most scrutiny. Immigration wants to see stability, not a patchwork of gigs.",
       "The professional qualifications requirement excludes self-taught professionals without degrees or formal work history. A GitHub portfolio does not count.",
-      "Beckham Law is politically contentious. It could be modified or eliminated. Your 6-year benefit is not guaranteed for the full term.",
+      "Beckham Law is politically contentious. As of 2026 the 24% flat rate, €600,000 cap, and 6-year duration remain unchanged, but the regime is not guaranteed for the full term — future governments could narrow it.",
       "Autónomo contributions are mandatory for self-employed workers from month one. This is 230+ EUR/month even if you earn nothing in Spain.",
     ],
     commonMistakes: [
@@ -612,8 +635,13 @@ const BRIEFS: DecisionBrief[] = [
       "The Spanish work-life rhythm is different: long lunches, late dinners (9-10 PM), and a social culture that values presence over efficiency. Remote workers who keep home country time zones find themselves out of sync with local life.",
       "Safety is excellent. Spain has one of the lowest violent crime rates in Europe. Cities are lively until late, which creates natural safety through activity. Bike infrastructure in Valencia and Barcelona is superb.",
     ],
-    confidenceLevel: "Medium",
-    lastReviewedAt: "2025-12-01",
+    confidenceLevel: "High",
+    lastReviewedAt: "2026-05-07",
+    sourceLinks: [
+      { label: "Ministerio de Trabajo — SMI 2026 (Real Decreto 126/2026, BOE)", url: "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-126", type: "official" },
+      { label: "Spain — Visado para teletrabajo internacional (Exteriores)", url: "https://www.exteriores.gob.es/Consulados/londres/en/ServiciosConsulares/Paginas/Consular/Visado-para-trabajo-a-distancia-de-caracter-internacional.aspx", type: "official" },
+      { label: "Agencia Tributaria — Régimen especial trabajadores desplazados (Beckham)", url: "https://sede.agenciatributaria.gob.es/Sede/irpf/regimenes-especiales-irpf/regimen-especial-trabajadores-desplazados.html", type: "official" },
+    ],
   },
   {
     id: "spain-student",
@@ -687,6 +715,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Ministerio de Asuntos Exteriores — Visados", url: "https://www.exteriores.gob.es/", type: "official" },
+    ],
   },
 
   // ─── FRANCE ───────────────────────────────────────────────
@@ -750,6 +781,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "France-Visas — Official French visa portal", url: "https://france-visas.gouv.fr/en/", type: "official" },
+    ],
   },
   {
     id: "france-talent-passport",
@@ -812,6 +846,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "Medium",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "France-Visas — Official French visa portal", url: "https://france-visas.gouv.fr/en/", type: "official" },
+    ],
   },
   {
     id: "france-visitor",
@@ -865,6 +902,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "France-Visas — Official French visa portal", url: "https://france-visas.gouv.fr/en/", type: "official" },
+    ],
   },
 
   // ─── ITALY ────────────────────────────────────────────────
@@ -878,7 +918,7 @@ const BRIEFS: DecisionBrief[] = [
       "Retirees with 2,000+ EUR/month passive income who are drawn to Italian culture and willing to learn the language",
       "High earners who can leverage the 100,000 EUR flat tax on foreign income",
       "Remote workers earning 28,000+ EUR/year who want to try the new digital nomad visa",
-      "People with Italian ancestry who may qualify for citizenship by descent (jure sanguinis)",
+      "People with a parent or grandparent born in Italy who may qualify for citizenship by descent (jure sanguinis) — Law 74/2025 (the Tajani Decree, in force since May 2025) restricts eligibility to this generational limit; great-grandparent claims no longer qualify under the new rules",
     ],
     notRecommendedFor: [
       "Budget expats expecting cheap living — northern Italy is as expensive as France or Germany, and even the south requires 1,200+ EUR/month",
@@ -923,12 +963,16 @@ const BRIEFS: DecisionBrief[] = [
       "Expecting Milan efficiency in Rome, Naples, or anywhere south. Process timelines vary by region by months.",
     ],
     betterAlternatives: [
-      "Portugal — easier immigration process, larger English-speaking expat community, and faster path to citizenship (5 years vs 10)",
+      "Portugal — easier immigration process, larger English-speaking expat community, though Portugal's 2026 nationality-law reform raises citizenship to 7 years (CPLP) or 10 years (other foreign nationals) once published",
       "Spain — better healthcare system, real digital nomad visa with tax benefits, and more affordable major cities",
       "Greece — similar Mediterranean appeal, lower cost of living, and growing digital nomad community",
     ],
     confidenceLevel: "Medium",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-07",
+    sourceLinks: [
+      { label: "Italy — Visa portal (Ministero degli Affari Esteri)", url: "https://vistoperitalia.esteri.it/home/en", type: "official" },
+      { label: "Law 74/2025 — Italian citizenship by descent reform (Gazzetta Ufficiale)", url: "https://www.gazzettaufficiale.it/eli/id/2025/05/24/25G00084/sg", type: "official" },
+    ],
   },
   {
     id: "italy-elective-residency",
@@ -983,12 +1027,15 @@ const BRIEFS: DecisionBrief[] = [
       "Not having a codice fiscale before arrival. You can get this at the Italian consulate before you leave. It saves weeks.",
     ],
     betterAlternatives: [
-      "Portugal D7 — published minimum income (870 EUR/month), more transparent process, and faster citizenship (5 years vs 10)",
+      "Portugal D7 — published minimum income (~920 EUR/month in 2026), more transparent process, though Portugal's 2026 nationality-law reform extends citizenship eligibility from 5 years to 7 (CPLP) or 10 (everyone else) once it takes effect",
       "Spain NLV — clear 28,800 EUR/year threshold, better healthcare system, and more standardized across consulates",
       "Italy Digital Nomad Visa — if you have any active remote work income, this is the correct visa. Stop trying to make elective residency work.",
     ],
     confidenceLevel: "Medium",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Italy — Visa portal (Ministero degli Affari Esteri)", url: "https://vistoperitalia.esteri.it/home/en", type: "official" },
+    ],
   },
   {
     id: "italy-digital-nomad",
@@ -1049,6 +1096,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "Conditional",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Italy — Visa portal (Ministero degli Affari Esteri)", url: "https://vistoperitalia.esteri.it/home/en", type: "official" },
+    ],
   },
 
   // ─── THAILAND ─────────────────────────────────────────────
@@ -1113,6 +1163,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "Medium",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Thailand Immigration Bureau", url: "https://www.immigration.go.th/en/", type: "official" },
+    ],
   },
   {
     id: "thailand-ltr",
@@ -1155,14 +1208,14 @@ const BRIEFS: DecisionBrief[] = [
     riskFlags: [
       "Income and asset thresholds are verified. BOI contacts employers and financial institutions. Inflated claims will be caught.",
       "The work-from-Thailand employer requirement (150M+ USD valuation or publicly listed) eliminates most remote workers. This is by design.",
-      "Thailand's foreign income tax rules are actively being revised. The current favorable treatment of remitted foreign income may be eliminated.",
+      "Thailand's foreign income tax rules are still in flux. Departmental Order Por.161/2566 (effective Jan 1 2024) brought remitted foreign income earned from 2024 onward into the Thai tax net for tax residents — LTR holders in qualifying categories retain a foreign-income exemption under Royal Decree 743, but verify your category before assuming zero tax on remittances.",
       "Program is relatively new (launched 2022). Terms and conditions could change, though existing visa holders are generally grandfathered.",
       "The highly skilled professional category requires specific industry credentials (STEM, defense, government) and is not a catch-all.",
     ],
     commonMistakes: [
       "Assuming 'digital nomad' income qualifies. The threshold is 80K USD/year from a qualifying employer. A freelancer earning 80K from multiple clients does not meet the employer requirement.",
       "Not verifying employer eligibility before applying. Your company must be publicly listed or have a documented valuation of 150M+ USD. Many applicants discover their employer does not qualify after starting the process.",
-      "Confusing LTR tax benefits with zero taxation. The 17% flat rate applies to Thai-source income. Foreign income tax treatment depends on evolving remittance rules.",
+      "Confusing LTR tax benefits with zero taxation. The 17% flat rate applies to Thai-source income. Foreign income tax treatment depends on evolving remittance rules (see Por.161/2566, in force since Jan 2024).",
       "Applying without professional help. The BOI application is more complex than a standard visa application. Most successful applicants use specialized immigration firms.",
     ],
     betterAlternatives: [
@@ -1171,7 +1224,12 @@ const BRIEFS: DecisionBrief[] = [
       "Malaysia MM2H — different financial thresholds and structure. Worth comparing if Thailand's requirements do not fit.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-07",
+    sourceLinks: [
+      { label: "Thailand BOI — Long-Term Resident (LTR) Visa", url: "https://ltr.boi.go.th/", type: "official" },
+      { label: "Royal Decree 743 (B.E. 2565) — LTR tax benefits", url: "https://www.rd.go.th/english/", type: "official" },
+      { label: "Revenue Department Order Por.161/2566 — foreign-sourced income remittance rules", url: "https://www.rd.go.th/fileadmin/user_upload/kormor/newlaw/dg161.pdf", type: "official" },
+    ],
   },
   {
     id: "thailand-retirement",
@@ -1227,6 +1285,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Thailand Immigration Bureau", url: "https://www.immigration.go.th/en/", type: "official" },
+    ],
   },
 
   // ─── COSTA RICA ───────────────────────────────────────────
@@ -1310,6 +1371,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Dirección General de Migración y Extranjería (DGME)", url: "https://www.migracion.go.cr/", type: "official" },
+    ],
   },
   {
     id: "costa-rica-rentista",
@@ -1392,6 +1456,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Dirección General de Migración y Extranjería (DGME)", url: "https://www.migracion.go.cr/", type: "official" },
+    ],
   },
   {
     id: "costa-rica-pensionado",
@@ -1466,6 +1533,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Dirección General de Migración y Extranjería (DGME)", url: "https://www.migracion.go.cr/", type: "official" },
+    ],
   },
 
   // ─── MEXICO ───────────────────────────────────────────────
@@ -1529,6 +1599,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "Medium",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Instituto Nacional de Migración (INM)", url: "https://www.gob.mx/inm", type: "official" },
+    ],
   },
   {
     id: "mexico-temporary-resident",
@@ -1557,7 +1630,7 @@ const BRIEFS: DecisionBrief[] = [
       "Photos meeting INM specifications (specific background color, dimensions)",
     ],
     financialReality: [
-      "Income threshold: varies by consulate, typically $2,500-4,800 USD/month. Always confirm current UMA-based calculation with your specific consulate.",
+      "Income threshold: varies by consulate, typically $2,500-4,800 USD/month. Always confirm current UMA-based calculation with your specific consulate (the 2026 UMA, effective Feb 1 2026, is $117.31 MXN/day or $3,566.22 MXN/month per INEGI — most consulates apply a 300× UMA monthly multiplier, but interpretations vary).",
       "Savings threshold: ~$42,000-65,000 USD 12-month average balance. This is an average, not a snapshot — your balance must stay consistently above this.",
       "Visa fee: ~$50 USD at consulate",
       "INM card exchange fee: ~4,000 MXN (~$230 USD) — payable after arrival in Mexico",
@@ -1591,7 +1664,12 @@ const BRIEFS: DecisionBrief[] = [
       "Panama Friendly Nations Visa — faster processing, different financial structure, available to citizens of approximately 50 approved countries",
     ],
     confidenceLevel: "Medium",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-07",
+    sourceLinks: [
+      { label: "INEGI — UMA 2026 ($117.31 MXN/día, vigente desde 1 feb 2026)", url: "https://www.inegi.org.mx/temas/uma/", type: "official" },
+      { label: "Instituto Nacional de Migración (INM)", url: "https://www.gob.mx/inm", type: "official" },
+      { label: "SRE — Visas para residentes temporales", url: "https://www.gob.mx/sre/acciones-y-programas/tramites-y-servicios-consulares-extranjeros", type: "official" },
+    ],
   },
   {
     id: "mexico-permanent-resident",
@@ -1649,6 +1727,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "Medium",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Instituto Nacional de Migración (INM)", url: "https://www.gob.mx/inm", type: "official" },
+    ],
   },
 
   // ─── CANADA ───────────────────────────────────────────────
@@ -1735,6 +1816,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Immigration, Refugees and Citizenship Canada (IRCC)", url: "https://www.canada.ca/en/immigration-refugees-citizenship.html", type: "official" },
+    ],
   },
   {
     id: "canada-express-entry",
@@ -1820,6 +1904,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Immigration, Refugees and Citizenship Canada (IRCC)", url: "https://www.canada.ca/en/immigration-refugees-citizenship.html", type: "official" },
+    ],
   },
 
   // ─── PANAMA ───────────────────────────────────────────────
@@ -1908,6 +1995,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Servicio Nacional de Migración de Panamá", url: "https://www.migracion.gob.pa/", type: "official" },
+    ],
   },
   {
     id: "panama-friendly-nations",
@@ -2000,6 +2090,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Servicio Nacional de Migración de Panamá", url: "https://www.migracion.gob.pa/", type: "official" },
+    ],
   },
   {
     id: "panama-pensionado",
@@ -2059,7 +2152,7 @@ const BRIEFS: DecisionBrief[] = [
       "Moving to Panama without visiting first. Spend 2-3 weeks in Panama City, Boquete, and one beach area before committing. The climate and lifestyle vary dramatically by region.",
     ],
     betterAlternatives: [
-      "Ecuador Jubilado — 1,410 USD/month pension threshold, lower cost of living, cooler climate options in the highlands, but less stable politically",
+      "Ecuador Jubilado — 1,446 USD/month pension threshold, lower cost of living, cooler climate options in the highlands, but less stable politically",
       "Costa Rica Pensionado — 1,000 USD/month threshold, better healthcare system, cooler highland options, but higher cost of living and Costa Rica taxes worldwide income",
       "Mexico Temporary Residency — no pension requirement, just income proof, massive expat community, but no comparable discount program",
     ],
@@ -2082,6 +2175,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Servicio Nacional de Migración de Panamá", url: "https://www.migracion.gob.pa/", type: "official" },
+    ],
   },
   {
     id: "panama-self-economic-solvency",
@@ -2165,6 +2261,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Servicio Nacional de Migración de Panamá", url: "https://www.migracion.gob.pa/", type: "official" },
+    ],
   },
 
   // ─── ECUADOR ──────────────────────────────────────────────
@@ -2252,6 +2351,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Cancillería del Ecuador — Visas de residencia", url: "https://www.cancilleria.gob.ec/", type: "official" },
+    ],
   },
   {
     id: "ecuador-rentista",
@@ -2259,9 +2361,9 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "rentista",
     headline: "Ecuador Rentista Visa: solid middle-ground visa, but the income must be bulletproof on paper",
     decisionSummary:
-      "The Rentista Visa is for people with stable, verifiable income of at least 1,410 USD/month from investments, rental properties, or other non-employment sources. It is Ecuador's most flexible visa for non-retirees who have income but do not want to work locally. The income threshold is reasonable, but Ecuador's immigration offices scrutinize documentation heavily — inconsistent deposits, informal income sources, or poor paperwork will get you rejected.",
+      "The Rentista Visa is for people with stable, verifiable income of at least 1,446 USD/month from investments, rental properties, or other non-employment sources. It is Ecuador's most flexible visa for non-retirees who have income but do not want to work locally. The income threshold is reasonable, but Ecuador's immigration offices scrutinize documentation heavily — inconsistent deposits, informal income sources, or poor paperwork will get you rejected.",
     recommendedFor: [
-      "People with stable investment income, rental income, or trust distributions of 1,410+ USD/month with 12+ months of documentation",
+      "People with stable investment income, rental income, or trust distributions of 1,446+ USD/month with 12+ months of documentation",
       "Early retirees who do not yet receive a formal pension but have consistent passive income",
       "Remote workers whose income can legitimately be classified as investment returns or passive business income",
       "People who want a path to permanent residency (2 years) and eventually citizenship (3 years) through Ecuador's fast timeline",
@@ -2269,11 +2371,11 @@ const BRIEFS: DecisionBrief[] = [
     notRecommendedFor: [
       "Freelancers or consultants whose income comes from active work — this is not a digital nomad visa, and active income does not qualify",
       "Anyone whose income fluctuates significantly month to month — immigration wants to see consistent, predictable deposits",
-      "People with income under 1,410 USD/month — if your income is pension-based, the Jubilado requires the same threshold but is limited to guaranteed pension sources",
+      "People with income under 1,446 USD/month — if your income is pension-based, the Jubilado requires the same threshold but is limited to guaranteed pension sources",
       "Those who cannot produce formal bank statements showing 12+ months of regular income deposits from identifiable sources",
     ],
     keyRequirements: [
-      "Proof of stable income of at least 1,410 USD/month (3× Ecuador's basic salary, subject to annual adjustment)",
+      "Proof of stable income of at least 1,446 USD/month (3× Ecuador's 2026 unified basic salary of $482, set by Acuerdo Ministerial MDT-2025-195)",
       "Income must come from investments, rental properties, trust funds, or other passive sources — not active employment",
       "12 months of bank statements showing consistent income deposits",
       "Apostilled criminal background check translated into Spanish",
@@ -2281,7 +2383,7 @@ const BRIEFS: DecisionBrief[] = [
       "Application filed at Ecuadorian consulate abroad or Ministry of Foreign Affairs in Ecuador",
     ],
     financialReality: [
-      "Income threshold: 1,410 USD/month (approximately 16,920 USD/year). Add approximately 250 USD/month for each dependent.",
+      "Income threshold: 1,446 USD/month in 2026 (approximately 17,352 USD/year, based on 3× the $482 SBU). Add approximately 250 USD/month for each dependent.",
       "Visa application fee: 50-200 USD depending on consulate location",
       "Immigration lawyer (strongly recommended): 800-2,000 USD. Ecuador's bureaucracy is Spanish-language-only and procedurally opaque.",
       "IESS enrollment: approximately 80-120 USD/month. Private insurance: 100-300 USD/month depending on age.",
@@ -2311,7 +2413,7 @@ const BRIEFS: DecisionBrief[] = [
       "Assuming the Rentista Visa allows you to work in Ecuador. It does not grant work authorization. If you need to work locally, you need a different visa category.",
     ],
     betterAlternatives: [
-      "Ecuador Jubilado — if your income comes from a guaranteed lifetime pension (state pension, government, or military pension), the Jubilado requires the same 1,410 USD/month threshold but is limited to pension sources and includes senior discounts",
+      "Ecuador Jubilado — if your income comes from a guaranteed lifetime pension (state pension, government, or military pension), the Jubilado requires the same 1,446 USD/month threshold but is limited to pension sources and includes senior discounts",
       "Panama Friendly Nations — if your country qualifies, you can invest 200,000 USD for residency (2-year provisional, then permanent) with no tax on foreign income",
       "Colombia Rentista — similar concept with a comparable threshold, but Medellín offers better infrastructure and a larger expat community",
     ],
@@ -2334,29 +2436,33 @@ const BRIEFS: DecisionBrief[] = [
       "Cultural integration requires effort — the expat bubble in Cuenca is real, and those who learn Spanish and engage with local life report far higher satisfaction",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-07",
+    sourceLinks: [
+      { label: "Ministerio del Trabajo — Acuerdo MDT-2025-195 (SBU 2026 = $482)", url: "https://www.trabajo.gob.ec/", type: "official" },
+      { label: "Cancillería del Ecuador — Visas de residencia", url: "https://www.cancilleria.gob.ec/", type: "official" },
+    ],
   },
   {
     id: "ecuador-jubilado",
     countrySlug: "ecuador",
     pathwayKey: "jubilado",
-    headline: "Ecuador Jubilado: pension-based residency at 1,410 USD/month — same threshold as Rentista but limited to guaranteed pension income",
+    headline: "Ecuador Jubilado: pension-based residency at 1,446 USD/month — same threshold as Rentista but limited to guaranteed pension income",
     decisionSummary:
-      "The Jubilado (Retirement) Visa requires 1,410 USD/month in guaranteed lifetime pension income (3× Ecuador's basic salary, same threshold as the Rentista). The key differentiator is not the amount — it is the income source. Jubilado requires permanent pension income (state pension, government pension, military pension), while Rentista accepts broader passive income sources. Combined with Ecuador's low cost of living, dollarized economy, and senior discounts, it remains a strong option for retirees with qualifying pensions. Healthcare access depends on where you live, and the country's security situation has deteriorated.",
+      "The Jubilado (Retirement) Visa requires 1,446 USD/month in guaranteed lifetime pension income (3× Ecuador's basic salary, same threshold as the Rentista). The key differentiator is not the amount — it is the income source. Jubilado requires permanent pension income (state pension, government pension, military pension), while Rentista accepts broader passive income sources. Combined with Ecuador's low cost of living, dollarized economy, and senior discounts, it remains a strong option for retirees with qualifying pensions. Healthcare access depends on where you live, and the country's security situation has deteriorated.",
     recommendedFor: [
-      "Retirees with state pension or pension income of 1,410+ USD/month who want maximum purchasing power in a dollarized economy",
+      "Retirees with state pension or pension income of 1,446+ USD/month who want maximum purchasing power in a dollarized economy",
       "Couples where one spouse has a qualifying pension — the threshold applies per household, not per person",
       "People who want the fastest path to citizenship in the Americas — 3 years from initial residency",
       "Retirees who prioritize healthcare value — a specialist visit costs 20-50 USD, and IESS enrollment is available to visa holders",
     ],
     notRecommendedFor: [
-      "Anyone whose pension income barely meets the 1,410 USD/month threshold — budget above the minimum for emergencies, travel, and lifestyle",
+      "Anyone whose pension income barely meets the 1,446 USD/month threshold — budget above the minimum for emergencies, travel, and lifestyle",
       "Retirees who need consistent, high-quality healthcare — IESS has long wait times and supply issues. Private care is affordable but limited outside Cuenca, Quito, and Guayaquil.",
       "People drawing from investment accounts rather than a formal pension — retirement savings withdrawals and brokerage distributions do not qualify",
       "Those who cannot handle altitude — if Cuenca (8,400 ft) makes you sick, your affordable retirement options in Ecuador shrink dramatically. Coastal cities are cheaper but have worse infrastructure and more crime.",
     ],
     keyRequirements: [
-      "Proof of lifetime pension income of at least 1,410 USD/month from a state pension, government pension, military pension, or recognized private pension",
+      "Proof of lifetime pension income of at least 1,446 USD/month from a state pension, government pension, military pension, or recognized private pension",
       "Pension verification letter from the issuing agency — apostilled and translated into Spanish by a certified translator",
       "Apostilled criminal background check translated into Spanish",
       "Health insurance: enrollment in IESS (Ecuadorian public system) or private Ecuadorian health insurance",
@@ -2364,14 +2470,14 @@ const BRIEFS: DecisionBrief[] = [
       "Application at Ecuadorian consulate or in-country at the Ministry of Foreign Affairs",
     ],
     financialReality: [
-      "Pension threshold: 1,410 USD/month (16,920 USD/year). This is the same as the Rentista threshold (3× Ecuador's basic salary). State pensions and government pensions qualify.",
+      "Pension threshold: 1,446 USD/month (~17,352 USD/year). This is the same as the Rentista threshold (3× Ecuador's 2026 $482 unified basic salary). State pensions and government pensions qualify.",
       "Add approximately 100 USD/month for each dependent on the application.",
       "Immigration lawyer: 800-2,000 USD. Strongly recommended — the process is in Spanish and procedurally inconsistent.",
       "Government visa fees: 50-200 USD",
       "Document apostilles and certified translations: 200-600 USD",
       "IESS enrollment: approximately 80-120 USD/month. Covers most medical procedures at public facilities.",
       "Total application cost: 1,200-3,000 USD all-in",
-      "Living budget on 1,410 USD/month in Cuenca: manageable. Rent (400-600 USD), food (200-300 USD), utilities (50-80 USD), transport (30-50 USD), healthcare (80-120 USD), misc (150-260 USD). Tight but workable with discipline.",
+      "Living budget on 1,446 USD/month in Cuenca: manageable. Rent (400-600 USD), food (200-300 USD), utilities (50-80 USD), transport (30-50 USD), healthcare (80-120 USD), misc (150-260 USD). Tight but workable with discipline.",
       "Comfortable budget for a couple in Cuenca: 1,500-2,000 USD/month. This includes dining out, occasional travel, and a financial cushion.",
       "Senior discounts in Ecuador: 50% off public transportation, 50% off cultural events, tax rebates on purchases (VAT refund for seniors), discounted utility rates",
     ],
@@ -2383,7 +2489,7 @@ const BRIEFS: DecisionBrief[] = [
       "Citizenship: 3 years from initial residency — the fastest in the Americas",
     ],
     riskFlags: [
-      "Living on exactly 1,410 USD/month leaves limited financial margin. One medical emergency, unexpected expense, or currency shift and you are in trouble. Have savings beyond the pension.",
+      "Living on exactly 1,446 USD/month leaves limited financial margin. One medical emergency, unexpected expense, or currency shift and you are in trouble. Have savings beyond the pension.",
       "The Jubilado threshold can be adjusted by the Ecuadorian government. It has been raised before and could be raised again.",
       "IESS (public healthcare) is under severe financial strain. Medication shortages, equipment failures, and 2-3 month wait times for specialists are reported regularly.",
       "Ecuador's security situation has deteriorated significantly since 2020. Guayaquil is dangerous. Quito has gotten worse. Cuenca is the safest major city but not immune.",
@@ -2391,7 +2497,7 @@ const BRIEFS: DecisionBrief[] = [
       "Altitude is a permanent factor, not just an adjustment period. Some people develop chronic symptoms (headaches, sleep disruption) at 8,400+ feet that never fully resolve.",
     ],
     commonMistakes: [
-      "Planning to live on exactly 1,410 USD/month. This is the visa threshold, not a generous budget. You need 1,800-2,200 USD/month minimum for a single person to live comfortably without constant financial stress.",
+      "Planning to live on exactly 1,446 USD/month. This is the visa threshold, not a generous budget. You need 1,800-2,200 USD/month minimum for a single person to live comfortably without constant financial stress.",
       "Confusing investment withdrawals with pension income. Withdrawals from a retirement savings account are not a pension. A state pension is. A government or military pension is. Immigration makes this distinction.",
       "Not enrolling in IESS or private insurance before applying. Health coverage is a prerequisite for the visa, not an afterthought.",
       "Choosing Cuenca without visiting first and testing the altitude. Spend at least 2 weeks at altitude. If you have persistent headaches, insomnia, or shortness of breath after 7 days, reconsider.",
@@ -2399,7 +2505,7 @@ const BRIEFS: DecisionBrief[] = [
       "Not learning Spanish. Cuenca's expat community speaks English, but your landlord, doctor, government offices, and neighbors likely do not.",
     ],
     betterAlternatives: [
-      "Panama Pensionado — 1,000 USD/month threshold (lower than Ecuador's 1,410 USD), and Panama offers legally mandated discounts (25% off restaurants, flights, medical), no tax on foreign income, and better banking infrastructure",
+      "Panama Pensionado — 1,000 USD/month threshold (lower than Ecuador's 1,446 USD), and Panama offers legally mandated discounts (25% off restaurants, flights, medical), no tax on foreign income, and better banking infrastructure",
       "Costa Rica Pensionado — 1,000 USD/month, better healthcare system, more stable politically, but significantly higher cost of living offsets the pension",
       "Colombia — no formal pension visa, but retirement visa options exist at similar thresholds with better infrastructure in Medellín, though not dollarized",
     ],
@@ -2422,7 +2528,11 @@ const BRIEFS: DecisionBrief[] = [
       "Ecuador's natural beauty is a major lifestyle draw: weekend trips to hot springs, cloud forests, indigenous markets, and the coast are affordable and accessible from highland cities",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-07",
+    sourceLinks: [
+      { label: "Ministerio del Trabajo — Acuerdo MDT-2025-195 (SBU 2026 = $482)", url: "https://www.trabajo.gob.ec/", type: "official" },
+      { label: "Cancillería del Ecuador — Visas de residencia", url: "https://www.cancilleria.gob.ec/", type: "official" },
+    ],
   },
 
   // ─── MALTA ──────────────────────────────────────────────────
@@ -2484,7 +2594,7 @@ const BRIEFS: DecisionBrief[] = [
       "Expecting a diverse landscape or outdoor lifestyle. Malta has beautiful coastline and historical sites, but no forests, no mountains, and no rural countryside. The entire island is urbanized.",
     ],
     betterAlternatives: [
-      "Portugal — English widely spoken, much larger, cheaper, more diverse landscape, and faster path to citizenship (5 years), though Portuguese is the official language",
+      "Portugal — English widely spoken, much larger, cheaper, more diverse landscape; citizenship is currently 5 years but the May 2026 nationality reform extends it to 7 (CPLP) / 10 (others) once published, though Portuguese is the official language",
       "Spain — better healthcare, more space, similar climate without the island constraints, and the DNV has real tax benefits via Beckham Law",
       "Ireland — native English-speaking EU country with better infrastructure, though more expensive and colder",
       "Cyprus — similar Mediterranean island, larger, cheaper, English widely spoken, but with its own political complications",
@@ -2508,6 +2618,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Identità — Malta residence and visas", url: "https://identita.gov.mt/", type: "official" },
+    ],
   },
   {
     id: "malta-digital-nomad",
@@ -2568,7 +2681,7 @@ const BRIEFS: DecisionBrief[] = [
       "Expecting coworking spaces comparable to Lisbon or Barcelona. Malta has a few, but the ecosystem is small and options are limited outside Valletta and Sliema.",
     ],
     betterAlternatives: [
-      "Portugal D8 — higher income threshold (~3,480 EUR/month) but leads to permanent residency and citizenship. More space, more nature, more lifestyle options.",
+      "Portugal D8 — higher income threshold (~3,680 EUR/month in 2026) but leads to permanent residency and citizenship. More space, more nature, more lifestyle options.",
       "Spain DNV — Beckham Law gives 24% flat tax for 6 years. Better infrastructure, more cities to choose from, actual countryside exists.",
       "Croatia Digital Nomad Visa — lower cost of living, stunning coastline, and similar 1-year permit structure without the island density problem",
       "Estonia Digital Nomad Visa — if you want EU access with excellent digital infrastructure. Cold weather, but efficient government services.",
@@ -2592,6 +2705,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Identità — Malta residence and visas", url: "https://identita.gov.mt/", type: "official" },
+    ],
   },
   {
     id: "malta-grp",
@@ -2679,6 +2795,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "Identità — Malta residence and visas", url: "https://identita.gov.mt/", type: "official" },
+    ],
   },
 
   // ─── UNITED KINGDOM ─────────────────────────────────────────
@@ -2750,7 +2869,7 @@ const BRIEFS: DecisionBrief[] = [
     ],
     workReality: [
       "The UK uses a points-based immigration system post-Brexit. Every work visa requires meeting a points threshold combining salary, skill level, and English language ability.",
-      "The general salary threshold for a Skilled Worker visa is £38,700/year (or the going rate for your occupation, whichever is higher). Some occupations on the Immigration Salary List have lower thresholds.",
+      "The general salary threshold for a Skilled Worker visa is £41,700/year (since July 2025; or the going rate for your occupation, whichever is higher). Some occupations on the Immigration Salary List have lower thresholds.",
       "Almost all work visas require employer sponsorship. Your employer must hold a valid sponsor licence and issue a Certificate of Sponsorship (CoS). No sponsorship = no legal right to work.",
       "Employers face heavy fines (up to £60,000 per illegal worker) for not conducting right-to-work checks. Expect thorough document verification before and during employment.",
     ],
@@ -2768,6 +2887,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "UK Visas and Immigration (gov.uk)", url: "https://www.gov.uk/government/organisations/uk-visas-and-immigration", type: "official" },
+    ],
   },
   {
     id: "united-kingdom-skilled-worker",
@@ -2839,7 +2961,7 @@ const BRIEFS: DecisionBrief[] = [
     workReality: [
       "You are tied to your sponsoring employer. You cannot freelance, start a side business, or work for anyone else (except a limited 20-hour/week supplementary job in the same SOC code or a shortage occupation).",
       "Changing jobs requires your new employer to issue a new Certificate of Sponsorship (CoS) and you must submit a new visa application. There is no 'transfer' — it is a fresh application each time, with fees.",
-      "Salary thresholds have been increasing significantly. The general threshold rose to £38,700 in April 2024. Check the going rate for your specific occupation code — it may be higher than the general threshold.",
+      "Salary thresholds have been increasing significantly. The general threshold rose to £38,700 in April 2024 and again to £41,700 in July 2025. Check the going rate for your specific occupation code — it may be higher than the general threshold.",
       "The Immigration Salary List (formerly Shortage Occupation List) offers reduced salary thresholds (typically 80% of the going rate) for qualifying occupations. Check if your role qualifies — it can save thousands and make borderline salaries viable.",
     ],
     familyAndDependents: [
@@ -2856,6 +2978,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "UK Visas and Immigration (gov.uk)", url: "https://www.gov.uk/government/organisations/uk-visas-and-immigration", type: "official" },
+    ],
   },
   {
     id: "united-kingdom-global-talent",
@@ -2944,6 +3069,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "UK Visas and Immigration (gov.uk)", url: "https://www.gov.uk/government/organisations/uk-visas-and-immigration", type: "official" },
+    ],
   },
   {
     id: "united-kingdom-innovator-founder",
@@ -3033,6 +3161,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2025-12-01",
+    sourceLinks: [
+      { label: "UK Visas and Immigration (gov.uk)", url: "https://www.gov.uk/government/organisations/uk-visas-and-immigration", type: "official" },
+    ],
   },
   // ─── GERMANY ──────────────────────────────────────────────
   {
@@ -3088,6 +3219,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2026-02-01",
+    sourceLinks: [
+      { label: "Make it in Germany (Federal Government)", url: "https://www.make-it-in-germany.com/en/", type: "official" },
+    ],
   },
   {
     id: "germany-eu-blue-card",
@@ -3134,6 +3268,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2026-02-01",
+    sourceLinks: [
+      { label: "Make it in Germany (Federal Government)", url: "https://www.make-it-in-germany.com/en/", type: "official" },
+    ],
   },
   {
     id: "germany-skilled-worker-residence",
@@ -3180,6 +3317,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2026-02-01",
+    sourceLinks: [
+      { label: "Make it in Germany (Federal Government)", url: "https://www.make-it-in-germany.com/en/", type: "official" },
+    ],
   },
   // ─── IRELAND ──────────────────────────────────────────────
   {
@@ -3235,6 +3375,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2026-02-01",
+    sourceLinks: [
+      { label: "Immigration Service Delivery (Department of Justice)", url: "https://www.irishimmigration.ie/", type: "official" },
+    ],
   },
   {
     id: "ireland-critical-skills",
@@ -3281,6 +3424,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "High",
     lastReviewedAt: "2026-02-01",
+    sourceLinks: [
+      { label: "Immigration Service Delivery (Department of Justice)", url: "https://www.irishimmigration.ie/", type: "official" },
+    ],
   },
   // ─── AUSTRALIA ──────────────────────────────────────────────
   {
@@ -3337,6 +3483,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "Medium",
     lastReviewedAt: "2026-02-01",
+    sourceLinks: [
+      { label: "Department of Home Affairs — Immigration and citizenship", url: "https://immi.homeaffairs.gov.au/", type: "official" },
+    ],
   },
   {
     id: "australia-skilled-independent-189",
@@ -3384,6 +3533,9 @@ const BRIEFS: DecisionBrief[] = [
     ],
     confidenceLevel: "Medium",
     lastReviewedAt: "2026-02-01",
+    sourceLinks: [
+      { label: "Department of Home Affairs — Immigration and citizenship", url: "https://immi.homeaffairs.gov.au/", type: "official" },
+    ],
   },
 ];
 

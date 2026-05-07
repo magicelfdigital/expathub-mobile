@@ -13,6 +13,9 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"),
       // Shared with the mobile app so question wording stays in sync.
       "@quiz-data": path.resolve(__dirname, "..", "src", "data", "quiz.ts"),
+      // Shared so the web freshness banner reads the same lastReviewedAt as
+      // the mobile DecisionBriefCard.
+      "@brief-data": path.resolve(__dirname, "..", "src", "data", "decisionBriefs.ts"),
     },
   },
   server: {
