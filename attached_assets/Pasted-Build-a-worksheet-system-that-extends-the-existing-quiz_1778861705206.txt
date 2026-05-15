@@ -1,0 +1,39 @@
+Build a worksheet system that extends the existing quiz readiness score. Here is the full specification.
+Overview
+When a user completes the quiz, blockers are surfaced in "Worth Your Attention". Each blocker maps to a worksheet — a short interactive form the user can complete to replace their score for that dimension. Completing worksheets improves the overall readiness score. The worksheet list is shown as a teaser to all users; the paywall fires when a user taps into an individual worksheet.
+Data model — add to the database schema in shared/schema.ts:
+Add two new tables:
+
+worksheet_definitions — static, seeded at startup. Columns: id (text, primary key), question_id (integer — maps to quiz question 1-8), title (text), description (text), questions (jsonb — array of worksheet questions, each with id, text, type: "scale" | "choice" | "text", options if choice, scoreWeight numeric)
+user_worksheet_responses — user answers. Columns: id (serial), user_id (integer, FK to users), worksheet_id (text, FK to worksheet_definitions), answers (jsonb), computed_score (numeric), dimension_score (numeric — the replacement score for that quiz dimension, on the same 0-3 scale as quiz answer base points: yes=3, somewhat=2, not_sure=1, no=0), completed_at (timestamp)
+
+Scoring logic — add to src/data/quiz.ts:
+Add a new function calculateQuizResultWithWorksheets(answers: Record<number, string>, worksheetScores: Record<number, number>): QuizResult. This is identical to calculateQuizResult except: for any question ID present in worksheetScores, use the worksheet's dimension_score instead of basePoints(answers[i]) when computing the weighted score. MAX_SCORE and Q_WEIGHT remain unchanged. Do not modify calculateQuizResult.
+API routes — add to server/routes.ts:
+
+GET /api/worksheets — returns all worksheet definitions
+GET /api/worksheets/user — returns all user_worksheet_responses for the authenticated user (requires auth)
+POST /api/worksheets/:worksheetId/submit — saves answers, computes dimension_score from worksheet question scores, writes to user_worksheet_responses, returns updated QuizResult via calculateQuizResultWithWorksheets. Requires auth and active subscription.
+
+Worksheet definitions — seed these 8 worksheets at startup, one per quiz dimension:
+Worksheet IDQuestion IDTitlews_financial_cushion1Build your financial cushionws_income_stability2Map your income stabilityws_visa_pathway3Identify your visa pathwayws_bureaucracy4Assess your bureaucracy readinessws_family_alignment5Align your householdws_lifestyle6Name your lifestyle requirementsws_backup_plan7Build your backup planws_timeline8Set your timeline
+Each worksheet should have 3-5 questions with scale type (1-5) or choice type, designed to probe the same dimension as the original quiz question in more depth. Generate sensible questions for each. The dimension_score should be computed as a weighted average of the worksheet answers, normalized to the 0-3 scale.
+New screens — add to mobile app:
+
+app/(tabs)/(home)/worksheets/index.tsx — Worksheet list screen. Shows all worksheets surfaced from the user's quiz blockers. Each row shows title, dimension, completion status (tick if completed, lock icon if not Pro). Free users see the list but tapping a locked worksheet fires the ProPaywall. Accessible from the quiz results screen via a "Work on your readiness" CTA.
+app/(tabs)/(home)/worksheets/[id].tsx — Individual worksheet screen (Pro-gated). Shows the worksheet questions as an interactive form. On submit, calls POST /api/worksheets/:worksheetId/submit, receives updated score, navigates back to list with success state.
+
+Readiness score surfacing — update two existing screens:
+
+Home screen (app/(tabs)/(home)/index.tsx): Below the plan progress card, add a "Relocation readiness" card. Show the readiness progress bar using getReadinessFillPercent(score, maxScore) from src/data/readinessUi.ts and the readiness label. Only show if a quiz result exists. Tapping navigates to the worksheet list. Use the existing planCard style pattern.
+Quiz results screen: After the existing results content, add a "Work on your readiness" section that shows the worksheet list teaser (first 3 worksheets, locked if not Pro) with a CTA to see all worksheets.
+
+Constraints:
+
+Use existing design tokens from theme/tokens.ts — no hardcoded colours or spacing
+All new API routes require authentication except GET /api/worksheets
+POST /api/worksheets/:worksheetId/submit requires active subscription (check via hasEntitlement)
+Do not modify calculateQuizResult, QUIZ_QUESTIONS, Q_WEIGHT, or MAX_SCORE
+Do not modify any existing billing or entitlement files
+Persist the worksheet-adjusted QuizResult to the same storage location as the existing quiz result so the home screen and account screen reflect the updated score
+Follow the existing user_progress table pattern for the database work

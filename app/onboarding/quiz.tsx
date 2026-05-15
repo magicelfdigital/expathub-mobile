@@ -232,7 +232,7 @@ export default function QuizScreen() {
             ]}
             testID="quiz-timeline-next"
           >
-            <Text style={styles.nextBtnText}>See your results</Text>
+            <Text style={styles.nextBtnText}>Continue</Text>
             <Ionicons name="arrow-forward" size={18} color="#fff" />
           </Pressable>
         ) : null}
