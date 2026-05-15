@@ -284,7 +284,7 @@ export default function ExploreScreen() {
           testID="glossary-link"
         >
           <View style={s.glossaryIconCircle}>
-            <Ionicons name="book-outline" size={20} color={tokens.color.teal} />
+            <Ionicons name="library-outline" size={20} color={tokens.color.teal} />
           </View>
           <View style={s.compareBody}>
             <Text style={s.glossaryTitle}>Visa Glossary</Text>
