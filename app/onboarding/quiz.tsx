@@ -73,6 +73,10 @@ export default function QuizScreen() {
   const progress = (currentIndex + 1) / TOTAL;
 
   const animateTransition = useCallback((direction: "forward" | "back", cb: () => void) => {
+    if (Platform.OS === "web") {
+      cb();
+      return;
+    }
     const toValue = direction === "forward" ? -screenWidth : screenWidth;
     Animated.timing(slideAnim, {
       toValue,
@@ -281,6 +285,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     paddingBottom: 80,
+    overflow: "hidden",
   },
   categoryLabel: {
     fontSize: 13,
