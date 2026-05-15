@@ -4,17 +4,25 @@ import type { QuizResult } from "@/src/data/quiz";
 
 const ONBOARDING_KEY = "hasSeenOnboarding";
 const QUIZ_RESULT_KEY = "quizResult";
+const QUIZ_ANSWERS_KEY = "quizAnswers";
 const SKIP_BANNER_KEY = "skipBannerCount";
 const SKIPPED_ACCOUNT_KEY = "skippedAccount";
+
+export type PersistedQuizAnswers = Record<number, string>;
 
 interface OnboardingContextValue {
   hasSeenOnboarding: boolean | null;
   quizResult: QuizResult | null;
+  quizAnswers: PersistedQuizAnswers | null;
   skippedAccount: boolean;
   skipBannerCount: number;
-  completeOnboarding: (result: QuizResult, skippedAccount?: boolean) => Promise<void>;
+  completeOnboarding: (
+    result: QuizResult,
+    skippedAccount?: boolean,
+    answers?: PersistedQuizAnswers,
+  ) => Promise<void>;
   skipOnboarding: () => Promise<void>;
-  saveQuizResult: (result: QuizResult) => Promise<void>;
+  saveQuizResult: (result: QuizResult, answers?: PersistedQuizAnswers) => Promise<void>;
   dismissBanner: () => Promise<void>;
   clearForRetake: () => Promise<void>;
   markAccountCreated: () => Promise<void>;
@@ -26,21 +34,26 @@ const OnboardingContext = createContext<OnboardingContextValue | undefined>(unde
 export function OnboardingProvider({ children }: { children: React.ReactNode }) {
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(null);
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
+  const [quizAnswers, setQuizAnswers] = useState<PersistedQuizAnswers | null>(null);
   const [skippedAccount, setSkippedAccount] = useState(false);
   const [skipBannerCount, setSkipBannerCount] = useState(0);
 
   useEffect(() => {
     (async () => {
       try {
-        const [seen, resultStr, skipped, bannerCount] = await Promise.all([
+        const [seen, resultStr, answersStr, skipped, bannerCount] = await Promise.all([
           AsyncStorage.getItem(ONBOARDING_KEY),
           AsyncStorage.getItem(QUIZ_RESULT_KEY),
+          AsyncStorage.getItem(QUIZ_ANSWERS_KEY),
           AsyncStorage.getItem(SKIPPED_ACCOUNT_KEY),
           AsyncStorage.getItem(SKIP_BANNER_KEY),
         ]);
         setHasSeenOnboarding(seen === "true");
         if (resultStr) {
           try { setQuizResult(JSON.parse(resultStr)); } catch {}
+        }
+        if (answersStr) {
+          try { setQuizAnswers(JSON.parse(answersStr)); } catch {}
         }
         setSkippedAccount(skipped === "true");
         setSkipBannerCount(bannerCount ? parseInt(bannerCount, 10) : 0);
@@ -50,26 +63,40 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     })();
   }, []);
 
-  const completeOnboarding = useCallback(async (result: QuizResult, skipped = false) => {
-    await AsyncStorage.setItem(ONBOARDING_KEY, "true");
-    await AsyncStorage.setItem(QUIZ_RESULT_KEY, JSON.stringify(result));
-    if (skipped) {
-      await AsyncStorage.setItem(SKIPPED_ACCOUNT_KEY, "true");
-    }
-    setHasSeenOnboarding(true);
-    setQuizResult(result);
-    setSkippedAccount(skipped);
-  }, []);
+  const completeOnboarding = useCallback(
+    async (result: QuizResult, skipped = false, answers?: PersistedQuizAnswers) => {
+      await AsyncStorage.setItem(ONBOARDING_KEY, "true");
+      await AsyncStorage.setItem(QUIZ_RESULT_KEY, JSON.stringify(result));
+      if (answers) {
+        await AsyncStorage.setItem(QUIZ_ANSWERS_KEY, JSON.stringify(answers));
+        setQuizAnswers(answers);
+      }
+      if (skipped) {
+        await AsyncStorage.setItem(SKIPPED_ACCOUNT_KEY, "true");
+      }
+      setHasSeenOnboarding(true);
+      setQuizResult(result);
+      setSkippedAccount(skipped);
+    },
+    [],
+  );
 
   const skipOnboarding = useCallback(async () => {
     await AsyncStorage.setItem(ONBOARDING_KEY, "true");
     setHasSeenOnboarding(true);
   }, []);
 
-  const saveQuizResult = useCallback(async (result: QuizResult) => {
-    await AsyncStorage.setItem(QUIZ_RESULT_KEY, JSON.stringify(result));
-    setQuizResult(result);
-  }, []);
+  const saveQuizResult = useCallback(
+    async (result: QuizResult, answers?: PersistedQuizAnswers) => {
+      await AsyncStorage.setItem(QUIZ_RESULT_KEY, JSON.stringify(result));
+      if (answers) {
+        await AsyncStorage.setItem(QUIZ_ANSWERS_KEY, JSON.stringify(answers));
+        setQuizAnswers(answers);
+      }
+      setQuizResult(result);
+    },
+    [],
+  );
 
   const dismissBanner = useCallback(async () => {
     const next = skipBannerCount + 1;
@@ -79,8 +106,10 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   const clearForRetake = useCallback(async () => {
     await AsyncStorage.removeItem(QUIZ_RESULT_KEY);
+    await AsyncStorage.removeItem(QUIZ_ANSWERS_KEY);
     await AsyncStorage.removeItem(ONBOARDING_KEY);
     setQuizResult(null);
+    setQuizAnswers(null);
     setHasSeenOnboarding(false);
   }, []);
 
@@ -95,6 +124,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     () => ({
       hasSeenOnboarding,
       quizResult,
+      quizAnswers,
       skippedAccount,
       skipBannerCount,
       completeOnboarding,
@@ -105,7 +135,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       markAccountCreated,
       shouldShowBanner,
     }),
-    [hasSeenOnboarding, quizResult, skippedAccount, skipBannerCount, completeOnboarding, skipOnboarding, saveQuizResult, dismissBanner, clearForRetake, markAccountCreated, shouldShowBanner]
+    [hasSeenOnboarding, quizResult, quizAnswers, skippedAccount, skipBannerCount, completeOnboarding, skipOnboarding, saveQuizResult, dismissBanner, clearForRetake, markAccountCreated, shouldShowBanner]
   );
 
   return <OnboardingContext.Provider value={value}>{children}</OnboardingContext.Provider>;

@@ -12,6 +12,12 @@ import {
   recordQuizSaveEvent,
   registerQuizSaveAnalyticsRoutes,
 } from "./quizSaveAnalytics";
+import {
+  WORKSHEETS,
+  WORKSHEET_BY_ID,
+  scoreWorksheet,
+  validateAnswersShape,
+} from "../src/data/worksheets";
 
 // ── A/B test config ─────────────────────────────────────────────────────
 //
@@ -1629,6 +1635,245 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ── Worksheets ──
+  await registerWorksheetRoutes(app);
+
   const httpServer = createServer(app);
   return httpServer;
+}
+
+// ── Worksheets implementation ──────────────────────────────────────────────
+//
+// Lazy-migrated tables (see ab_test_assignments above for the same pattern).
+// Definitions are seeded from the canonical TS source on first hit so the
+// table is the source of truth at request time without requiring a build
+// step or external migration tool.
+
+let worksheetTablesEnsured = false;
+
+async function ensureWorksheetTables(pool: pg.Pool): Promise<void> {
+  if (worksheetTablesEnsured) return;
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS worksheet_definitions (
+      id VARCHAR(100) PRIMARY KEY,
+      question_id INTEGER NOT NULL,
+      dimension VARCHAR(100) NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      questions JSONB NOT NULL,
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_worksheet_responses (
+      id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id VARCHAR(255) NOT NULL,
+      worksheet_id VARCHAR(100) NOT NULL,
+      answers JSONB NOT NULL,
+      dimension_score NUMERIC(4,2) NOT NULL,
+      submitted_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS user_worksheet_responses_user_worksheet_idx
+      ON user_worksheet_responses (user_id, worksheet_id)
+  `);
+
+  // Seed / refresh definitions from the canonical TS source. Upsert so a
+  // content edit ships at server boot without a manual migration.
+  for (const w of WORKSHEETS) {
+    await pool.query(
+      `INSERT INTO worksheet_definitions
+         (id, question_id, dimension, title, description, questions, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+       ON CONFLICT (id) DO UPDATE SET
+         question_id = EXCLUDED.question_id,
+         dimension = EXCLUDED.dimension,
+         title = EXCLUDED.title,
+         description = EXCLUDED.description,
+         questions = EXCLUDED.questions,
+         updated_at = NOW()`,
+      [
+        w.id,
+        w.questionId,
+        w.dimension,
+        w.title,
+        w.description,
+        JSON.stringify(w.questions),
+      ],
+    );
+  }
+  worksheetTablesEnsured = true;
+}
+
+async function hasActiveEntitlement(req: Request): Promise<boolean> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return false;
+  try {
+    const upstream = await fetch(`${AUTH_API_URL}/api/entitlements`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json", Authorization: authHeader },
+    });
+    if (!upstream.ok) return false;
+    const data = (await upstream.json()) as Record<string, unknown> & {
+      subscription?: { status?: string } | null;
+      entitlements?: Record<string, { isActive?: boolean }> | null;
+    };
+    if (data.hasFullAccess === true || data.hasProAccess === true) return true;
+    if (data.hasActiveSubscription === true || data.subscriptionActive === true) return true;
+    if (data.subscription && typeof data.subscription === "object") {
+      const status = (data.subscription as { status?: string }).status;
+      if (status === "active" || status === "trialing") return true;
+    }
+    if (data.entitlements && typeof data.entitlements === "object") {
+      const ent = (data.entitlements as Record<string, { isActive?: boolean }>)[
+        "full_access_subscription"
+      ];
+      if (ent && ent.isActive === true) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+async function registerWorksheetRoutes(app: Express): Promise<void> {
+  // Public list — used by the worksheets index screen, which is visible to
+  // free users (paywall fires only on opening an individual worksheet).
+  // Returns metadata only; the full `questions` payload is gated behind an
+  // active subscription via GET /api/worksheets/:id below.
+  app.get("/api/worksheets", async (_req: Request, res: Response) => {
+    const pool = getPool();
+    if (!pool) { res.json([]); return; }
+    try {
+      await ensureWorksheetTables(pool);
+      const result = await pool.query(
+        `SELECT id, question_id, dimension, title, description
+           FROM worksheet_definitions
+          ORDER BY question_id ASC`,
+      );
+      res.json(
+        result.rows.map((r: any) => ({
+          id: r.id,
+          questionId: r.question_id,
+          dimension: r.dimension,
+          title: r.title,
+          description: r.description,
+        })),
+      );
+    } catch (err: any) {
+      console.error("Worksheets list error:", err);
+      res.status(500).json({ error: "Failed to fetch worksheets" });
+    } finally {
+      await pool.end();
+    }
+  });
+
+  // Authenticated — returns the user's submitted worksheets keyed by id, so
+  // the client can both render completion state on the list and feed
+  // dimension scores into calculateQuizResultWithWorksheets. Registered
+  // BEFORE the /:worksheetId param route so Express doesn't shadow it.
+  app.get("/api/worksheets/responses", async (req: Request, res: Response) => {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const pool = getPool();
+    if (!pool) { res.json([]); return; }
+    try {
+      await ensureWorksheetTables(pool);
+      const result = await pool.query(
+        `SELECT r.worksheet_id, r.answers, r.dimension_score, r.submitted_at,
+                d.question_id
+           FROM user_worksheet_responses r
+           JOIN worksheet_definitions d ON d.id = r.worksheet_id
+          WHERE r.user_id = $1`,
+        [userId],
+      );
+      res.json(
+        result.rows.map((r: any) => ({
+          worksheetId: r.worksheet_id,
+          questionId: r.question_id,
+          answers: r.answers,
+          dimensionScore: Number(r.dimension_score),
+          submittedAt: r.submitted_at,
+        })),
+      );
+    } catch (err: any) {
+      console.error("Worksheet responses error:", err);
+      res.status(500).json({ error: "Failed to fetch responses" });
+    } finally {
+      await pool.end();
+    }
+  });
+
+  // Authenticated + entitled — returns the full worksheet definition
+  // including the questions array. This is the actual paywall enforcement
+  // point: even if a non-paid client bypassed the UI redirect, they
+  // wouldn't be able to fetch question content. Declared after
+  // /api/worksheets/responses so the param route doesn't shadow it.
+  app.get("/api/worksheets/:worksheetId", async (req: Request, res: Response) => {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const entitled = await hasActiveEntitlement(req);
+    if (!entitled) { res.status(402).json({ error: "Subscription required" }); return; }
+    const def = WORKSHEET_BY_ID[req.params.worksheetId];
+    if (!def) { res.status(404).json({ error: "Unknown worksheet" }); return; }
+    res.json({
+      id: def.id,
+      questionId: def.questionId,
+      dimension: def.dimension,
+      title: def.title,
+      description: def.description,
+      questions: def.questions,
+    });
+  });
+
+  // Submit / replace the response for a worksheet. Auth + active subscription
+  // required (paywall is also enforced client-side; this is the backstop).
+  app.post("/api/worksheets/:worksheetId/submit", async (req: Request, res: Response) => {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const entitled = await hasActiveEntitlement(req);
+    if (!entitled) { res.status(402).json({ error: "Subscription required" }); return; }
+    const { worksheetId } = req.params;
+    const { answers } = (req.body ?? {}) as { answers?: unknown };
+    if (!worksheetId || !answers) {
+      res.status(400).json({ error: "worksheetId and answers are required" });
+      return;
+    }
+
+    const def = WORKSHEET_BY_ID[worksheetId];
+    if (!def) { res.status(404).json({ error: "Unknown worksheet" }); return; }
+
+    const validated = validateAnswersShape(def, answers);
+    if (!validated) { res.status(400).json({ error: "Invalid answers payload" }); return; }
+    const score = scoreWorksheet(def, validated);
+    if (score === null) { res.status(400).json({ error: "Could not score answers" }); return; }
+
+    const pool = getPool();
+    if (!pool) { res.status(503).json({ error: "Database not configured" }); return; }
+    try {
+      await ensureWorksheetTables(pool);
+      await pool.query(
+        `INSERT INTO user_worksheet_responses
+           (user_id, worksheet_id, answers, dimension_score, submitted_at)
+         VALUES ($1, $2, $3, $4, NOW())
+         ON CONFLICT (user_id, worksheet_id) DO UPDATE SET
+           answers = EXCLUDED.answers,
+           dimension_score = EXCLUDED.dimension_score,
+           submitted_at = NOW()`,
+        [userId, worksheetId, JSON.stringify(validated), score],
+      );
+      res.json({
+        ok: true,
+        worksheetId,
+        questionId: def.questionId,
+        dimensionScore: score,
+      });
+    } catch (err: any) {
+      console.error("Worksheet submit error:", err);
+      res.status(500).json({ error: "Failed to save worksheet" });
+    } finally {
+      await pool.end();
+    }
+  });
 }

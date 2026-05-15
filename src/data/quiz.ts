@@ -486,6 +486,64 @@ export function calculateQuizResult(
   };
 }
 
+/**
+ * Variant of {@link calculateQuizResult} that lets a user replace the
+ * basePoints contribution for any quiz dimension with a richer score
+ * derived from completing that dimension's worksheet.
+ *
+ * `worksheetScores` maps quiz question id (1-8) to a 0-3 dimension score
+ * (see `scoreWorksheet` in `src/data/worksheets.ts`). For each question id
+ * present in the map, we substitute `(score / 3) * 2` for the basePoints
+ * value — this keeps the substitution on the same 0-2 scale that
+ * `WEIGHTED_MAX` was derived from, so `MAX_SCORE` math stays consistent
+ * and the result remains directly comparable to a plain quiz result.
+ *
+ * Risks/blockers are still computed from the original quiz answers — the
+ * worksheet replaces the *score*, not the underlying self-report.
+ */
+export function calculateQuizResultWithWorksheets(
+  answers: Record<number, string>,
+  worksheetScores: Record<number, number>,
+): QuizResult {
+  let weightedRaw = 0;
+  const risks: string[] = [];
+
+  for (let i = 1; i <= 8; i++) {
+    const answer = (answers[i] ?? "no") as QuizAnswer;
+    const wsScore = worksheetScores[i];
+    const contribution =
+      typeof wsScore === "number" && Number.isFinite(wsScore)
+        ? Math.max(0, Math.min(3, wsScore)) * (2 / 3)
+        : basePoints(answer);
+    weightedRaw += contribution * (Q_WEIGHT[i] ?? 1);
+    if (answer === "no") {
+      const q = QUIZ_QUESTIONS.find((q) => q.id === i);
+      if (q) risks.push(q.category);
+    }
+  }
+
+  const displayScore = Math.min(MAX_SCORE, Math.round((weightedRaw / WEIGHTED_MAX) * MAX_SCORE));
+
+  let tier: Tier;
+  if (displayScore <= 5) tier = "dreaming";
+  else if (displayScore <= 11) tier = "exploring";
+  else tier = "ready";
+
+  const regionPreference = (answers[9] ?? "southern_europe") as RegionPreference;
+  const blockers = getBlockers(answers);
+  const readiness = getReadinessLabel(displayScore, MAX_SCORE);
+
+  return {
+    tier,
+    score: displayScore,
+    maxScore: MAX_SCORE,
+    readiness,
+    regionPreference,
+    risks,
+    blockers,
+  };
+}
+
 export const TIER_LABELS: Record<Tier, string> = {
   dreaming: "Dreaming",
   exploring: "Exploring",

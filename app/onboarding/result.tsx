@@ -99,6 +99,19 @@ export default function ResultScreen() {
     [answers],
   );
 
+  // Q1–Q9 answers in the canonical numeric-keyed shape that
+  // calculateQuizResultWithWorksheets expects, persisted alongside the
+  // result so worksheet submissions can re-derive readiness without losing
+  // somewhat / not_sure / region info.
+  const numericAnswers = useMemo<Record<number, string>>(() => {
+    const out: Record<number, string> = {};
+    for (let i = 1; i <= 9; i++) {
+      const v = (answers as Record<string, unknown>)[String(i)];
+      if (typeof v === "string") out[i] = v;
+    }
+    return out;
+  }, [answers]);
+
   const readiness = useMemo(
     () => result.readiness ?? getReadinessLabel(result.score, result.maxScore ?? MAX_SCORE),
     [result.readiness, result.score, result.maxScore],
@@ -196,7 +209,7 @@ export default function ResultScreen() {
   };
 
   const handleCreateAccount = async () => {
-    await completeOnboarding(result, false);
+    await completeOnboarding(result, false, numericAnswers);
     trackEvent(
       "quiz_completed",
       buildResultCtaPayload({
@@ -209,7 +222,7 @@ export default function ResultScreen() {
   };
 
   const handleContinue = async () => {
-    await completeOnboarding(result, true);
+    await completeOnboarding(result, true, numericAnswers);
     trackEvent(
       "quiz_completed",
       buildResultCtaPayload({
@@ -222,7 +235,7 @@ export default function ResultScreen() {
   };
 
   const handleUnlockRoadmap = async () => {
-    await completeOnboarding(result, true);
+    await completeOnboarding(result, true, numericAnswers);
     trackEvent("paywall_unlock_tapped", { source: "result_screen", readiness_level: readiness.level });
     router.push("/subscribe");
   };
@@ -338,6 +351,28 @@ export default function ResultScreen() {
         {showPaywallAfterUrgent ? renderPaywallCta() : null}
 
         {renderBlockerSection("explore")}
+
+        <Pressable
+          onPress={async () => {
+            // Persist the result + answers first so worksheet submissions
+            // can re-derive readiness immediately.
+            await completeOnboarding(result, true, numericAnswers);
+            router.push("/(tabs)/(home)/worksheets" as any);
+          }}
+          style={({ pressed }) => [styles.worksheetsTeaser, pressed && { opacity: 0.92 }]}
+          testID="result-worksheets-teaser"
+        >
+          <View style={styles.worksheetsTeaserIcon}>
+            <Ionicons name="document-text-outline" size={18} color={tokens.color.teal} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.worksheetsTeaserTitle}>Work on your readiness</Text>
+            <Text style={styles.worksheetsTeaserSub}>
+              Replace each blocker with a deeper self-check and update your score.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={tokens.color.teal} />
+        </Pressable>
 
         {result.blockers.length === 0 ? (
           <View style={styles.card}>
@@ -493,6 +528,37 @@ const styles = StyleSheet.create({
     backgroundColor: "#606CB9",
     borderRadius: 14,
     padding: 18,
+  },
+  worksheetsTeaser: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: tokens.color.tealLight,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: tokens.color.teal,
+    padding: 14,
+  },
+  worksheetsTeaserIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: tokens.color.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  worksheetsTeaserTitle: {
+    fontSize: 15,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600",
+    color: tokens.color.text,
+    marginBottom: 2,
+  },
+  worksheetsTeaserSub: {
+    fontSize: 13,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
+    lineHeight: 18,
   },
   paywallCtaTitle: {
     color: "#fff",

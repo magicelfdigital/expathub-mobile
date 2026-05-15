@@ -185,3 +185,45 @@ export const userProgress = pgTable(
 );
 
 export type UserProgress = typeof userProgress.$inferSelect;
+
+// ── Worksheets ──────────────────────────────────────────────────────────
+//
+// `worksheet_definitions` holds the canonical, server-seeded list of the 8
+// worksheets (one per quiz dimension). Definitions ship in
+// `src/data/worksheets.ts` and are upserted at server boot via lazy
+// migration so the table is the source of truth at request time.
+export const worksheetDefinitions = pgTable("worksheet_definitions", {
+  id: varchar("id", { length: 100 }).primaryKey(),
+  questionId: integer("question_id").notNull(),
+  dimension: varchar("dimension", { length: 100 }).notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  questions: jsonb("questions").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+export type WorksheetDefinition = typeof worksheetDefinitions.$inferSelect;
+
+// `user_worksheet_responses` holds the latest submitted answers + computed
+// dimension score per (user, worksheet). One row per pair, upserted on
+// every submission. `dimensionScore` is on the 0-3 scale documented in
+// `src/data/worksheets.ts` (`scoreWorksheet`).
+export const userWorksheetResponses = pgTable(
+  "user_worksheet_responses",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id", { length: 255 }).notNull(),
+    worksheetId: varchar("worksheet_id", { length: 100 }).notNull(),
+    answers: jsonb("answers").notNull(),
+    dimensionScore: numeric("dimension_score", { precision: 4, scale: 2 }).notNull(),
+    submittedAt: timestamp("submitted_at").defaultNow(),
+  },
+  (table) => ({
+    userWorksheetUnique: uniqueIndex("user_worksheet_responses_user_worksheet_idx").on(
+      table.userId,
+      table.worksheetId,
+    ),
+  }),
+);
+export type UserWorksheetResponse = typeof userWorksheetResponses.$inferSelect;

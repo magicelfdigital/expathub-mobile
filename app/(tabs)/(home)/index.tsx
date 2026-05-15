@@ -9,6 +9,7 @@ import { BookmarkButton } from "@/src/components/BookmarkButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
 import { useOnboarding } from "@/contexts/OnboardingContext";
+import { MAX_SCORE } from "@/src/data/quiz";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useContinue } from "@/src/contexts/ContinueContext";
 import { usePlan } from "@/src/contexts/PlanContext";
@@ -26,7 +27,7 @@ export default function HomeScreen() {
   const { user } = useAuth();
   const { selectedCountrySlug, setSelectedCountrySlug, isLoaded } = useCountry();
   const { lastViewedCountrySlug, lastViewedSection, clearContinue } = useContinue();
-  const { shouldShowBanner, dismissBanner } = useOnboarding();
+  const { shouldShowBanner, dismissBanner, quizResult } = useOnboarding();
   const { isTablet } = useLayout();
   const { activeCountrySlug } = usePlan();
   const { hasActiveSubscription } = useSubscription();
@@ -208,6 +209,54 @@ export default function HomeScreen() {
                 </Pressable>
               </View>
             )}
+
+            <View style={styles.planCardWrap}>
+              <Pressable
+                onPress={() => router.push("/(tabs)/(home)/worksheets" as any)}
+                style={({ pressed }) => [
+                  styles.readinessCard,
+                  pressed && styles.planCardPressed,
+                ]}
+                testID="home-readiness-card"
+              >
+                <View style={styles.planCardRow}>
+                  <View style={styles.readinessIcon}>
+                    <Ionicons name="trending-up" size={16} color={tokens.color.teal} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.planCardTitle}>Relocation readiness</Text>
+                    <Text style={styles.planCardSub}>
+                      {quizResult
+                        ? `Score ${quizResult.score} / ${quizResult.maxScore ?? MAX_SCORE} — sharpen it with worksheets`
+                        : "Take the quiz, then sharpen each dimension with a worksheet"}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={tokens.color.teal} />
+                </View>
+                {quizResult ? (
+                  <View style={styles.planCardBarTrack}>
+                    <View
+                      style={[
+                        styles.readinessBarFill,
+                        {
+                          width: `${Math.max(
+                            0,
+                            Math.min(
+                              100,
+                              Math.round(
+                                (quizResult.score /
+                                  (quizResult.maxScore ?? MAX_SCORE)) *
+                                  100,
+                              ),
+                            ),
+                          )}%`,
+                        },
+                      ]}
+                    />
+                  </View>
+                ) : null}
+              </Pressable>
+            </View>
 
             {planCountry ? (
               <View style={styles.planCardWrap}>
@@ -750,6 +799,27 @@ const styles = {
   planCardBarFill: {
     height: "100%" as any,
     backgroundColor: tokens.color.primary,
+    borderRadius: 3,
+  },
+  readinessCard: {
+    backgroundColor: tokens.color.tealLight,
+    borderRadius: tokens.radius.lg,
+    borderWidth: 1,
+    borderColor: tokens.color.teal,
+    padding: tokens.space.md,
+    gap: tokens.space.sm,
+  },
+  readinessIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: tokens.color.surface,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  readinessBarFill: {
+    height: "100%" as any,
+    backgroundColor: tokens.color.teal,
     borderRadius: 3,
   },
 } as const;

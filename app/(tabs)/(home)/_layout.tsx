@@ -20,6 +20,11 @@ export default function HomeStackLayout() {
           animationDuration: 250,
         }}
       />
+      <Stack.Screen name="worksheets/index" />
+      <Stack.Screen
+        name="worksheets/[id]"
+        getId={({ params }) => params?.id ?? "default"}
+      />
     </Stack>
   );
 }
