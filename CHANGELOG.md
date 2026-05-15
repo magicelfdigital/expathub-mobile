@@ -19,8 +19,8 @@ to measure all of it.
 - Collapsed Decision Pass + per-country Lifetime SKUs into a 2-tier model:
   **Monthly Explorer ($14.99)** and **Annual Pathfinder ($89)**, both with a
   14-day free trial.
-- Backend-authoritative entitlements (`expathub_explorer` /
-  `expathub_pathfinder` → `full_access`).
+- Backend-authoritative entitlements (iOS `monthly_subscription_all_access`
+  / `ExpatHub_pathfinder` → `full_access_subscription`).
 - Restore Purchases now waits for the backend before declaring success.
 - Android billing path removed — iOS + Web only going forward.
 

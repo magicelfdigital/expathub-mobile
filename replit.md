@@ -89,8 +89,8 @@ Two paid subscription tiers. Country Lifetime Unlock and Decision Pass have been
 
 | Tier | Price | Trial | RevenueCat Product ID (iOS) | RevenueCat Product ID (Android) |
 |------|-------|-------|-----------------------------|---------------------------------|
-| Monthly Explorer | $14.99/mo | None | `expathub_explorer` | `expathub_explorer:monthly` |
-| Annual Pathfinder | $89/yr | 14 days | `expathub_pathfinder` | `expathub_pathfinder:annual` |
+| Monthly Explorer | $14.99/mo | None | `monthly_subscription_all_access` | `expathub_pro_monthly:monthly` |
+| Annual Pathfinder | $89/yr | 14 days | `ExpatHub_pathfinder` | `expathub_pathfinder:pathfinder` |
 
 **RevenueCat entitlement:**
 
@@ -206,7 +206,7 @@ When writing or modifying code, always observe these constraints:
 
 1. **Do not touch entitlement or billing logic** unless the task explicitly requires it. Files to treat as protected: `src/contexts/EntitlementContext.tsx`, `src/contexts/entitlementDerivation.ts`, `src/billing/entitlementGate.ts`, `src/config/subscription.ts`, `src/subscriptions/revenuecat.ts`, `src/subscriptions/stripeWeb.ts`, `contexts/SubscriptionContext.tsx`.
 
-2. **Monetization model:** Two subscriptions only — Monthly Explorer (`expathub_explorer`, $14.99/mo, no trial) and Annual Pathfinder (`expathub_pathfinder`, $89/yr, 14-day trial). Single entitlement ID: `full_access_subscription`. No Decision Pass. No Country Lifetime Unlock. Do not add, reference, or restore any retired products.
+2. **Monetization model:** Two subscriptions only — Monthly Explorer (iOS `monthly_subscription_all_access`, $14.99/mo, no trial) and Annual Pathfinder (iOS `ExpatHub_pathfinder`, $89/yr, 14-day trial). Single entitlement ID: `full_access_subscription`. No Decision Pass. No Country Lifetime Unlock. Do not add, reference, or restore any retired products.
 
 3. **Country count is 11.** The canonical list is `LAUNCH_COUNTRIES` in `src/config/subscription.ts`. Do not hardcode a different list anywhere.
 
@@ -260,8 +260,8 @@ When writing or modifying code, always observe these constraints:
 |----------|---------|
 | `EXPO_PUBLIC_RC_IOS_KEY` | RevenueCat iOS API key |
 | `EXPO_PUBLIC_RC_ANDROID_KEY` | RevenueCat Android API key (present in config but Android billing not active) |
-| `EXPO_PUBLIC_RC_MONTHLY_PRODUCT` | Override for monthly product ID (default: `expathub_explorer`) |
-| `EXPO_PUBLIC_RC_ANNUAL_PRODUCT` | Override for annual product ID (default: `expathub_pathfinder`) |
+| `EXPO_PUBLIC_RC_MONTHLY_PRODUCT` | Override for monthly product ID (default iOS: `monthly_subscription_all_access`) |
+| `EXPO_PUBLIC_RC_ANNUAL_PRODUCT` | Override for annual product ID (default iOS: `ExpatHub_pathfinder`) |
 | `EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID` | Stripe price ID for monthly plan |
 | `EXPO_PUBLIC_STRIPE_ANNUAL_PRICE_ID` | Stripe price ID for annual plan |
 | `SESSION_SECRET` | Express session signing key |

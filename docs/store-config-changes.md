@@ -19,7 +19,7 @@ free trial** change applied to both plans.
 
 | Surface | Plan IDs / values |
 |---|---|
-| RevenueCat product IDs | `expathub_explorer` (monthly), `expathub_pathfinder` (annual) |
+| RevenueCat product IDs (iOS) | `monthly_subscription_all_access` (monthly), `ExpatHub_pathfinder` (annual) |
 | Mobile prices (display) | `$14.99/month`, `$89/year` |
 | Trial length (mobile + web) | **14 days** (constant: `TRIAL_DURATION_DAYS` in `src/config/subscription.ts`) |
 | Web checkout endpoint | `POST /api/stripe/checkout` with body `{ plan: "monthly" \| "annual" }` |
@@ -32,12 +32,12 @@ free trial** change applied to both plans.
 ## 2. App Store Connect (iOS)
 
 1. **Subscriptions group** (auto-renewing): keep two products only —
-   - `expathub_explorer` — Monthly Explorer — **$14.99/month**
-   - `expathub_pathfinder` — Annual Pathfinder — **$89/year**
+   - `monthly_subscription_all_access` — Monthly Explorer — **$14.99/month**
+   - `ExpatHub_pathfinder` — Annual Pathfinder — **$89/year**
 2. For **each** product, open **Subscription Pricing** → **Introductory
    Offer** → **Free Trial** → **14 days**, available to **New Subscribers**
    (and, optionally, lapsed subscribers — confirm with marketing).
-3. Remove the old offers: any 7-day intro on `expathub_pathfinder`, and
+3. Remove the old offers: any 7-day intro on `ExpatHub_pathfinder`, and
    any standalone non-renewing products for the **30-Day Decision Pass** or
    **Country Lifetime** packs. If the products cannot be deleted, mark them
    **Cleared for Sale → No** so they stop appearing in offerings.
@@ -45,7 +45,7 @@ free trial** change applied to both plans.
 
 ## 3. RevenueCat dashboard
 
-1. **Products**: ensure only `expathub_explorer` and `expathub_pathfinder` are
+1. **Products**: ensure only `monthly_subscription_all_access` and `ExpatHub_pathfinder` are
    active. Archive the Decision Pass and Country Lifetime products so they
    stop appearing in offerings.
 2. **Offerings → Default**: keep two packages mapped to those products
@@ -59,9 +59,9 @@ free trial** change applied to both plans.
    **Experiments → New experiment**:
    - Name: `monthly_paid_intro_vs_free_trial`.
    - Control offering: the existing **Default** offering with the 14-day
-     free trial on `expathub_explorer`.
+     free trial on `monthly_subscription_all_access`.
    - Variant offering: clone Default into **paid_intro_test**, replace the
-     monthly package with `expathub_explorer` configured to use a **$0.99
+     monthly package with `monthly_subscription_all_access` configured to use a **$0.99
      intro price for 1 month** (no free trial). Create the matching intro
      offer in App Store Connect (**Pay As You Go → $0.99 / 1 month**) before
      launching the experiment.
@@ -74,7 +74,7 @@ free trial** change applied to both plans.
    - Name: `annual_89_vs_99`.
    - Control offering: Default (annual = $89).
    - Variant offering: clone Default into **annual_99_test** with
-     `expathub_pathfinder` priced at **$99/year** (create the $99 SKU in
+     `ExpatHub_pathfinder` priced at **$99/year** (create the $99 SKU in
      App Store Connect first; ASC requires a new SKU for any price change).
    - Traffic split: 50/50.
    - Stop rule: same as above.
@@ -131,9 +131,9 @@ free trial** change applied to both plans.
 
 ## 5. Verification checklist
 
-- [ ] iOS sandbox purchase of `expathub_pathfinder` shows the **14-day free
+- [ ] iOS sandbox purchase of `ExpatHub_pathfinder` shows the **14-day free
       trial** introductory offer in the App Store sheet.
-- [ ] iOS sandbox purchase of `expathub_explorer` shows the **14-day free
+- [ ] iOS sandbox purchase of `monthly_subscription_all_access` shows the **14-day free
       trial** introductory offer.
 - [ ] RevenueCat customer info reports a single `full_access` entitlement
       after either purchase.

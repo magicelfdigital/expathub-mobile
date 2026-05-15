@@ -5,10 +5,11 @@ export const ENTITLEMENT_ID = "full_access_subscription";
 
 export const RC_MONTHLY_PRODUCT =
   process.env.EXPO_PUBLIC_RC_MONTHLY_PRODUCT ??
-  (Platform.OS === "ios" ? "expathub_explorer" : "expathub_explorer:monthly");
+  (Platform.OS === "ios" ? "monthly_subscription_all_access" : "expathub_pro_monthly:monthly");
+
 export const RC_ANNUAL_PRODUCT =
   process.env.EXPO_PUBLIC_RC_ANNUAL_PRODUCT ??
-  (Platform.OS === "ios" ? "expathub_pathfinder" : "expathub_pathfinder:annual");
+  (Platform.OS === "ios" ? "ExpatHub_pathfinder" : "expathub_pathfinder:pathfinder");
 
 export const STRIPE_MONTHLY_PRICE_ID =
   process.env.EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID ?? "";
