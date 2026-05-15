@@ -1,5 +1,6 @@
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
 import PostHog from "posthog-react-native";
 import { getBackendBase } from "@/src/billing/backendClient";
 
@@ -33,6 +34,15 @@ export function initFbSdk() {
     if (__DEV__) {
       console.log("[Analytics] Meta SDK keys missing (EXPO_PUBLIC_META_APP_ID / EXPO_PUBLIC_META_CLIENT_TOKEN); skipping init");
     }
+    fbInitialized = true;
+    return;
+  }
+  // react-native-fbsdk-next requires a native module that isn't included in
+  // Expo Go. Even when wrapped in try/catch, requiring it triggers an
+  // Invariant Violation redbox in dev. Skip init in Expo Go — the SDK only
+  // needs to run in production native builds anyway.
+  if (Constants.appOwnership === "expo") {
+    if (__DEV__) console.log("[Analytics] Meta SDK skipped in Expo Go");
     fbInitialized = true;
     return;
   }
