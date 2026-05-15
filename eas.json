@@ -9,12 +9,18 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_BACKEND_URL": "https://www.expathub.website"
+      }
     },
     "production": {
       "autoIncrement": true,
       "ios": {
         "resourceClass": "large"
+      },
+      "env": {
+        "EXPO_PUBLIC_BACKEND_URL": "https://www.expathub.website"
       }
     }
   },
