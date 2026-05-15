@@ -294,9 +294,8 @@ const styles = StyleSheet.create({
   questionText: {
     fontSize: 22,
     fontFamily: tokens.font.display,
-    fontWeight: "600",
     color: tokens.color.text,
-    lineHeight: 30,
+    lineHeight: 32,
     marginBottom: 32,
   },
   optionsWrap: {
