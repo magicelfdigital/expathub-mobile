@@ -60,7 +60,7 @@ const BRIEFS: DecisionBrief[] = [
     countrySlug: "portugal",
     headline: "Portugal: popular for a reason, but the hype hides real problems",
     decisionSummary:
-      "Portugal has genuine appeal: mild climate, low crime, EU access, and a large English-speaking expat community. But Lisbon and Porto are no longer cheap, the immigration system (AIMA) is backlogged by months, and the tax advantages that drew thousands have been gutted. If you are chasing the 2019 dream, you are five years too late.",
+      "Portugal has genuine appeal: mild climate, low crime, EU access, and a large English-speaking expat community. But Lisbon and Porto are no longer cheap, AIMA (Agência para a Integração, Migrações e Asilo — Portugal's immigration and asylum agency, created in 2023 to replace the older SEF) is backlogged by months, and the tax advantages that drew thousands — chiefly NHR (Non-Habitual Resident, a regime that gave new residents a flat 20% tax on Portuguese-source professional income and largely tax-free foreign pensions and dividends for 10 years) — have been gutted. If you are chasing the 2019 dream, you are five years too late.",
     recommendedFor: [
       "Retirees with stable passive income who want a safe, walkable European base",
       "Remote workers earning 4,000+ EUR/month who can handle bureaucratic delays",
@@ -76,7 +76,7 @@ const BRIEFS: DecisionBrief[] = [
     keyRequirements: [
       "NIF (tax number) — required for everything from renting to opening a bank account",
       "Portuguese bank account — needed for visa applications and daily life",
-      "Private health insurance — mandatory for all visa types until you qualify for SNS",
+      "Private health insurance — mandatory for all visa types until you qualify for SNS (Serviço Nacional de Saúde, Portugal's free national health service for legal residents)",
       "Proof of accommodation — rental contract or property ownership",
       "Criminal record check — apostilled and translated",
     ],
@@ -93,11 +93,11 @@ const BRIEFS: DecisionBrief[] = [
       "Visa application to approval: 2-6 months depending on consulate",
       "AIMA residency appointment after arrival: currently 6-18 months backlog",
       "Path to permanent residency: 5 years of legal residence",
-      "Citizenship eligibility: currently 5 years, but a May 2026 nationality-law reform signed by the President raises this to 7 years for CPLP nationals and 10 years for everyone else once published in the Diário da República. Plan around the longer timeline.",
+      "Citizenship eligibility: currently 5 years, but a May 2026 nationality-law reform signed by the President raises this to 7 years for CPLP nationals (CPLP — Comunidade dos Países de Língua Portuguesa, the Portuguese-speaking countries community: Brazil, Angola, Mozambique, Cape Verde, Guinea-Bissau, São Tomé and Príncipe, East Timor, and Equatorial Guinea) and 10 years for everyone else once published in the Diário da República (Portugal's official government gazette where laws must be printed before they take legal effect). Plan around the longer timeline.",
     ],
     riskFlags: [
       "AIMA (immigration agency) is severely understaffed. Appointment backlogs have exceeded 12 months. This is not a temporary problem.",
-      "NHR replacement (IFICI) is far more restrictive — only certain professions and activities qualify. Do not assume you will get tax benefits.",
+      "NHR replacement (IFICI — Incentivo Fiscal à Investigação Científica e Inovação, the narrower 'tax incentive for scientific research and innovation' that took its place in 2024) is far more restrictive — only certain professions and activities qualify. Do not assume you will get tax benefits.",
       "Lisbon and Porto rents have doubled since 2019. The 'affordable Portugal' narrative is outdated for these cities.",
       "Government has oscillated on Golden Visa, NHR, and housing policy. Policy instability is a feature, not a bug.",
       "Portuguese salaries are among the lowest in Western Europe. If you lose your remote income, local employment pays poorly.",
@@ -119,7 +119,7 @@ const BRIEFS: DecisionBrief[] = [
       "Local salaries are among the lowest in Western Europe — average 1,300 EUR/month. If you lose your remote income, the local job market will not save you.",
       "Coworking spaces are abundant in Lisbon and Porto (80-250 EUR/month) with reliable fiber internet (200+ Mbps common). Outside these cities, coworking is sparse and internet quality drops.",
       "Once tax resident (183+ days), you owe Portuguese income tax at 14.5-48% on worldwide income. Social security contributions for self-employed are 21.4% of declared income. Budget 30-40% of income for taxes and contributions.",
-      "The autónomo-equivalent registration (Finanças green receipt system) is straightforward but mandatory. Working without it is tax evasion and carries penalties.",
+      "The autónomo-equivalent registration — opening activity at Finanças (the Portuguese tax authority) and issuing recibos verdes (literally 'green receipts', the official self-employed invoices that used to be printed on green paper) — is straightforward but mandatory. Working without it is tax evasion and carries penalties.",
     ],
     familyAndDependents: [
       "Most Portuguese visas allow dependents (spouse, minor children, dependent parents). Each dependent adds ~50% of the main applicant's income requirement and has their own visa fee (~90 EUR) and health insurance requirement.",
@@ -174,7 +174,7 @@ const BRIEFS: DecisionBrief[] = [
       "Visa fee: ~90 EUR. Residency permit: ~170 EUR. These are the cheap parts.",
       "Real costs: NIF agent (200-400 EUR), apostilles and translations (500-1,500 EUR), immigration lawyer if needed (1,000-3,000 EUR)",
       "Health insurance: 50-200 EUR/month. Over-55 applicants pay 150-300 EUR/month.",
-      "Post-NHR tax reality: you will pay standard Portuguese income tax (14.5-48%) on worldwide income. The old 0% on foreign pensions is gone for new applicants.",
+      "Post-NHR tax reality (NHR — Non-Habitual Resident, Portugal's old preferential tax regime that gave new residents a flat 20% on Portuguese-source professional income and largely tax-free foreign pensions and dividends for 10 years; closed to new applicants in 2024): you will pay standard Portuguese income tax (14.5-48%) on worldwide income. The old 0% on foreign pensions is gone for new applicants.",
     ],
     timelineReality: [
       "NIF and bank account setup: 2-4 weeks (can be done remotely with power of attorney, add 1-2 weeks for that)",
@@ -183,7 +183,7 @@ const BRIEFS: DecisionBrief[] = [
       "AIMA residency appointment after arrival: 6-18 months backlog. You are legal but waiting.",
     ],
     riskFlags: [
-      "AIMA appointment backlog is the single biggest frustration. You cannot get your residency card until they see you. This can take over a year.",
+      "AIMA (Agência para a Integração, Migrações e Asilo — Portugal's immigration and asylum agency, created in 2023 to replace the older SEF) appointment backlog is the single biggest frustration. You cannot get your residency card until they see you. This can take over a year.",
       "Income classified as 'active' will be rejected. Consulates have gotten much stricter since 2023 about what counts as passive.",
       "NHR is dead for new applicants. If tax savings were your main reason for D7, recalculate everything.",
       "Switching from D7 to D8 (or any other visa) requires starting over with a new application. You cannot convert.",
@@ -248,7 +248,7 @@ const BRIEFS: DecisionBrief[] = [
     keyRequirements: [
       "Proof of remote employment or freelance contracts with non-Portuguese entities",
       "Minimum income: 4x Portuguese minimum wage (~3,680 EUR/month in 2026, up from ~3,480 EUR/month in 2025). This is a hard floor, not a target.",
-      "Portuguese NIF and bank account",
+      "Portuguese NIF (Número de Identificação Fiscal — your Portuguese tax identification number, required to rent, open a bank account, get a phone contract, or do almost anything official) and bank account",
       "Private health insurance valid in Portugal",
       "Clean criminal record — apostilled and translated",
     ],
@@ -256,14 +256,14 @@ const BRIEFS: DecisionBrief[] = [
       "Income threshold: ~3,680 EUR/month in 2026 (4x the €920 Portuguese minimum wage). Consulates want to see this consistently, not just in a good month.",
       "Visa fee: ~90 EUR + residency permit: ~170 EUR",
       "Agent and document fees: 1,000-2,500 EUR realistically (NIF agent, translations, apostilles, possibly a lawyer)",
-      "Tax reality: once you are a tax resident (183+ days), you owe Portuguese income tax at 14.5-48%. Plan for this. NHR replacement benefits are narrow.",
+      "Tax reality: once you are a tax resident — meaning you spend 183+ days in Portugal in a calendar year, or have your permanent home there, which triggers Portuguese tax on your worldwide income — you owe Portuguese income tax at 14.5-48%. Plan for this. NHR (Non-Habitual Resident, Portugal's old preferential tax regime that gave new residents a flat 20% on Portuguese-source professional income and largely tax-free foreign pensions and dividends for 10 years; closed to new applicants in 2024) replacement benefits are narrow.",
       "Hidden cost: if your consulate requires in-person appointments, travel costs for consulate visits add up — especially if you live far from your nearest consulate",
     ],
     timelineReality: [
       "Document gathering and preparation: 2-4 weeks if organized. 2+ months if you are chasing apostilles from multiple states or countries.",
       "Consulate appointment: 2-6 weeks wait. Some consulates (NYC, San Francisco) are much slower.",
       "Processing after submission: 2-4 months officially. 5+ months is not unusual.",
-      "Post-arrival AIMA appointment: 6-18 months backlog. Same problem as every other Portuguese visa.",
+      "Post-arrival AIMA (Agência para a Integração, Migrações e Asilo — Portugal's immigration and asylum agency, created in 2023 to replace the older SEF) appointment: 6-18 months backlog. Same problem as every other Portuguese visa.",
     ],
     riskFlags: [
       "Multi-client freelancers face the hardest scrutiny. If you cannot explain your income in one paragraph, the consulate will not try to figure it out for you.",
@@ -280,7 +280,7 @@ const BRIEFS: DecisionBrief[] = [
     ],
     betterAlternatives: [
       "D7 — only if your income is genuinely passive. If you are not sure, it is probably not passive.",
-      "Spain Digital Nomad Visa — Beckham Law gives you a flat 24% tax rate for 6 years. That alone makes it worth comparing.",
+      "Spain Digital Nomad Visa — the Beckham Law (a Spanish special tax regime, originally enacted around the time footballer David Beckham moved to Madrid, that lets qualifying inbound workers be taxed as non-residents) gives you a flat 24% tax rate for 6 years. That alone makes it worth comparing.",
       "Estonia e-Residency — if you want EU business infrastructure without physically relocating. Different use case but worth knowing about.",
     ],
     workReality: [
@@ -330,7 +330,7 @@ const BRIEFS: DecisionBrief[] = [
       "Anyone whose real plan is to work full-time and treat school as a formality — part-time work is capped at 20 hours/week",
     ],
     keyRequirements: [
-      "Acceptance letter from a Portuguese institution recognized by DGES",
+      "Acceptance letter from a Portuguese institution recognized by DGES (Direção-Geral do Ensino Superior — Portugal's Directorate-General for Higher Education, the agency that accredits universities and approves which foreign-degree programmes count as legitimate study)",
       "Proof of sufficient funds: ~920 EUR/month for living expenses (pegged to the 2026 Portuguese minimum wage)",
       "Health insurance valid in Portugal",
       "Clean criminal record — apostilled",
@@ -396,7 +396,7 @@ const BRIEFS: DecisionBrief[] = [
       "Spain offers arguably the best quality of life in Southern Europe: excellent healthcare, strong infrastructure, affordable living outside the big cities, and genuine cultural depth. The downsides are real: Spanish bureaucracy is legendarily slow, the job market for foreigners is poor, and the tax system is complex. If you have remote income and patience, Spain is hard to beat. If you need things to move fast, look elsewhere.",
     recommendedFor: [
       "Retirees with stable income who want top-tier public healthcare and a relaxed lifestyle",
-      "Remote workers earning 3,000+ EUR/month who can leverage the Beckham Law tax advantage",
+      "Remote workers earning 3,000+ EUR/month who can leverage the Beckham Law tax advantage (Beckham Law — a Spanish special tax regime for inbound workers, originally enacted around the time footballer David Beckham moved to Madrid, that lets qualifying new residents be taxed as non-residents at a flat 24% on Spanish-source income for up to six years)",
       "Families looking for safe, affordable cities with good schools outside Barcelona and Madrid",
       "People willing to learn Spanish and integrate — the expat bubble is thin outside the coasts",
     ],
@@ -407,8 +407,8 @@ const BRIEFS: DecisionBrief[] = [
       "People who do not want to deal with complex regional tax variations and social security obligations",
     ],
     keyRequirements: [
-      "NIE (foreigner identification number) — required for everything, takes weeks to months to obtain",
-      "Empadronamiento (municipal registration) — proof of local address, needed for most services",
+      "NIE (Número de Identidad de Extranjero — Spain's foreigner identification number, the unique tax/ID number every non-Spaniard needs to do almost anything legal: rent, work, open a bank account, sign contracts) — required for everything, takes weeks to months to obtain",
+      "Empadronamiento (registering on the padrón, your local town hall's residents roll, which is how Spain proves you actually live where you say you do) — proof of local address, needed for most services",
       "Private health insurance for visa applications — must be comprehensive Spanish coverage, not travel insurance",
       "Proof of financial means — varies by visa type but always required",
       "Criminal record check — apostilled with Hague apostille",
@@ -417,14 +417,14 @@ const BRIEFS: DecisionBrief[] = [
       "Rent: Madrid/Barcelona 1-bedroom 1,000-1,800 EUR/month. Valencia/Malaga 700-1,200 EUR. Smaller cities 400-800 EUR.",
       "Groceries: 250-400 EUR/month for a couple. Markets are cheap. Imported goods are not.",
       "Public healthcare is free once you are a legal resident and contributing to social security. Private insurance: 80-250 EUR/month.",
-      "Income tax: 19-47% progressive. But the Beckham Law (for qualifying DNV holders) gives a flat 24% for 6 years. This is a major advantage.",
-      "Social security contributions for autónomos (self-employed): 230-530 EUR/month. This is mandatory and non-negotiable.",
+      "Income tax: 19-47% progressive. But the Beckham Law (for qualifying DNV — Digital Nomad Visa — holders) gives a flat 24% for 6 years. This is a major advantage.",
+      "Social security contributions for autónomos (autónomo = the registered self-employed/freelancer status in Spain, which you must hold to invoice clients legally): 230-530 EUR/month. This is mandatory and non-negotiable.",
       "IBI (property tax), basura (garbage tax), and community fees add 100-300 EUR/month if you buy property",
     ],
     timelineReality: [
       "NIE appointment: 2-8 weeks depending on city. Madrid and Barcelona are worst.",
       "Visa processing: 1-3 months at consulate",
-      "Residency card (TIE) after arrival: 1-3 months additional",
+      "Residency card (TIE — Tarjeta de Identidad de Extranjero, the physical photo-ID card foreign residents carry to prove their immigration status, distinct from the NIE number itself) after arrival: 1-3 months additional",
       "Path to permanent residency: 5 years of continuous legal residence",
       "Citizenship: 10 years (2 years for Latin American nationals)",
     ],
@@ -455,7 +455,7 @@ const BRIEFS: DecisionBrief[] = [
       "Tax residency (183+ days) means Spanish income tax at 19-47% on worldwide income. The Beckham Law (DNV holders only) offers a flat 24% for 6 years — a massive advantage if you qualify.",
     ],
     familyAndDependents: [
-      "Most Spanish visa types allow dependents (spouse, minor children, dependent parents). Each dependent adds roughly 9,600 EUR/year (100% IPREM) to the financial requirement.",
+      "Most Spanish visa types allow dependents (spouse, minor children, dependent parents). Each dependent adds roughly 9,600 EUR/year (100% IPREM — Indicador Público de Renta de Efectos Múltiples, the official Spanish public income indicator that consulates use as the benchmark for visa income thresholds, updated yearly) to the financial requirement.",
       "International schools in Madrid and Barcelona: 6,000-20,000 EUR/year. Smaller cities have fewer options. Spanish public schools are free, well-funded, and excellent — but taught entirely in Spanish (or regional language in Catalonia, Basque Country, etc.).",
       "Spain's public healthcare (seguridad social) is world-class and free once you have residency and register with social security. Private insurance for a family of four: 200-500 EUR/month.",
       "Childcare (guardería) costs 200-600 EUR/month in major cities. Public options exist but have waiting lists. Spain's school hours (often 9 AM-2 PM without lunch) require afternoon childcare planning.",
@@ -480,7 +480,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "nlv",
     headline: "Spain Non-Lucrative Visa: the no-work rule is absolute, and people keep getting caught",
     decisionSummary:
-      "The NLV means exactly what it says: you cannot work. Not remotely. Not part-time. Not 'just a little consulting.' If you have any active income, the Digital Nomad Visa exists for you and the NLV does not. Consulates reject or revoke NLVs when they find evidence of work, and they are getting better at looking.",
+      "The NLV (Visado de Residencia No Lucrativa — Spain's Non-Lucrative Visa, designed for people who can financially support themselves without working in or for any company, Spanish or otherwise) means exactly what it says: you cannot work. Not remotely. Not part-time. Not 'just a little consulting.' If you have any active income, the Digital Nomad Visa (DNV) exists for you and the NLV does not. Consulates reject or revoke NLVs when they find evidence of work, and they are getting better at looking.",
     recommendedFor: [
       "Retirees with pension or investment income of 28,000+ EUR/year who genuinely will not work",
       "People with substantial savings living off interest and dividends",
@@ -500,9 +500,9 @@ const BRIEFS: DecisionBrief[] = [
       "Proof of accommodation in Spain (rental contract or property ownership)",
     ],
     financialReality: [
-      "Financial threshold: ~28,800 EUR/year (400% IPREM). Additional ~7,200 EUR/year per dependent.",
+      "Financial threshold: ~28,800 EUR/year (400% IPREM — Indicador Público de Renta de Efectos Múltiples, the official Spanish public income indicator that consulates use as the benchmark for visa income thresholds, updated yearly). Additional ~7,200 EUR/year per dependent.",
       "Qualifying health insurance: 100-350 EUR/month. Must be comprehensive Spanish private coverage. Budget 150+ EUR/month to be safe.",
-      "Visa fee: ~80 EUR. NIE/TIE card: ~12 EUR. The fees are trivial — the insurance and financial proof are not.",
+      "Visa fee: ~80 EUR. NIE/TIE card (NIE = Número de Identidad de Extranjero, your foreigner ID/tax number; TIE = Tarjeta de Identidad de Extranjero, the physical residency photo-ID card): ~12 EUR. The fees are trivial — the insurance and financial proof are not.",
       "Hidden cost: proving 28,800 EUR/year in 'passive income' means your actual portfolio needs to be much larger. A 4% withdrawal rate requires 700,000 EUR minimum.",
       "If you buy property to satisfy accommodation requirements, budget 10-15% of purchase price for taxes, notary, and registration fees",
     ],
@@ -563,7 +563,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "dnv",
     headline: "Spain Digital Nomad Visa: the Beckham Law makes it worth it — if you survive the paperwork",
     decisionSummary:
-      "Spain's DNV is the best digital nomad visa in Europe for one reason: the Beckham Law gives you a flat 24% income tax rate for 6 years instead of the standard 19-47% progressive rate. But the application demands clean documentation, professional qualifications proof, and income stability. Fragmented freelance income or informal contracts will get you rejected.",
+      "Spain's DNV (Visado para Teletrabajo de Carácter Internacional — Spain's Digital Nomad Visa, launched in 2023 for non-EU remote workers and freelancers serving non-Spanish clients) is the best digital nomad visa in Europe for one reason: the Beckham Law (a Spanish special tax regime for inbound workers, originally enacted around the time footballer David Beckham moved to Madrid, that lets qualifying new residents be taxed essentially as non-residents) gives you a flat 24% income tax rate for 6 years instead of the standard 19-47% progressive rate. But the application demands clean documentation, professional qualifications proof, and income stability. Fragmented freelance income or informal contracts will get you rejected.",
     recommendedFor: [
       "Remote employees with a clear W-2 or employment contract from a non-Spanish company earning 2,849+ EUR/month",
       "Freelancers with 2-3 stable foreign clients, formal contracts, and 12+ months of consistent invoicing",
@@ -577,18 +577,18 @@ const BRIEFS: DecisionBrief[] = [
     ],
     keyRequirements: [
       "Remote work contract or proof of freelance activity with non-Spanish companies",
-      "Income threshold: 200% of the annualised Spanish SMI (~2,849 EUR/month in 2026, based on the €1,221/mo SMI × 14 payments ÷ 12)",
+      "Income threshold: 200% of the annualised Spanish SMI (SMI — Salario Mínimo Interprofesional, Spain's statutory monthly minimum wage; the official figure is set per month but is paid 14 times a year, so the annualised version that consulates use is monthly SMI × 14 ÷ 12) — roughly 2,849 EUR/month in 2026, based on the €1,221/mo SMI × 14 payments ÷ 12)",
       "Professional qualifications: university degree OR 3+ years of documented experience in your field",
       "Private health insurance with comprehensive coverage in Spain",
       "Clean criminal record — apostilled",
     ],
     financialReality: [
-      "Income threshold: ~2,849 EUR/month in 2026 (200% of the SMI annualised over 14 payments — most consulates use this method). This is a floor, not a target — showing more helps.",
+      "Income threshold: ~2,849 EUR/month in 2026 (200% of the SMI annualised over 14 payments — most consulates use this method, since the Spanish minimum wage is officially set as a monthly figure paid 14 times a year). This is a floor, not a target — showing more helps.",
       "Visa and permit fees: 200-400 EUR total",
       "Qualifying health insurance: 100-300 EUR/month. Must meet Spanish standards.",
       "Beckham Law benefit: 24% flat tax on Spanish-source income for 6 years. Foreign income (dividends, capital gains abroad) is exempt. This saves most people 5,000-15,000 EUR/year.",
-      "Autónomo social security if self-employed: 230-530 EUR/month. This applies even with the Beckham Law.",
-      "Hidden cost: Beckham Law application itself requires a gestor/tax advisor. Budget 500-1,500 EUR for setup.",
+      "Autónomo (autónomo = the registered self-employed/freelancer status in Spain, which you must hold to invoice clients legally) social security if self-employed: 230-530 EUR/month. This applies even with the Beckham Law.",
+      "Hidden cost: Beckham Law application itself requires a gestor/tax advisor (a gestor is a Spanish administrative agent who handles paperwork with Hacienda — the Spanish tax authority — and Seguridad Social — the social-security agency — on your behalf; almost everyone uses one). Budget 500-1,500 EUR for setup.",
     ],
     timelineReality: [
       "Document preparation: 2-4 weeks if you are organized, 2+ months if you need credential evaluations or apostilles from multiple countries",
@@ -695,10 +695,10 @@ const BRIEFS: DecisionBrief[] = [
     ],
     workReality: [
       "Student visa caps work at 20 hours per week during the academic year. Exceeding this limit — even by one hour — is a visa violation that can result in deportation and a Schengen-wide ban.",
-      "Work authorization is not automatic. After arrival, you must apply for a separate work permit (autorización de trabajo) through the Extranjería office, which takes 1-2 months to process. You cannot legally work until it is approved.",
+      "Work authorization is not automatic. After arrival, you must apply for a separate work permit (autorización de trabajo) through the Extranjería office (Oficina de Extranjería — the regional immigration office of the Spanish national government, where all foreigner permits, renewals and authorisations are physically processed), which takes 1-2 months to process. You cannot legally work until it is approved.",
       "Converting a student visa to a work visa after graduation requires a qualifying job offer with employer sponsorship and a labor market test. Spain's 11%+ unemployment rate means employers must prove no EU citizen can fill the role — most graduates fail this step.",
       "Summer and holiday breaks allow full-time work, but finding short-term legal employment as a non-EU student is difficult. Most available jobs are informal and working informally puts your visa at risk.",
-      "Freelancing or self-employment is not permitted on a student visa. If you want to start a business or freelance, you need to switch to an autónomo visa — a completely separate application process.",
+      "Freelancing or self-employment is not permitted on a student visa. If you want to start a business or freelance, you need to switch to an autónomo visa (autónomo = the registered self-employed/freelancer status in Spain that you must hold to invoice clients legally) — a completely separate application process.",
     ],
     familyAndDependents: [
       "Spain's student visa does not easily accommodate family dependents. Unlike work or residency visas, there is no straightforward dependent category for student visa holders. Your spouse and children would need their own independent visa basis.",
@@ -1296,7 +1296,7 @@ const BRIEFS: DecisionBrief[] = [
     countrySlug: "costa-rica",
     headline: "Costa Rica: nature paradise with a slow bureaucracy and rising costs",
     decisionSummary:
-      "Costa Rica earns its reputation for natural beauty, stability, and safety. It does not earn the 'cheap tropical paradise' label anymore. The Central Valley and popular beach towns are surprisingly expensive, the immigration process (DGME) is slow by any standard, and CAJA (public healthcare) is mandatory but uneven in quality. If you have realistic income expectations and patience, Costa Rica is a genuinely good option. If you expect Thailand prices or European efficiency, you will be disappointed.",
+      "Costa Rica earns its reputation for natural beauty, stability, and safety. It does not earn the 'cheap tropical paradise' label anymore. The Central Valley and popular beach towns are surprisingly expensive, the immigration process (DGME — Dirección General de Migración y Extranjería, Costa Rica's national immigration authority that handles all residency applications, renewals, and the DIMEX foreigner ID card) is slow by any standard, and CAJA (Caja Costarricense de Seguro Social — Costa Rica's public health and social-security system; enrolment and monthly contributions are legally mandatory for every legal resident, even if you also pay for private insurance) is mandatory but uneven in quality. If you have realistic income expectations and patience, Costa Rica is a genuinely good option. If you expect Thailand prices or European efficiency, you will be disappointed.",
     recommendedFor: [
       "Retirees with 1,000+ USD/month pension (Pensionado) or 2,500+ USD/month stable income (Rentista) who value nature, safety, and political stability",
       "Remote workers with steady income who want a Latin American base with modern amenities",
@@ -1381,7 +1381,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "rentista",
     headline: "Costa Rica Rentista: the $2,500/month bar is real, and the process is slower than you think",
     decisionSummary:
-      "The Rentista visa requires $2,500 USD/month in stable, provable income for at least 2 years — or a $60,000 deposit in a Costa Rican bank. This is not negotiable. The process takes 4-8 months through DGME, requires an immigration attorney to navigate effectively, and comes with mandatory CAJA enrollment. It works well for people with clear, stable income. It fails for people with variable or informal income sources.",
+      "The Rentista visa (a Costa Rican temporary residency category for people who can show stable unearned income — investment returns, royalties, rental income — rather than a salary) requires $2,500 USD/month in stable, provable income for at least 2 years — or a $60,000 deposit in a Costa Rican bank. This is not negotiable. The process takes 4-8 months through DGME (Dirección General de Migración y Extranjería — Costa Rica's national immigration authority that handles all residency applications, renewals, and the DIMEX foreigner ID card), requires an immigration attorney to navigate effectively, and comes with mandatory CAJA (Caja Costarricense de Seguro Social — the public health and social-security system; enrolment is legally required for every legal resident, even if you also pay for private insurance) enrollment. It works well for people with clear, stable income. It fails for people with variable or informal income sources.",
     recommendedFor: [
       "Remote workers with stable employment income of $2,500+ USD/month and formal pay stubs or contracts",
       "Retirees with documented investment income or pension exceeding $2,500 USD/month",
@@ -1466,7 +1466,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "pensionado",
     headline: "Costa Rica Pensionado: the lowest bar in the region, but read the fine print",
     decisionSummary:
-      "At $1,000 USD/month from a permanent pension, the Pensionado has one of the lowest financial thresholds in the Americas. If you have a state pension, government pension, or private annuity, you likely qualify. The catch: only permanent pensions count, the DGME process is still slow (4-8 months), CAJA enrollment is mandatory, and $1,000/month is not enough to live comfortably in most popular expat areas. You will need supplemental income or savings.",
+      "At $1,000 USD/month from a permanent pension, the Pensionado (Costa Rica's retiree residency category, distinct from Rentista — Pensionado is for people drawing a lifelong pension; Rentista is for people showing investment or unearned income) has one of the lowest financial thresholds in the Americas. If you have a state pension, government pension, or private annuity, you likely qualify. The catch: only permanent pensions count, the DGME (Dirección General de Migración y Extranjería — Costa Rica's national immigration authority that handles all residency applications, renewals, and the DIMEX foreigner ID card) process is still slow (4-8 months), CAJA (Caja Costarricense de Seguro Social — the public health and social-security system; enrolment and monthly contributions are legally required for every legal resident, even if you also pay for private insurance) enrollment is mandatory, and $1,000/month is not enough to live comfortably in most popular expat areas. You will need supplemental income or savings.",
     recommendedFor: [
       "Retirees with state pension or government pension of $1,000+ USD/month",
       "Couples where at least one partner has a qualifying permanent pension",
@@ -1738,7 +1738,7 @@ const BRIEFS: DecisionBrief[] = [
     countrySlug: "canada",
     headline: "Canada: the gold standard for skilled immigration, but the bar is high and getting higher",
     decisionSummary:
-      "Canada has the most transparent, merit-based immigration system in the world. Express Entry is genuinely fair: your points score determines your outcome, not connections or luck. The problem is that CRS cutoff scores have risen sharply, processing times have lengthened, and the cost of living in Canadian cities has exploded. If you have the right profile (young, educated, bilingual, with Canadian experience), Canada is exceptional. If you are over 40 with no Canadian ties, the math may not work.",
+      "Canada has the most transparent, merit-based immigration system in the world. Express Entry is genuinely fair: your points score determines your outcome, not connections or luck. The problem is that CRS (Comprehensive Ranking System — the points score out of 1,200 that Canada uses to rank every Express Entry candidate, awarded for age, education, official-language ability in English/French, work experience, and adaptability factors like Canadian study or a provincial nomination) cutoff scores have risen sharply, processing times have lengthened, and the cost of living in Canadian cities has exploded. If you have the right profile (young, educated, bilingual, with Canadian experience), Canada is exceptional. If you are over 40 with no Canadian ties, the math may not work.",
     recommendedFor: [
       "Skilled workers aged 20-35 with a bachelor's degree or higher and strong English/French scores (IELTS 7+)",
       "Professionals with Canadian work experience or a validated job offer from a Canadian employer",
@@ -1752,9 +1752,9 @@ const BRIEFS: DecisionBrief[] = [
       "Retirees or passive-income seekers — Canada has no retirement visa or passive-income residency pathway. You must qualify through skills.",
     ],
     keyRequirements: [
-      "Eligibility under Federal Skilled Worker, Canadian Experience Class, or Federal Skilled Trades",
-      "Educational Credential Assessment (ECA) for foreign degrees — mandatory and takes 2-3 months",
-      "Language test: IELTS General Training or TEF Canada — scores directly determine points and are the most controllable factor",
+      "Eligibility under Federal Skilled Worker, Canadian Experience Class (CEC — for people with at least 1 year of skilled Canadian work experience), or Federal Skilled Trades",
+      "Educational Credential Assessment (ECA) for foreign degrees — mandatory verification by an IRCC-designated agency (WES, IQAS, ICAS, etc.) that confirms your foreign degree is equivalent to a Canadian one; takes 2-3 months",
+      "Language test: IELTS General Training (English) or TEF Canada (French) — required for every applicant, including native English speakers; self-assessment is not accepted, you must book and sit an official test at an approved centre. Scores directly determine points and are the most controllable factor.",
       "Proof of settlement funds: $15,263+ CAD for a single applicant (updated annually). Waived if you have a valid Canadian job offer.",
       "Police certificates from every country you have lived in for 6+ months in the last 10 years",
     ],
@@ -1915,7 +1915,7 @@ const BRIEFS: DecisionBrief[] = [
     countrySlug: "panama",
     headline: "Panama: the Americas' most underrated residency play, but not the paradise the brochures sell",
     decisionSummary:
-      "Panama is one of the fastest, cheapest places to get legal residency in the Western Hemisphere. The USD economy eliminates currency risk, territorial taxation means your foreign income is untaxed, and the Friendly Nations Visa is genuinely fast-track. But Panama City is expensive by Latin American standards, healthcare quality drops sharply outside the capital, infrastructure is uneven, and the tropical climate is relentless. People who thrive here have realistic expectations. People who fail expected Costa Rica with skyscrapers.",
+      "Panama is one of the fastest, cheapest places to get legal residency in the Western Hemisphere. The USD economy eliminates currency risk, territorial taxation (Panama only taxes income generated inside Panama; foreign-source income is not taxed at all) means your foreign income is untaxed, and the Friendly Nations Visa (FNV — a residency category for citizens of ~50 countries with strong professional or economic ties to Panama; reformed in 2021 to require a $200,000 investment or local employment) is genuinely fast-track. The whole system is run by Panama's Servicio Nacional de Migración (SNM — National Migration Service, the agency that issues residencies, the cédula foreign-resident ID card, and any work permits). But Panama City is expensive by Latin American standards, healthcare quality drops sharply outside the capital, infrastructure is uneven, and the tropical climate is relentless. People who thrive here have realistic expectations. People who fail expected Costa Rica with skyscrapers.",
     recommendedFor: [
       "Retirees seeking the best pension-based discount program in the Americas (Pensionado)",
       "Remote workers earning in USD who want to keep their money in USD without currency conversion losses",
@@ -2005,7 +2005,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "friendly-nations",
     headline: "Friendly Nations Visa: overhauled in 2021, now requires a $200,000 investment — not the easy path it used to be",
     decisionSummary:
-      "The Friendly Nations Visa was dramatically reformed in August 2021. The old route — a 5,000 USD bank deposit or forming a Panamanian company — was abolished. Today, the FNV requires a 200,000 USD investment (either a 3-year bank CD or real estate purchase) OR employment with a Panamanian company. Self-employment and own-company sponsorship no longer qualify. Initial approval grants 2-year provisional residency, not immediate permanent residency. Permanent residency follows after the provisional period. A separate 5,000 USD solvency deposit is still required for the application process (withdrawable after approval). Citizenship eligibility begins 5 years after permanent residency.",
+      "The Friendly Nations Visa (FNV — a Panamanian residency category for citizens of ~50 'friendly' countries with strong professional, economic, or political ties to Panama; processed by Servicio Nacional de Migración, Panama's national immigration agency) was dramatically reformed in August 2021. The old route — a 5,000 USD bank deposit or forming a Panamanian company — was abolished. Today, the FNV requires a 200,000 USD investment (either a 3-year bank CD or real estate purchase) OR employment with a Panamanian company. Self-employment and own-company sponsorship no longer qualify. Initial approval grants 2-year provisional residency (issued as a cédula — the Panamanian foreign-resident ID card), not immediate permanent residency. Permanent residency follows after the provisional period. A separate 5,000 USD solvency deposit is still required for the application process (withdrawable after approval). Citizenship eligibility begins 5 years after permanent residency.",
     recommendedFor: [
       "Citizens of approved Friendly Nations list countries (US, UK, Canada, most EU nations, Australia, and others) who can commit 200,000 USD to an investment",
       "Real estate investors who plan to buy property in Panama worth 200,000+ USD and want residency as a benefit",
@@ -2100,7 +2100,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "pensionado",
     headline: "Pensionado Visa: the best retiree program in the Americas, and it is not close",
     decisionSummary:
-      "Panama's Pensionado Visa requires only 1,000 USD/month in pension income and delivers permanent residency plus a package of discounts that no other country matches: 25% off airline tickets, 25% off restaurant bills, 15% off hospital bills, 20% off medical consultations, and more. These are real, legally mandated discounts, not marketing gimmicks. The catch is that you must have a government or private pension — state pensions count, but investment income or savings drawdowns do not.",
+      "Panama's Pensionado Visa (Panama's pensioner residency category, processed by Servicio Nacional de Migración — SNM, the national immigration agency — and tied by law to a series of discounts that businesses must legally honor when shown the jubilado/pensionado carnet) requires only 1,000 USD/month in pension income and delivers permanent residency plus a package of discounts that no other country matches: 25% off airline tickets, 25% off restaurant bills, 15% off hospital bills, 20% off medical consultations, and more. These are real, legally mandated discounts, not marketing gimmicks (jubilado is the Spanish word for retiree; pensionado means pensioner — the carnet is the physical discount card). The catch is that you must have a government or private pension — state pensions count, but investment income or savings drawdowns do not.",
     recommendedFor: [
       "Retirees receiving 1,000+ USD/month from a state pension, military pension, government pension, or private pension plan",
       "Couples where at least one spouse has a qualifying pension (add 250 USD/month for dependents)",
@@ -2185,7 +2185,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "self-economic-solvency",
     headline: "Self Economic Solvency Visa: Panama's high-ticket residency for people with capital, not income",
     decisionSummary:
-      "The Self Economic Solvency Visa is for people who can park 300,000+ USD in Panama — through real estate, a fixed-term bank deposit, or a combination. It grants permanent residency without requiring a pension, a job, or citizenship from a specific country. This is Panama's most open pathway, but 300,000 USD is a serious commitment to a country with developing-world infrastructure outside the capital, FATF gray-list banking complications, and property markets that do not always appreciate.",
+      "The Self Economic Solvency Visa (Panama's investor/'solvency' residency category processed by Servicio Nacional de Migración — SNM, the national immigration agency — open to citizens of any country, unlike the Friendly Nations Visa which is restricted to ~50 listed nationalities) is for people who can park 300,000+ USD in Panama — through real estate, a fixed-term bank deposit, or a combination. It grants permanent residency (issued as a cédula, the Panamanian foreign-resident ID card) without requiring a pension, a job, or citizenship from a specific country. This is Panama's most open pathway, but 300,000 USD is a serious commitment to a country with developing-world infrastructure outside the capital, FATF (Financial Action Task Force — the global anti-money-laundering watchdog whose 'gray list' triggers extra scrutiny on banks worldwide) gray-list banking complications, and property markets that do not always appreciate.",
     recommendedFor: [
       "High-net-worth individuals who want residency without nationality restrictions — this visa is available to citizens of any country",
       "Real estate investors who plan to buy property in Panama City anyway and want residency as a bonus",
@@ -2272,7 +2272,7 @@ const BRIEFS: DecisionBrief[] = [
     countrySlug: "ecuador",
     headline: "Ecuador: the lowest cost of living in the Americas with a dollarized economy, but instability is the price",
     decisionSummary:
-      "Ecuador offers what almost no other country can: US-dollar economy, dramatically low cost of living, excellent healthcare value, and mountain cities with near-perfect year-round climate. Cuenca has become the poster child for affordable expat retirement, and it earns the reputation. But Ecuador's political instability, rising crime in Guayaquil and Quito, altitude challenges, and thin infrastructure outside major cities are not footnotes — they are defining features. If you can handle uncertainty, Ecuador rewards you financially like nowhere else in the hemisphere.",
+      "Ecuador offers what almost no other country can: US-dollar economy, dramatically low cost of living, excellent healthcare value, and mountain cities with near-perfect year-round climate. Visas are processed by the Ministerio de Relaciones Exteriores y Movilidad Humana (Ministry of Foreign Affairs and Human Mobility — Ecuador's foreign-affairs ministry, which also runs the visa and residency system; locals abbreviate it 'la Cancillería'), and approved residents are issued a cédula (the national ID card all legal residents carry). Cuenca has become the poster child for affordable expat retirement, and it earns the reputation. But Ecuador's political instability, rising crime in Guayaquil and Quito, altitude challenges, and thin infrastructure outside major cities are not footnotes — they are defining features. If you can handle uncertainty, Ecuador rewards you financially like nowhere else in the hemisphere.",
     recommendedFor: [
       "Retirees on state pensions or modest pensions who want maximum purchasing power — 1,500 USD/month buys a comfortable life in Cuenca",
       "People who want a dollarized economy without Panama or El Salvador's higher costs",
@@ -2361,7 +2361,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "rentista",
     headline: "Ecuador Rentista Visa: solid middle-ground visa, but the income must be bulletproof on paper",
     decisionSummary:
-      "The Rentista Visa is for people with stable, verifiable income of at least 1,446 USD/month from investments, rental properties, or other non-employment sources. It is Ecuador's most flexible visa for non-retirees who have income but do not want to work locally. The income threshold is reasonable, but Ecuador's immigration offices scrutinize documentation heavily — inconsistent deposits, informal income sources, or poor paperwork will get you rejected.",
+      "The Rentista Visa (Ecuador's residency category for people who can show stable passive/unearned income — investment returns, rental income, royalties, trust distributions — rather than a salary or pension; processed by the Ministerio de Relaciones Exteriores y Movilidad Humana, Ecuador's foreign-affairs ministry that handles all visas, locally called 'la Cancillería') is for people with stable, verifiable income of at least 1,446 USD/month from investments, rental properties, or other non-employment sources. Approved residents are issued a cédula (the Ecuadorian national ID card carried by all legal residents). It is Ecuador's most flexible visa for non-retirees who have income but do not want to work locally. The income threshold is reasonable, but Ecuador's immigration offices scrutinize documentation heavily — inconsistent deposits, informal income sources, or poor paperwork will get you rejected.",
     recommendedFor: [
       "People with stable investment income, rental income, or trust distributions of 1,446+ USD/month with 12+ months of documentation",
       "Early retirees who do not yet receive a formal pension but have consistent passive income",
@@ -2448,7 +2448,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "jubilado",
     headline: "Ecuador Jubilado: pension-based residency at 1,446 USD/month — same threshold as Rentista but limited to guaranteed pension income",
     decisionSummary:
-      "The Jubilado (Retirement) Visa requires 1,446 USD/month in guaranteed lifetime pension income (3× Ecuador's basic salary, same threshold as the Rentista). The key differentiator is not the amount — it is the income source. Jubilado requires permanent pension income (state pension, government pension, military pension), while Rentista accepts broader passive income sources. Combined with Ecuador's low cost of living, dollarized economy, and senior discounts, it remains a strong option for retirees with qualifying pensions. Healthcare access depends on where you live, and the country's security situation has deteriorated.",
+      "The Jubilado (Spanish for 'retiree') Visa is Ecuador's pensioner residency category — processed by the Ministerio de Relaciones Exteriores y Movilidad Humana (Ministry of Foreign Affairs and Human Mobility, locally called 'la Cancillería') and tied to a cédula (the Ecuadorian national ID card all legal residents carry). It requires 1,446 USD/month in guaranteed lifetime pension income (3× Ecuador's basic salary, same threshold as the Rentista — Ecuador's other passive-income visa). The key differentiator is not the amount — it is the income source. Jubilado requires permanent pension income (state pension, government pension, military pension), while Rentista accepts broader passive income sources. Combined with Ecuador's low cost of living, dollarized economy, and senior discounts, it remains a strong option for retirees with qualifying pensions. Healthcare access via IESS (Instituto Ecuatoriano de Seguridad Social — Ecuador's public social security and health system, mandatory to enroll in for visa approval) depends on where you live, and the country's security situation has deteriorated.",
     recommendedFor: [
       "Retirees with state pension or pension income of 1,446+ USD/month who want maximum purchasing power in a dollarized economy",
       "Couples where one spouse has a qualifying pension — the threshold applies per household, not per person",
@@ -2541,7 +2541,7 @@ const BRIEFS: DecisionBrief[] = [
     countrySlug: "malta",
     headline: "Malta: English-speaking EU access on a tiny, expensive, crowded island",
     decisionSummary:
-      "Malta is one of the few EU countries where English is an official language, and that alone drives most of the interest. Add Schengen access, a functioning (if overloaded) healthcare system, and genuine tax advantages for certain structures, and Malta looks compelling on paper. The reality check: this is a 120-square-mile island with 500,000+ people, some of the highest population density in the world, brutal summer heat, limited green space, a housing market that has skyrocketed, and a construction boom that has scarred the landscape. If you want English-speaking EU residency and can tolerate island life at Mediterranean prices, Malta works. If you want space, nature, or affordable living, look elsewhere.",
+      "Malta is one of the few EU countries where English is an official language, and that alone drives most of the interest. Add Schengen access (the right to travel visa-free across most EU/EFTA countries once you hold Maltese residency), a functioning (if overloaded) healthcare system, and genuine tax advantages for certain structures, and Malta looks compelling on paper. Residency, eID cards, and citizenship are all run by Identità (formerly Identity Malta — the government agency that issues residence permits, the Maltese eID national ID card, and naturalisation paperwork). Two main programmes feed into Malta: the Nomad Residence Permit for remote workers and the GRP (Global Residence Programme — a tax-residency scheme for non-EU nationals with a 15% flat tax on foreign income remitted to Malta, plus property and minimum-tax requirements). Note Malta also distinguishes 'ordinary residence' (regular long-stay residence) from 'permanent residence' (a settled, long-term status acquired after years in country). The reality check: this is a 120-square-mile island with 500,000+ people, some of the highest population density in the world, brutal summer heat, limited green space, a housing market that has skyrocketed, and a construction boom that has scarred the landscape. If you want English-speaking EU residency and can tolerate island life at Mediterranean prices, Malta works. If you want space, nature, or affordable living, look elsewhere.",
     recommendedFor: [
       "Remote workers who need English-speaking EU residency with Schengen travel rights",
       "Non-EU nationals seeking a relatively accessible path into the EU — Malta's Nomad Residence Permit requires 3,500+ EUR/month income",
@@ -2628,7 +2628,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "digital-nomad",
     headline: "Malta Nomad Residence Permit: straightforward on paper, but the island reality bites",
     decisionSummary:
-      "Malta's Nomad Residence Permit is one of the simpler digital nomad visas in Europe: prove 3,500+ EUR/month income from remote work (threshold increased April 2024), show health insurance, and you get a 1-year permit renewable up to 4 years total. No employer sponsorship needed. The application is relatively fast and the documentation requirements are clear. Note: income is tax-free for the first 12 months, but a 10% flat tax on authorized work income applies after that. The problem is not the visa — it is Malta itself. You are committing to a tiny, expensive, hot island with limited housing stock and aggressive traffic. The visa works. The question is whether you will enjoy living there.",
+      "Malta's Nomad Residence Permit (a special residence card issued by Identità — Malta's national identity agency, formerly Identity Malta — for remote workers employed by or contracting with companies outside Malta) is one of the simpler digital nomad visas in Europe: prove 3,500+ EUR/month income from remote work (threshold increased April 2024), show health insurance, and you get a 1-year permit renewable up to 4 years total. No employer sponsorship needed. The application is relatively fast and the documentation requirements are clear. Note: income is tax-free for the first 12 months, but a 10% flat tax on authorized work income applies after that. Holders also get a Maltese eID (the national electronic ID card needed to open bank accounts, sign rental contracts, and access government services). The problem is not the visa — it is Malta itself. You are committing to a tiny, expensive, hot island with limited housing stock and aggressive traffic. The visa works. The question is whether you will enjoy living there.",
     recommendedFor: [
       "Remote workers earning 3,500+ EUR/month from non-Maltese employers or clients who want legal EU residency with Schengen access",
       "Digital nomads who want a simple, fast application without the documentation nightmare of Portugal's D8 or Spain's DNV",
@@ -2715,7 +2715,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "grp",
     headline: "Malta GRP: the 15% flat tax sounds great until you read the property requirements and fine print",
     decisionSummary:
-      "The Global Residence Programme offers non-EU nationals Maltese residency with a 15% flat tax on foreign income remitted to Malta and zero tax on income kept outside. On paper this is one of the best tax residency programs in the EU. In practice, it requires purchasing property worth 275,000+ EUR (or renting at 9,600+ EUR/year outside Gozo), paying a minimum annual tax of 15,000 EUR regardless of remittances, and living on a small, expensive, densely packed island. For high earners with significant foreign income, the math can work. For everyone else, the minimum tax alone makes it unattractive.",
+      "The Global Residence Programme (GRP — a Maltese tax-residency scheme run by the government for non-EU nationals; it grants special tax status, not citizenship, and is administered alongside the residence card by Identità, Malta's national identity agency) offers non-EU nationals Maltese residency with a 15% flat tax on foreign income remitted to Malta (i.e. on money you actually transfer into the Maltese banking system) and zero tax on income kept outside. On paper this is one of the best tax residency programs in the EU. In practice, it requires purchasing property worth 275,000+ EUR (or renting at 9,600+ EUR/year outside Gozo), paying a minimum annual tax of 15,000 EUR regardless of remittances, and living on a small, expensive, densely packed island. Holders also get a Maltese eID (the national electronic ID card) and may upgrade to Maltese 'permanent residence' status (settled long-term residence, distinct from ordinary year-by-year residence) after years in country. For high earners with significant foreign income, the math can work. For everyone else, the minimum tax alone makes it unattractive.",
     recommendedFor: [
       "Non-EU nationals with substantial foreign income (100,000+ EUR/year) who want EU residency with favorable tax treatment",
       "High-net-worth individuals who can comfortably purchase or rent qualifying Maltese property without overextending",
@@ -2806,7 +2806,7 @@ const BRIEFS: DecisionBrief[] = [
     countrySlug: "united-kingdom",
     headline: "The UK: world-class opportunities behind one of the hardest immigration walls in the West",
     decisionSummary:
-      "Post-Brexit Britain runs a points-based immigration system that is clear in theory and expensive in practice. Every work visa except Global Talent requires employer sponsorship. Salary thresholds have risen sharply — from 26,200 to 38,700 GBP in April 2024, then to 41,700 GBP in July 2025 for Skilled Workers — the Immigration Health Surcharge costs 1,035 GBP/year per person, and visa application fees have risen sharply. The UK offers English language, strong rule of law, world-class universities, a deep job market, and NHS access — but the cost of living (especially London) is punishing, and the path to settlement (ILR) takes 5 years with strict requirements. If you have a sponsored job offer or exceptional talent, the UK is genuinely rewarding. If you are hoping to figure it out after arrival, the system will not let you in.",
+      "Post-Brexit Britain runs a points-based immigration system administered by the Home Office (the UK government department in charge of immigration, asylum, passports, and policing) that is clear in theory and expensive in practice. Every work visa except Global Talent requires employer sponsorship. Salary thresholds have risen sharply — from 26,200 to 38,700 GBP in April 2024, then to 41,700 GBP in July 2025 for Skilled Workers (the modern successor to the old Tier 2 General work visa) — the Immigration Health Surcharge (IHS — a per-person, per-year fee paid up front that gives visa holders access to the NHS, the UK's tax-funded National Health Service) costs 1,035 GBP/year per person, and visa application fees have risen sharply. The UK offers English language, strong rule of law, world-class universities, a deep job market, and NHS access — but the cost of living (especially London) is punishing, and the path to settlement, formally called Indefinite Leave to Remain (ILR — the UK's permanent-residency status, a one-time grant that removes any time limit on staying and is the prerequisite for citizenship), takes 5 years with strict requirements. New entrants now receive an eVisa (a digital immigration status linked to your passport, replacing the old physical Biometric Residence Permit / BRP card that the UK phased out at the end of 2024), and you'll need a National Insurance Number (NIN — the UK's tax/social-security ID, similar to a US SSN) to start work. Note: an English language test (typically IELTS, or for ILR the IELTS Life Skills B1 test) is required for visa purposes regardless of whether English is your native language; the only automatic exemptions are for nationals of majority-English-speaking countries listed in Home Office guidance (such as the US, Canada, Australia, New Zealand, and several Caribbean states) or holders of a degree taught in English. If you have a sponsored job offer or exceptional talent, the UK is genuinely rewarding. If you are hoping to figure it out after arrival, the system will not let you in.",
     recommendedFor: [
       "Skilled professionals with a job offer from a licensed UK sponsor paying 41,700+ GBP/year",
       "Exceptional talent in tech, science, engineering, arts, or humanities who can secure Global Talent endorsement",
@@ -2897,7 +2897,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "skilled-worker",
     headline: "UK Skilled Worker Visa: the salary threshold jump to 41,700 GBP changed everything",
     decisionSummary:
-      "The Skilled Worker Visa is the UK's primary work immigration route: your employer sponsors you, you meet the salary threshold, and you get a visa for up to 5 years with a path to settlement. The threshold increased from 26,200 to 38,700 GBP in April 2024, then further to 41,700 GBP in July 2025, eliminating thousands of previously qualifying roles. If your offer meets the current threshold and the going rate for your occupation code, this visa is straightforward and well-trodden. If your salary is borderline or your employer is not already a licensed sponsor, expect complications.",
+      "The Skilled Worker Visa (the modern successor to the old Tier 2 General work visa, administered by the UK Home Office — the government department responsible for immigration) is the UK's primary work immigration route: your employer sponsors you via a Certificate of Sponsorship (CoS — an electronic reference number an employer with a Home Office sponsor licence assigns to a specific job offer), you meet the salary threshold, and you get a visa for up to 5 years with a path to settlement (Indefinite Leave to Remain, ILR — permanent residency that removes any time limit on staying in the UK). The threshold increased from 26,200 to 38,700 GBP in April 2024, then further to 41,700 GBP in July 2025, eliminating thousands of previously qualifying roles. Holders pay the Immigration Health Surcharge (IHS — annual NHS access fee paid up front), receive an eVisa (digital immigration status that replaced the old physical Biometric Residence Permit), and need a National Insurance Number (NIN — the UK's tax/social-security ID) to start work. An English language test (IELTS or equivalent) at B1 level is required even for native English speakers, unless you hold a passport from a Home Office–listed majority-English-speaking country (US, Canada, Australia, New Zealand, Ireland, etc.) or a degree taught in English. If your offer meets the current threshold and the going rate for your occupation code, this visa is straightforward and well-trodden. If your salary is borderline or your employer is not already a licensed sponsor, expect complications.",
     recommendedFor: [
       "Professionals with a confirmed job offer from a licensed UK sponsor paying 41,700+ GBP/year (or the going rate for the occupation, whichever is higher)",
       "Workers in shortage occupations (healthcare, engineering, tech) where going rates may be lower and the occupation is on the Immigration Salary List",
@@ -2988,7 +2988,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "global-talent",
     headline: "UK Global Talent: the only visa that treats you like an adult — if you can prove you deserve it",
     decisionSummary:
-      "The Global Talent Visa is the UK's premium immigration route: no employer sponsorship, no salary threshold, no job offer required, and settlement in as little as 3 years instead of 5. The catch is that you must be endorsed by a recognized body as having exceptional talent or exceptional promise in your field — digital technology (Tech Nation/DSIT), science or engineering (Royal Society, Royal Academy of Engineering, UKRI), arts and culture (Arts Council England), or academia (British Academy). If you can get endorsed, this is the best visa the UK offers. If you cannot, there is no shortcut.",
+      "The Global Talent Visa (a UK Home Office immigration route designed to attract leaders and emerging leaders in specific fields, with no employer needed) is the UK's premium immigration route: no employer sponsorship, no salary threshold, no job offer required, and settlement (Indefinite Leave to Remain, ILR — UK permanent residency that removes any time cap on staying) in as little as 3 years instead of 5. The catch is that you must first be endorsed — meaning formally vouched for as world-class — by a recognized 'endorsing body' designated by the Home Office for your field: digital technology (Tech Nation/DSIT — the UK's Department for Science, Innovation and Technology), science or engineering (Royal Society, Royal Academy of Engineering, UKRI — UK Research and Innovation, the national research funding agency), arts and culture (Arts Council England), or academia (British Academy). Holders still pay the Immigration Health Surcharge (IHS — annual NHS access fee), get an eVisa (digital immigration status that replaced the old Biometric Residence Permit card), and need a National Insurance Number (NIN — UK tax/social-security ID) to be paid. An English language test is required for ILR (typically IELTS Life Skills at B1 level) even for native speakers, unless you hold a passport from a Home Office–listed majority-English-speaking country (US, Canada, Australia, New Zealand, Ireland, etc.) or a degree taught in English. If you can get endorsed, this is the best visa the UK offers. If you cannot, there is no shortcut.",
     recommendedFor: [
       "Senior tech professionals with a demonstrable track record: published work, patents, leadership roles, or significant open-source contributions",
       "Scientists and researchers with peer-reviewed publications, grant funding, or institutional recognition",
@@ -3079,7 +3079,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "innovator-founder",
     headline: "UK Innovator Founder: endorsed businesses only, and 'I have an idea' is not a business plan",
     decisionSummary:
-      "The Innovator Founder Visa replaced the old Tier 1 Entrepreneur route and raised the bar significantly. You need endorsement from an approved body confirming your business idea is innovative, viable, and scalable — generic businesses (restaurants, consulting firms, e-commerce stores) will not qualify. There is no fixed minimum investment amount, but you need credible funding to execute your plan. The visa is 3 years with a path to settlement, but settlement requires proving your business has achieved measurable milestones. This is not a visa for lifestyle businesses or 'serial entrepreneurs' who want a UK base. It is for people building genuine, growth-oriented ventures that the endorsing body believes in.",
+      "The Innovator Founder Visa (a UK Home Office immigration route — Home Office is the government department in charge of immigration — that replaced the older Tier 1 Entrepreneur visa for business builders) raised the bar significantly. You need endorsement from an approved 'endorsing body' (a private organisation officially licensed by the Home Office to vet business plans for innovation, viability, and scalability — without their sign-off, you cannot apply) confirming your business idea is innovative, viable, and scalable — generic businesses (restaurants, consulting firms, e-commerce stores) will not qualify. There is no fixed minimum investment amount, but you need credible funding to execute your plan. The visa is 3 years with a path to settlement (Indefinite Leave to Remain, ILR — UK permanent residency that removes any time cap on staying), but settlement requires proving your business has achieved measurable milestones. Holders pay the Immigration Health Surcharge (IHS — a per-person, per-year fee paid up front that gives access to the NHS, the UK's tax-funded National Health Service), receive an eVisa (digital immigration status linked to your passport that replaced the old Biometric Residence Permit / BRP card), and need a National Insurance Number (NIN — UK tax/social-security ID, equivalent to a US SSN) to operate any UK payroll. An English language test at B2 level (IELTS or equivalent) is required even for native English speakers, unless you hold a passport from a Home Office–listed majority-English-speaking country or a degree taught in English. This is not a visa for lifestyle businesses or 'serial entrepreneurs' who want a UK base. It is for people building genuine, growth-oriented ventures that the endorsing body believes in.",
     recommendedFor: [
       "Entrepreneurs with a genuinely innovative, tech-enabled, or market-disrupting business idea and a developed business plan",
       "Founders who have already built and scaled a business elsewhere and want to bring it to the UK market",
@@ -3171,7 +3171,7 @@ const BRIEFS: DecisionBrief[] = [
     countrySlug: "germany",
     headline: "Germany: strong economy and clear rules, but bureaucracy is no joke",
     decisionSummary:
-      "Germany offers one of the strongest economies in Europe, excellent infrastructure, and a well-defined immigration system for skilled workers. The EU Blue Card pathway is among the most accessible in the EU. But the reality includes dense bureaucracy, mandatory health insurance, high tax rates, and a housing market in major cities that is extremely competitive. If you have in-demand skills, Germany is a serious option. If you are hoping for a relaxed lifestyle, look elsewhere.",
+      "Germany offers one of the strongest economies in Europe, excellent infrastructure, and a well-defined immigration system for skilled workers. The EU Blue Card (an EU-wide residence permit for university-educated non-EU professionals with a qualifying job offer above a set salary threshold; in Germany it's the fastest route to long-term residence) pathway is among the most accessible in the EU. The system is run by two parallel offices you'll deal with constantly: the Bürgeramt (the local citizens' office where you do your Anmeldung — the legally required address registration that triggers your Steuer-ID, the lifetime tax ID number) and the Ausländerbehörde (Foreigners Authority — the local immigration office that issues the actual Aufenthaltstitel/Aufenthaltserlaubnis, the residence permit sticker in your passport, and later the Niederlassungserlaubnis, Germany's permanent settlement permit). Health insurance via a Krankenkasse (sickness fund — public/'gesetzliche' for most employees, private/'private' as an alternative for higher earners and freelancers) is legally mandatory. But the reality includes dense bureaucracy, mandatory health insurance, high tax rates, and a housing market in major cities that is extremely competitive. If you have in-demand skills, Germany is a serious option. If you are hoping for a relaxed lifestyle, look elsewhere.",
     recommendedFor: [
       "Skilled workers with a recognised degree and a job offer in hand",
       "IT professionals and engineers — Germany has a genuine labour shortage in these fields",
@@ -3229,7 +3229,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "eu-blue-card",
     headline: "EU Blue Card: Germany's fastest path for degree holders with a job offer",
     decisionSummary:
-      "The EU Blue Card is Germany's primary work permit for university graduates. It offers a faster route to permanent residency than a standard work permit — as little as 21 months with B1 German proficiency. The salary threshold is straightforward, and IT professionals benefit from a lower minimum. The main challenges are degree recognition and the initial appointment bottleneck at the Foreigners Authority.",
+      "The EU Blue Card (an EU-wide residence permit specifically for university-educated non-EU professionals with a qualifying job offer above a set salary threshold; the Aufenthaltstitel — German residence-permit sticker — is issued by the Ausländerbehörde, the local Foreigners Authority) is Germany's primary work permit for university graduates. It offers a faster route to the Niederlassungserlaubnis (Germany's permanent settlement permit, which removes any expiry date and gives unrestricted work rights) than a standard work permit — as little as 21 months with B1 German proficiency. Holders also need to complete the Anmeldung (mandatory address registration at the Bürgeramt, the local citizens' office) within 14 days of moving in, which generates the Steuer-ID (lifetime tax ID), and must enroll with a Krankenkasse (sickness fund — public/'gesetzliche' or private health insurer; coverage is legally required). The salary threshold is straightforward, and IT professionals benefit from a lower minimum. The main challenges are Anerkennung (formal credential recognition — verification by a designated German body that your foreign degree or vocational qualification is equivalent to a German one) and the initial appointment bottleneck at the Ausländerbehörde.",
     recommendedFor: [
       "University graduates with a concrete job offer in Germany",
       "IT and STEM professionals — lower salary threshold applies",
@@ -3278,7 +3278,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "skilled-worker-residence",
     headline: "Skilled Worker permit: Germany's route for vocational professionals",
     decisionSummary:
-      "The Skilled Worker Residence Permit is designed for professionals with recognised vocational training or a degree who have a concrete job offer in Germany. Unlike the EU Blue Card, it does not require a university degree — recognised vocational qualifications also qualify. The salary threshold is lower, but the path to permanent residency is longer (typically 4 years versus 21 months for Blue Card holders). It is a practical route for tradespeople and technicians with in-demand skills.",
+      "The Skilled Worker Residence Permit (a German Aufenthaltserlaubnis — residence permit — issued by the Ausländerbehörde, the local Foreigners Authority, for trained professionals with a concrete job offer) is designed for professionals with recognised vocational training or a degree who have a concrete job offer in Germany. Unlike the EU Blue Card (the EU-wide permit for university graduates with higher salary thresholds), it does not require a university degree — recognised vocational qualifications also qualify, after going through Anerkennung (formal credential recognition by a designated German chamber or authority that confirms your foreign training is equivalent to a German one). The salary threshold is lower, but the path to the Niederlassungserlaubnis (Germany's permanent settlement permit, which removes the time limit and unlocks unrestricted work rights) is longer (typically 4 years versus 21 months for Blue Card holders). Holders must also complete the Anmeldung (legally required address registration at the Bürgeramt — the local citizens' office — within 14 days, which generates the Steuer-ID, the lifetime tax ID) and enroll with a Krankenkasse (public 'gesetzliche' or private health insurer; coverage is mandatory). It is a practical route for tradespeople and technicians with in-demand skills.",
     recommendedFor: [
       "Skilled tradespeople with recognised vocational qualifications",
       "Workers in shortage sectors such as nursing, electrical engineering, or construction",
@@ -3327,7 +3327,7 @@ const BRIEFS: DecisionBrief[] = [
     countrySlug: "ireland",
     headline: "Ireland: English-speaking EU access, but housing costs are the real barrier",
     decisionSummary:
-      "Ireland offers a rare combination: English as the primary language, EU membership, a strong tech sector, and a welcoming culture. Dublin is home to European headquarters for many global technology companies. The employment permit system is well-structured and favours skilled workers. However, the housing crisis is severe — particularly in Dublin — with rents among the highest in Europe. The cost of living is significantly higher than most people expect, and the healthcare system has long waiting lists.",
+      "Ireland offers a rare combination: English as the primary language, EU membership, a strong tech sector, and a welcoming culture. Dublin is home to European headquarters for many global technology companies. The employment permit system, run by the Department of Enterprise alongside Immigration Service Delivery (ISD — the Irish immigration agency, formerly known as INIS, the Irish Naturalisation and Immigration Service, that issues residence permissions and the IRP card), is well-structured and favours skilled workers. After arrival you'll need a PPSN (Personal Public Service Number — Ireland's tax/social-welfare ID, equivalent to a US SSN; required for any job, bank account, or healthcare access) and an IRP (Irish Residence Permit — the plastic residence card, formerly called GNIB after the Garda National Immigration Bureau that used to issue it) registered to one of several 'Stamps' that mark what you're allowed to do: Stamp 1 = work for a specified employer, Stamp 2 = study, Stamp 4 = unrestricted work and self-employment rights. Public healthcare runs through the HSE (Health Service Executive — Ireland's national publicly funded health service, similar to the UK's NHS), and tax is administered by the Revenue Commissioners. However, the housing crisis is severe — particularly in Dublin — with rents among the highest in Europe. The cost of living is significantly higher than most people expect, and the healthcare system has long waiting lists.",
     recommendedFor: [
       "Tech workers with a job offer from an Irish employer — the Critical Skills permit is streamlined",
       "Professionals seeking English-speaking EU access without learning a new language",
@@ -3385,7 +3385,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "critical-skills",
     headline: "Critical Skills permit: Ireland's fast track for in-demand professionals",
     decisionSummary:
-      "The Critical Skills Employment Permit is Ireland's premium work permit pathway, designed to attract highly skilled workers in shortage occupations. It offers faster processing than the General Employment Permit and a direct route to unrestricted work permission (Stamp 4) after just two years. The main requirement is a qualifying job offer at or above the salary threshold in an occupation on the Critical Skills list.",
+      "The Critical Skills Employment Permit (CSEP — Ireland's premium work permit issued by the Department of Enterprise; it ties you to a specific employer at first but is the fastest route to full work freedom) is Ireland's premium work permit pathway, designed to attract highly skilled workers in shortage occupations. It offers faster processing than the General Employment Permit and a direct route to Stamp 4 — the immigration 'stamp' on your IRP (Irish Residence Permit, the plastic residence card formerly called GNIB after the Garda National Immigration Bureau that used to issue it) that grants unrestricted work and self-employment rights — after just two years. After arrival you'll need a PPSN (Personal Public Service Number — Ireland's tax/social-welfare ID, equivalent to a US SSN, required for any job or bank account) and registration with Immigration Service Delivery (ISD — the Irish immigration agency, formerly INIS, that issues the IRP). The main requirement is a qualifying job offer at or above the salary threshold in an occupation on the Critical Skills list.",
     recommendedFor: [
       "IT professionals, engineers, and healthcare workers with qualifying job offers",
       "Professionals earning 38,000 EUR or above in a listed occupation",
@@ -3434,7 +3434,7 @@ const BRIEFS: DecisionBrief[] = [
     countrySlug: "australia",
     headline: "Australia: high quality of life and strong wages, but the points system is genuinely competitive",
     decisionSummary:
-      "Australia consistently ranks among the top countries for quality of life, with high wages, excellent healthcare, and a diverse, multicultural society. The skilled migration system is well-established but genuinely competitive — the points-based assessment considers age, English proficiency, work experience, and qualifications, with minimum scores rising regularly. Processing times can be long, and the cost of the application itself is substantial. For those who qualify, Australia offers a direct path to permanent residency and eventually citizenship.",
+      "Australia consistently ranks among the top countries for quality of life, with high wages, excellent healthcare via Medicare (Australia's tax-funded universal public health insurance, which permanent residents and citizens access automatically), and a diverse, multicultural society. The skilled migration system, run by the Department of Home Affairs through an online platform called SkillSelect, is well-established but genuinely competitive: you submit an EOI (Expression of Interest — a free online profile registering you as a candidate), and the highest-scoring candidates are issued an invitation to apply for a specific visa subclass (numbered category, e.g. subclass 189 = Skilled Independent visa). The points test (the formal scoring system that awards points for age, English proficiency, qualifications, and Australian/overseas work experience) considers age, English proficiency, work experience, and qualifications, with minimum scores rising regularly. Every applicant must also complete a positive skills assessment (a formal evaluation by the designated assessing authority for your ANZSCO occupation code — the Australian and New Zealand Standard Classification of Occupations, the official taxonomy of jobs used to determine eligibility) and sit a recognised English-language test (IELTS, PTE Academic, TOEFL iBT, CAE, or OET — required for visa purposes regardless of native language; there is no passport-based exemption for native English speakers under skilled migration). Processing times can be long, and the cost of the application itself is substantial. For those who qualify, Australia offers a direct path to permanent residency and eventually citizenship.",
     recommendedFor: [
       "Skilled workers with occupations on the relevant skilled occupation list",
       "Professionals who can score 65+ points on the points test",
@@ -3493,7 +3493,7 @@ const BRIEFS: DecisionBrief[] = [
     pathwayKey: "skilled-independent-189",
     headline: "Subclass 189: permanent residency without sponsorship, but the bar is high",
     decisionSummary:
-      "The Skilled Independent visa (subclass 189) offers permanent residency without employer or state sponsorship. It is the most desirable skilled migration pathway because it allows you to live and work anywhere in Australia. However, competition is fierce — invitation rounds prioritise the highest-scoring applicants, and many occupations have annual caps that fill quickly.",
+      "The Skilled Independent visa (subclass 189 — 'subclass' is Australia's term for a numbered visa category, and 189 is the points-tested permanent visa with no sponsor required, granted by the Department of Home Affairs) offers permanent residency without employer or state sponsorship. You apply by lodging an EOI (Expression of Interest — a free online profile in SkillSelect, the government's candidate-pool platform) and waiting for an invitation to apply, which Home Affairs issues to the highest-scoring candidates. Eligibility requires a positive skills assessment (a formal evaluation by the designated assessing authority for your ANZSCO occupation code — the Australian and New Zealand Standard Classification of Occupations, the official job taxonomy), a passing score on the points test (the scoring system that awards points for age, English ability, qualifications, and work experience), and a recognised English-language test (IELTS, PTE Academic, TOEFL iBT, CAE, or OET — required even if English is your native language; there is no passport-based exemption). Approval grants permanent residency and Medicare (Australia's tax-funded public health insurance) eligibility. It is the most desirable skilled migration pathway because it allows you to live and work anywhere in Australia. However, competition is fierce — invitation rounds prioritise the highest-scoring applicants, and many occupations have annual caps that fill quickly.",
     recommendedFor: [
       "Highly qualified professionals who can score well above 65 points",
       "Those with occupations on the Medium and Long-term Strategic Skills List",
