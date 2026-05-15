@@ -42,10 +42,19 @@ export function useWorksheetList() {
   return useQuery<WorksheetListItem[]>({
     queryKey: LIST_KEY,
     queryFn: async () => {
-      const res = await fetch(`${getBase()}/api/worksheets`);
-      if (!res.ok) return [];
-      const data = (await res.json()) as WorksheetListItem[];
-      return Array.isArray(data) ? data : [];
+      const url = `${getBase()}/api/worksheets`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) {
+          console.warn(`[worksheets] list fetch ${res.status} from ${url}`);
+          return [];
+        }
+        const data = (await res.json()) as WorksheetListItem[];
+        return Array.isArray(data) ? data : [];
+      } catch (err) {
+        console.warn(`[worksheets] list fetch threw for ${url}`, err);
+        return [];
+      }
     },
   });
 }

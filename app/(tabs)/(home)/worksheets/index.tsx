@@ -26,7 +26,7 @@ export default function WorksheetsListScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { hasFullAccess } = useSubscription();
-  const { data: worksheets, isLoading } = useWorksheetList();
+  const { data: worksheets, isLoading, error, isError } = useWorksheetList();
   const { data: responses } = useWorksheetResponses();
 
   const responseByQid = useMemo(() => {
@@ -74,6 +74,14 @@ export default function WorksheetsListScreen() {
 
         {isLoading ? (
           <ActivityIndicator color={tokens.color.primary} style={styles.loading} />
+        ) : null}
+
+        {!isLoading && total === 0 ? (
+          <Text style={styles.intro}>
+            {isError
+              ? `Could not load worksheets: ${error instanceof Error ? error.message : "unknown error"}`
+              : "No worksheets are available right now. Pull to refresh in a moment."}
+          </Text>
         ) : null}
 
         <View style={styles.list}>
