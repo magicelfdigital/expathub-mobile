@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
-import { Animated, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Animated, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { QUIZ_QUESTIONS, TIMELINE_CALLOUTS, type QuizAnswer, type TimelineTone } from "@/src/data/quiz";
 import { QuizSaveModal } from "@/src/components/QuizSaveModal";
@@ -188,54 +188,61 @@ export default function QuizScreen() {
       </View>
 
       <Animated.View style={[styles.questionWrap, { transform: [{ translateX: slideAnim }] }]}>
-        {question.type === "region" && (
-          <Text style={styles.categoryLabel}>{question.category}</Text>
-        )}
-        <Text style={styles.questionText}>{question.text}</Text>
+        <ScrollView
+          style={styles.questionScroll}
+          contentContainerStyle={styles.questionScrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {question.type === "region" && (
+            <Text style={styles.categoryLabel}>{question.category}</Text>
+          )}
+          <Text style={styles.questionText}>{question.text}</Text>
 
-        <View style={styles.optionsWrap}>
-          {question.options.map((opt) => {
-            const selected = answers[question.id] === opt.value;
-            return (
-              <Pressable
-                key={opt.value}
-                onPress={() => selectAnswer(opt.value)}
-                style={({ pressed }) => [
-                  styles.optionCard,
-                  selected && styles.optionCardSelected,
-                  pressed && { opacity: 0.9 },
-                ]}
-              >
-                {opt.emoji ? (
-                  <Text style={styles.optionEmoji}>{opt.emoji}</Text>
-                ) : null}
-                <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>
-                  {opt.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+          <View style={styles.optionsWrap}>
+            {question.options.map((opt) => {
+              const selected = answers[question.id] === opt.value;
+              return (
+                <Pressable
+                  key={opt.value}
+                  onPress={() => selectAnswer(opt.value)}
+                  style={({ pressed }) => [
+                    styles.optionCard,
+                    selected && styles.optionCardSelected,
+                    pressed && { opacity: 0.9 },
+                  ]}
+                >
+                  {opt.emoji ? (
+                    <Text style={styles.optionEmoji}>{opt.emoji}</Text>
+                  ) : null}
+                  <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
 
-        {question.id === TIMELINE_QUESTION_ID && answers[TIMELINE_QUESTION_ID] ? (
-          <TimelineCallout value={answers[TIMELINE_QUESTION_ID] as QuizAnswer} />
-        ) : null}
+          {question.id === TIMELINE_QUESTION_ID && answers[TIMELINE_QUESTION_ID] ? (
+            <TimelineCallout value={answers[TIMELINE_QUESTION_ID] as QuizAnswer} />
+          ) : null}
 
-        {question.id === TIMELINE_QUESTION_ID ? (
-          <Pressable
-            onPress={handleNext}
-            disabled={!answers[TIMELINE_QUESTION_ID]}
-            style={({ pressed }) => [
-              styles.nextBtn,
-              !answers[TIMELINE_QUESTION_ID] && styles.nextBtnDisabled,
-              pressed && answers[TIMELINE_QUESTION_ID] && { opacity: 0.9 },
-            ]}
-            testID="quiz-timeline-next"
-          >
-            <Text style={styles.nextBtnText}>Continue</Text>
-            <Ionicons name="arrow-forward" size={18} color="#fff" />
-          </Pressable>
-        ) : null}
+          {question.id === TIMELINE_QUESTION_ID ? (
+            <Pressable
+              onPress={handleNext}
+              disabled={!answers[TIMELINE_QUESTION_ID]}
+              style={({ pressed }) => [
+                styles.nextBtn,
+                !answers[TIMELINE_QUESTION_ID] && styles.nextBtnDisabled,
+                pressed && answers[TIMELINE_QUESTION_ID] && { opacity: 0.9 },
+              ]}
+              testID="quiz-timeline-next"
+            >
+              <Text style={styles.nextBtnText}>Continue</Text>
+              <Ionicons name="arrow-forward" size={18} color="#fff" />
+            </Pressable>
+          ) : null}
+        </ScrollView>
       </Animated.View>
 
       <QuizSaveModal
@@ -283,9 +290,16 @@ const styles = StyleSheet.create({
   },
   questionWrap: {
     flex: 1,
-    justifyContent: "center",
-    paddingBottom: 80,
     overflow: "hidden",
+  },
+  questionScroll: {
+    flex: 1,
+  },
+  questionScrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingTop: 16,
+    paddingBottom: 32,
   },
   categoryLabel: {
     fontSize: 13,
