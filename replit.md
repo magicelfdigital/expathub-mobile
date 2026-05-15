@@ -1,101 +1,294 @@
-# ExpatHub - Replit Agent Guide
+# ExpatHub — Replit Agent Guide
 
 ## Overview
-ExpatHub is a mobile-first application assisting expats with international relocation. It provides country-specific guides, resources, vendor directories, and community connections, aiming to be the definitive platform for informed international relocation. The project offers comprehensive, opinionated advice via a freemium model, with detailed guides available through a "Pro" subscription.
+
+ExpatHub is a mobile-first application helping people plan and execute international relocation. It provides country-specific guides, visa pathway analysis, official resources, vendor directories, and community connections across 11 decision-ready countries. The platform is intentionally curated — not a global encyclopedia — with a calm, advisory tone throughout.
+
+**Company:** MagicElfDigital LLC
+**Support:** support@expathub.website
+**Current version:** 1.4.0 (build 88)
+
+---
 
 ## User Preferences
+
 Preferred communication style: Simple, everyday language.
+
+---
 
 ## System Architecture
 
 ### Frontend
-- **Framework**: Expo SDK with React Native for iOS, Android, and Web.
-- **Routing**: `expo-router` for file-based and typed routing.
-- **State Management**: React Context for global state, React Query for server data.
-- **UI Design**: Custom component library with a defined design token system, specific color palette (blue, teal, gold, navy, cream, surface), and fonts (Lora for headlines, DM Sans for UI text). Consistent styling includes rounded corners.
-- **Navigation**: Tab-based layout (Home, Explore, Shortlist, Community) with stack navigators. Subscription flow is a modal.
-- **Authentication**: JWT-based using `AuthContext` and `expo-secure-store` or `AsyncStorage`. Web authentication is proxied via an Express backend.
-- **Key Features**:
-    - **Subscription Model**: Two-tier freemium (Monthly Explorer, Annual Pathfinder) with a 14-day free trial, integrated with RevenueCat (mobile) and Stripe Checkout (web). Entitlements are backend-authoritative.
-    - **Continue / Last Viewed**: Persists user's last viewed content.
-    - **Saved Resources**: Bookmark resources per country.
-    - **Paywall Navigation**: `ProPaywall` component with "What you get", "Plans", "FAQ" tabs, and a sticky CTA.
-    - **Internationalization**: Neutral language and passport-specific notes.
-    - **Relocation Readiness Assessment**: Onboarding quiz with weighted scoring for country matching and lead capture.
-    - **Expanding Soon / Waitlist**: Feature for upcoming countries with backend integration.
-    - **Source Badge Classification**: Categorizes resources as official, authoritative, or community.
-    - **Planner Layer**: A 10-step generic relocation planner per country for paid users. Steps are managed via `src/data/planSteps.ts` and user progress is stored in a PostgreSQL `user_progress` table.
-    - **Country Bookmarks & Shortlist**: Users can bookmark countries, with a limit of 1 for free users.
-    - **Move Notes**: Per-country freeform notes on the shortlist screen (Pro-only).
-    - **Enhanced Compare Matrix**: 14 comparison rows, with 4 accessible to free users.
-    - **Cancellation Modal**: Intercepts subscription management for paid users, showing potential losses (bookmarks, notes) before proceeding.
-    - **Tablet Support**: Responsive design for 2-column layouts on tablets.
-    - **Conversion Lifts**:
-        - **Web LockedSection blur previews**: Shows a masked preview of Pro content with a lock-overlay card and CTA.
-        - **48h reverse trial (mobile)**: Grants temporary full access, managed via `EntitlementContext` and `AsyncStorage`. Expiry triggers a modal.
-        - **Personalized paywall**: Prices from RevenueCat, user top country and name from AsyncStorage.
-        - **Exit offer (50% off × 3 months)**: Backend eligibility check, applied via Stripe. Presented in web and mobile cancellation flows.
+
+- **Framework:** Expo SDK 54 / React Native 0.81 / React 19.1
+- **Routing:** `expo-router` v6 (file-based routing)
+- **State management:** React Context for global state, React Query for server data
+- **Persistence:** `@react-native-async-storage/async-storage`
+- **Secure storage:** `expo-secure-store` (native only)
+- **UI:** Custom component library using a defined design token system. No external UI libraries. All components use `StyleSheet.create`.
+- **Fonts:** Lora (headlines), DM Sans (UI text)
+- **Icons:** Ionicons from `@expo/vector-icons` — no emojis
+- **Navigation:** Tab-based layout (Home, Explore, Community, Countries) with stack navigators. Subscription flow is a modal.
+- **Authentication:** JWT-based via `AuthContext`. Token stored in `expo-secure-store` (native) or `AsyncStorage` (web).
+
+### Key Features
+
+- **Subscription model:** Two paid tiers — Monthly Explorer and Annual Pathfinder — managed via RevenueCat (iOS) and Stripe (web). Entitlements are backend-authoritative. Country Lifetime and Decision Pass products have been retired and removed from the codebase.
+- **Planner layer:** A 10-step generic relocation planner per country for paid users. Steps are managed via `src/data/planSteps.ts` and user progress is stored in a PostgreSQL `user_progress` table. Planner is surfaced from the home tab and country dashboard. Users can switch or reset their active plan from the account screen.
+- **Country bookmarks and shortlist:** Users can bookmark countries (1 limit for free users).
+- **Move notes:** Per-country freeform notes on the shortlist screen (Pro-only).
+- **Source badge classification:** Resources are tagged as OFFICIAL, AUTHORITATIVE, or COMMUNITY.
+- **Coming Soon + waitlist:** Feature for upcoming countries with backend integration.
+- **Relocation Readiness Assessment:** Onboarding quiz with weighted scoring for country matching, account creation in flow, tailored country results, and country-interest notification.
+- **Country comparison matrix:** 14 comparison rows, with 4 accessible to free users.
+- **Eligibility snapshot:** Bracket-based, stored locally.
+- **LifetimeOfferBanner:** Shown after 2+ planner steps completed.
+- **About page, Reset Password flow, Account deletion.**
+- **Continue / Last Viewed:** Persists user's last viewed content.
+- **Saved Resources:** Bookmark resources per country.
+- **ProPaywall:** Modal with contextual value propositions, plan options, FAQ tab, and sticky CTA. Pricing from RevenueCat. Personalized with user's top country and name from AsyncStorage.
+- **Web LockedSection blur previews:** Masked preview of Pro content with lock-overlay card and CTA.
+- **48h reverse trial (mobile):** Grants temporary full access on paywall dismissal, managed via `EntitlementContext` and `AsyncStorage`. Expiry triggers a modal. Controlled by `REVERSE_TRIAL_DURATION_MS = 48 * 60 * 60 * 1000` in `EntitlementContext`.
+- **Exit offer (50% off × 3 months):** Backend eligibility check, applied via Stripe. Presented in web and mobile cancellation flows.
+- **A/B testing:** Pricing variants.
+- **Meta tracking:** SDK + Pixel funnel events.
 
 ### Backend
-- **Runtime**: Node.js with TypeScript and Express.
-- **API Structure**: Routes under `/api` prefix for data and authentication.
-- **Data Storage**: `IStorage` interface, currently supporting in-memory and PostgreSQL.
-- **Web frontend hosting**: Express serves static built React+Vite SPA for production; proxies to Vite dev server for development.
-- **Internal admin tooling**: Basic-Auth-protected dashboards (set `ADMIN_BASIC_USER` / `ADMIN_BASIC_PASS`):
-    - `/admin` — index page linking to all internal tools.
-    - `/admin/planner-analytics` (HTML) and `/api/admin/planner-analytics` (JSON) — planner completion rate per step, % of plans reaching 100%, median days from start to completion, and drop-off by stage. **Note**: metrics are derived from the `user_progress` table (proxy for `plan_focus_started` / `planner_step_completed` / `planner_completed` analytics events) rather than from PostHog event rollups, so they reflect authoritative DB state but won't match raw event counts exactly. The `created_at` column is added via an idempotent lazy migration; `ensureUserProgressCreatedAt` in `server/plannerAnalytics.ts` is the single source of truth and is also called from the progress-seed path in `server/routes.ts`. After the column is added, `backfillUserProgressMigrationCreatedAt` runs once per process to rewrite rows still pinned to the migration-time NOW() (any timestamp shared by more rows than one seed batch) — it sets them to the earliest `completed_at` for the (user, country) plan, or NULL if the plan has no completion. The median calc filters NULL `started_at` so historical plans don't skew the time-to-100% metric. Implemented in `server/plannerAnalytics.ts`.
-    - `/admin/quiz-save-analytics` (HTML) and `/api/admin/quiz-save-analytics` (JSON) — impressions / submissions / dismissals / recovery rate for the soft "save your progress" modal, split by surface (web vs mobile), with email-gate captures from `quiz_leads` (split by `source = 'web_funnel_save'` vs everything else) shown side-by-side so cannibalisation is visible. Backed by a `quiz_save_events` table that the `/api/analytics` proxy lazily writes to whenever a `quiz_save_*` event passes through (in addition to forwarding upstream); implemented in `server/quizSaveAnalytics.ts`. Configurable window via `?days=N` (default 30, clamped to 1–365).
-    - `/api/admin/ab-results` (JSON) — A/B test variant performance.
+
+- **Runtime:** Node.js with TypeScript and Express v5 (port 5000)
+- **API structure:** Routes under `/api` prefix for data and authentication
+- **Data storage:** `IStorage` interface, supporting in-memory and PostgreSQL (Neon-backed via Drizzle ORM)
+- **Web frontend hosting:** Express serves static built React+Vite SPA for production; proxies to Vite dev server for development
+- **Internal admin tooling:** Basic-Auth-protected dashboards (`ADMIN_BASIC_USER` / `ADMIN_BASIC_PASS`):
+  - `/admin` — index page linking to all internal tools
+  - `/admin/planner-analytics` (HTML) and `/api/admin/planner-analytics` (JSON) — planner completion rate per step, % of plans reaching 100%, median days from start to completion, drop-off by stage, per-country breakdown, weekly trends. Metrics derived from `user_progress` table.
+  - `/admin/quiz-save-analytics` (HTML) and `/api/admin/quiz-save-analytics` (JSON) — impressions / submissions / dismissals / recovery rate for the save-your-progress modal, split by surface (web vs mobile), with 8-week chart. Configurable via `?days=N` (default 30, clamped 1–365).
+  - `/api/admin/ab-results` (JSON) — A/B test variant performance
 
 ### Web Frontend (`web/`)
-- **Framework**: React 19, Vite 6, TypeScript, Tailwind v4.
-- **Routing**: `react-router-dom` v7 with a shared layout.
-- **Design tokens**: Brand palette and fonts are exposed as Tailwind `@theme` tokens.
-- **Home page**: React port of the legacy landing page, providing Expo Go download and QR scan options.
-- **API client**: `web/src/lib/api.ts` for interacting with `/api/auth/*`, `/api/stripe/*`, etc.
-- **Legal pages**: React pages for Privacy and Terms.
-- **Quiz funnel** (`web/src/pages/Start.tsx`): 5-question quiz mirroring the mobile readiness check. After Q5, if 3+ "no" answers were given, surfaces `QuizSaveModal` (`web/src/components/QuizSaveModal.tsx`) — a soft email-capture prompt that writes to `quiz_leads` with `source: "web_funnel_save"` and fires `quiz_save_shown` / `quiz_save_submitted` / `quiz_save_dismissed` analytics matching the mobile app.
+
+- **Framework:** React 19, Vite 6, TypeScript, Tailwind v4
+- **Routing:** `react-router-dom` v7 with shared layout
+- **Hosted at:** expathub.website
+- **Design tokens:** Brand palette and fonts exposed as Tailwind `@theme` tokens
+- **Quiz funnel** (`web/src/pages/Start.tsx`): 5-question quiz mirroring the mobile readiness check. Persists to localStorage so refresh resumes. After Q5, if 3+ "no" answers were given, surfaces `QuizSaveModal` — a soft email-capture prompt that writes to `quiz_leads` with `source: "web_funnel_save"` and fires `quiz_save_shown` / `quiz_save_submitted` / `quiz_save_dismissed` analytics.
+- **Legal pages:** React pages for Privacy (`https://www.expathub.website/privacy`) and Terms (`https://www.expathub.website/terms`).
+- **API client:** `web/src/lib/api.ts` for interacting with `/api/auth/*`, `/api/stripe/*`.
 
 ### Database
-- **ORM**: Drizzle ORM configured for PostgreSQL.
-- **Schema**: Defined in `shared/schema.ts` for user data, leads, country interest, and waitlist.
 
-### Automated Testing
-- **Mobile harness (Jest)**: `src/billing/__tests__/conversionLifts.test.ts` exercises the pure predicates in `src/lib/conversionLifts.ts` (`shouldGrantReverseTrialOnDismiss`, `getInitialCancellationStep`). Both `ProPaywall` and `CancellationModal` import these helpers, so the harness verifies the production code path.
-- **Web e2e (Playwright)**: `tests/e2e/locked-section.spec.ts` and `tests/e2e/cancellation-exit-offer.spec.ts`. Config in `playwright.config.ts`. Run with `PLAYWRIGHT_BASE_URL=http://localhost:5000 npx playwright test` once the backend workflow is up.
+- **ORM:** Drizzle ORM configured for PostgreSQL (Neon)
+- **Schema:** `shared/schema.ts` for user data, leads, country interest, waitlist, and planner progress
+- **Planner progress table:** `user_progress` — stores per-user, per-country step completion state
 
-### Data Layer
-- **Access**: Centralized access point.
-- **Content Storage**: Core content (countries, pathways, etc.) stored in static TypeScript files.
+---
+
+## Monetization
+
+Two paid subscription tiers. Country Lifetime Unlock and Decision Pass have been fully retired and removed from the codebase. All values below are confirmed from `src/config/subscription.ts`.
+
+| Tier | Price | Trial | RevenueCat Product ID (iOS) | RevenueCat Product ID (Android) |
+|------|-------|-------|-----------------------------|---------------------------------|
+| Monthly Explorer | $14.99/mo | None | `expathub_explorer` | `expathub_explorer:monthly` |
+| Annual Pathfinder | $89/yr | 14 days | `expathub_pathfinder` | `expathub_pathfinder:annual` |
+
+**RevenueCat entitlement:**
+
+| Entitlement ID | Constant | Meaning |
+|----------------|----------|---------|
+| `full_access_subscription` | `ENTITLEMENT_FULL_ACCESS` | Active subscription (either tier) |
+
+**Access logic (from `EntitlementContext`):**
+- `hasFullAccess` — active subscription OR active 48h reverse trial
+- `hasProAccess` — any paid access
+- `accessType` values: `subscription`, `sandbox`, `none`, `reverse_trial`
+- `source` values: `revenuecat`, `stripe`, `sandbox`, `none`, `reverse_trial`
+
+**Stripe (web):**
+- Monthly: `STRIPE_MONTHLY_PRICE_ID` (env: `EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID`)
+- Annual: `STRIPE_ANNUAL_PRICE_ID` (env: `EXPO_PUBLIC_STRIPE_ANNUAL_PRICE_ID`)
+- Checkout: `createCheckoutSession(plan: "monthly" | "annual")` in `src/subscriptions/stripeWeb.ts`
+
+**Payment processing:**
+
+| Platform | Provider | Key |
+|----------|----------|-----|
+| iOS | RevenueCat | `EXPO_PUBLIC_RC_IOS_KEY` |
+| Web | Stripe Checkout / Customer Portal | `STRIPE_SECRET_KEY` |
+
+**Restore Purchases:** Waits for backend confirmation before declaring success.
+
+**Known issue:** The paywall UI displays the trial duration as 7 days. The correct value is 14 days (`TRIAL_DURATION_DAYS = 14` in `src/config/subscription.ts`). The paywall copy needs updating.
+
+---
+
+## Supported Countries
+
+Confirmed from `LAUNCH_COUNTRIES` in `src/config/subscription.ts`.
+
+### Decision-Ready (11)
+
+| Country | Slug | Region |
+|---------|------|--------|
+| Portugal | `portugal` | Europe |
+| Spain | `spain` | Europe |
+| Canada | `canada` | North America |
+| Costa Rica | `costa-rica` | Central America |
+| Panama | `panama` | Central America |
+| Ecuador | `ecuador` | South America |
+| Malta | `malta` | Europe |
+| United Kingdom | `united-kingdom` | Europe |
+| Germany | `germany` | Europe |
+| Ireland | `ireland` | Europe |
+| Australia | `australia` | Oceania |
+
+### Coming Soon (5, with waitlist)
+
+France, Italy, Thailand, Mexico, New Zealand
+
+---
+
+## Planner Architecture
+
+The planner uses two layers, both defined in `src/data/planSteps.ts`:
+
+**1. Structured 6-step planner (`PLAN_STEPS`)** — the detailed guided flow per country:
+
+| # | ID | Title |
+|---|----|-------|
+| 1 | `confirm_pathway` | Confirm Your Legal Pathway |
+| 2 | `validate_finances` | Validate Financial Requirements |
+| 3 | `prepare_docs` | Prepare Core Documentation |
+| 4 | `execute_residency` | Execute the Residency Process |
+| 5 | `register_local` | Register and Activate Local Systems |
+| 6 | `post_arrival` | Post-Arrival Compliance |
+
+Step 3 has per-country checklists for all 11 countries, with items split into two groups: "For your visa application" and "For your arrival". A `DEFAULT_STEP3_CHECKLIST` is used as fallback.
+
+**2. Generic progress tracker (`GENERIC_PLAN_STEPS`)** — broader milestone tracking across 4 stages:
+
+| Stage | Steps |
+|-------|-------|
+| Research | Take the readiness quiz, Build your shortlist |
+| Visa & Legal | Identify a visa pathway, Submit your visa application |
+| Money & Tax | Review your finances, Plan your tax strategy |
+| Logistics & Move | Research housing, Research schools, Book your flight, Set your move date |
+
+**Progress storage:** PostgreSQL `user_progress` table (server-backed). Users can switch or reset their active plan from the account screen. Plan progress is also visible on the account screen.
+
+---
+
+## Data Layer
+
+Core content is stored as static TypeScript files — not database records.
+
+| File | Content |
+|------|---------|
+| `data/countries.ts` | All countries across regions |
+| `data/pathways.ts` | Visa routes per country |
+| `data/resources.ts` | Official government links |
+| `data/vendors.ts` | Service provider listings |
+| `data/community.ts` | Expat group links |
+| `data/glossary.ts` | Immigration terminology |
+| `data/passportNotes.ts` | Nationality-specific notes (7 passport types: US, UK, CA, AU, EU, JP, CR) |
+| `src/data/decisionBriefs.ts` | Premium Decision Briefs |
+| `src/data/compareMatrix.ts` | Country comparison data |
+| `src/data/coverage.ts` | Coverage status per country/section |
+| `src/data/planSteps.ts` | Planner steps, checklists, and generic progress steps |
+| `src/data/pro-offer.ts` | Upsell messaging and value props |
+| `src/config/subscription.ts` | Product IDs, entitlement IDs, prices, trial duration, launch countries |
+
+---
+
+## Critical Constraints for Replit Agents
+
+When writing or modifying code, always observe these constraints:
+
+1. **Do not touch entitlement or billing logic** unless the task explicitly requires it. Files to treat as protected: `src/contexts/EntitlementContext.tsx`, `src/contexts/entitlementDerivation.ts`, `src/billing/entitlementGate.ts`, `src/config/subscription.ts`, `src/subscriptions/revenuecat.ts`, `src/subscriptions/stripeWeb.ts`, `contexts/SubscriptionContext.tsx`.
+
+2. **Monetization model:** Two subscriptions only — Monthly Explorer (`expathub_explorer`, $14.99/mo, no trial) and Annual Pathfinder (`expathub_pathfinder`, $89/yr, 14-day trial). Single entitlement ID: `full_access_subscription`. No Decision Pass. No Country Lifetime Unlock. Do not add, reference, or restore any retired products.
+
+3. **Country count is 11.** The canonical list is `LAUNCH_COUNTRIES` in `src/config/subscription.ts`. Do not hardcode a different list anywhere.
+
+4. **Planner progress is server-backed** via the PostgreSQL `user_progress` table. Do not move planner progress to AsyncStorage or introduce a local-only storage path for it.
+
+5. **Tone:** No exclamation marks. No urgency language. Calm, advisory register throughout.
+
+6. **Design tokens:** Use `theme/tokens.ts` values. Do not introduce hardcoded colours, spacing, or font sizes.
+
+7. **Legal URLs:** Privacy policy is `https://www.expathub.website/privacy`. Terms are `https://www.expathub.website/terms`. Do not use any other URLs for these.
+
+---
 
 ## External Dependencies
 
 ### Core Runtime
-- Expo SDK
-- React / React Native
-- Express
+- Expo SDK 54, React Native 0.81, React 19.1
+- Express v5, Node.js, TypeScript
 
 ### Database & ORM
-- PostgreSQL
+- PostgreSQL (Neon)
 - Drizzle ORM
 
 ### State & Data Fetching
-- @tanstack/react-query
-- @react-native-async-storage/async-storage
+- `@tanstack/react-query`
+- `@react-native-async-storage/async-storage`
 
 ### Navigation & UI
-- expo-router
-- react-native-gesture-handler
-- react-native-reanimated
-- react-native-screens
-- @expo/vector-icons
-- expo-web-browser
-- @expo-google-fonts/lora
-- @expo-google-fonts/dm-sans
+- `expo-router`
+- `react-native-gesture-handler`
+- `react-native-reanimated`
+- `react-native-screens`
+- `@expo/vector-icons`
+- `expo-web-browser`
+- `@expo-google-fonts/lora`
+- `@expo-google-fonts/dm-sans`
 
 ### Subscription & Payments
-- react-native-purchases (RevenueCat SDK)
-- Stripe API
+- `react-native-purchases` (RevenueCat SDK — iOS only)
+- Stripe API (web only)
 
 ### Analytics
-- posthog-react-native (for event tracking)
+- `posthog-react-native`
+- Meta SDK + Pixel
+
+---
+
+## Environment Variables
+
+| Variable | Purpose |
+|----------|---------|
+| `EXPO_PUBLIC_RC_IOS_KEY` | RevenueCat iOS API key |
+| `EXPO_PUBLIC_RC_ANDROID_KEY` | RevenueCat Android API key (present in config but Android billing not active) |
+| `EXPO_PUBLIC_RC_MONTHLY_PRODUCT` | Override for monthly product ID (default: `expathub_explorer`) |
+| `EXPO_PUBLIC_RC_ANNUAL_PRODUCT` | Override for annual product ID (default: `expathub_pathfinder`) |
+| `EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID` | Stripe price ID for monthly plan |
+| `EXPO_PUBLIC_STRIPE_ANNUAL_PRICE_ID` | Stripe price ID for annual plan |
+| `SESSION_SECRET` | Express session signing key |
+| `STRIPE_SECRET_KEY` | Stripe API key for web payments |
+| `DATABASE_URL` | PostgreSQL connection string (Neon) |
+| `PASSWORD_API_URL` | Base URL for password reset API (`www.expathub.website`) |
+| `EXPO_PUBLIC_AUTH_API_URL` | Auth API base URL (`www.expathub.world`) |
+| `ADMIN_BASIC_USER` | Admin dashboard username |
+| `ADMIN_BASIC_PASS` | Admin dashboard password |
+
+---
+
+## Build & Development
+
+| Command | Purpose | Port |
+|---------|---------|------|
+| `npm run expo:dev` | Start Expo dev server with HMR | 8081 |
+| `npm run server:dev` | Start Express backend | 5000 |
+
+**Build pipeline:** EAS Build + EAS Submit
+**Current build:** 88 (v1.4.0)
+**iOS:** Live in App Store
+
+---
+
+## Automated Testing
+
+- **Mobile (Jest):** `src/billing/__tests__/conversionLifts.test.ts` — exercises pure predicates in `src/lib/conversionLifts.ts` (`shouldGrantReverseTrialOnDismiss`, `getInitialCancellationStep`). Real screen-mount tests for account, planner, quiz, and result screens. `useProgress` hook tests. Full suite: 391 passing tests.
+- **Web e2e (Playwright):** `tests/e2e/locked-section.spec.ts` and `tests/e2e/cancellation-exit-offer.spec.ts`. Config in `playwright.config.ts`. Run with `PLAYWRIGHT_BASE_URL=http://localhost:5000 npx playwright test`.
+- **CI:** Meta Pixel event verification checklist with CI check.
