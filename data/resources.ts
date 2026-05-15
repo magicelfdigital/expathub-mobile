@@ -266,14 +266,14 @@ export const RESOURCES: CountryResources = {
     {
       label: "CRA (Canada Revenue Agency)",
       note: "Tax obligations for new residents.",
-      url: "https://www.canada.ca/en/revenue-agency.html",
+      url: "https://www.canada.ca/en/revenue-agency/services/tax/international-non-residents/individuals-leaving-entering-canada-non-residents.html",
       sourceType: "authoritative",
       category: "tax",
     },
     {
       label: "Provincial Health Insurance",
       note: "Health coverage varies by province -- check your destination.",
-      url: "https://www.canada.ca/en/health-canada.html",
+      url: "https://www.canada.ca/en/health-canada/services/health-care-system.html",
       sourceType: "authoritative",
       category: "healthcare",
     },
