@@ -33,6 +33,8 @@ import {
   TERMS_URL,
   PRIVACY_URL,
   TRIAL_DURATION_DAYS,
+  MONTHLY_PRICE,
+  ANNUAL_PRICE,
 } from "@/src/config/subscription";
 import { COVERAGE_SUMMARY } from "@/src/data";
 import { PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
@@ -366,10 +368,11 @@ export function ProPaywall({
       });
   }, [hasActiveSubscription]);
 
-  // Live prices from RC offerings — no hardcoded fallback. While loading we
-  // show an em dash so the UI is honest about not having the price yet.
-  const monthlyPriceLabel = livePrices.monthly ?? "—";
-  const annualPriceLabel = livePrices.annual ?? "—";
+  // Live prices from RC offerings — fall back to the canonical price
+  // constants so web, Expo Go, and any RC-init failure path still render a
+  // real price instead of an em dash.
+  const monthlyPriceLabel = livePrices.monthly ?? MONTHLY_PRICE;
+  const annualPriceLabel = livePrices.annual ?? ANNUAL_PRICE;
 
   async function handleMobilePurchase(productId: string, type: string, slug?: string) {
     const userId = user!.id.toString();
