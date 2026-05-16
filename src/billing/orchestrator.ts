@@ -53,9 +53,9 @@ export class BillingOrchestrator {
   }
 
   async restore(userId: string): Promise<OrchestratorResult> {
-    const entitlements = await this.backendClient.getEntitlements(userId);
-    if (hasEntitlement(entitlements)) {
-      return { entitlements, status: "confirmed" };
+    const preCheck = await this.preCheckEntitlements(userId);
+    if (preCheck && hasEntitlement(preCheck)) {
+      return { entitlements: preCheck, status: "confirmed" };
     }
 
     try {
@@ -106,6 +106,28 @@ export class BillingOrchestrator {
       entitlements,
       status: hasEntitlement(entitlements) ? "confirmed" : "pending",
     };
+  }
+
+  private async preCheckEntitlements(
+    userId: string,
+  ): Promise<BackendEntitlements | null> {
+    try {
+      return await this.backendClient.getEntitlements(userId);
+    } catch (err: unknown) {
+      console.warn(
+        "[BillingOrchestrator] restore pre-check attempt 1 failed, retrying",
+        err,
+      );
+    }
+    try {
+      return await this.backendClient.getEntitlements(userId);
+    } catch (err: unknown) {
+      console.warn(
+        "[BillingOrchestrator] restore pre-check attempt 2 failed, falling through to RC restore",
+        err,
+      );
+      return null;
+    }
   }
 
   private async pollEntitlements(userId: string): Promise<OrchestratorResult> {

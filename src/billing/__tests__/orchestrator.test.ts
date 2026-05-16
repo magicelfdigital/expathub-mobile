@@ -293,6 +293,65 @@ describe("BillingOrchestrator", () => {
     });
   });
 
+  describe("restore() — pre-check transient error", () => {
+    it("retries the pre-check once and skips RC restore when backend confirms access", async () => {
+      const rc = mockRCClient();
+      let callCount = 0;
+      const backend = mockBackendClient({
+        getEntitlements: jest.fn().mockImplementation(async () => {
+          callCount++;
+          if (callCount === 1) {
+            throw new Error("network blip");
+          }
+          return makeActiveEntitlements();
+        }),
+      });
+
+      const orchestrator = new BillingOrchestrator(rc, backend, {
+        intervalMs: 100,
+        timeoutMs: 5000,
+      });
+
+      const result = await orchestrator.restore("usr_123");
+
+      expect(backend.getEntitlements).toHaveBeenCalledTimes(2);
+      expect(rc.restorePurchases).not.toHaveBeenCalled();
+      expect(backend.refreshMobileBilling).not.toHaveBeenCalled();
+      expect(result.status).toBe("confirmed");
+      expect(result.entitlements.hasFullAccess).toBe(true);
+    });
+
+    it("falls through to RC restore + poll when both pre-check attempts error", async () => {
+      const rc = mockRCClient();
+      let callCount = 0;
+      const backend = mockBackendClient({
+        getEntitlements: jest.fn().mockImplementation(async () => {
+          callCount++;
+          if (callCount <= 2) {
+            throw new Error("network down");
+          }
+          return makeActiveEntitlements();
+        }),
+      });
+
+      const orchestrator = new BillingOrchestrator(rc, backend, {
+        intervalMs: 100,
+        timeoutMs: 5000,
+      });
+
+      const resultPromise = orchestrator.restore("usr_123");
+      jest.runAllTimersAsync();
+      const result = await resultPromise;
+
+      expect(rc.restorePurchases).toHaveBeenCalledTimes(1);
+      expect(backend.refreshMobileBilling).toHaveBeenCalledTimes(1);
+      // 2 failed pre-check attempts + poll calls until active (3rd call onward)
+      expect((backend.getEntitlements as jest.Mock).mock.calls.length).toBeGreaterThanOrEqual(3);
+      expect(result.status).toBe("confirmed");
+      expect(result.entitlements.hasFullAccess).toBe(true);
+    });
+  });
+
   describe("restore() — timeout path", () => {
     it("throws EntitlementPollingTimeoutError when entitlements never become active", async () => {
       const rc = mockRCClient();
