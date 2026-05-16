@@ -475,28 +475,6 @@ export default function ResultScreen() {
 
         {renderBlockerSection("explore")}
 
-        <Pressable
-          onPress={async () => {
-            // Persist the result + answers first so worksheet submissions
-            // can re-derive readiness immediately.
-            await completeOnboarding(result, true, numericAnswers);
-            router.push("/(tabs)/(home)/worksheets" as any);
-          }}
-          style={({ pressed }) => [styles.worksheetsTeaser, pressed && { opacity: 0.92 }]}
-          testID="result-worksheets-teaser"
-        >
-          <View style={styles.worksheetsTeaserIcon}>
-            <Ionicons name="document-text-outline" size={18} color={tokens.color.teal} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.worksheetsTeaserTitle}>Work on your readiness</Text>
-            <Text style={styles.worksheetsTeaserSub}>
-              Replace each blocker with a deeper self-check and update your score.
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={tokens.color.teal} />
-        </Pressable>
-
         {result.blockers.length === 0 ? (
           <View style={styles.card}>
             <View style={styles.successRow}>
@@ -911,37 +889,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#606CB9",
     borderRadius: 14,
     padding: 18,
-  },
-  worksheetsTeaser: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: tokens.color.tealLight,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: tokens.color.teal,
-    padding: 14,
-  },
-  worksheetsTeaserIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: tokens.color.surface,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  worksheetsTeaserTitle: {
-    fontSize: 15,
-    fontFamily: tokens.font.bodySemiBold,
-    fontWeight: "600",
-    color: tokens.color.text,
-    marginBottom: 2,
-  },
-  worksheetsTeaserSub: {
-    fontSize: 13,
-    fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
-    lineHeight: 18,
   },
   paywallCtaTitle: {
     color: "#fff",
