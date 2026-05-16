@@ -62,7 +62,7 @@ Preferred communication style: Simple, everyday language.
 - **Web frontend hosting:** Express serves static built React+Vite SPA for production; proxies to Vite dev server for development
 - **Internal admin tooling:** Basic-Auth-protected dashboards (`ADMIN_BASIC_USER` / `ADMIN_BASIC_PASS`):
   - `/admin` — index page linking to all internal tools
-  - `/admin/planner-analytics` (HTML) and `/api/admin/planner-analytics` (JSON) — planner completion rate per step, % of plans reaching 100%, median days from start to completion, drop-off by stage, per-country breakdown, weekly trends. Metrics derived from `user_progress` table.
+  - `/admin/planner-analytics` (HTML) and `/api/admin/planner-analytics` (JSON) — planner completion rate per step, % of plans reaching 100%, median days from start to completion, drop-off by stage, per-country breakdown, weekly trends. Metrics derived from `user_progress` table. The HTML view includes a "Data quality notes" section reminding analysts that dwell-time insights on `planner_step_collapsed` must filter `bounced = false` (see bounce flag note below).
   - `/admin/quiz-save-analytics` (HTML) and `/api/admin/quiz-save-analytics` (JSON) — impressions / submissions / dismissals / recovery rate for the save-your-progress modal, split by surface (web vs mobile), with 8-week chart. Configurable via `?days=N` (default 30, clamped 1–365).
   - `/admin/brief-freshness` (HTML) and `/api/admin/brief-freshness` (JSON) — per-brief `lastReviewedAt` age with stale (>90 days) and approaching-stale (>60 days) badges. Backed by `server/briefFreshness.ts`, which parses `src/data/decisionBriefs.ts` statically.
   - `/api/admin/ab-results` (JSON) — A/B test variant performance

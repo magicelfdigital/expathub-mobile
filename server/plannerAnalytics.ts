@@ -1551,6 +1551,29 @@ export function renderPlannerAnalyticsHtml(
     </thead>
     <tbody>${byCountryRowsHtml}</tbody>
   </table>
+
+  <h2>Data quality notes</h2>
+  <div class="card" style="margin-top: 0;">
+    <div class="label">Bounce flag on <code>planner_step_collapsed</code></div>
+    <p style="margin: 8px 0 0; color: #333;">
+      When a user expands a planner step and collapses it again in under
+      <strong>500ms</strong> (<code>PLANNER_BOUNCE_THRESHOLD_MS</code> in
+      <code>src/lib/analytics.ts</code>), the
+      <code>planner_step_collapsed</code> event is stamped with
+      <code>bounced: true</code>. These are almost always accidental
+      chevron taps or unmount-on-navigate cycles, not real reading
+      sessions, so they skew dwell-time medians toward zero.
+    </p>
+    <p style="margin: 8px 0 0; color: #333;">
+      <strong>When building any dwell-time / time-on-step insight in
+      PostHog or the warehouse, filter
+      <code>bounced = false</code></strong> on
+      <code>planner_step_collapsed</code> before computing
+      <code>msOpen</code> aggregates. The bounced events are kept (not
+      dropped) so raw event counts still match, but they should never
+      feed into median or average dwell time.
+    </p>
+  </div>
 </body>
 </html>`;
 }
