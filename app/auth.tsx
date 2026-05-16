@@ -29,7 +29,7 @@ export default function AuthScreen() {
   const purchaseContext = typeof params.purchaseContext === "string" ? params.purchaseContext : undefined;
   const redirectTo = typeof params.redirectTo === "string" ? params.redirectTo : undefined;
   const entryPoint = typeof params.entryPoint === "string" ? params.entryPoint : undefined;
-  const isAnnualTrialContext = purchaseContext === "annual_trial";
+  const isTrialContext = purchaseContext === "annual_trial" || purchaseContext === "monthly_trial" || purchaseContext === "trial";
   const { login, register } = useAuth();
   const [mode, setMode] = useState<Mode>(params.mode === "login" ? "login" : "register");
   const [email, setEmail] = useState("");
@@ -125,14 +125,14 @@ export default function AuthScreen() {
         <Text style={s.heading}>
           {mode === "login"
             ? "Welcome back"
-            : isAnnualTrialContext
+            : isTrialContext
               ? "Create your account to start your trial"
               : "Create your account"}
         </Text>
         <Text style={s.subtitle}>
           {mode === "login"
             ? "Sign in to access your saved countries and subscription"
-            : isAnnualTrialContext
+            : isTrialContext
               ? "We need an account to apply your 14-day free trial and save your progress."
               : "Sign up to sync your progress across devices"}
         </Text>

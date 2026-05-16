@@ -91,7 +91,7 @@ Two paid subscription tiers. Country Lifetime Unlock and Decision Pass have been
 
 | Tier | Price | Trial | RevenueCat Product ID (iOS) | RevenueCat Product ID (Android) |
 |------|-------|-------|-----------------------------|---------------------------------|
-| Monthly Explorer | $14.99/mo | None | `monthly_subscription_all_access` | `expathub_pro_monthly:monthly` |
+| Monthly Explorer | $14.99/mo | 14 days | `monthly_subscription_all_access` | `expathub_pro_monthly:monthly` |
 | Annual Pathfinder | $89/yr | 14 days | `ExpatHub_pathfinder` | `expathub_pathfinder:pathfinder` |
 
 **RevenueCat entitlement:**
@@ -119,8 +119,6 @@ Two paid subscription tiers. Country Lifetime Unlock and Decision Pass have been
 | Web | Stripe Checkout / Customer Portal | `STRIPE_SECRET_KEY` |
 
 **Restore Purchases:** Waits for backend confirmation before declaring success.
-
-**Known issue:** The paywall UI displays the trial duration as 7 days. The correct value is 14 days (`TRIAL_DURATION_DAYS = 14` in `src/config/subscription.ts`). The paywall copy needs updating.
 
 ---
 

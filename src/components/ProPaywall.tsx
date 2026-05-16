@@ -76,7 +76,7 @@ const FAQ_ITEMS: { question: string; answer: string }[] = [
   },
   {
     question: "Is there a free trial?",
-    answer: "The Annual Pathfinder includes a 14-day free trial. Cancel before day 14 in your App Store, Google Play, or Stripe billing settings and you won't be charged. After the trial, the plan renews at $89/year unless cancelled. The Monthly Explorer does not include a trial — it bills $14.99/month from day one and can be cancelled anytime.",
+    answer: "Both plans include a 14-day free trial. Cancel before day 14 in your App Store, Google Play, or Stripe billing settings and you won't be charged. After the trial, Monthly Explorer renews at $14.99/month and Annual Pathfinder renews at $89/year, unless cancelled.",
   },
   {
     question: "What payment methods are accepted?",
@@ -110,19 +110,16 @@ function parsePrice(price: string): number {
 }
 
 function logFbPurchaseEvent(type: string, opts?: { slug?: string; priceUSD?: number }) {
-  const override = opts?.priceUSD;
   if (type === "annual_subscription" || type === "annual") {
     logFbEvent("StartTrial", 0, { plan: "annual" });
     return;
   }
   if (type === "monthly_subscription" || type === "monthly") {
-    // Only emit a price-bearing event when we have a live price from RC.
-    // We never fall back to a hardcoded constant.
-    if (typeof override === "number" && override > 0) {
-      logFbEvent("Subscribe", override, { plan: "monthly" });
-    } else {
-      logFbEvent("Subscribe", undefined, { plan: "monthly" });
-    }
+    // Both plans now include a 14-day free trial — fire StartTrial (not
+    // Subscribe) so Meta sees the trial conversion, not a paid purchase.
+    // A `Subscribe` event with revenue will fire later from the
+    // RevenueCat/Stripe webhook when the trial converts to a paid charge.
+    logFbEvent("StartTrial", 0, { plan: "monthly" });
     return;
   }
 }
@@ -463,7 +460,7 @@ export function ProPaywall({
     if (!user) {
       console.log("[PURCHASE] Monthly tapped but user not logged in — redirecting to auth");
       await storePendingPurchase("monthly", resolvedCountrySlug);
-      router.push("/auth?mode=register");
+      router.push("/auth?mode=register&purchaseContext=trial");
       return;
     }
     trackEvent("product_selected", { productId: RC_MONTHLY_PRODUCT, price: livePrices.monthly ?? "unknown", type: "monthly_subscription" });
@@ -504,7 +501,7 @@ export function ProPaywall({
     if (!user) {
       console.log("[PURCHASE] Annual tapped but user not logged in — redirecting to auth");
       await storePendingPurchase("annual", resolvedCountrySlug);
-      router.push("/auth?mode=register&purchaseContext=annual_trial");
+      router.push("/auth?mode=register&purchaseContext=trial");
       return;
     }
     trackEvent("product_selected", { productId: RC_ANNUAL_PRODUCT, price: livePrices.annual ?? "unknown", type: "annual_subscription" });
@@ -672,12 +669,8 @@ export function ProPaywall({
   // users who scroll without committing. On the Plans tab, the inline plan CTAs
   // already drive action so we hide the sticky bar to avoid duplication.
   const showBottomCta = !hasFullAccess && activeTab !== "plans";
-  const stickyCtaLabel = Platform.OS === "web"
-    ? `Subscribe — ${monthlyPriceLabel}/mo`
-    : `Start ${TRIAL_DURATION_DAYS}-day free trial`;
-  const stickyCtaFinePrint = Platform.OS === "web"
-    ? "Cancel anytime from your subscription settings."
-    : `Cancel anytime before day ${TRIAL_DURATION_DAYS} — you won't be charged.`;
+  const stickyCtaLabel = `Start ${TRIAL_DURATION_DAYS}-day free trial`;
+  const stickyCtaFinePrint = `Cancel anytime before day ${TRIAL_DURATION_DAYS} — you won't be charged.`;
 
   return (
     <View testID="pro-paywall" style={{ flex: 1, backgroundColor: tokens.color.bg }}>
@@ -841,7 +834,7 @@ export function ProPaywall({
                       <Ionicons name="calendar-outline" size={18} color={tokens.color.primary} />
                       <Text style={s.monthlyTitle}>Monthly Explorer</Text>
                     </View>
-                    <Text style={s.monthlyMeta}>{monthlyPriceLabel}/month · auto-renewing · cancel anytime</Text>
+                    <Text style={s.monthlyMeta}>Free for {TRIAL_DURATION_DAYS} days, then {monthlyPriceLabel}/month · cancel anytime</Text>
                     <Pressable
                       onPress={handleMonthlySubscribe}
                       disabled={busy}
@@ -850,11 +843,11 @@ export function ProPaywall({
                       {busy ? (
                         <ActivityIndicator size="small" color={tokens.color.text} />
                       ) : (
-                        <Text style={s.secondaryCtaText}>Subscribe — {monthlyPriceLabel}/mo</Text>
+                        <Text style={s.secondaryCtaText}>Start {TRIAL_DURATION_DAYS}-day free trial</Text>
                       )}
                     </Pressable>
                     <Text style={s.trialFinePrint}>
-                      No free trial on monthly. Cancel anytime from your subscription settings.
+                      Cancel anytime before day {TRIAL_DURATION_DAYS} — you won't be charged.
                     </Text>
                   </View>
                 </View>
@@ -957,8 +950,8 @@ export function ProPaywall({
           {Platform.OS === "web"
             ? "Payment managed via Stripe. Cancel anytime from the customer portal."
             : Platform.OS === "ios"
-              ? "The Annual Pathfinder includes a 14-day free trial. Cancel before the trial ends in your App Store subscription settings and you won't be charged; otherwise your Apple ID will be charged $89/year on day 15. The Monthly Explorer has no trial and bills $14.99/month from day one. Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period."
-              : "The Annual Pathfinder includes a 14-day free trial. Cancel before the trial ends in Google Play subscription settings and you won't be charged; otherwise your account will be charged $89/year on day 15. The Monthly Explorer has no trial and bills $14.99/month from day one. Subscriptions automatically renew until cancelled."}
+              ? "Both plans include a 14-day free trial. Cancel before the trial ends in your App Store subscription settings and you won't be charged; otherwise your Apple ID will be charged $14.99/month (Monthly Explorer) or $89/year (Annual Pathfinder) on day 15. Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period."
+              : "Both plans include a 14-day free trial. Cancel before the trial ends in Google Play subscription settings and you won't be charged; otherwise your account will be charged $14.99/month (Monthly Explorer) or $89/year (Annual Pathfinder) on day 15. Subscriptions automatically renew until cancelled."}
         </Text>
 
         <View style={s.legalFooter}>
