@@ -153,31 +153,12 @@ describe("ResultScreen — funnel analytics", () => {
     expect(completeOnboarding).toHaveBeenCalledWith(expect.anything(), true, expect.anything());
   });
 
-  it("Create Free Account CTA fires quiz_completed with action='create_account' and routes to register", async () => {
-    let renderer: any;
-    act(() => {
-      renderer = TestRenderer.create(<ResultScreen />);
-    });
-    const btn = getButton(renderer!.root, "Create Free Account to Save Results");
-    expect(btn).toBeDefined();
-    await act(async () => {
-      await btn.props.onPress();
-    });
-    const completed = trackEvent.mock.calls.filter(
-      (c) => c[0] === "quiz_completed",
-    );
-    expect(completed).toHaveLength(1);
-    expect(completed[0][1]).toMatchObject({ action: "create_account" });
-    expect(__getRouter().replace).toHaveBeenCalledWith("/auth?mode=register");
-    expect(completeOnboarding).toHaveBeenCalledWith(expect.anything(), false, expect.anything());
-  });
-
   it("does NOT fire readiness_lead_saved when the email field is empty", async () => {
     let renderer: any;
     act(() => {
       renderer = TestRenderer.create(<ResultScreen />);
     });
-    const btn = getButton(renderer!.root, "Just email me the results");
+    const btn = getButton(renderer!.root, "Email me the results");
     expect(btn).toBeDefined();
     await act(async () => {
       await btn.props.onPress();
@@ -202,7 +183,7 @@ describe("ResultScreen — funnel analytics", () => {
     act(() => {
       input.props.onChangeText("ada@lovelace.io");
     });
-    const btn = getButton(renderer!.root, "Just email me the results");
+    const btn = getButton(renderer!.root, "Email me the results");
     await act(async () => {
       await btn.props.onPress();
     });
@@ -224,7 +205,7 @@ describe("ResultScreen — funnel analytics", () => {
     act(() => {
       input.props.onChangeText("ada@lovelace.io");
     });
-    const btn = getButton(renderer!.root, "Just email me the results");
+    const btn = getButton(renderer!.root, "Email me the results");
     await act(async () => {
       await btn.props.onPress();
     });
@@ -243,7 +224,7 @@ describe("ResultScreen — funnel analytics", () => {
     act(() => {
       input.props.onChangeText("ada@lovelace.io");
     });
-    const btn = getButton(renderer!.root, "Just email me the results");
+    const btn = getButton(renderer!.root, "Email me the results");
     await act(async () => {
       await btn.props.onPress();
     });

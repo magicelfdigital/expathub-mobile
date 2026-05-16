@@ -292,20 +292,17 @@ export default function ResultScreen() {
           autoCorrect={false}
         />
         <Pressable
-          onPress={handleCreateAccount}
+          onPress={handleEmailResults}
+          disabled={emailSending}
           style={({ pressed }) => [styles.goldBtn, pressed && { opacity: 0.9 }]}
         >
-          <Text style={styles.goldBtnText}>Create Free Account to Save Results</Text>
+          {emailSending ? (
+            <ActivityIndicator size="small" color={tokens.color.text} />
+          ) : (
+            <Text style={styles.goldBtnText}>Email me the results</Text>
+          )}
         </Pressable>
         <View style={styles.secondaryLinks}>
-          <Pressable onPress={handleEmailResults} disabled={emailSending} hitSlop={8}>
-            {emailSending ? (
-              <ActivityIndicator size="small" color={tokens.color.subtext} />
-            ) : (
-              <Text style={styles.secondaryLink}>Just email me the results</Text>
-            )}
-          </Pressable>
-          <Text style={styles.linkDot}>|</Text>
           <Pressable onPress={() => setSaveCardDismissed(true)} hitSlop={8}>
             <Text style={styles.secondaryLink}>Skip for now</Text>
           </Pressable>
