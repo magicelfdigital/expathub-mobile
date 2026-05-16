@@ -71,3 +71,9 @@ id = "2OtiI6UToutFUo9S2zbbt"
 uri = "file://app-store-listing.md"
 type = "text"
 title = "ExpatHub App Store Listing (Corrected Pricing)"
+
+[[outputs]]
+id = "OHdYK8IauPs1YMj6nF1L2"
+uri = "file://.local/test-scenarios/expathub-user-test-scenarios.md"
+type = "text"
+title = "ExpatHub User Test Scenarios"
