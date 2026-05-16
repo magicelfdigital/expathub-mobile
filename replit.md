@@ -296,4 +296,6 @@ When writing or modifying code, always observe these constraints:
 - **CI:** Meta Pixel event verification checklist with CI check.
 - **CI gates (GitHub Actions, `.github/workflows/`):**
   - `jest.yml` — runs `npx jest --ci` on every push and PR. Covers `src/billing/__tests__/conversionLifts.test.ts` and the rest of the Jest suite.
-  - `playwright.yml` — builds the web SPA, boots the Express server on port 5000, waits for `/` to respond, then runs the v1.4 conversion-lift Playwright specs (`tests/e2e/locked-section.spec.ts`, `tests/e2e/cancellation-exit-offer.spec.ts`) on every push and PR. Failures upload `server.log` and `playwright-report` as artifacts. Other e2e specs that target the Expo web build (port 8081) are intentionally not part of this gate.
+  - `playwright.yml` — runs two jobs on every push and PR:
+    - `conversion-lifts` — builds the web SPA, boots the Express server on port 5000, waits for `/` to respond, then runs the v1.4 conversion-lift Playwright specs (`tests/e2e/locked-section.spec.ts`, `tests/e2e/cancellation-exit-offer.spec.ts`). Failures upload `server.log` and `playwright-report` as artifacts.
+    - `worksheet-signup` — boots the Expo web dev server on port 8081 (`npx expo start --web --port 8081`), waits for the bundle to be ready, then runs `tests/e2e/worksheet-signup-submit.spec.ts` with `PLAYWRIGHT_EXPO_BASE_URL=http://localhost:8081`. Failures upload `expo.log` and `playwright-report-worksheet` as artifacts.

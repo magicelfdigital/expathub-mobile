@@ -85,3 +85,81 @@ jobs:
             playwright-report
             test-results
           if-no-files-found: ignore
+
+  worksheet-signup:
+    name: Worksheet anonymous → signup → submit e2e (Expo web)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      NODE_ENV: development
+      CI: "true"
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_PUBLIC_DOMAIN: localhost:8081
+      PLAYWRIGHT_EXPO_BASE_URL: http://localhost:8081
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Start Expo web dev server on port 8081
+        run: |
+          npx expo start --web --port 8081 > expo.log 2>&1 &
+          echo $! > expo.pid
+
+      - name: Wait for Expo web bundle to be ready
+        run: |
+          for i in $(seq 1 180); do
+            if curl -fsS http://localhost:8081/ > /dev/null 2>&1; then
+              echo "Expo web server is up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Expo web server failed to start within 180s" >&2
+          echo "--- expo.log ---" >&2
+          cat expo.log >&2 || true
+          exit 1
+
+      - name: Run worksheet signup Playwright spec
+        run: |
+          npx playwright test \
+            tests/e2e/worksheet-signup-submit.spec.ts \
+            --reporter=list
+
+      - name: Stop Expo web dev server
+        if: always()
+        run: |
+          if [ -f expo.pid ]; then
+            kill "$(cat expo.pid)" 2>/dev/null || true
+          fi
+
+      - name: Upload Expo log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: expo-log
+          path: expo.log
+          if-no-files-found: ignore
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-worksheet
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
