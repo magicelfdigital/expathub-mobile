@@ -102,6 +102,21 @@ export async function ensureQuizSaveEventsTable(pool: pg.Pool): Promise<void> {
       await pool.query(
         `ALTER TABLE quiz_save_events ADD COLUMN IF NOT EXISTS placement VARCHAR(32)`,
       );
+      // Lazy migration for the PostHog backfill (task #70): we tag rows
+      // imported from PostHog with their upstream event uuid so re-running
+      // the import is idempotent. Live writes from recordQuizSaveEvent
+      // leave this NULL, so we scope the unique constraint with a partial
+      // index — that way we never collide with the many in-app events
+      // that legitimately have no upstream id.
+      await pool.query(
+        `ALTER TABLE quiz_save_events
+           ADD COLUMN IF NOT EXISTS posthog_event_id VARCHAR(64)`,
+      );
+      await pool.query(
+        `CREATE UNIQUE INDEX IF NOT EXISTS quiz_save_events_posthog_uid_idx
+           ON quiz_save_events (posthog_event_id)
+         WHERE posthog_event_id IS NOT NULL`,
+      );
     })().catch((err) => {
       // Reset so a transient failure doesn't permanently disable persistence.
       ensureTablePromise = null;
@@ -868,8 +883,24 @@ const PLACEMENT_LABELS: Record<Placement, string> = {
   unknown: "Unknown / pre-migration",
 };
 
-export function renderQuizSaveAnalyticsHtml(data: QuizSaveAnalytics): string {
+export interface QuizSaveBackfillBanner {
+  fetched: number;
+  inserted: number;
+  skipped: number;
+}
+
+export function renderQuizSaveAnalyticsHtml(
+  data: QuizSaveAnalytics,
+  banner: QuizSaveBackfillBanner | null = null,
+): string {
   const { totals, bySurface, byPlacement, emailGate, windowDays, weekly } = data;
+  const bannerHtml = banner
+    ? `<div style="background:#e7f5ec;border:1px solid #b8dec5;color:#1b5e3a;padding:10px 14px;border-radius:8px;margin:12px 0;">
+         PostHog backfill complete — fetched <strong>${fmtInt(banner.fetched)}</strong>,
+         inserted <strong>${fmtInt(banner.inserted)}</strong>,
+         already-present (skipped) <strong>${fmtInt(banner.skipped)}</strong>.
+       </div>`
+    : "";
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -897,6 +928,29 @@ export function renderQuizSaveAnalyticsHtml(data: QuizSaveAnalytics): string {
 <body>
   <div class="nav"><a href="/admin">← Admin tools</a></div>
   <h1>Quiz save-prompt analytics</h1>
+  ${bannerHtml}
+  <details style="margin:12px 0 16px;background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:10px 14px;">
+    <summary style="cursor:pointer;font-weight:600;">Backfill from PostHog</summary>
+    <p style="color:#555;font-size:13px;margin-top:8px">
+      Imports historical <code>quiz_save_shown</code>,
+      <code>quiz_save_submitted</code>, and <code>quiz_save_dismissed</code>
+      events from PostHog into the local <code>quiz_save_events</code> table,
+      preserving the original timestamps and surface/placement attribution.
+      Idempotent — events already imported (matched by upstream uuid) are
+      skipped, not duplicated. Leave "since" blank to pull the full history.
+      Requires <code>POSTHOG_PROJECT_ID</code> and
+      <code>POSTHOG_PERSONAL_API_KEY</code> to be set on the server.
+    </p>
+    <form method="post" action="/api/admin/quiz-save-analytics/backfill" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <label style="font-size:12px;color:#555;">
+        Since (optional, ISO date):
+        <input type="text" name="since" placeholder="2026-01-01" style="padding:6px 8px;border:1px solid #d0d0d0;border-radius:6px;font:inherit;" />
+      </label>
+      <button type="submit" style="padding:6px 14px;background:#0a66c2;color:#fff;border:none;border-radius:6px;cursor:pointer;font:inherit;">
+        Run backfill
+      </button>
+    </form>
+  </details>
   <p>Last <strong>${windowDays}</strong> days. Recovery rate = submitted ÷ shown.</p>
 
   <div class="filter">
@@ -1067,6 +1121,231 @@ function readWindowDays(req: Request): number {
   return Math.min(365, n);
 }
 
+// ── PostHog backfill (task #70) ──────────────────────────────────────────
+//
+// The `quiz_save_events` table only sees events that arrive after it was
+// first created. Anything fired before that — or anything that failed to
+// persist locally — lives only upstream in PostHog (the analytics store
+// the `/api/analytics` proxy forwards to). This backfill walks the PostHog
+// HogQL API for all three save-prompt events and inserts them into the
+// local table, preserving the original `timestamp` as `created_at` and
+// the original surface / placement attribution.
+//
+// Idempotency is enforced via the `posthog_event_id` column + partial
+// unique index added by ensureQuizSaveEventsTable — duplicate runs hit
+// ON CONFLICT DO NOTHING and report `skipped` in the summary.
+
+export interface QuizSavePostHogBackfillOptions {
+  // Optional ISO date string — only events with timestamp >= this point
+  // are pulled. Defaults to no lower bound (full history).
+  since?: string | null;
+  // Per-page row count. PostHog's HogQL endpoint has a hard cap around
+  // 10k, so we keep this conservative and paginate via OFFSET.
+  pageSize?: number;
+  // Hard ceiling on total rows fetched so a misconfigured backfill can't
+  // walk a multi-million-event project until the request times out.
+  maxRows?: number;
+  // Injectable for tests.
+  fetchImpl?: typeof fetch;
+  // Injectable for tests / overrides. Falls back to env (see below).
+  posthogHost?: string;
+  posthogProjectId?: string;
+  posthogApiKey?: string;
+}
+
+export interface QuizSavePostHogBackfillSummary {
+  fetched: number;
+  inserted: number;
+  skipped: number;
+  pages: number;
+  // ISO timestamps of the first and last event we touched in this run —
+  // useful for confirming the historical window actually landed.
+  firstEventAt: string | null;
+  lastEventAt: string | null;
+}
+
+export class PostHogBackfillConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PostHogBackfillConfigError";
+  }
+}
+
+// HogQL query: project the seven fields we need, ordered by timestamp
+// (then uuid as a stable tiebreaker) so OFFSET pagination is deterministic
+// even when many events share the same millisecond. Surface and placement
+// both live under `properties.*` in PostHog (the mobile client stamps
+// `platform` and `surface`; the web client stamps `surface`).
+function buildHogQLQuery(since: string | null, limit: number, offset: number): string {
+  const sinceClause = since
+    ? ` AND timestamp >= toDateTime('${since.replace(/'/g, "")}')`
+    : "";
+  return (
+    `SELECT uuid, event, timestamp, ` +
+    `properties.surface AS surface, ` +
+    `properties.platform AS platform, ` +
+    `properties.placement AS placement, ` +
+    `distinct_id ` +
+    `FROM events ` +
+    `WHERE event IN ('quiz_save_shown', 'quiz_save_submitted', 'quiz_save_dismissed')${sinceClause} ` +
+    `ORDER BY timestamp ASC, uuid ASC ` +
+    `LIMIT ${limit} OFFSET ${offset}`
+  );
+}
+
+function classifySurfaceFromRow(
+  surfaceRaw: unknown,
+  platformRaw: unknown,
+): Surface {
+  // Mirror classifySurface(): explicit "web" wins on either field, anything
+  // else collapses to "mobile".
+  if (typeof surfaceRaw === "string" && surfaceRaw.toLowerCase() === "web") {
+    return "web";
+  }
+  if (typeof platformRaw === "string" && platformRaw.toLowerCase() === "web") {
+    return "web";
+  }
+  return "mobile";
+}
+
+function classifyPlacementFromRow(placementRaw: unknown): Placement {
+  if (typeof placementRaw !== "string") return "unknown";
+  const lower = placementRaw.toLowerCase();
+  if (lower === "mid_quiz" || lower === "result_screen") return lower;
+  return "unknown";
+}
+
+export async function backfillQuizSaveEventsFromPostHog(
+  pool: pg.Pool,
+  options: QuizSavePostHogBackfillOptions = {},
+): Promise<QuizSavePostHogBackfillSummary> {
+  const host =
+    options.posthogHost ?? process.env.POSTHOG_HOST ?? "https://us.posthog.com";
+  const projectId =
+    options.posthogProjectId ?? process.env.POSTHOG_PROJECT_ID ?? "";
+  const apiKey =
+    options.posthogApiKey ?? process.env.POSTHOG_PERSONAL_API_KEY ?? "";
+  if (!projectId || !apiKey) {
+    throw new PostHogBackfillConfigError(
+      "PostHog backfill requires POSTHOG_PROJECT_ID and POSTHOG_PERSONAL_API_KEY",
+    );
+  }
+
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const pageSize = Math.max(1, Math.min(10000, options.pageSize ?? 1000));
+  const maxRows = Math.max(pageSize, options.maxRows ?? 200_000);
+  const since = options.since ?? null;
+
+  await ensureQuizSaveEventsTable(pool);
+
+  const endpoint = `${host.replace(/\/$/, "")}/api/projects/${encodeURIComponent(
+    projectId,
+  )}/query/`;
+
+  const summary: QuizSavePostHogBackfillSummary = {
+    fetched: 0,
+    inserted: 0,
+    skipped: 0,
+    pages: 0,
+    firstEventAt: null,
+    lastEventAt: null,
+  };
+
+  let offset = 0;
+  while (summary.fetched < maxRows) {
+    const limit = Math.min(pageSize, maxRows - summary.fetched);
+    const body = {
+      query: { kind: "HogQLQuery", query: buildHogQLQuery(since, limit, offset) },
+    };
+    const resp = await fetchImpl(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      throw new Error(
+        `PostHog query failed: ${resp.status} ${resp.statusText} ${text.slice(0, 200)}`,
+      );
+    }
+    const payload = (await resp.json()) as {
+      results?: unknown[][];
+    };
+    const rows = Array.isArray(payload.results) ? payload.results : [];
+    summary.pages += 1;
+    if (rows.length === 0) break;
+
+    for (const row of rows) {
+      const [
+        uuidRaw,
+        eventRaw,
+        timestampRaw,
+        surfaceRaw,
+        platformRaw,
+        placementRaw,
+        distinctIdRaw,
+      ] = row;
+      if (typeof uuidRaw !== "string" || uuidRaw.length === 0) continue;
+      if (!isQuizSaveEventName(eventRaw)) continue;
+      // PostHog returns timestamps as ISO strings; normalize to Date so pg
+      // casts on insert and preserves the original event time.
+      const tsDate =
+        typeof timestampRaw === "string" || typeof timestampRaw === "number"
+          ? new Date(timestampRaw)
+          : timestampRaw instanceof Date
+            ? timestampRaw
+            : null;
+      if (!tsDate || Number.isNaN(tsDate.getTime())) continue;
+      const surface = classifySurfaceFromRow(surfaceRaw, platformRaw);
+      const placement = classifyPlacementFromRow(placementRaw);
+      const distinctId =
+        typeof distinctIdRaw === "string" && distinctIdRaw.length > 0
+          ? distinctIdRaw.slice(0, 255)
+          : null;
+      const uuid = uuidRaw.slice(0, 64);
+
+      const ins = await pool.query<{ id: number }>(
+        `INSERT INTO quiz_save_events
+           (event, surface, distinct_id, placement, created_at, posthog_event_id)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (posthog_event_id)
+           WHERE posthog_event_id IS NOT NULL
+           DO NOTHING
+         RETURNING id`,
+        [
+          eventRaw,
+          surface,
+          distinctId,
+          placement === "unknown" ? null : placement,
+          tsDate,
+          uuid,
+        ],
+      );
+      summary.fetched += 1;
+      if (ins.rowCount && ins.rowCount > 0) {
+        summary.inserted += 1;
+      } else {
+        summary.skipped += 1;
+      }
+      const iso = tsDate.toISOString();
+      if (!summary.firstEventAt || iso < summary.firstEventAt) {
+        summary.firstEventAt = iso;
+      }
+      if (!summary.lastEventAt || iso > summary.lastEventAt) {
+        summary.lastEventAt = iso;
+      }
+    }
+
+    if (rows.length < limit) break;
+    offset += rows.length;
+  }
+
+  return summary;
+}
+
 export function registerQuizSaveAnalyticsRoutes(
   app: Express,
   deps: {
@@ -1128,6 +1407,64 @@ export function registerQuizSaveAnalyticsRoutes(
     }
   });
 
+  app.post("/api/admin/quiz-save-analytics/backfill", async (req, res) => {
+    if (!deps.requireAdminBasicAuth(req, res)) return;
+    const pool = deps.getPool();
+    if (!pool) {
+      res.status(503).json({ error: "Database not configured" });
+      return;
+    }
+    // `since` may arrive on the query string (from the HTML form on the
+    // dashboard) or in a JSON body (from curl / scripts). Both shapes are
+    // ISO-ish date strings; we pass through verbatim and let HogQL parse.
+    const sinceRaw =
+      (typeof req.query.since === "string" && req.query.since) ||
+      (req.body && typeof (req.body as any).since === "string"
+        ? (req.body as any).since
+        : "");
+    const since = sinceRaw && sinceRaw.trim().length > 0 ? sinceRaw.trim() : null;
+    // Validate the `since` value before forwarding it to HogQL. The query is
+    // string-interpolated (HogQL doesn't bind parameters the way Postgres
+    // does), so we keep operator typos from producing a confusing upstream
+    // 400 — and harden the surface against accidental injection — by
+    // requiring an ISO-8601 prefix (date or full timestamp).
+    if (since !== null && !/^\d{4}-\d{2}-\d{2}(T[\d:.Z+-]+)?$/.test(since)) {
+      res.status(400).json({
+        error: `Invalid 'since' value: expected YYYY-MM-DD or ISO-8601 timestamp, got ${since}`,
+      });
+      await pool.end();
+      return;
+    }
+    try {
+      const summary = await backfillQuizSaveEventsFromPostHog(pool, { since });
+      // HTML form submissions expect to land back on the dashboard with a
+      // human-readable summary; programmatic callers (Accept: application/json)
+      // get the raw object.
+      const wantsHtml =
+        typeof req.headers.accept === "string" &&
+        req.headers.accept.includes("text/html");
+      if (wantsHtml) {
+        const params = new URLSearchParams({
+          backfill: "ok",
+          fetched: String(summary.fetched),
+          inserted: String(summary.inserted),
+          skipped: String(summary.skipped),
+        });
+        res.redirect(`/admin/quiz-save-analytics?${params.toString()}`);
+        return;
+      }
+      res.json(summary);
+    } catch (err: any) {
+      console.error("Quiz-save backfill error:", err?.message);
+      const status = err instanceof PostHogBackfillConfigError ? 400 : 500;
+      res.status(status).json({
+        error: err?.message ?? "Failed to backfill quiz-save events",
+      });
+    } finally {
+      await pool.end();
+    }
+  });
+
   app.get("/admin/quiz-save-analytics", async (req, res) => {
     if (!deps.requireAdminBasicAuth(req, res)) return;
     const pool = deps.getPool();
@@ -1144,7 +1481,19 @@ export function registerQuizSaveAnalyticsRoutes(
       const data = await computeQuizSaveAnalytics(pool, {
         windowDays: readWindowDays(req),
       });
-      res.type("text/html").send(renderQuizSaveAnalyticsHtml(data));
+      // When the backfill POST handler redirects back here it appends a
+      // `backfill=ok&fetched=…&inserted=…&skipped=…` query string. Render
+      // those numbers in a success banner so the operator sees the result
+      // of the run without having to flip over to the JSON endpoint.
+      const banner =
+        req.query.backfill === "ok"
+          ? {
+              fetched: Number(req.query.fetched) || 0,
+              inserted: Number(req.query.inserted) || 0,
+              skipped: Number(req.query.skipped) || 0,
+            }
+          : null;
+      res.type("text/html").send(renderQuizSaveAnalyticsHtml(data, banner));
     } catch (err: any) {
       console.error("Quiz save analytics HTML error:", err?.message);
       res
