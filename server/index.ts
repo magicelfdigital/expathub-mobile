@@ -7,6 +7,7 @@ import pg from "pg";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { spawnSync } from "child_process";
 import { startAuthPromptBackfillSchedule } from "./authPromptBackfillScheduler";
+import { startQuizSaveBackfillSchedule } from "./quizSaveBackfillScheduler";
 
 const app = express();
 const log = console.log;
@@ -275,6 +276,31 @@ function setupErrorHandler(app: express.Application) {
         return new pg.Pool({ connectionString: dbUrl });
       },
     });
+    // Same cadence + same shape for the quiz-save prompt backfill (task
+    // #116). Persists every run's outcome to `quiz_save_backfill_runs` so
+    // the admin dashboard can show "Last backfill: <time> · inserted N /
+    // skipped N" without depending on in-process memory across deploys.
+    // Gated on PostHog credentials being present so we don't spam the log
+    // every 24h with a config error when the env vars are missing (the
+    // scheduler itself defends against this at run-time, but skipping the
+    // bootstrap entirely keeps the workflow log clean in dev / preview
+    // environments where PostHog isn't wired up).
+    if (
+      process.env.POSTHOG_PROJECT_ID &&
+      process.env.POSTHOG_PERSONAL_API_KEY
+    ) {
+      startQuizSaveBackfillSchedule({
+        getPool: () => {
+          const dbUrl = process.env.DATABASE_URL;
+          if (!dbUrl) return null;
+          return new pg.Pool({ connectionString: dbUrl });
+        },
+      });
+    } else {
+      log(
+        "[quiz-save-backfill] scheduler not started — POSTHOG_PROJECT_ID / POSTHOG_PERSONAL_API_KEY not set",
+      );
+    }
   }
 
   const port = parseInt(process.env.PORT || "5000", 10);

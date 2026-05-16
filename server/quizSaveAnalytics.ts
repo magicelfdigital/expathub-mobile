@@ -889,9 +889,56 @@ export interface QuizSaveBackfillBanner {
   skipped: number;
 }
 
+// Summary of the most recent scheduled (or manual) PostHog backfill run,
+// rendered into the dashboard so an operator can tell at a glance how
+// stale the historical numbers are. Sourced from the
+// `quiz_save_backfill_runs` table maintained by
+// `server/quizSaveBackfillScheduler.ts`.
+export interface QuizSaveLastBackfillRun {
+  ranAt: string;
+  inserted: number;
+  skipped: number;
+  fetched: number;
+  error: string | null;
+}
+
+function formatAgo(iso: string, now: Date = new Date()): string {
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return iso;
+  const deltaSec = Math.max(0, Math.round((now.getTime() - then) / 1000));
+  if (deltaSec < 60) return `${deltaSec}s ago`;
+  const deltaMin = Math.round(deltaSec / 60);
+  if (deltaMin < 60) return `${deltaMin}m ago`;
+  const deltaHr = Math.round(deltaMin / 60);
+  if (deltaHr < 48) return `${deltaHr}h ago`;
+  const deltaDay = Math.round(deltaHr / 24);
+  return `${deltaDay}d ago`;
+}
+
+export function renderLastBackfillSummary(
+  last: QuizSaveLastBackfillRun | null,
+  now: Date = new Date(),
+): string {
+  if (!last) {
+    return `<p style="margin:4px 0 0;color:#777;font-size:12px">Last backfill: <em>never run yet</em>.</p>`;
+  }
+  const when = `${escapeHtml(formatAgo(last.ranAt, now))} (${escapeHtml(last.ranAt)})`;
+  if (last.error) {
+    return `<p style="margin:4px 0 0;color:#a35a00;font-size:12px">Last backfill: ${when} — <strong>failed</strong>: ${escapeHtml(
+      last.error,
+    )}</p>`;
+  }
+  return `<p style="margin:4px 0 0;color:#555;font-size:12px">Last backfill: ${when} · inserted <strong>${fmtInt(
+    last.inserted,
+  )}</strong> / skipped <strong>${fmtInt(last.skipped)}</strong> (fetched ${fmtInt(
+    last.fetched,
+  )})</p>`;
+}
+
 export function renderQuizSaveAnalyticsHtml(
   data: QuizSaveAnalytics,
   banner: QuizSaveBackfillBanner | null = null,
+  lastBackfill: QuizSaveLastBackfillRun | null = null,
 ): string {
   const { totals, bySurface, byPlacement, emailGate, windowDays, weekly } = data;
   const bannerHtml = banner
@@ -950,6 +997,7 @@ export function renderQuizSaveAnalyticsHtml(
         Run backfill
       </button>
     </form>
+    ${renderLastBackfillSummary(lastBackfill)}
   </details>
   <p>Last <strong>${windowDays}</strong> days. Recovery rate = submitted ÷ shown.</p>
 
@@ -1507,8 +1555,31 @@ export function registerQuizSaveAnalyticsRoutes(
       await pool.end();
       return;
     }
+    const manualStarted = Date.now();
+    const manualRanAt = new Date(manualStarted).toISOString();
     try {
       const summary = await backfillQuizSaveEventsFromPostHog(pool, { since });
+      // Persist this manual run so the dashboard's "Last backfill: …"
+      // reflects operator-triggered pushes as well as the scheduled ones.
+      // Lazy import keeps the scheduler module out of the route's hot
+      // path and avoids a circular reference at load time.
+      try {
+        const { recordQuizSaveBackfillRun } = await import(
+          "./quizSaveBackfillScheduler"
+        );
+        await recordQuizSaveBackfillRun(pool, {
+          ranAt: manualRanAt,
+          durationMs: Date.now() - manualStarted,
+          summary,
+          error: null,
+          since,
+        });
+      } catch (logErr: any) {
+        console.error(
+          "Quiz-save backfill: failed to persist manual run record:",
+          logErr?.message ?? logErr,
+        );
+      }
       // HTML form submissions expect to land back on the dashboard with a
       // human-readable summary; programmatic callers (Accept: application/json)
       // get the raw object.
@@ -1528,6 +1599,31 @@ export function registerQuizSaveAnalyticsRoutes(
       res.json(summary);
     } catch (err: any) {
       console.error("Quiz-save backfill error:", err?.message);
+      // Persist failed manual attempts too so the dashboard's "Last
+      // backfill" row is a faithful record of every attempt, not just
+      // successes. Best-effort: a logging failure here must not mask the
+      // original error response.
+      try {
+        const { recordQuizSaveBackfillRun } = await import(
+          "./quizSaveBackfillScheduler"
+        );
+        const message =
+          err instanceof PostHogBackfillConfigError
+            ? `config error: ${err.message}`
+            : err?.message ?? String(err);
+        await recordQuizSaveBackfillRun(pool, {
+          ranAt: manualRanAt,
+          durationMs: Date.now() - manualStarted,
+          summary: null,
+          error: message,
+          since,
+        });
+      } catch (logErr: any) {
+        console.error(
+          "Quiz-save backfill: failed to persist manual failure record:",
+          logErr?.message ?? logErr,
+        );
+      }
       const status = err instanceof PostHogBackfillConfigError ? 400 : 500;
       res.status(status).json({
         error: err?.message ?? "Failed to backfill quiz-save events",
@@ -1565,7 +1661,36 @@ export function registerQuizSaveAnalyticsRoutes(
               skipped: Number(req.query.skipped) || 0,
             }
           : null;
-      res.type("text/html").send(renderQuizSaveAnalyticsHtml(data, banner));
+      // Read the most-recent persisted run so the dashboard can show
+      // "Last backfill: <time> · inserted N / skipped N" next to the
+      // manual form, independent of whether the banner above is present.
+      // Lazy-imported to avoid a circular reference between this module
+      // and the scheduler (which imports from here).
+      let lastBackfill: QuizSaveLastBackfillRun | null = null;
+      try {
+        const { getLatestQuizSaveBackfillRun } = await import(
+          "./quizSaveBackfillScheduler"
+        );
+        const latest = await getLatestQuizSaveBackfillRun(pool);
+        if (latest) {
+          lastBackfill = {
+            ranAt: latest.ranAt,
+            inserted: latest.inserted,
+            skipped: latest.skipped,
+            fetched: latest.fetched,
+            error: latest.error,
+          };
+        }
+      } catch (err: any) {
+        // Surface the failure in logs but render the rest of the dashboard
+        // — a missing last-run row is informational, not fatal.
+        console.warn(
+          `[quiz-save-analytics] could not read last backfill run: ${err?.message ?? err}`,
+        );
+      }
+      res
+        .type("text/html")
+        .send(renderQuizSaveAnalyticsHtml(data, banner, lastBackfill));
     } catch (err: any) {
       console.error("Quiz save analytics HTML error:", err?.message);
       res
