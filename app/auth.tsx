@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -25,9 +25,10 @@ type Mode = "login" | "register";
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ mode?: string; purchaseContext?: string; redirectTo?: string }>();
+  const params = useLocalSearchParams<{ mode?: string; purchaseContext?: string; redirectTo?: string; entryPoint?: string }>();
   const purchaseContext = typeof params.purchaseContext === "string" ? params.purchaseContext : undefined;
   const redirectTo = typeof params.redirectTo === "string" ? params.redirectTo : undefined;
+  const entryPoint = typeof params.entryPoint === "string" ? params.entryPoint : undefined;
   const isAnnualTrialContext = purchaseContext === "annual_trial";
   const { login, register } = useAuth();
   const [mode, setMode] = useState<Mode>(params.mode === "login" ? "login" : "register");
@@ -37,6 +38,13 @@ export default function AuthScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+
+  const promptShownRef = useRef(false);
+  useEffect(() => {
+    if (!entryPoint || promptShownRef.current) return;
+    promptShownRef.current = true;
+    trackEvent("auth_prompt_shown", { entry_point: entryPoint, platform: Platform.OS });
+  }, [entryPoint]);
 
   const { width: screenWidth } = useWindowDimensions();
   const isLargeScreen = screenWidth >= 768;
@@ -58,6 +66,13 @@ export default function AuthScreen() {
         trackEvent("account_created", { platform: Platform.OS });
       } else {
         await login(email.trim().toLowerCase(), password);
+      }
+      if (entryPoint) {
+        trackEvent("auth_prompt_converted", {
+          entry_point: entryPoint,
+          mode,
+          platform: Platform.OS,
+        });
       }
       console.log("[AUTH] Auth success, dismissing modal");
       // If a redirectTo was provided (e.g. an anonymous user tapped a

@@ -171,7 +171,9 @@ type AnalyticsEvent =
   | "result_pill_opened"
   | "result_blocker_card_tapped"
   | "result_blocker_worksheet_tapped"
-  | "result_top_match_tapped";
+  | "result_top_match_tapped"
+  | "auth_prompt_shown"
+  | "auth_prompt_converted";
 
 type EventProperties = Record<string, string | number | boolean | undefined>;
 
