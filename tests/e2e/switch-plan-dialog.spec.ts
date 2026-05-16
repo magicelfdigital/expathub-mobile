@@ -76,6 +76,104 @@ const PROMO_CODE = "EXPATHUB-REVIEW-2026";
 const PORTUGAL_PATHWAY_KEY = "d7";
 const SPAIN_PATHWAY_KEY = "nlv";
 
+// Shared setup helpers so the planner-surface test (Task #129) and the
+// account-surface test (Task #137) stay identically configured.
+async function failOnNativeDialog(page: import("playwright/test").Page) {
+  // If the dialog regresses to `window.confirm`, this listener will
+  // auto-accept it and the post-confirm assertion would still pass —
+  // which would silently mask the regression we're guarding against.
+  // Instead, fail loudly if any native dialog appears.
+  page.on("dialog", async (dialog) => {
+    await dialog.dismiss().catch(() => {});
+    throw new Error(
+      `Unexpected native browser dialog: type=${dialog.type()} message=${dialog.message()}. ` +
+        "The switch-plan flow must use the in-app SwitchPlanDialog, not window.confirm.",
+    );
+  });
+}
+
+async function seedAndRouteContext(
+  context: import("playwright/test").BrowserContext,
+) {
+  // Pre-seed localStorage BEFORE any app code runs:
+  //   - hasSeenOnboarding skips the onboarding gate redirect.
+  //   - promo_code_redeemed grants hasFullAccess via the dev-only
+  //     promo path in EntitlementContext.refresh().
+  //   - expathub_plan gives the user an active Portugal plan so
+  //     attempting to switch to Spain triggers the switch confirmation
+  //     instead of starting fresh.
+  await context.addInitScript(
+    ({ planKey, planValue, promoKey, promoValue }) => {
+      try {
+        window.localStorage.setItem("hasSeenOnboarding", "true");
+        window.localStorage.setItem(promoKey, promoValue);
+        window.localStorage.setItem(planKey, planValue);
+      } catch {
+        // localStorage may be unavailable in some contexts; ignore.
+      }
+    },
+    {
+      planKey: PLAN_STORAGE_KEY,
+      planValue: JSON.stringify({
+        activeCountrySlug: "portugal",
+        activePathwayId: PORTUGAL_PATHWAY_KEY,
+        completedSteps: [],
+        hasPets: false,
+      }),
+      promoKey: PROMO_CODE_KEY,
+      promoValue: PROMO_CODE,
+    },
+  );
+
+  // Catch-all for the rest of the /api/** traffic the app fires on
+  // mount (analytics, bookmarks, notes, auth/me, entitlements, etc.).
+  // Registered first so the specific handlers below take precedence —
+  // Playwright matches routes in reverse registration order.
+  await context.route("**/api/**", async (route) => {
+    const req = route.request();
+    if (req.method() === "OPTIONS") {
+      return route.fulfill(corsPreflight());
+    }
+    return route.fulfill(jsonResponse({ ok: true }));
+  });
+
+  // BookmarkProvider expects arrays from these endpoints — returning
+  // `{ ok: true }` would crash it and trigger ErrorBoundary, which
+  // would navigate the app away from the screen under test.
+  await context.route("**/api/bookmarks", async (route) => {
+    if (route.request().method() === "OPTIONS") {
+      return route.fulfill(corsPreflight());
+    }
+    if (route.request().method() === "GET") {
+      return route.fulfill(jsonResponse([]));
+    }
+    return route.fulfill(jsonResponse({ ok: true }));
+  });
+  await context.route("**/api/notes", async (route) => {
+    if (route.request().method() === "OPTIONS") {
+      return route.fulfill(corsPreflight());
+    }
+    if (route.request().method() === "GET") {
+      return route.fulfill(jsonResponse([]));
+    }
+    return route.fulfill(jsonResponse({ ok: true }));
+  });
+
+  // Anonymous session — the planner's "Focus on …" CTA renders for
+  // any paid user regardless of auth, and the promo code path in
+  // EntitlementContext.refresh() short-circuits before the token
+  // check, so an unauthenticated user with the promo flag still
+  // gets hasFullAccess === true. The account screen also tolerates
+  // an unauthenticated session (shows "Not signed in" but still
+  // renders the active-plan card from local state).
+  await context.route("**/api/auth/me", async (route) => {
+    if (route.request().method() === "OPTIONS") {
+      return route.fulfill(corsPreflight());
+    }
+    return route.fulfill(jsonResponse({ user: null }));
+  });
+}
+
 test.describe("Switch-plan confirmation dialog (web)", () => {
   test.use({ baseURL: EXPO_BASE_URL });
 
@@ -85,93 +183,8 @@ test.describe("Switch-plan confirmation dialog (web)", () => {
   }) => {
     test.setTimeout(TEST_TIMEOUT_MS);
 
-    // If the dialog regresses to `window.confirm`, this listener will
-    // auto-accept it and the post-confirm assertion would still pass —
-    // which would silently mask the regression we're guarding against.
-    // Instead, fail loudly if any native dialog appears.
-    page.on("dialog", async (dialog) => {
-      await dialog.dismiss().catch(() => {});
-      throw new Error(
-        `Unexpected native browser dialog: type=${dialog.type()} message=${dialog.message()}. ` +
-          "The switch-plan flow must use the in-app SwitchPlanDialog, not window.confirm.",
-      );
-    });
-
-    // Pre-seed localStorage BEFORE any app code runs:
-    //   - hasSeenOnboarding skips the onboarding gate redirect.
-    //   - promo_code_redeemed grants hasFullAccess via the dev-only
-    //     promo path in EntitlementContext.refresh().
-    //   - expathub_plan gives the user an active Portugal plan so
-    //     visiting the Spain planner triggers the switch confirmation
-    //     instead of starting fresh.
-    await context.addInitScript(
-      ({ planKey, planValue, promoKey, promoValue }) => {
-        try {
-          window.localStorage.setItem("hasSeenOnboarding", "true");
-          window.localStorage.setItem(promoKey, promoValue);
-          window.localStorage.setItem(planKey, planValue);
-        } catch {
-          // localStorage may be unavailable in some contexts; ignore.
-        }
-      },
-      {
-        planKey: PLAN_STORAGE_KEY,
-        planValue: JSON.stringify({
-          activeCountrySlug: "portugal",
-          activePathwayId: PORTUGAL_PATHWAY_KEY,
-          completedSteps: [],
-          hasPets: false,
-        }),
-        promoKey: PROMO_CODE_KEY,
-        promoValue: PROMO_CODE,
-      },
-    );
-
-    // Catch-all for the rest of the /api/** traffic the app fires on
-    // mount (analytics, bookmarks, notes, auth/me, entitlements, etc.).
-    // Registered first so the specific handlers below take precedence —
-    // Playwright matches routes in reverse registration order.
-    await context.route("**/api/**", async (route) => {
-      const req = route.request();
-      if (req.method() === "OPTIONS") {
-        return route.fulfill(corsPreflight());
-      }
-      return route.fulfill(jsonResponse({ ok: true }));
-    });
-
-    // BookmarkProvider expects arrays from these endpoints — returning
-    // `{ ok: true }` would crash it and trigger ErrorBoundary, which
-    // would navigate the app away from /country/spain/planner.
-    await context.route("**/api/bookmarks", async (route) => {
-      if (route.request().method() === "OPTIONS") {
-        return route.fulfill(corsPreflight());
-      }
-      if (route.request().method() === "GET") {
-        return route.fulfill(jsonResponse([]));
-      }
-      return route.fulfill(jsonResponse({ ok: true }));
-    });
-    await context.route("**/api/notes", async (route) => {
-      if (route.request().method() === "OPTIONS") {
-        return route.fulfill(corsPreflight());
-      }
-      if (route.request().method() === "GET") {
-        return route.fulfill(jsonResponse([]));
-      }
-      return route.fulfill(jsonResponse({ ok: true }));
-    });
-
-    // Anonymous session — the planner's "Focus on …" CTA renders for
-    // any paid user regardless of auth, and the promo code path in
-    // EntitlementContext.refresh() short-circuits before the token
-    // check, so an unauthenticated user with the promo flag still
-    // gets hasFullAccess === true.
-    await context.route("**/api/auth/me", async (route) => {
-      if (route.request().method() === "OPTIONS") {
-        return route.fulfill(corsPreflight());
-      }
-      return route.fulfill(jsonResponse({ user: null }));
-    });
+    await failOnNativeDialog(page);
+    await seedAndRouteContext(context);
 
     // 1. Land directly on the Spain planner — different country than
     //    the seeded active plan, so the "Focus on Spain" CTA renders.
@@ -262,6 +275,107 @@ test.describe("Switch-plan confirmation dialog (web)", () => {
     const parsedAfterConfirm = JSON.parse(planAfterConfirm as string);
     expect(parsedAfterConfirm.activePathwayId).toBe(SPAIN_PATHWAY_KEY);
     // doStartPlan resets progress when switching countries.
+    expect(parsedAfterConfirm.completedSteps).toEqual([]);
+  });
+
+  // Task #137 — cover the second surface that triggers SwitchPlanDialog:
+  // the account screen's "Switch or reset" plan-switcher sheet. This row
+  // calls `startPlan(slug, firstPathway.key, name)` (app/account.tsx
+  // `handlePickSwitchCountry`), and if the country name or pathway
+  // wiring regresses here the planner-surface spec above wouldn't notice.
+  test("account screen plan switcher opens the same branded dialog", async ({
+    page,
+    context,
+  }) => {
+    test.setTimeout(TEST_TIMEOUT_MS);
+
+    await failOnNativeDialog(page);
+    await seedAndRouteContext(context);
+
+    // 1. Land on the account screen. The active-plan card + "Switch or
+    //    reset" link render purely from the seeded `expathub_plan`
+    //    localStorage entry — no auth required.
+    await page.goto("/account", { waitUntil: "domcontentloaded" });
+
+    const switchLink = page.getByTestId("account-active-plan-switch");
+    await expect(switchLink).toBeVisible({ timeout: TEST_TIMEOUT_MS });
+
+    // 2. Open the plan-switcher sheet → tap the Spain row.
+    await switchLink.click();
+    const sheet = page.getByTestId("account-plan-switch-sheet");
+    await expect(sheet).toBeVisible({ timeout: 10_000 });
+
+    const spainRow = page.getByTestId("account-plan-switch-country-spain");
+    await expect(spainRow).toBeVisible();
+    await spainRow.click();
+
+    // handlePickSwitchCountry dismisses the sheet, then calls
+    // startPlan via setTimeout(0) — the SwitchPlanDialog should
+    // appear because Portugal ≠ Spain.
+    const overlay = page.getByTestId("switch-plan-overlay");
+    const cancelBtn = page.getByTestId("switch-plan-cancel");
+    const confirmBtn = page.getByTestId("switch-plan-confirm");
+
+    await expect(overlay).toBeVisible({ timeout: 10_000 });
+    await expect(cancelBtn).toBeVisible();
+    await expect(confirmBtn).toBeVisible();
+    // Personalised label proves the country name made it through
+    // handlePickSwitchCountry → startPlan → SwitchPlanDialog.
+    await expect(confirmBtn).toHaveText(/Focus on Spain/);
+
+    // 3. Cancel preserves the Portugal plan.
+    await cancelBtn.click();
+    await expect(overlay).toBeHidden({ timeout: 5_000 });
+
+    const planAfterCancel = await page.evaluate(
+      (key) => window.localStorage.getItem(key),
+      PLAN_STORAGE_KEY,
+    );
+    expect(planAfterCancel).not.toBeNull();
+    const parsedAfterCancel = JSON.parse(planAfterCancel as string);
+    expect(parsedAfterCancel.activeCountrySlug).toBe("portugal");
+    expect(parsedAfterCancel.activePathwayId).toBe(PORTUGAL_PATHWAY_KEY);
+
+    // 4. Re-open the switcher, pick Spain again, confirm → persisted
+    //    active country flips to Spain with reset progress.
+    await switchLink.click();
+    await expect(sheet).toBeVisible({ timeout: 10_000 });
+    await spainRow.click();
+    await expect(overlay).toBeVisible({ timeout: 10_000 });
+    await confirmBtn.click();
+    await expect(overlay).toBeHidden({ timeout: 5_000 });
+
+    await expect
+      .poll(
+        async () => {
+          const raw = await page.evaluate(
+            (key) => window.localStorage.getItem(key),
+            PLAN_STORAGE_KEY,
+          );
+          if (!raw) return null;
+          try {
+            return (
+              (JSON.parse(raw) as { activeCountrySlug?: string })
+                .activeCountrySlug ?? null
+            );
+          } catch {
+            return null;
+          }
+        },
+        {
+          timeout: 10_000,
+          message:
+            "expected expathub_plan.activeCountrySlug to flip to 'spain' after confirming from the account switcher",
+        },
+      )
+      .toBe("spain");
+
+    const planAfterConfirm = await page.evaluate(
+      (key) => window.localStorage.getItem(key),
+      PLAN_STORAGE_KEY,
+    );
+    const parsedAfterConfirm = JSON.parse(planAfterConfirm as string);
+    expect(parsedAfterConfirm.activePathwayId).toBe(SPAIN_PATHWAY_KEY);
     expect(parsedAfterConfirm.completedSteps).toEqual([]);
   });
 });
