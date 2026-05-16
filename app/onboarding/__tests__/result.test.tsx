@@ -63,11 +63,11 @@ function getButton(
   testInstance: any,
   label: string,
 ) {
-  return testInstance.findAll((n) => {
+  return testInstance.findAll((n: any) => {
     if (n.type !== "Pressable") return false;
     if (typeof n.props?.onPress !== "function") return false;
     const texts = n.findAllByType("Text", { deep: true } as any);
-    return texts.some((t) => {
+    return texts.some((t: any) => {
       const c = t.props?.children;
       return (
         c === label || (Array.isArray(c) && c.some((cc) => cc === label))
@@ -77,7 +77,7 @@ function getButton(
 }
 
 function getTextInput(testInstance: any) {
-  return testInstance.findAll((n) => n.type === "TextInput")[0];
+  return testInstance.findAll((n: any) => n.type === "TextInput")[0];
 }
 
 const ANSWERS_HIGH_READY = JSON.stringify({

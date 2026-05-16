@@ -73,7 +73,7 @@ function collectText(node: any): string {
 function findOptionPressables(testInstance: any) {
   // Options are Pressables containing a Text whose value is the option label.
   return testInstance.findAll(
-    (n) =>
+    (n: any) =>
       n.type === "Pressable" &&
       typeof n.props?.onPress === "function" &&
       n.props?.testID !== "quiz-timeline-next",
@@ -88,11 +88,11 @@ function getOptionByValue(
   const q = QUIZ_QUESTIONS.find((x) => x.id === questionId)!;
   const opt = q.options.find((o) => o.value === value)!;
   // Find a Pressable whose nested Text matches opt.label exactly.
-  return testInstance.findAll((n) => {
+  return testInstance.findAll((n: any) => {
     if (n.type !== "Pressable") return false;
     if (typeof n.props?.onPress !== "function") return false;
     const texts = n.findAllByType("Text", { deep: true } as any);
-    return texts.some((t) => {
+    return texts.some((t: any) => {
       const c = t.props?.children;
       return (
         c === opt.label ||

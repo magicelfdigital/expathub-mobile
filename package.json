@@ -15,7 +15,8 @@
     "lint": "npx expo lint",
     "lint:fix": "npx expo lint --fix",
     "test": "jest",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "typecheck:tests": "tsc -p tsconfig.tests.json --noEmit"
   },
   "dependencies": {
     "@expo-google-fonts/dm-sans": "^0.4.2",
