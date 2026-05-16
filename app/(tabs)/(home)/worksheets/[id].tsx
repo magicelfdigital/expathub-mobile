@@ -53,6 +53,22 @@ export default function WorksheetDetailScreen() {
     if (existing?.answers) setAnswers(existing.answers);
   }, [existing?.worksheetId]);
 
+  // Anonymous deep-link guard. The list screen sends logged-out users
+  // to /auth on row tap, but someone may land here directly via a
+  // shared link — bounce them to register with a redirectTo back here.
+  useEffect(() => {
+    if (!worksheet) return;
+    if (user) return;
+    router.replace({
+      pathname: "/auth" as any,
+      params: {
+        mode: "register",
+        redirectTo: `/(tabs)/(home)/worksheets/${worksheet.id}`,
+        entryPoint: "worksheet_detail_anon",
+      },
+    });
+  }, [worksheet, user, router]);
+
   // Paywall at OPEN, not at submit. Free users get one worksheet
   // end-to-end; any subsequent attempt redirects to /subscribe BEFORE
   // they fill anything in. Users editing a previously completed

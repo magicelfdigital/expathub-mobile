@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import {
@@ -28,10 +29,12 @@ const WEB_BOTTOM_INSET = Platform.OS === "web" ? 34 : 0;
 export default function WorksheetsListScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const { hasFullAccess } = useSubscription();
   const { data: worksheets, isLoading } = useWorksheetList();
   const { data: responses } = useWorksheetResponses();
   const { pendingWorksheetDelta, clearPendingWorksheetDelta } = useOnboarding();
+  const isAnonymous = !user;
 
   // Consume the pending delta once on mount so the banner doesn't re-show
   // on every revisit. If the user also visits the result screen, whichever
@@ -109,11 +112,28 @@ export default function WorksheetsListScreen() {
           {(worksheets ?? []).map((w) => {
             const score = responseByQid.get(w.questionId);
             const completed = typeof score === "number";
-            const locked = !hasFullAccess && !completed && completedCount >= 1;
+            // Anonymous visitors see every row, but tapping any row sends
+            // them to /auth (register) with a redirectTo back to the
+            // worksheet. After signing up they land on the detail screen
+            // and complete their one free worksheet under the same gate
+            // signed-in free users see.
+            const locked =
+              !isAnonymous && !hasFullAccess && !completed && completedCount >= 1;
             return (
               <Pressable
                 key={w.id}
                 onPress={() => {
+                  if (isAnonymous) {
+                    router.push({
+                      pathname: "/auth" as any,
+                      params: {
+                        mode: "register",
+                        redirectTo: `/(tabs)/(home)/worksheets/${w.id}`,
+                        entryPoint: "worksheet_list_anon",
+                      },
+                    });
+                    return;
+                  }
                   if (locked) {
                     // Tag the paywall surface so dashboards can attribute
                     // views/dismissals/conversions to the worksheet-list

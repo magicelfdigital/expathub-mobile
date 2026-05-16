@@ -25,8 +25,9 @@ type Mode = "login" | "register";
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ mode?: string; purchaseContext?: string }>();
+  const params = useLocalSearchParams<{ mode?: string; purchaseContext?: string; redirectTo?: string }>();
   const purchaseContext = typeof params.purchaseContext === "string" ? params.purchaseContext : undefined;
+  const redirectTo = typeof params.redirectTo === "string" ? params.redirectTo : undefined;
   const isAnnualTrialContext = purchaseContext === "annual_trial";
   const { login, register } = useAuth();
   const [mode, setMode] = useState<Mode>(params.mode === "login" ? "login" : "register");
@@ -59,7 +60,13 @@ export default function AuthScreen() {
         await login(email.trim().toLowerCase(), password);
       }
       console.log("[AUTH] Auth success, dismissing modal");
-      if (router.canGoBack()) {
+      // If a redirectTo was provided (e.g. an anonymous user tapped a
+      // worksheet row and got sent here to register), send them back to
+      // that destination instead of just popping the modal. Otherwise
+      // preserve the existing back/tabs fallback behaviour.
+      if (redirectTo) {
+        router.replace(redirectTo as any);
+      } else if (router.canGoBack()) {
         router.back();
       } else {
         router.replace("/(tabs)" as any);
