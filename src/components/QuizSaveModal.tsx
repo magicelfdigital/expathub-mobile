@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { getApiUrl } from "@/lib/query-client";
-import { trackEvent } from "@/src/lib/analytics";
+import { identifyByEmail, trackEvent } from "@/src/lib/analytics";
 import { tokens } from "@/theme/tokens";
 
 type Props = {
@@ -43,6 +43,11 @@ export function QuizSaveModal({ visible, noCount, onClose, onContinue }: Props) 
     }
     setError(null);
     setBusy(true);
+    // Promote the live mobile distinct_id from `anon:<random>` to
+    // `email:<sha256>` BEFORE the POST so the lead-save call and the
+    // subsequent `quiz_save_submitted` event both land on the same
+    // email-keyed distinct_id. Mirrors `identifyByEmail` on web.
+    identifyByEmail(trimmed);
     try {
       const url = new URL("/api/readiness-lead", getApiUrl());
       const res = await fetch(url.toString(), {

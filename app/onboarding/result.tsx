@@ -15,7 +15,7 @@ import {
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { tokens } from "@/theme/tokens";
-import { trackEvent, logFbEvent } from "@/src/lib/analytics";
+import { trackEvent, logFbEvent, identifyByEmail } from "@/src/lib/analytics";
 import { getApiUrl } from "@/lib/query-client";
 import { getBackendBase } from "@/src/billing/backendClient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -302,6 +302,11 @@ export default function ResultScreen() {
     const addr = email;
     if (!isValidResultEmail(addr)) return;
     setEmailSending(true);
+    // Promote the live mobile distinct_id from `anon:<random>` to
+    // `email:<sha256>` BEFORE the POST so the `/api/readiness-lead` and the
+    // subsequent `readiness_lead_saved` event both land on the same
+    // email-keyed distinct_id. Mirrors what `identifyByEmail` does on web.
+    identifyByEmail(addr);
     try {
       const base = getBaseUrl();
       const res = await fetch(`${base}/api/readiness-lead`, {

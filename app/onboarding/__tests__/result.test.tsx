@@ -26,6 +26,7 @@ jest.mock("@/src/lib/analytics", () => ({
   trackEvent: (...args: any[]) => trackEvent(...args),
   logFbEvent: (...args: any[]) => logFbEvent(...args),
   identifyUser: () => {},
+  identifyByEmail: () => {},
 }));
 
 const completeOnboarding = jest.fn(async () => {});

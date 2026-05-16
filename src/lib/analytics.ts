@@ -269,10 +269,14 @@ function hydrateAnonDistinctId(): Promise<string> {
     try {
       stored = await AsyncStorage.getItem(ANON_DISTINCT_ID_STORAGE_KEY);
     } catch {}
-    // If `identifyUser` already promoted us to `user:<id>` (or persisted one
-    // from a previous session is `user:<id>`), keep that — never demote the
-    // live id back to an older anon id.
-    if (currentDistinctId && currentDistinctId.startsWith("user:")) {
+    // If `identifyUser` or `identifyByEmail` already promoted us to a
+    // canonical id (`user:<id>` or `email:<hash>`), keep that — never demote
+    // the live id back to an older anon id stored from a previous session.
+    if (
+      currentDistinctId &&
+      (currentDistinctId.startsWith("user:") ||
+        currentDistinctId.startsWith("email:"))
+    ) {
       try {
         await AsyncStorage.setItem(
           ANON_DISTINCT_ID_STORAGE_KEY,
@@ -320,6 +324,189 @@ export function _resetAnalyticsForTests() {
   lastIdentifiedDistinctId = null;
   posthogClient = null;
   posthogInitialized = false;
+}
+
+// Pure-JS SHA-256 so we can derive `email:<sha256>` distinct_ids in React
+// Native, where there's no `window.crypto.subtle`. The web equivalent in
+// `web/src/lib/pixel.ts` uses `subtle.digest("SHA-256")` — both surfaces
+// must produce the same hex for the same trimmed/lower-cased email so a
+// single human resolves to one PostHog person across web ↔ mobile when they
+// enter their email at the gate before creating an account.
+function sha256Hex(input: string): string {
+  const K = [
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
+    0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+    0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
+    0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
+    0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+    0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+    0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
+    0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+    0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+  ];
+  // UTF-8 encode
+  const bytes: number[] = [];
+  for (let i = 0; i < input.length; i++) {
+    let c = input.charCodeAt(i);
+    if (c < 0x80) bytes.push(c);
+    else if (c < 0x800) {
+      bytes.push(0xc0 | (c >> 6), 0x80 | (c & 0x3f));
+    } else if (c < 0xd800 || c >= 0xe000) {
+      bytes.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 0x3f), 0x80 | (c & 0x3f));
+    } else {
+      i++;
+      const c2 = input.charCodeAt(i);
+      const cp = 0x10000 + (((c & 0x3ff) << 10) | (c2 & 0x3ff));
+      bytes.push(
+        0xf0 | (cp >> 18),
+        0x80 | ((cp >> 12) & 0x3f),
+        0x80 | ((cp >> 6) & 0x3f),
+        0x80 | (cp & 0x3f),
+      );
+    }
+  }
+  const bitLen = bytes.length * 8;
+  bytes.push(0x80);
+  while (bytes.length % 64 !== 56) bytes.push(0);
+  // 64-bit big-endian length
+  for (let i = 7; i >= 0; i--) bytes.push((bitLen / Math.pow(2, i * 8)) & 0xff);
+
+  let h0 = 0x6a09e667,
+    h1 = 0xbb67ae85,
+    h2 = 0x3c6ef372,
+    h3 = 0xa54ff53a,
+    h4 = 0x510e527f,
+    h5 = 0x9b05688c,
+    h6 = 0x1f83d9ab,
+    h7 = 0x5be0cd19;
+  const w = new Array<number>(64);
+  for (let i = 0; i < bytes.length; i += 64) {
+    for (let t = 0; t < 16; t++) {
+      w[t] =
+        (bytes[i + t * 4] << 24) |
+        (bytes[i + t * 4 + 1] << 16) |
+        (bytes[i + t * 4 + 2] << 8) |
+        bytes[i + t * 4 + 3];
+    }
+    for (let t = 16; t < 64; t++) {
+      const s0 =
+        ((w[t - 15] >>> 7) | (w[t - 15] << 25)) ^
+        ((w[t - 15] >>> 18) | (w[t - 15] << 14)) ^
+        (w[t - 15] >>> 3);
+      const s1 =
+        ((w[t - 2] >>> 17) | (w[t - 2] << 15)) ^
+        ((w[t - 2] >>> 19) | (w[t - 2] << 13)) ^
+        (w[t - 2] >>> 10);
+      w[t] = (w[t - 16] + s0 + w[t - 7] + s1) | 0;
+    }
+    let a = h0,
+      b = h1,
+      c = h2,
+      d = h3,
+      e = h4,
+      f = h5,
+      g = h6,
+      hh = h7;
+    for (let t = 0; t < 64; t++) {
+      const S1 =
+        ((e >>> 6) | (e << 26)) ^
+        ((e >>> 11) | (e << 21)) ^
+        ((e >>> 25) | (e << 7));
+      const ch = (e & f) ^ (~e & g);
+      const t1 = (hh + S1 + ch + K[t] + w[t]) | 0;
+      const S0 =
+        ((a >>> 2) | (a << 30)) ^
+        ((a >>> 13) | (a << 19)) ^
+        ((a >>> 22) | (a << 10));
+      const mj = (a & b) ^ (a & c) ^ (b & c);
+      const t2 = (S0 + mj) | 0;
+      hh = g;
+      g = f;
+      f = e;
+      e = (d + t1) | 0;
+      d = c;
+      c = b;
+      b = a;
+      a = (t1 + t2) | 0;
+    }
+    h0 = (h0 + a) | 0;
+    h1 = (h1 + b) | 0;
+    h2 = (h2 + c) | 0;
+    h3 = (h3 + d) | 0;
+    h4 = (h4 + e) | 0;
+    h5 = (h5 + f) | 0;
+    h6 = (h6 + g) | 0;
+    h7 = (h7 + hh) | 0;
+  }
+  const toHex = (n: number) =>
+    (n >>> 0).toString(16).padStart(8, "0");
+  return (
+    toHex(h0) + toHex(h1) + toHex(h2) + toHex(h3) +
+    toHex(h4) + toHex(h5) + toHex(h6) + toHex(h7)
+  );
+}
+
+/**
+ * Identify the current visitor by email at the email gate, before they have
+ * an account. Promotes the live mobile distinct_id from `anon:<random>` to
+ * `email:<sha256>` so a person who enters their email but bounces without
+ * registering still joins to the same PostHog person on their next visit (or
+ * later, once `identifyUser` promotes again to `user:<id>`).
+ *
+ * Mirrors `identifyByEmail` in `web/src/lib/pixel.ts` — same normalization
+ * (trim + lower-case) and same `email:<sha256>` shape so a single human who
+ * enters the same email on web and mobile lands on the same distinct_id.
+ *
+ * Idempotent: re-calling with the same email is a no-op. Calling after the
+ * user has already been promoted to `user:<id>` is also a no-op — we never
+ * demote the live id back to an email-keyed one.
+ */
+export function identifyByEmail(email: string) {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return;
+  // Don't demote a fully-identified user back to an email key.
+  if (currentDistinctId && currentDistinctId.startsWith("user:")) return;
+  const hashed = sha256Hex(normalized);
+  const distinctId = `email:${hashed}`;
+  if (currentDistinctId === distinctId) return;
+  const previous = currentDistinctId;
+  currentDistinctId = distinctId;
+  AsyncStorage.setItem(ANON_DISTINCT_ID_STORAGE_KEY, distinctId).catch(() => {});
+  // Emit `$identify` so PostHog aliases the previous anon distinct_id to the
+  // new email-keyed one. Without this the funnel join is lost on the
+  // PostHog side even though our backend `/api/analytics` log will see the
+  // new id on subsequent events.
+  if (posthogClient) {
+    try {
+      posthogClient.identify(distinctId, { email_sha256: hashed });
+    } catch {}
+  }
+  // Best-effort backend log of the alias so the server-side join knows the
+  // two ids belong to the same person, mirroring web's `sendIdentify`.
+  if (!__DEV__ && previous) {
+    try {
+      const base = getBackendBase();
+      if (base) {
+        fetch(`${base}/api/analytics`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: "$identify",
+            distinct_id: distinctId,
+            properties: {
+              $anon_distinct_id: previous,
+              email_sha256: hashed,
+              distinct_id: distinctId,
+            },
+            platform: Platform.OS,
+            timestamp: new Date().toISOString(),
+          }),
+        }).catch(() => {});
+      }
+    } catch {}
+  }
 }
 
 export function identifyUser(userId: string | number, traits?: Record<string, any>) {

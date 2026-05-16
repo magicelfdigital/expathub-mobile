@@ -105,6 +105,80 @@ describe("mobile analytics distinct_id", () => {
     expect(persisted).toBe("user:42");
   });
 
+  it("promotes the anon distinct_id to email:<sha256> at the email gate", async () => {
+    const { trackEvent, identifyByEmail } = await loadAnalytics();
+
+    trackEvent("app_opened");
+    const anonId = fetchCalls[0].body.distinct_id;
+    expect(anonId.startsWith("anon:")).toBe(true);
+
+    // Known SHA-256 of "ada@example.com" (lower-case, trimmed).
+    const expectedHash =
+      "b5fc85e55755f9e0d030a10ab4429b6b2944855f9a0d60077fe832becbc41d72";
+    identifyByEmail("  Ada@Example.com  ");
+
+    trackEvent("readiness_lead_saved");
+    // The first new fetch call after identify should be the backend `$identify`
+    // alias POST so the server-side join knows the two ids are the same person.
+    const aliasCall = fetchCalls.find(
+      (c) => c.body.event === "$identify",
+    );
+    expect(aliasCall).toBeDefined();
+    expect(aliasCall!.body.distinct_id).toBe(`email:${expectedHash}`);
+    expect(aliasCall!.body.properties.$anon_distinct_id).toBe(anonId);
+
+    // And the subsequent event is keyed to the new email distinct_id.
+    const leadCall = fetchCalls.find(
+      (c) => c.body.event === "readiness_lead_saved",
+    );
+    expect(leadCall).toBeDefined();
+    expect(leadCall!.body.distinct_id).toBe(`email:${expectedHash}`);
+
+    // Storage is updated so a returning session starts already promoted.
+    await new Promise((r) => setTimeout(r, 0));
+    const persisted = await AsyncStorage.getItem(STORAGE_KEY);
+    expect(persisted).toBe(`email:${expectedHash}`);
+  });
+
+  it("identifyByEmail is idempotent and never demotes user:<id>", async () => {
+    const { trackEvent, identifyByEmail, identifyUser } = await loadAnalytics();
+
+    identifyByEmail("user@example.com");
+    const afterEmail = fetchCalls.length;
+    identifyByEmail("user@example.com");
+    // No additional $identify when the email distinct_id is unchanged.
+    expect(fetchCalls.length).toBe(afterEmail);
+
+    identifyUser("7");
+    trackEvent("app_opened");
+    const userEvent = fetchCalls[fetchCalls.length - 1];
+    expect(userEvent.body.distinct_id).toBe("user:7");
+
+    // A subsequent identifyByEmail must NOT demote back to email:<hash>.
+    identifyByEmail("user@example.com");
+    trackEvent("app_opened");
+    const after = fetchCalls[fetchCalls.length - 1];
+    expect(after.body.distinct_id).toBe("user:7");
+  });
+
+  it("never demotes email:<hash> back to an older anon id when hydration finishes after identifyByEmail", async () => {
+    (AsyncStorage as any).__seed(STORAGE_KEY, "anon:older-anon-id");
+    const { trackEvent, identifyByEmail } = await loadAnalytics();
+
+    // Promote to email before hydration has had a chance to run.
+    identifyByEmail("race@example.com");
+    // Let hydration resolve.
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+
+    trackEvent("readiness_lead_saved");
+    const last = fetchCalls[fetchCalls.length - 1];
+    expect(last.body.distinct_id.startsWith("email:")).toBe(true);
+    // And persisted storage was upgraded, not left on the old anon id.
+    const persisted = await AsyncStorage.getItem(STORAGE_KEY);
+    expect(persisted!.startsWith("email:")).toBe(true);
+  });
+
   it("never demotes user:<id> back to an older anon id when hydration finishes after identify", async () => {
     (AsyncStorage as any).__seed(STORAGE_KEY, "anon:older-anon-id");
     const { trackEvent, identifyUser } = await loadAnalytics();
