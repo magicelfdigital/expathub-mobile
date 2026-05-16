@@ -166,6 +166,17 @@ export interface EmailGateMetrics {
   unavailable: boolean;
 }
 
+// Per-placement counts within a single week. Kept separate from
+// `SurfaceMetrics` so the weekly shape stays a flat numeric record (easier
+// for the SVG renderer and JSON consumers to walk).
+export interface WeeklyPlacementMetrics {
+  shown: number;
+  submitted: number;
+  dismissed: number;
+  // submitted ÷ shown — null when shown is 0 so the UI can render "—".
+  recoveryRate: number | null;
+}
+
 export interface WeeklyMetrics {
   // Monday of the ISO week, formatted YYYY-MM-DD.
   weekStart: string;
@@ -174,6 +185,11 @@ export interface WeeklyMetrics {
   dismissed: number;
   // submitted ÷ shown — null when shown is 0 so the UI can render "—".
   recoveryRate: number | null;
+  // Per-placement breakdown so the dashboard can plot the new post-result
+  // modal against the legacy mid-quiz one week over week. Every week always
+  // includes all three placement buckets (zero-filled) so the chart can rely
+  // on a consistent shape even for quiet weeks.
+  byPlacement: Record<Placement, WeeklyPlacementMetrics>;
 }
 
 export interface QuizSaveAnalytics {
@@ -322,8 +338,15 @@ export async function computeQuizSaveAnalytics(
   // regression. date_trunc('week', ...) in Postgres uses ISO week semantics
   // (Monday-start). This always covers 8 weeks regardless of the dashboard
   // `windowDays` filter so the trend chart stays comparable across visits.
+  // We also break each week down by placement so the dashboard can plot the
+  // new post-result modal against the legacy mid-quiz one week over week.
+  // The grid CROSS JOIN guarantees every (week, placement) cell exists even
+  // when no events landed for that combination — otherwise a quiet bucket
+  // would silently drop out of the series and break the small-multiples
+  // chart alignment.
   const weeklyResult = await pool.query<{
     week_start: string;
+    placement: string;
     shown: string | number;
     submitted: string | number;
     dismissed: string | number;
@@ -333,35 +356,88 @@ export async function computeQuizSaveAnalytics(
                  - (n * INTERVAL '7 days'))::date AS week_start
          FROM generate_series(0, 7) AS n
      ),
+     placements AS (
+       SELECT unnest(ARRAY['mid_quiz', 'result_screen', 'unknown']) AS placement
+     ),
+     grid AS (
+       SELECT w.week_start, pl.placement
+         FROM weeks w CROSS JOIN placements pl
+     ),
      per_week AS (
+       -- Normalise unexpected placement values into 'unknown' so legacy
+       -- or malformed strings still reconcile against the fixed grid
+       -- placements above and don't silently drop out of the weekly
+       -- totals. This mirrors normalisePlacement() in TypeScript.
        SELECT date_trunc('week', created_at)::date AS week_start,
+              CASE
+                WHEN placement IN ('mid_quiz', 'result_screen') THEN placement
+                ELSE 'unknown'
+              END                                  AS placement,
               COUNT(*) FILTER (WHERE event = 'quiz_save_shown')::int     AS shown,
               COUNT(*) FILTER (WHERE event = 'quiz_save_submitted')::int AS submitted,
               COUNT(*) FILTER (WHERE event = 'quiz_save_dismissed')::int AS dismissed
          FROM quiz_save_events
         WHERE created_at >= date_trunc('week', NOW()) - INTERVAL '7 weeks'
-        GROUP BY 1
+        GROUP BY 1, 2
      )
-     SELECT to_char(w.week_start, 'YYYY-MM-DD')   AS week_start,
+     SELECT to_char(g.week_start, 'YYYY-MM-DD')   AS week_start,
+            g.placement                            AS placement,
             COALESCE(p.shown, 0)::int             AS shown,
             COALESCE(p.submitted, 0)::int         AS submitted,
             COALESCE(p.dismissed, 0)::int         AS dismissed
-       FROM weeks w
-       LEFT JOIN per_week p ON p.week_start = w.week_start
-      ORDER BY w.week_start ASC`,
+       FROM grid g
+       LEFT JOIN per_week p
+         ON p.week_start = g.week_start AND p.placement = g.placement
+      ORDER BY g.week_start ASC, g.placement ASC`,
   );
-  const weekly: WeeklyMetrics[] = weeklyResult.rows.map((row) => {
+
+  const emptyPlacement = (): WeeklyPlacementMetrics => ({
+    shown: 0,
+    submitted: 0,
+    dismissed: 0,
+    recoveryRate: null,
+  });
+  const weeklyMap = new Map<string, WeeklyMetrics>();
+  for (const row of weeklyResult.rows) {
+    const weekStart = String(row.week_start);
+    const placement = normalisePlacement(
+      typeof row.placement === "string" ? row.placement : null,
+    );
     const shown = Number(row.shown) || 0;
     const submitted = Number(row.submitted) || 0;
     const dismissed = Number(row.dismissed) || 0;
-    return {
-      weekStart: String(row.week_start),
+    let bucket = weeklyMap.get(weekStart);
+    if (!bucket) {
+      bucket = {
+        weekStart,
+        shown: 0,
+        submitted: 0,
+        dismissed: 0,
+        recoveryRate: null,
+        byPlacement: {
+          mid_quiz: emptyPlacement(),
+          result_screen: emptyPlacement(),
+          unknown: emptyPlacement(),
+        },
+      };
+      weeklyMap.set(weekStart, bucket);
+    }
+    bucket.byPlacement[placement] = {
       shown,
       submitted,
       dismissed,
       recoveryRate: shown > 0 ? submitted / shown : null,
     };
-  });
+    bucket.shown += shown;
+    bucket.submitted += submitted;
+    bucket.dismissed += dismissed;
+  }
+  const weekly: WeeklyMetrics[] = Array.from(weeklyMap.values())
+    .sort((a, b) => a.weekStart.localeCompare(b.weekStart))
+    .map((w) => ({
+      ...w,
+      recoveryRate: w.shown > 0 ? w.submitted / w.shown : null,
+    }));
 
   return { windowDays, totals, bySurface, byPlacement, emailGate, weekly };
 }
@@ -433,34 +509,74 @@ function renderWeeklyChartSvg(weeks: WeeklyMetrics[]): string {
     })
     .join("");
 
-  // Recovery-rate line: skip weeks where shown=0 (no rate). Draw segments
-  // between consecutive weeks that both have a rate so a gap of inactivity
-  // doesn't fake a "drop to 0%".
-  const linePoints = weeks.map((w, i) => ({
-    x: xCenter(i),
-    y: yRate(w.recoveryRate),
-    rate: w.recoveryRate,
-    weekStart: w.weekStart,
-  }));
-  const segments: string[] = [];
-  for (let i = 1; i < linePoints.length; i++) {
-    const a = linePoints[i - 1];
-    const b = linePoints[i];
-    if (a.y !== null && b.y !== null) {
-      segments.push(
-        `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#d97706" stroke-width="2" />`,
-      );
+  // Recovery-rate lines: one per placement plus the combined total, so the
+  // new post-result modal can be visually compared against the legacy
+  // mid-quiz prompt week over week. Each series skips weeks where shown=0
+  // (no rate) and only draws segments between consecutive weeks that both
+  // have a rate so a gap of inactivity doesn't fake a "drop to 0%".
+  const RATE_SERIES: Array<{
+    key: "total" | Placement;
+    label: string;
+    color: string;
+    get: (w: WeeklyMetrics) => number | null;
+    radius: number;
+    strokeWidth: number;
+  }> = [
+    {
+      key: "total",
+      label: "All placements",
+      color: "#d97706",
+      get: (w) => w.recoveryRate,
+      radius: 3.5,
+      strokeWidth: 2,
+    },
+    {
+      key: "mid_quiz",
+      label: PLACEMENT_LABELS.mid_quiz,
+      color: "#0a66c2",
+      get: (w) => w.byPlacement.mid_quiz.recoveryRate,
+      radius: 3,
+      strokeWidth: 1.5,
+    },
+    {
+      key: "result_screen",
+      label: PLACEMENT_LABELS.result_screen,
+      color: "#138a52",
+      get: (w) => w.byPlacement.result_screen.recoveryRate,
+      radius: 3,
+      strokeWidth: 1.5,
+    },
+  ];
+  const seriesSvg = RATE_SERIES.map((series) => {
+    const points = weeks.map((w, i) => ({
+      x: xCenter(i),
+      y: yRate(series.get(w)),
+      rate: series.get(w),
+      weekStart: w.weekStart,
+    }));
+    const segs: string[] = [];
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1];
+      const b = points[i];
+      if (a.y !== null && b.y !== null) {
+        segs.push(
+          `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${series.color}" stroke-width="${series.strokeWidth}" />`,
+        );
+      }
     }
-  }
-  const dots = linePoints
-    .filter((p) => p.y !== null)
-    .map(
-      (p) =>
-        `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="#d97706"><title>${escapeHtml(
-          p.weekStart,
-        )}: ${fmtPct(p.rate)} recovery</title></circle>`,
-    )
-    .join("");
+    const dotMarks = points
+      .filter((p) => p.y !== null)
+      .map(
+        (p) =>
+          `<circle cx="${p.x}" cy="${p.y}" r="${series.radius}" fill="${
+            series.color
+          }"><title>${escapeHtml(p.weekStart)} — ${escapeHtml(series.label)}: ${fmtPct(
+            p.rate,
+          )} recovery</title></circle>`,
+      )
+      .join("");
+    return `<g>${segs.join("")}${dotMarks}</g>`;
+  }).join("");
 
   // X-axis labels: short MM-DD so 8 of them fit comfortably.
   const xLabels = weeks
@@ -485,22 +601,33 @@ function renderWeeklyChartSvg(weeks: WeeklyMetrics[]): string {
     `;
   }).join("");
 
+  const placementLegend = RATE_SERIES.filter((s) => s.key !== "total")
+    .map(
+      (s) =>
+        `<span><span style="display:inline-block;width:14px;height:2px;background:${s.color};vertical-align:middle"></span> ${escapeHtml(
+          s.label,
+        )} recovery</span>`,
+    )
+    .join("");
   return `
-  <svg viewBox="0 0 ${width} ${height}" width="100%" role="img" aria-label="Weekly save-prompt impressions, submissions, and recovery rate" style="background:#fff;border:1px solid #e5e5e5;border-radius:10px">
+  <svg viewBox="0 0 ${width} ${height}" width="100%" role="img" aria-label="Weekly save-prompt impressions, submissions, and recovery rate split by placement" style="background:#fff;border:1px solid #e5e5e5;border-radius:10px">
     ${yTicks}
     ${bars}
-    ${segments.join("")}
-    ${dots}
+    ${seriesSvg}
     ${xLabels}
   </svg>
   <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#555">
     <span><span style="display:inline-block;width:10px;height:10px;background:#cfe1f7;border-radius:2px;vertical-align:middle"></span> Shown</span>
     <span><span style="display:inline-block;width:10px;height:10px;background:#0a66c2;border-radius:2px;vertical-align:middle"></span> Submitted</span>
-    <span><span style="display:inline-block;width:14px;height:2px;background:#d97706;vertical-align:middle"></span> Recovery rate</span>
+    <span><span style="display:inline-block;width:14px;height:2px;background:#d97706;vertical-align:middle"></span> Overall recovery rate</span>
+    ${placementLegend}
   </div>`;
 }
 
 function renderWeeklyTable(weeks: WeeklyMetrics[]): string {
+  // We render the per-placement recovery rates alongside the combined
+  // totals so the dashboard reader can see the new post-result modal trend
+  // numerically (small multiples) without leaving the chart context.
   const rows = weeks
     .map(
       (w) => `
@@ -510,6 +637,16 @@ function renderWeeklyTable(weeks: WeeklyMetrics[]): string {
         <td style="text-align:right">${fmtInt(w.submitted)}</td>
         <td style="text-align:right">${fmtInt(w.dismissed)}</td>
         <td style="text-align:right"><strong>${fmtPct(w.recoveryRate)}</strong></td>
+        <td style="text-align:right">${fmtPct(
+          w.byPlacement.mid_quiz.recoveryRate,
+        )} <span style="color:#888">(${fmtInt(
+          w.byPlacement.mid_quiz.submitted,
+        )}/${fmtInt(w.byPlacement.mid_quiz.shown)})</span></td>
+        <td style="text-align:right">${fmtPct(
+          w.byPlacement.result_screen.recoveryRate,
+        )} <span style="color:#888">(${fmtInt(
+          w.byPlacement.result_screen.submitted,
+        )}/${fmtInt(w.byPlacement.result_screen.shown)})</span></td>
       </tr>`,
     )
     .join("");
@@ -522,6 +659,8 @@ function renderWeeklyTable(weeks: WeeklyMetrics[]): string {
         <th style="text-align:right">Submitted</th>
         <th style="text-align:right">Dismissed</th>
         <th style="text-align:right">Recovery rate</th>
+        <th style="text-align:right">${escapeHtml(PLACEMENT_LABELS.mid_quiz)} recovery</th>
+        <th style="text-align:right">${escapeHtml(PLACEMENT_LABELS.result_screen)} recovery</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
@@ -576,7 +715,7 @@ export function renderQuizSaveAnalyticsHtml(data: QuizSaveAnalytics): string {
   </div>
 
   <h2>Weekly trend (last 8 weeks)</h2>
-  <p class="desc">Always covers the most recent 8 ISO weeks (Mon–Sun) regardless of the window above, so trends remain comparable as you change the filter. Bars use the left axis (counts); the line uses the right axis (recovery rate).</p>
+  <p class="desc">Always covers the most recent 8 ISO weeks (Mon–Sun) regardless of the window above, so trends remain comparable as you change the filter. Bars use the left axis (counts); the lines use the right axis (recovery rate). The orange line is the combined rate; the blue and green lines split it by placement so the new post-result modal can be compared against the legacy mid-quiz prompt over time.</p>
   ${renderWeeklyChartSvg(weekly)}
   ${renderWeeklyTable(weekly)}
 

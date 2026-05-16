@@ -204,7 +204,12 @@ describe("computeQuizSaveAnalytics", () => {
       { source: null, n: "5" },
     ];
 
-    const weeklyRows = [
+    // The weekly query now groups by (week_start, placement) and the grid
+    // CROSS JOIN guarantees every placement bucket exists per week. The fake
+    // rows below mirror that shape: each week emits one row per placement,
+    // with zeros where nothing landed in that bucket.
+    const placements = ["mid_quiz", "result_screen", "unknown"];
+    const weeklyTotals = [
       { week_start: "2026-03-09", shown: 0, submitted: 0, dismissed: 0 },
       { week_start: "2026-03-16", shown: 0, submitted: 0, dismissed: 0 },
       { week_start: "2026-03-23", shown: 10, submitted: 1, dismissed: 8 },
@@ -214,6 +219,36 @@ describe("computeQuizSaveAnalytics", () => {
       { week_start: "2026-04-20", shown: 40, submitted: 7, dismissed: 30 },
       { week_start: "2026-04-27", shown: 25, submitted: 2, dismissed: 18 },
     ];
+    // For weeks with activity we split: half to mid_quiz, half to
+    // result_screen, and any odd remainder to the unknown bucket. This keeps
+    // the per-placement totals deterministic and lets us assert specific
+    // numbers below.
+    const weeklyRows = weeklyTotals.flatMap((wk) => {
+      const split = {
+        mid_quiz: {
+          shown: Math.floor(wk.shown / 2),
+          submitted: Math.floor(wk.submitted / 2),
+          dismissed: Math.floor(wk.dismissed / 2),
+        },
+        result_screen: {
+          shown: Math.floor(wk.shown / 2),
+          submitted: Math.floor(wk.submitted / 2),
+          dismissed: Math.floor(wk.dismissed / 2),
+        },
+        unknown: {
+          shown: wk.shown - 2 * Math.floor(wk.shown / 2),
+          submitted: wk.submitted - 2 * Math.floor(wk.submitted / 2),
+          dismissed: wk.dismissed - 2 * Math.floor(wk.dismissed / 2),
+        },
+      } as const;
+      return placements.map((p) => ({
+        week_start: wk.week_start,
+        placement: p,
+        shown: split[p as keyof typeof split].shown,
+        submitted: split[p as keyof typeof split].submitted,
+        dismissed: split[p as keyof typeof split].dismissed,
+      }));
+    });
 
     const { pool } = makeFakePool((call) => {
       if (/CREATE TABLE/.test(call.text)) return { rows: [] };
@@ -277,23 +312,118 @@ describe("computeQuizSaveAnalytics", () => {
     });
     // Weekly buckets: 8 rows oldest-first, recoveryRate computed per week
     // and null when shown is 0 so a quiet week renders as "—" instead of 0%.
+    // Each week also carries a per-placement breakdown so the dashboard can
+    // plot the new post-result modal against the legacy mid-quiz prompt.
     expect(result.weekly).toHaveLength(8);
-    expect(result.weekly[0]).toEqual({
-      weekStart: "2026-03-09",
+    expect(result.weekly[0].weekStart).toBe("2026-03-09");
+    expect(result.weekly[0].shown).toBe(0);
+    expect(result.weekly[0].recoveryRate).toBeNull();
+    // A quiet week still emits a full placement record with zero-filled
+    // counts and a null recoveryRate so the chart can rely on a consistent
+    // shape across every series.
+    expect(result.weekly[0].byPlacement.mid_quiz).toEqual({
       shown: 0,
       submitted: 0,
       dismissed: 0,
       recoveryRate: null,
     });
-    expect(result.weekly[2]).toEqual({
-      weekStart: "2026-03-23",
-      shown: 10,
+    expect(result.weekly[0].byPlacement.result_screen).toEqual({
+      shown: 0,
+      submitted: 0,
+      dismissed: 0,
+      recoveryRate: null,
+    });
+    // Week of 2026-03-23: totals = shown 10 / submitted 1 / dismissed 8,
+    // split evenly between mid_quiz and result_screen (5/0/4 each) with the
+    // odd remainders falling into the unknown bucket (0/1/0).
+    expect(result.weekly[2].weekStart).toBe("2026-03-23");
+    expect(result.weekly[2].shown).toBe(10);
+    expect(result.weekly[2].submitted).toBe(1);
+    expect(result.weekly[2].dismissed).toBe(8);
+    expect(result.weekly[2].recoveryRate).toBe(0.1);
+    expect(result.weekly[2].byPlacement.mid_quiz).toEqual({
+      shown: 5,
+      submitted: 0,
+      dismissed: 4,
+      recoveryRate: 0,
+    });
+    expect(result.weekly[2].byPlacement.result_screen).toEqual({
+      shown: 5,
+      submitted: 0,
+      dismissed: 4,
+      recoveryRate: 0,
+    });
+    expect(result.weekly[2].byPlacement.unknown).toEqual({
+      shown: 0,
       submitted: 1,
-      dismissed: 8,
-      recoveryRate: 0.1,
+      dismissed: 0,
+      recoveryRate: null,
+    });
+    // Week of 2026-04-13: totals = shown 25 / submitted 5 / dismissed 18;
+    // mid_quiz and result_screen each see 12 shown / 2 submitted / 9
+    // dismissed, with the odd remainder in unknown.
+    expect(result.weekly[5].byPlacement.mid_quiz).toEqual({
+      shown: 12,
+      submitted: 2,
+      dismissed: 9,
+      recoveryRate: 2 / 12,
+    });
+    expect(result.weekly[5].byPlacement.result_screen).toEqual({
+      shown: 12,
+      submitted: 2,
+      dismissed: 9,
+      recoveryRate: 2 / 12,
     });
     expect(result.weekly[7].weekStart).toBe("2026-04-27");
     expect(result.weekly[7].recoveryRate).toBeCloseTo(2 / 25);
+  });
+
+  it("rolls unexpected weekly placement values into the unknown bucket", async () => {
+    // The fixed grid in the SQL only enumerates mid_quiz/result_screen/unknown.
+    // The CASE in per_week maps any other placement (legacy or malformed) to
+    // 'unknown' so it still reconciles against the grid and contributes to
+    // the weekly totals instead of silently dropping out.
+    const weeklyRows = [
+      // Eight Mondays' worth of zero rows for the two known buckets so the
+      // grid is fully covered; only one week has activity and only in the
+      // unknown bucket (post-CASE normalisation).
+      ...["2026-03-09", "2026-03-16", "2026-03-23", "2026-03-30",
+          "2026-04-06", "2026-04-13", "2026-04-20", "2026-04-27"].flatMap(
+        (week_start) => [
+          { week_start, placement: "mid_quiz", shown: 0, submitted: 0, dismissed: 0 },
+          { week_start, placement: "result_screen", shown: 0, submitted: 0, dismissed: 0 },
+          {
+            week_start,
+            placement: "unknown",
+            shown: week_start === "2026-04-20" ? 6 : 0,
+            submitted: week_start === "2026-04-20" ? 3 : 0,
+            dismissed: week_start === "2026-04-20" ? 3 : 0,
+          },
+        ],
+      ),
+    ];
+    const { pool } = makeFakePool((call) => {
+      if (/CREATE TABLE/.test(call.text)) return { rows: [] };
+      if (/per_week/.test(call.text)) return { rows: weeklyRows };
+      if (/FROM quiz_save_events/.test(call.text)) return { rows: [] };
+      return { rows: [] };
+    });
+
+    const result = await computeQuizSaveAnalytics(pool, { windowDays: 30 });
+
+    const activeWeek = result.weekly.find((w) => w.weekStart === "2026-04-20");
+    expect(activeWeek).toBeDefined();
+    expect(activeWeek!.shown).toBe(6);
+    expect(activeWeek!.submitted).toBe(3);
+    expect(activeWeek!.recoveryRate).toBe(0.5);
+    expect(activeWeek!.byPlacement.unknown).toEqual({
+      shown: 6,
+      submitted: 3,
+      dismissed: 3,
+      recoveryRate: 0.5,
+    });
+    expect(activeWeek!.byPlacement.mid_quiz.shown).toBe(0);
+    expect(activeWeek!.byPlacement.result_screen.shown).toBe(0);
   });
 
   it("returns null recoveryRate / saveShare when there's no data", async () => {
