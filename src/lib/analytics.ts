@@ -169,6 +169,7 @@ type AnalyticsEvent =
   | "password_reset_success"
   | "password_reset_error"
   | "result_pill_opened"
+  | "result_blocker_card_tapped"
   | "result_blocker_worksheet_tapped";
 
 type EventProperties = Record<string, string | number | boolean | undefined>;

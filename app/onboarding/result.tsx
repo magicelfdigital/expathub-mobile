@@ -56,44 +56,36 @@ function getBaseUrl(): string {
 
 function BlockerCard({
   blocker,
-  defaultExpanded = true,
+  onPress,
 }: {
   blocker: Blocker;
-  defaultExpanded?: boolean;
+  onPress: (b: Blocker) => void;
 }) {
   const c = LEVEL_COLORS[blocker.level];
-  const [expanded, setExpanded] = useState(defaultExpanded);
   return (
     <Pressable
-      onPress={() => setExpanded((v) => !v)}
-      style={[styles.blockerCard, { borderLeftColor: c.border, backgroundColor: c.bg }]}
+      onPress={() => onPress(blocker)}
+      style={({ pressed }) => [
+        styles.blockerCard,
+        { borderLeftColor: c.border, backgroundColor: c.bg },
+        pressed && { opacity: 0.92 },
+      ]}
       testID={`blocker-card-${blocker.questionId}`}
       accessibilityRole="button"
-      accessibilityState={{ expanded }}
       accessibilityLabel={`${c.label}: ${blocker.title}`}
-      accessibilityHint={expanded ? "Tap to collapse details" : "Tap to expand details"}
+      accessibilityHint="Opens details with the option to update this score"
     >
       <View style={styles.blockerHeader}>
         <View style={[styles.levelChip, { backgroundColor: c.chip }]}>
           <Text style={styles.levelChipText}>{c.label}</Text>
         </View>
         <View style={{ flex: 1 }} />
-        <Ionicons
-          name={expanded ? "chevron-up" : "chevron-down"}
-          size={18}
-          color={tokens.color.subtext}
-        />
+        <Ionicons name="chevron-forward" size={18} color={tokens.color.subtext} />
       </View>
-      <Text style={[styles.blockerTitle, !expanded && { marginBottom: 0 }]}>{blocker.title}</Text>
-      {expanded ? (
-        <>
-          <Text style={styles.blockerBody}>{blocker.whatThisMeans}</Text>
-          <Text style={[styles.blockerBody, { marginTop: 10 }]}>
-            <Text style={styles.blockerLeadIn}>Next: </Text>
-            {blocker.firstAction}
-          </Text>
-        </>
-      ) : null}
+      <Text style={styles.blockerTitle}>{blocker.title}</Text>
+      <Text style={styles.blockerBody} numberOfLines={2}>
+        {blocker.whatThisMeans}
+      </Text>
     </Pressable>
   );
 }
@@ -322,16 +314,57 @@ export default function ResultScreen() {
     );
   };
 
+  const scrollRef = React.useRef<ScrollView | null>(null);
+  const sectionYRef = React.useRef<Record<BlockerLevel, number>>({
+    critical: 0,
+    moderate: 0,
+    explore: 0,
+  });
+
+  const [sheetBlocker, setSheetBlocker] = useState<Blocker | null>(null);
+  const openBlockerSheet = (blocker: Blocker) => {
+    setSheetBlocker(blocker);
+    trackEvent("result_blocker_card_tapped", {
+      questionId: blocker.questionId,
+      level: blocker.level,
+    });
+  };
+  const closeSheet = () => setSheetBlocker(null);
+  const scrollToSection = (level: BlockerLevel) => {
+    if (grouped[level].length === 0) return;
+    const y = sectionYRef.current[level];
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
+    trackEvent("result_pill_opened", { level, count: grouped[level].length });
+  };
+  const openWorksheetFromSheet = async () => {
+    if (!sheetBlocker) return;
+    const ws = WORKSHEET_BY_QUESTION_ID[sheetBlocker.questionId];
+    if (!ws) return;
+    trackEvent("result_blocker_worksheet_tapped", {
+      questionId: sheetBlocker.questionId,
+      level: sheetBlocker.level,
+      worksheet_id: ws.id,
+      source: "result_sheet",
+    });
+    setSheetBlocker(null);
+    await completeOnboarding(result, true, numericAnswers);
+    router.push(`/(tabs)/(home)/worksheets/${ws.id}` as any);
+  };
+
   const renderBlockerSection = (level: BlockerLevel) => {
     const items = grouped[level];
     if (items.length === 0) return null;
-    const defaultExpanded = level === "critical";
     return (
-      <View style={styles.blockerSection}>
+      <View
+        style={styles.blockerSection}
+        onLayout={(e) => {
+          sectionYRef.current[level] = e.nativeEvent.layout.y;
+        }}
+      >
         <Text style={styles.sectionHeading}>{SECTION_TITLES[level]}</Text>
         <View style={{ gap: 12 }}>
           {items.map((b) => (
-            <BlockerCard key={b.questionId} blocker={b} defaultExpanded={defaultExpanded} />
+            <BlockerCard key={b.questionId} blocker={b} onPress={openBlockerSheet} />
           ))}
         </View>
       </View>
@@ -346,27 +379,6 @@ export default function ResultScreen() {
   const hasAnyBlockers = counts.critical + counts.moderate + counts.explore > 0;
   const primaryCtaLabel = user ? "Continue to ExpatHub" : "Create free account to save";
   const handlePrimaryCta = user ? handleContinue : handleCreateAccount;
-
-  const [sheetLevel, setSheetLevel] = useState<BlockerLevel | null>(null);
-  const openSheet = (level: BlockerLevel) => {
-    if (grouped[level].length === 0) return;
-    setSheetLevel(level);
-    trackEvent("result_pill_opened", { level, count: grouped[level].length });
-  };
-  const closeSheet = () => setSheetLevel(null);
-  const openWorksheetFromSheet = async (blocker: Blocker) => {
-    const ws = WORKSHEET_BY_QUESTION_ID[blocker.questionId];
-    if (!ws) return;
-    trackEvent("result_blocker_worksheet_tapped", {
-      questionId: blocker.questionId,
-      level: blocker.level,
-      worksheet_id: ws.id,
-      source: "result_sheet",
-    });
-    setSheetLevel(null);
-    await completeOnboarding(result, true, numericAnswers);
-    router.push(`/(tabs)/(home)/worksheets/${ws.id}` as any);
-  };
 
   const renderPaywallCta = () => (
     <Pressable
@@ -386,6 +398,7 @@ export default function ResultScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 + bottomPad }]}
         showsVerticalScrollIndicator={false}
       >
@@ -413,25 +426,24 @@ export default function ResultScreen() {
                   counts[lvl] > 0 ? (
                     <Pressable
                       key={lvl}
-                      onPress={() => openSheet(lvl)}
+                      onPress={() => scrollToSection(lvl)}
                       style={({ pressed }) => [
                         styles.countPill,
                         { backgroundColor: LEVEL_COLORS[lvl].bg, borderColor: LEVEL_COLORS[lvl].border },
                         pressed && { opacity: 0.85 },
                       ]}
                       accessibilityRole="button"
-                      accessibilityLabel={`${counts[lvl]} ${LEVEL_COLORS[lvl].label} items`}
-                      accessibilityHint="Opens a quick view with worksheets"
+                      accessibilityLabel={`Jump to ${counts[lvl]} ${LEVEL_COLORS[lvl].label} items`}
                       testID={`count-pill-${lvl}`}
                     >
                       <View style={[styles.countPillDot, { backgroundColor: LEVEL_COLORS[lvl].chip }]} />
                       <Text style={styles.countPillText}>{counts[lvl]} {LEVEL_COLORS[lvl].label.toLowerCase()}</Text>
-                      <Ionicons name="chevron-forward" size={12} color={tokens.color.subtext} />
+                      <Ionicons name="arrow-down" size={12} color={tokens.color.subtext} />
                     </Pressable>
                   ) : null,
                 )}
               </View>
-              <Text style={styles.pillHint}>Tap a tag to open worksheets that update your score.</Text>
+              <Text style={styles.pillHint}>Tap any item below to open a worksheet and improve your score.</Text>
             </>
           ) : null}
         </View>
@@ -490,7 +502,7 @@ export default function ResultScreen() {
       </View>
 
       <Modal
-        visible={sheetLevel !== null}
+        visible={sheetBlocker !== null}
         transparent
         animationType="slide"
         onRequestClose={closeSheet}
@@ -498,13 +510,13 @@ export default function ResultScreen() {
         <Pressable style={styles.sheetBackdrop} onPress={closeSheet} testID="sheet-backdrop" />
         <View style={[styles.sheetContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <View style={styles.sheetHandle} />
-          {sheetLevel ? (
+          {sheetBlocker ? (
             <>
               <View style={styles.sheetHeader}>
-                <View style={[styles.levelChip, { backgroundColor: LEVEL_COLORS[sheetLevel].chip }]}>
-                  <Text style={styles.levelChipText}>{LEVEL_COLORS[sheetLevel].label}</Text>
+                <View style={[styles.levelChip, { backgroundColor: LEVEL_COLORS[sheetBlocker.level].chip }]}>
+                  <Text style={styles.levelChipText}>{LEVEL_COLORS[sheetBlocker.level].label}</Text>
                 </View>
-                <Text style={styles.sheetTitle}>{SECTION_TITLES[sheetLevel]}</Text>
+                <Text style={styles.sheetTitle} numberOfLines={2}>{sheetBlocker.title}</Text>
                 <Pressable
                   onPress={closeSheet}
                   hitSlop={12}
@@ -516,51 +528,33 @@ export default function ResultScreen() {
                   <Ionicons name="close" size={22} color={tokens.color.text} />
                 </Pressable>
               </View>
-              <Text style={styles.sheetSubtitle}>
-                Tap any item below to open a worksheet and update that score.
-              </Text>
               <ScrollView
                 style={styles.sheetScroll}
                 contentContainerStyle={styles.sheetScrollContent}
                 showsVerticalScrollIndicator={false}
               >
-                {grouped[sheetLevel].map((blocker) => {
-                  const ws = WORKSHEET_BY_QUESTION_ID[blocker.questionId];
-                  return (
-                    <Pressable
-                      key={blocker.questionId}
-                      onPress={() => openWorksheetFromSheet(blocker)}
-                      disabled={!ws}
-                      style={({ pressed }) => [
-                        styles.sheetCard,
-                        { borderLeftColor: LEVEL_COLORS[blocker.level].border, backgroundColor: LEVEL_COLORS[blocker.level].bg },
-                        pressed && ws && { opacity: 0.92 },
-                      ]}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${blocker.title}. Open worksheet.`}
-                      testID={`sheet-card-${blocker.questionId}`}
-                    >
-                      <View style={styles.sheetCardBody}>
-                        <Text style={styles.sheetCardTitle}>{blocker.title}</Text>
-                        <Text style={styles.sheetCardText}>{blocker.whatThisMeans}</Text>
-                        <Text style={styles.sheetCardText}>
-                          <Text style={styles.blockerLeadIn}>Next: </Text>
-                          {blocker.firstAction}
-                        </Text>
-                        {ws ? (
-                          <View style={styles.sheetCardFooter}>
-                            <Ionicons name="document-text-outline" size={14} color={tokens.color.teal} />
-                            <Text style={styles.sheetCardFooterText}>
-                              Open worksheet · {ws.questions.length} questions
-                            </Text>
-                            <Ionicons name="chevron-forward" size={14} color={tokens.color.teal} />
-                          </View>
-                        ) : null}
-                      </View>
-                    </Pressable>
-                  );
-                })}
+                <Text style={styles.sheetBodyLabel}>What this means</Text>
+                <Text style={styles.sheetBodyText}>{sheetBlocker.whatThisMeans}</Text>
+                <Text style={[styles.sheetBodyLabel, { marginTop: 16 }]}>Next step</Text>
+                <Text style={styles.sheetBodyText}>{sheetBlocker.firstAction}</Text>
               </ScrollView>
+              {WORKSHEET_BY_QUESTION_ID[sheetBlocker.questionId] ? (
+                <View style={styles.sheetCtaWrap}>
+                  <Pressable
+                    onPress={openWorksheetFromSheet}
+                    style={({ pressed }) => [styles.sheetCta, pressed && { opacity: 0.9 }]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Open worksheet to update this score"
+                    testID="sheet-open-worksheet"
+                  >
+                    <Ionicons name="document-text-outline" size={18} color="#fff" />
+                    <Text style={styles.sheetCtaText}>
+                      Open worksheet · {WORKSHEET_BY_QUESTION_ID[sheetBlocker.questionId].questions.length} questions
+                    </Text>
+                    <Ionicons name="chevron-forward" size={18} color="#fff" />
+                  </Pressable>
+                </View>
+              ) : null}
             </>
           ) : null}
         </View>
@@ -720,6 +714,43 @@ const styles = StyleSheet.create({
     fontFamily: tokens.font.bodySemiBold,
     fontWeight: "600",
     color: tokens.color.teal,
+  },
+  sheetBodyLabel: {
+    fontSize: 12,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600",
+    color: tokens.color.subtext,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  sheetBodyText: {
+    fontSize: 15,
+    fontFamily: tokens.font.body,
+    color: tokens.color.text,
+    lineHeight: 22,
+  },
+  sheetCtaWrap: {
+    paddingHorizontal: tokens.space.xl,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(28,43,94,0.08)",
+  },
+  sheetCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: tokens.color.teal,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+  },
+  sheetCtaText: {
+    flex: 1,
+    color: "#fff",
+    fontSize: 15,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600",
   },
   stickyCtaBar: {
     position: "absolute",
