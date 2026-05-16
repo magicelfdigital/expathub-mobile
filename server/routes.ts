@@ -13,6 +13,10 @@ import {
   registerQuizSaveAnalyticsRoutes,
 } from "./quizSaveAnalytics";
 import {
+  recordAuthPromptEvent,
+  registerAuthPromptAnalyticsRoutes,
+} from "./authPromptAnalytics";
+import {
   WORKSHEETS,
   WORKSHEET_BY_ID,
   scoreWorksheet,
@@ -347,6 +351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // app.
   registerPlannerAnalyticsRoutes(app, { requireAdminBasicAuth, getPool });
   registerQuizSaveAnalyticsRoutes(app, { requireAdminBasicAuth, getPool });
+  registerAuthPromptAnalyticsRoutes(app, { requireAdminBasicAuth, getPool });
 
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
@@ -541,16 +546,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // forwarding upstream is the source of truth for everything else.
     const persistPool = getPool();
     if (persistPool) {
-      recordQuizSaveEvent(persistPool, req.body)
-        .catch((err) => {
+      // Persist both quiz-save and auth-prompt events from the same pool.
+      // Wait for both to settle before ending the pool so we don't tear
+      // down a connection mid-INSERT for the slower of the two.
+      Promise.allSettled([
+        recordQuizSaveEvent(persistPool, req.body).catch((err) => {
           console.warn(
             "[analytics] failed to persist quiz_save event:",
             err?.message ?? err,
           );
-        })
-        .finally(() => {
-          persistPool.end().catch(() => {});
-        });
+        }),
+        recordAuthPromptEvent(persistPool, req.body).catch((err) => {
+          console.warn(
+            "[analytics] failed to persist auth_prompt event:",
+            err?.message ?? err,
+          );
+        }),
+      ]).finally(() => {
+        persistPool.end().catch(() => {});
+      });
     }
     try {
       const upstream = await fetch(`${AUTH_API_URL}/api/analytics`, {

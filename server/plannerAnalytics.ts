@@ -969,6 +969,17 @@ export function renderAdminIndexHtml(): string {
       </div>
     </li>
     <li>
+      <a href="/admin/auth-prompt-analytics">Auth-prompt (signup nudge) analytics</a>
+      <div class="desc">
+        Impressions, conversions and conversion rate for the
+        <code>auth_prompt_shown</code> / <code>auth_prompt_converted</code>
+        events, broken out by <code>entry_point</code> (e.g.
+        <code>worksheet_list_anon</code>) with an 8-week trend. Configurable
+        via <code>?days=N</code> (default 30). JSON at
+        <code>/api/admin/auth-prompt-analytics</code>.
+      </div>
+    </li>
+    <li>
       <a href="/api/admin/ab-results">A/B test results (JSON)</a>
       <div class="desc">
         Variant-level visitors, conversions, day-0 / day-60 revenue and ARPU
