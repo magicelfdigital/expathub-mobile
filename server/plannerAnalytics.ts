@@ -1574,41 +1574,126 @@ export function renderPlannerAnalyticsHtml(
       feed into median or average dwell time.
     </p>
   </div>
+
+  <p style="margin-top:24px;color:#888;font-size:12px">
+    JSON: <code>${escapeHtml(jsonHref)}</code>
+    · <a href="${escapeHtml(csvHref)}">Download CSV</a>
+  </p>
 </body>
 </html>`;
 }
 
 function csvEscape(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return "";
-  const str = String(value);
+  let str = String(value);
+  // Defuse CSV formula injection on caller-supplied strings (country slugs,
+  // step ids, week_start strings derived from DB rows): spreadsheet apps
+  // treat cells beginning with =, +, -, @, tab, or CR as formulas. Prefix
+  // any such leading character with a single quote.
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
   if (/[",\r\n]/.test(str)) {
     return `"${str.replace(/"/g, '""')}"`;
   }
   return str;
 }
 
+function fmtCsvNumber(value: number | null | undefined, fractionDigits = 1): string {
+  if (value === null || value === undefined) return "";
+  if (!Number.isFinite(value)) return "";
+  return value.toFixed(fractionDigits);
+}
+
+// Multi-section CSV mirroring the auth-prompt dashboard's `?format=csv`
+// affordance: a single download bundles per-step, weekly, and per-country
+// breakdowns so operators can compare placements without copy/pasting from
+// the HTML table. Each section is its own header+rows block separated by a
+// blank line — keeps spreadsheet importers happy when each block has its
+// own schema and makes the file readable as plain text.
 export function renderPlannerAnalyticsCsv(data: PlannerAnalyticsResult): string {
-  const header = [
-    "country",
-    "plans_started",
-    "reached_100",
-    "pct_reaching_100",
-    "median_days_to_completion",
-  ].join(",");
-  const rows = data.byCountry.map((row) =>
-    [
-      csvEscape(row.country),
-      csvEscape(row.plansStarted),
-      csvEscape(row.plansCompleted),
-      csvEscape(row.completionRatePct.toFixed(1)),
-      csvEscape(
-        row.medianDaysToCompletion === null
-          ? ""
-          : row.medianDaysToCompletion.toFixed(1),
-      ),
-    ].join(","),
-  );
-  return [header, ...rows].join("\r\n") + "\r\n";
+  const { filter } = data;
+  const sections: string[][] = [];
+
+  const headerLines: string[] = ["# Planner completion analytics"];
+  if (filter.country) {
+    headerLines.push(`# Filter: country=${filter.country}`);
+  } else {
+    headerLines.push(
+      `# Filter: minPlans=${filter.minPlansForCountryBreakdown}`,
+    );
+  }
+  headerLines.push(`# Generated: ${data.generatedAt}`);
+  sections.push(headerLines);
+
+  // Section 1 — totals (one row, for spreadsheets that pivot on the
+  // section discriminator).
+  sections.push([
+    "section,metric,value",
+    `totals,plans_started,${data.totals.plansStarted}`,
+    `totals,plans_completed,${data.totals.plansCompleted}`,
+    `totals,pct_reaching_100,${fmtCsvNumber(data.totals.completionRatePct)}`,
+    `totals,median_days_to_completion,${fmtCsvNumber(data.totals.medianDaysToCompletion)}`,
+    `totals,median_sample_size,${data.totals.medianSampleSize}`,
+    `totals,median_excluded_unknown_start,${data.totals.medianExcludedUnknownStart}`,
+  ]);
+
+  // Section 2 — per-step completion.
+  const stepLines = [
+    "step_id,title,stage,completed,started,completion_rate_pct",
+  ];
+  for (const step of data.stepCompletion) {
+    stepLines.push(
+      [
+        csvEscape(step.stepId),
+        csvEscape(step.title),
+        csvEscape(step.stage),
+        step.completed,
+        step.started,
+        fmtCsvNumber(step.completionRatePct),
+      ].join(","),
+    );
+  }
+  sections.push(stepLines);
+
+  // Section 3 — weekly trend (always 8 weeks, oldest-first).
+  const weeklyLines = [
+    "week_start,plans_started,plans_completed,median_days_to_completion",
+  ];
+  for (const week of data.weekly) {
+    weeklyLines.push(
+      [
+        csvEscape(week.weekStart),
+        week.plansStarted,
+        week.plansCompleted,
+        fmtCsvNumber(week.medianDaysToCompletion),
+      ].join(","),
+    );
+  }
+  sections.push(weeklyLines);
+
+  // Section 4 — per-country breakdown (the legacy CSV body).
+  const countryLines = [
+    "country,plans_started,reached_100,pct_reaching_100,median_days_to_completion,median_sample_size,median_excluded_unknown_start",
+  ];
+  for (const row of data.byCountry) {
+    countryLines.push(
+      [
+        csvEscape(row.country),
+        row.plansStarted,
+        row.plansCompleted,
+        fmtCsvNumber(row.completionRatePct),
+        fmtCsvNumber(row.medianDaysToCompletion),
+        row.medianSampleSize,
+        row.medianExcludedUnknownStart,
+      ].join(","),
+    );
+  }
+  sections.push(countryLines);
+
+  // Use \r\n line endings to match the auth-prompt-style convention and
+  // keep Excel happy on Windows. Trailing newline keeps POSIX tools tidy.
+  return sections.map((s) => s.join("\r\n")).join("\r\n\r\n") + "\r\n";
 }
 
 export function renderAdminIndexHtml(): string {

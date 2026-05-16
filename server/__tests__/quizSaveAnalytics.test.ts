@@ -5,7 +5,6 @@ import {
   isQuizSaveEventName,
   recordQuizSaveEvent,
   renderQuizSaveAnalyticsCsv,
-  renderQuizSaveAnalyticsSummaryCsv,
   renderQuizSaveAnalyticsWeeklyCsv,
   resetQuizSaveAnalyticsEnsureCache,
   type QuizSaveAnalytics,
@@ -726,7 +725,7 @@ describe("renderQuizSaveAnalyticsWeeklyCsv", () => {
   });
 });
 
-describe("renderQuizSaveAnalyticsSummaryCsv / renderQuizSaveAnalyticsCsv", () => {
+describe("renderQuizSaveAnalyticsCsv", () => {
   const baseAnalytics = (
     overrides: Partial<QuizSaveAnalytics> = {},
   ): QuizSaveAnalytics => ({
@@ -737,12 +736,12 @@ describe("renderQuizSaveAnalyticsSummaryCsv / renderQuizSaveAnalyticsCsv", () =>
       mobile: { shown: 40, submitted: 4, dismissed: 30, recoveryRate: 0.1 },
     },
     byPlacement: {
-      mid_quiz: { shown: 0, submitted: 0, dismissed: 0, recoveryRate: null },
+      mid_quiz: { shown: 70, submitted: 9, dismissed: 55, recoveryRate: 9 / 70 },
       result_screen: {
-        shown: 0,
-        submitted: 0,
-        dismissed: 0,
-        recoveryRate: null,
+        shown: 30,
+        submitted: 3,
+        dismissed: 25,
+        recoveryRate: 0.1,
       },
       unknown: { shown: 0, submitted: 0, dismissed: 0, recoveryRate: null },
     },
@@ -756,21 +755,23 @@ describe("renderQuizSaveAnalyticsSummaryCsv / renderQuizSaveAnalyticsCsv", () =>
     ...overrides,
   });
 
-  it("writes the window header, schema, and totals + per-surface rows", () => {
-    const csv = renderQuizSaveAnalyticsSummaryCsv(baseAnalytics());
-    expect(csv).toBe(
-      [
-        "# window_days,30",
-        "scope,shown,submitted,dismissed,recovery_rate",
-        "total,100,12,80,0.1200",
-        "web,60,8,50,0.1333",
-        "mobile,40,4,30,0.1000",
-        "",
-      ].join("\n"),
+  it("emits a window header plus sectioned totals/surface/placement/weekly blocks", () => {
+    const csv = renderQuizSaveAnalyticsCsv(baseAnalytics());
+    const lines = csv.split("\n");
+    expect(lines[0]).toBe("# Quiz save-prompt analytics — last 30 days");
+    expect(lines).toContain(
+      "section,key,shown,submitted,dismissed,recovery_rate",
     );
+    expect(lines).toContain("totals,all,100,12,80,0.1200");
+    expect(lines).toContain("surface,web,60,8,50,0.1333");
+    expect(lines).toContain("surface,mobile,40,4,30,0.1000");
+    expect(lines).toContain("placement,mid_quiz,70,9,55,0.1286");
+    expect(lines).toContain("placement,result_screen,30,3,25,0.1000");
+    expect(lines).toContain("placement,unknown,0,0,0,");
+    expect(csv.endsWith("\n")).toBe(true);
   });
 
-  it("composes summary and weekly sections separated by a blank line", () => {
+  it("appends the weekly section after a blank separator line", () => {
     const csv = renderQuizSaveAnalyticsCsv(
       baseAnalytics({
         weekly: [
@@ -819,19 +820,14 @@ describe("renderQuizSaveAnalyticsSummaryCsv / renderQuizSaveAnalyticsCsv", () =>
       }),
     );
     const lines = csv.split("\n");
-    // Summary section.
-    expect(lines.slice(0, 5)).toEqual([
-      "# window_days,30",
-      "scope,shown,submitted,dismissed,recovery_rate",
-      "total,100,12,80,0.1200",
-      "web,60,8,50,0.1333",
-      "mobile,40,4,30,0.1000",
-    ]);
-    // Blank line separates the two sections so spreadsheet importers can
-    // still parse the file and humans can tell the sections apart.
-    expect(lines[5]).toBe("");
-    expect(lines[6]).toContain("week_start,shown,submitted,dismissed");
-    expect(lines[7]).toBe(
+    const weeklyHeaderIdx = lines.findIndex((l) =>
+      l.startsWith("week_start,shown,submitted,dismissed,recovery_rate"),
+    );
+    expect(weeklyHeaderIdx).toBeGreaterThan(0);
+    // Blank line precedes the weekly section header so spreadsheet
+    // importers and humans can tell the blocks apart.
+    expect(lines[weeklyHeaderIdx - 1]).toBe("");
+    expect(lines[weeklyHeaderIdx + 1]).toBe(
       "2026-05-04,10,1,8,0.1000,10,1,0.1000,0,0,,0,0,",
     );
   });

@@ -38,22 +38,25 @@ beforeEach(() => {
   resetQuizSaveAnalyticsEnsureCache();
 });
 
-describe("GET /api/admin/quiz-save-analytics.csv", () => {
+describe.each([
+  "/api/admin/quiz-save-analytics.csv",
+  "/admin/quiz-save-analytics.csv",
+])("GET %s", (csvPath) => {
   it("rejects unauthenticated requests via the admin gate", async () => {
     const app = buildApp({ authOk: false, pool: null });
-    const res = await request(app).get("/api/admin/quiz-save-analytics.csv");
+    const res = await request(app).get(csvPath);
     expect(res.status).toBe(401);
   });
 
   it("returns 503 plain text when the database is not configured", async () => {
     const app = buildApp({ authOk: true, pool: null });
-    const res = await request(app).get("/api/admin/quiz-save-analytics.csv");
+    const res = await request(app).get(csvPath);
     expect(res.status).toBe(503);
     expect(res.headers["content-type"]).toMatch(/text\/plain/);
     expect(res.text).toMatch(/not configured/i);
   });
 
-  it("returns CSV with the expected headers, content type, and filename", async () => {
+  it("returns a sectioned CSV with totals, surface, placement and weekly blocks", async () => {
     const pool = fakePool((text) => {
       if (/CREATE TABLE/.test(text)) return { rows: [] };
       if (/ALTER TABLE/.test(text)) return { rows: [] };
@@ -66,7 +69,7 @@ describe("GET /api/admin/quiz-save-analytics.csv", () => {
             {
               week_start: "2026-04-20",
               placement: "mid_quiz",
-              surface: "mobile",
+              surface: "web",
               shown: 20,
               submitted: 3,
               dismissed: 15,
@@ -79,27 +82,17 @@ describe("GET /api/admin/quiz-save-analytics.csv", () => {
               submitted: 4,
               dismissed: 15,
             },
-            {
-              week_start: "2026-04-20",
-              placement: "unknown",
-              surface: "mobile",
-              shown: 0,
-              submitted: 0,
-              dismissed: 0,
-            },
           ],
         };
       }
       if (/FROM quiz_save_events/.test(text)) {
-        // Powers totals + per-surface breakdown in the summary section.
+        // The funnel breakdown query — return per-surface/per-placement counts.
         return {
           rows: [
-            { event: "quiz_save_shown", surface: "mobile", placement: "mid_quiz", n: "20" },
-            { event: "quiz_save_submitted", surface: "mobile", placement: "mid_quiz", n: "3" },
-            { event: "quiz_save_dismissed", surface: "mobile", placement: "mid_quiz", n: "15" },
+            { event: "quiz_save_shown", surface: "web", placement: "mid_quiz", n: "20" },
+            { event: "quiz_save_submitted", surface: "web", placement: "mid_quiz", n: "3" },
             { event: "quiz_save_shown", surface: "mobile", placement: "result_screen", n: "20" },
             { event: "quiz_save_submitted", surface: "mobile", placement: "result_screen", n: "4" },
-            { event: "quiz_save_dismissed", surface: "mobile", placement: "result_screen", n: "15" },
           ],
         };
       }
@@ -108,35 +101,32 @@ describe("GET /api/admin/quiz-save-analytics.csv", () => {
     });
     const app = buildApp({ authOk: true, pool });
 
-    const res = await request(app).get("/api/admin/quiz-save-analytics.csv");
+    const res = await request(app).get(csvPath);
 
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toMatch(/text\/csv/);
     expect(res.headers["content-disposition"]).toMatch(
-      /attachment; filename="quiz-save-weekly-2026-04-20\.csv"/,
+      /attachment; filename="quiz-save-analytics-30d-2026-04-20\.csv"/,
     );
     const lines = res.text.split("\n");
-    // First line documents the window in days so a downloaded CSV is
-    // self-describing — the team can tell at a glance what `?days=` was
-    // in effect when the file was generated.
-    expect(lines[0]).toBe("# window_days,30");
-    // Summary section comes first with totals + per-surface breakdown.
-    expect(lines[1]).toBe("scope,shown,submitted,dismissed,recovery_rate");
-    expect(lines.slice(2, 5)).toEqual([
-      "total,40,7,30,0.1750",
-      "web,0,0,0,",
-      "mobile,40,7,30,0.1750",
-    ]);
-    // Weekly section follows, separated by a blank line and its own header.
+    expect(lines[0]).toMatch(/^# Quiz save-prompt analytics/);
     expect(lines).toContain(
-      "week_start,shown,submitted,dismissed,recovery_rate,mid_quiz_shown,mid_quiz_submitted,mid_quiz_recovery_rate,result_screen_shown,result_screen_submitted,result_screen_recovery_rate,unknown_shown,unknown_submitted,unknown_recovery_rate",
+      "section,key,shown,submitted,dismissed,recovery_rate",
     );
-    // Body row for the active week reflects the fake placement rows above.
-    const activeRow = lines.find((l) => l.startsWith("2026-04-20,"));
-    expect(activeRow).toBe(
-      "2026-04-20,40,7,30,0.1750,20,3,0.1500,20,4,0.2000,0,0,",
-    );
-    // Always closes the pool so connections aren't leaked across requests.
+    // Totals + surface + placement rows are all present.
+    expect(lines.some((l) => l.startsWith("totals,all,"))).toBe(true);
+    expect(lines.some((l) => l.startsWith("surface,web,"))).toBe(true);
+    expect(lines.some((l) => l.startsWith("surface,mobile,"))).toBe(true);
+    expect(lines.some((l) => l.startsWith("placement,mid_quiz,"))).toBe(true);
+    expect(lines.some((l) => l.startsWith("placement,result_screen,"))).toBe(true);
+    expect(lines.some((l) => l.startsWith("placement,unknown,"))).toBe(true);
+    // Weekly section header + the active week row.
+    expect(
+      lines.some((l) =>
+        l.startsWith("week_start,shown,submitted,dismissed,recovery_rate"),
+      ),
+    ).toBe(true);
+    expect(lines.some((l) => l.startsWith("2026-04-20,"))).toBe(true);
     expect(pool.end).toHaveBeenCalledTimes(1);
   });
 
@@ -148,9 +138,7 @@ describe("GET /api/admin/quiz-save-analytics.csv", () => {
     });
     const app = buildApp({ authOk: true, pool });
 
-    const res = await request(app).get(
-      "/api/admin/quiz-save-analytics.csv?days=7",
-    );
+    const res = await request(app).get(`${csvPath}?days=7`);
 
     expect(res.status).toBe(200);
     const intervalCalls = pool.query.mock.calls.filter(
@@ -161,7 +149,7 @@ describe("GET /api/admin/quiz-save-analytics.csv", () => {
 });
 
 describe("GET /admin/quiz-save-analytics (HTML)", () => {
-  it("renders a Download CSV link wired to the CSV endpoint", async () => {
+  it("renders a Download CSV link in the footer wired to the /admin CSV endpoint", async () => {
     const pool = fakePool((text) => {
       if (/CREATE TABLE/.test(text)) return { rows: [] };
       if (/ALTER TABLE/.test(text)) return { rows: [] };
@@ -173,9 +161,7 @@ describe("GET /admin/quiz-save-analytics (HTML)", () => {
 
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toMatch(/text\/html/);
-    // Default window is 30 days; the CSV link must preserve it so a
-    // download matches what the user is looking at on the dashboard.
-    expect(res.text).toContain('href="/api/admin/quiz-save-analytics.csv?days=30"');
+    expect(res.text).toContain('href="/admin/quiz-save-analytics.csv?days=30"');
     expect(res.text).toContain("Download CSV");
   });
 
@@ -190,6 +176,6 @@ describe("GET /admin/quiz-save-analytics (HTML)", () => {
     const res = await request(app).get("/admin/quiz-save-analytics?days=7");
 
     expect(res.status).toBe(200);
-    expect(res.text).toContain('href="/api/admin/quiz-save-analytics.csv?days=7"');
+    expect(res.text).toContain('href="/admin/quiz-save-analytics.csv?days=7"');
   });
 });

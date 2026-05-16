@@ -753,42 +753,107 @@ describe("renderPlannerAnalyticsCsv", () => {
     };
   }
 
-  it("renders the header and one row per country with median formatting", () => {
-    const csv = renderPlannerAnalyticsCsv(
-      makeResult([
-        {
-          country: "portugal",
-          plansStarted: 6,
-          plansCompleted: 2,
-          completionRatePct: 33.3,
-          medianDaysToCompletion: 10,
-          medianSampleSize: 2,
-          medianExcludedUnknownStart: 0,
-        },
-        {
-          country: "spain",
-          plansStarted: 4,
-          plansCompleted: 0,
-          completionRatePct: 0,
-          medianDaysToCompletion: null,
-          medianSampleSize: 0,
-          medianExcludedUnknownStart: 0,
-        },
-      ]),
+  it("emits totals, per-step, weekly and per-country sections", () => {
+    const result = makeResult([
+      {
+        country: "portugal",
+        plansStarted: 6,
+        plansCompleted: 2,
+        completionRatePct: 33.3,
+        medianDaysToCompletion: 10,
+        medianSampleSize: 2,
+        medianExcludedUnknownStart: 0,
+      },
+      {
+        country: "spain",
+        plansStarted: 4,
+        plansCompleted: 0,
+        completionRatePct: 0,
+        medianDaysToCompletion: null,
+        medianSampleSize: 0,
+        medianExcludedUnknownStart: 0,
+      },
+    ]);
+    result.totals = {
+      plansStarted: 10,
+      plansCompleted: 2,
+      completionRatePct: 20,
+      medianDaysToCompletion: 10,
+      medianSampleSize: 2,
+      medianExcludedUnknownStart: 0,
+      medianExcludedUnknownStartPct: 0,
+    };
+    result.stepCompletion = [
+      {
+        stepId: "research_quiz",
+        title: "Take the readiness quiz",
+        stage: "research",
+        completed: 5,
+        started: 10,
+        completionRatePct: 50,
+      },
+    ];
+    result.weekly = [
+      {
+        weekStart: "2026-04-20",
+        plansStarted: 4,
+        plansCompleted: 1,
+        medianDaysToCompletion: 7,
+      },
+      {
+        weekStart: "2026-04-27",
+        plansStarted: 0,
+        plansCompleted: 0,
+        medianDaysToCompletion: null,
+      },
+    ];
+    const csv = renderPlannerAnalyticsCsv(result);
+    const lines = csv.split("\r\n");
+    expect(lines[0]).toBe("# Planner completion analytics");
+    expect(lines).toContain("# Filter: minPlans=3");
+    expect(lines).toContain("# Generated: 2026-04-28T00:00:00.000Z");
+    expect(lines).toContain("section,metric,value");
+    expect(lines).toContain("totals,plans_started,10");
+    expect(lines).toContain("totals,plans_completed,2");
+    expect(lines).toContain("totals,median_days_to_completion,10.0");
+    expect(lines).toContain(
+      "step_id,title,stage,completed,started,completion_rate_pct",
     );
-    const lines = csv.trim().split("\r\n");
-    expect(lines[0]).toBe(
-      "country,plans_started,reached_100,pct_reaching_100,median_days_to_completion",
+    expect(lines).toContain(
+      "research_quiz,Take the readiness quiz,research,5,10,50.0",
     );
-    expect(lines[1]).toBe("portugal,6,2,33.3,10.0");
-    expect(lines[2]).toBe("spain,4,0,0.0,");
+    expect(lines).toContain(
+      "week_start,plans_started,plans_completed,median_days_to_completion",
+    );
+    expect(lines).toContain("2026-04-20,4,1,7.0");
+    expect(lines).toContain("2026-04-27,0,0,");
+    expect(lines).toContain(
+      "country,plans_started,reached_100,pct_reaching_100,median_days_to_completion,median_sample_size,median_excluded_unknown_start",
+    );
+    expect(lines).toContain("portugal,6,2,33.3,10.0,2,0");
+    expect(lines).toContain("spain,4,0,0.0,,0,0");
+    expect(csv.endsWith("\r\n")).toBe(true);
   });
 
-  it("returns just the header row when no countries qualify", () => {
+  it("emits empty per-step / weekly / per-country sections when no data", () => {
     const csv = renderPlannerAnalyticsCsv(makeResult([]));
-    expect(csv).toBe(
-      "country,plans_started,reached_100,pct_reaching_100,median_days_to_completion\r\n",
+    expect(csv).toContain(
+      "step_id,title,stage,completed,started,completion_rate_pct",
     );
+    expect(csv).toContain(
+      "week_start,plans_started,plans_completed,median_days_to_completion",
+    );
+    expect(csv).toContain(
+      "country,plans_started,reached_100,pct_reaching_100,median_days_to_completion,median_sample_size,median_excluded_unknown_start",
+    );
+    expect(csv.endsWith("\r\n")).toBe(true);
+  });
+
+  it("includes the active country filter in the header comment", () => {
+    const result = makeResult([]);
+    result.filter = { country: "portugal", minPlansForCountryBreakdown: 3, rangeA: null, rangeB: null };
+    const csv = renderPlannerAnalyticsCsv(result);
+    expect(csv).toContain("# Filter: country=portugal");
   });
 });
 

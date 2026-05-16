@@ -963,7 +963,7 @@ export function renderQuizSaveAnalyticsHtml(
       .join("")}
   </div>
 
-  <h2>Weekly trend (last 8 weeks) <a href="/api/admin/quiz-save-analytics.csv?days=${windowDays}" style="font-size:12px;font-weight:normal;margin-left:8px;color:#0a66c2;text-decoration:none">Download CSV</a></h2>
+  <h2>Weekly trend (last 8 weeks) <a href="/admin/quiz-save-analytics.csv?days=${windowDays}" style="font-size:12px;font-weight:normal;margin-left:8px;color:#0a66c2;text-decoration:none">Download CSV</a></h2>
   <p class="desc">Always covers the most recent 8 ISO weeks (Mon–Sun) regardless of the window above, so trends remain comparable as you change the filter. Bars use the left axis (counts); the lines use the right axis (recovery rate). The orange line is the combined rate; the blue and green lines split it by placement so the new post-result modal can be compared against the legacy mid-quiz prompt over time.</p>
   ${renderWeeklyChartSvg(weekly)}
 
@@ -1043,6 +1043,7 @@ export function renderQuizSaveAnalyticsHtml(
 
   <p style="margin-top:24px;color:#888;font-size:12px">
     JSON: <code>/api/admin/quiz-save-analytics?days=${windowDays}</code>
+    · <a href="/admin/quiz-save-analytics.csv?days=${windowDays}">Download CSV</a>
   </p>
 </body>
 </html>`;
@@ -1069,44 +1070,69 @@ function csvRate(rate: number | null): string {
   return rate.toFixed(4);
 }
 
-// Renders the totals + per-surface block that sits above the weekly trend
-// section. Kept as its own function so the route can compose a single CSV
-// from the three logical sections (totals, per-surface, weekly) the team
-// asked for, and so each section can be unit-tested in isolation.
-export function renderQuizSaveAnalyticsSummaryCsv(
-  data: Pick<QuizSaveAnalytics, "windowDays" | "totals" | "bySurface">,
-): string {
-  const header = ["scope", "shown", "submitted", "dismissed", "recovery_rate"];
-  const summaryRow = (
-    scope: string,
-    m: SurfaceMetrics,
-  ): string =>
-    [
-      csvCell(scope),
-      csvCell(m.shown),
-      csvCell(m.submitted),
-      csvCell(m.dismissed),
-      csvRate(m.recoveryRate),
-    ].join(",");
-  const lines = [
-    `# window_days,${csvCell(data.windowDays)}`,
-    header.join(","),
-    summaryRow("total", data.totals),
-    summaryRow("web", data.bySurface.web),
-    summaryRow("mobile", data.bySurface.mobile),
-  ];
-  return `${lines.join("\n")}\n`;
-}
-
-// Combines the totals + per-surface summary and the weekly trend into a
-// single CSV download. Sections are separated by a blank line so common
-// spreadsheet importers (Numbers, Excel, Sheets) can still parse the file
-// even if a human-readable section break is present — the blank line lands
-// as an empty row, which is harmless.
+// Sectioned export mirroring the auth-prompt dashboard's CSV affordance:
+// totals, by-surface, by-placement and the weekly trend are bundled into a
+// single download so operators can compare placements without copy/pasting
+// from the HTML. Each section gets its own header+rows block separated by a
+// blank line — keeps the file readable and lets spreadsheet importers map
+// each block to its own schema. We keep `renderQuizSaveAnalyticsWeeklyCsv`
+// below as a backward-compatible weekly-only renderer for any caller that
+// still wants just the time-series.
 export function renderQuizSaveAnalyticsCsv(data: QuizSaveAnalytics): string {
-  return `${renderQuizSaveAnalyticsSummaryCsv(data)}\n${renderQuizSaveAnalyticsWeeklyCsv(
-    data.weekly,
-  )}`;
+  const { windowDays, totals, bySurface, byPlacement, weekly } = data;
+  const sections: string[][] = [];
+  sections.push([`# Quiz save-prompt analytics — last ${windowDays} days`]);
+
+  // Section 1 — totals + per-surface + per-placement, sharing one schema
+  // so a spreadsheet pivot can flip between groupings easily.
+  const funnel: string[] = [
+    "section,key,shown,submitted,dismissed,recovery_rate",
+  ];
+  funnel.push(
+    [
+      "totals",
+      "all",
+      totals.shown,
+      totals.submitted,
+      totals.dismissed,
+      csvRate(totals.recoveryRate),
+    ].join(","),
+  );
+  for (const surface of ["web", "mobile"] as Surface[]) {
+    const m = bySurface[surface];
+    funnel.push(
+      [
+        "surface",
+        surface,
+        m.shown,
+        m.submitted,
+        m.dismissed,
+        csvRate(m.recoveryRate),
+      ].join(","),
+    );
+  }
+  for (const placement of ["mid_quiz", "result_screen", "unknown"] as Placement[]) {
+    const m = byPlacement[placement];
+    funnel.push(
+      [
+        "placement",
+        placement,
+        m.shown,
+        m.submitted,
+        m.dismissed,
+        csvRate(m.recoveryRate),
+      ].join(","),
+    );
+  }
+  sections.push(funnel);
+
+  // Section 2 — weekly breakdown reuses the existing weekly-only renderer
+  // verbatim (header + rows) so the schema stays consistent with the
+  // standalone weekly CSV that already ships at /api/admin/...csv.
+  const weeklyCsv = renderQuizSaveAnalyticsWeeklyCsv(weekly).trimEnd();
+  sections.push(weeklyCsv.split("\n"));
+
+  return sections.map((s) => s.join("\n")).join("\n\n") + "\n";
 }
 
 export function renderQuizSaveAnalyticsWeeklyCsv(
@@ -1393,7 +1419,7 @@ export function registerQuizSaveAnalyticsRoutes(
     getPool: () => pg.Pool | null;
   },
 ): void {
-  app.get("/api/admin/quiz-save-analytics.csv", async (req, res) => {
+  const sendCsv = async (req: Request, res: Response) => {
     if (!deps.requireAdminBasicAuth(req, res)) return;
     const pool = deps.getPool();
     if (!pool) {
@@ -1401,9 +1427,8 @@ export function registerQuizSaveAnalyticsRoutes(
       return;
     }
     try {
-      const data = await computeQuizSaveAnalytics(pool, {
-        windowDays: readWindowDays(req),
-      });
+      const windowDays = readWindowDays(req);
+      const data = await computeQuizSaveAnalytics(pool, { windowDays });
       const csv = renderQuizSaveAnalyticsCsv(data);
       // Suggest a dated filename so repeated downloads don't collide in the
       // user's Downloads folder. Date is derived from the most recent week
@@ -1416,7 +1441,7 @@ export function registerQuizSaveAnalyticsRoutes(
         .type("text/csv; charset=utf-8")
         .set(
           "Content-Disposition",
-          `attachment; filename="quiz-save-weekly-${stamp}.csv"`,
+          `attachment; filename="quiz-save-analytics-${windowDays}d-${stamp}.csv"`,
         )
         .send(csv);
     } catch (err: any) {
@@ -1425,7 +1450,14 @@ export function registerQuizSaveAnalyticsRoutes(
     } finally {
       await pool.end();
     }
-  });
+  };
+
+  // Two routes serve the same sectioned CSV: the `/admin/...csv` URL
+  // matches the auth-prompt convention (and is what the dashboard footer
+  // links to), the `/api/admin/...csv` URL preserves the pre-existing
+  // path so any scripts that already point at it keep working.
+  app.get("/admin/quiz-save-analytics.csv", sendCsv);
+  app.get("/api/admin/quiz-save-analytics.csv", sendCsv);
 
   app.get("/api/admin/quiz-save-analytics", async (req, res) => {
     if (!deps.requireAdminBasicAuth(req, res)) return;
