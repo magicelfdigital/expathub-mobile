@@ -1218,6 +1218,17 @@ export function renderAdminIndexHtml(): string {
       </div>
     </li>
     <li>
+      <a href="/admin/brief-freshness">Decision Brief freshness</a>
+      <div class="desc">
+        Per-brief <code>lastReviewedAt</code> age, with stale (&gt;90 days)
+        and approaching-stale (&gt;60 days) badges so the team can refresh
+        figures before the next App Store release. Mirrors the scheduled
+        quarterly GitHub Action in
+        <code>.github/workflows/freshness-check.yml</code>. JSON at
+        <code>/api/admin/brief-freshness</code>.
+      </div>
+    </li>
+    <li>
       <a href="/api/admin/ab-results">A/B test results (JSON)</a>
       <div class="desc">
         Variant-level visitors, conversions, day-0 / day-60 revenue and ARPU

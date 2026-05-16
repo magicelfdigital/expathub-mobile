@@ -1,0 +1,39 @@
+name: Decision Brief freshness check
+
+on:
+  schedule:
+    # Quarterly — 1st of Jan, Apr, Jul, Oct at 14:00 UTC.
+    - cron: "0 14 1 1,4,7,10 *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run freshness check
+        id: check
+        run: node scripts/monitoring/freshness-check.mjs
+
+      - name: Open or update tracking issue
+        if: steps.check.outputs.has_stale == 'true'
+        uses: peter-evans/create-issue-from-file@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Decision Brief freshness review — quarterly check"
+          content-filepath: monitoring/freshness-issue.md
+          labels: |
+            content
+            freshness

@@ -16,6 +16,7 @@ import {
   recordAuthPromptEvent,
   registerAuthPromptAnalyticsRoutes,
 } from "./authPromptAnalytics";
+import { registerBriefFreshnessRoutes } from "./briefFreshness";
 import {
   WORKSHEETS,
   WORKSHEET_BY_ID,
@@ -395,6 +396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerPlannerAnalyticsRoutes(app, { requireAdminBasicAuth, getPool });
   registerQuizSaveAnalyticsRoutes(app, { requireAdminBasicAuth, getPool });
   registerAuthPromptAnalyticsRoutes(app, { requireAdminBasicAuth, getPool });
+  registerBriefFreshnessRoutes(app, { requireAdminBasicAuth });
 
   // Analytics health probe — exposes the in-process counter of `$identify`
   // events that arrived without `$anon_distinct_id`. Designed to be scraped

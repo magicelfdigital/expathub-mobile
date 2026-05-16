@@ -109,3 +109,21 @@ auto-close the alert issue.
 | `monitoring/analytics-health-state.json` | Snapshot of the most recent probe run (written by the script) |
 | `scripts/monitoring/analytics-health-check.mjs` | The probe runner |
 | `.github/workflows/monitor-analytics-health.yml` | Scheduled probe + issue-management workflow |
+
+## Quarterly freshness check
+
+`freshness-check.mjs` is a separate scheduled job that inspects every entry
+in `src/data/decisionBriefs.ts` and flags briefs whose `lastReviewedAt` is
+older than 90 days (with a 60-day "approaching" tier). It runs on the 1st of
+January, April, July and October at 14:00 UTC via
+`.github/workflows/freshness-check.yml`, and opens (or appends to) a tracking
+GitHub issue when stale briefs are found.
+
+Run it locally with:
+
+```
+node scripts/monitoring/freshness-check.mjs
+```
+
+The same report is also surfaced live at `/admin/brief-freshness` (HTML) and
+`/api/admin/brief-freshness` (JSON) in the internal admin dashboard.
