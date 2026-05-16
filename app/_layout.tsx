@@ -66,6 +66,9 @@ function RootLayoutNav() {
         {__DEV__ && (
           <Stack.Screen name="debug-billing" options={{ headerShown: false, presentation: "modal" }} />
         )}
+        {__DEV__ && (
+          <Stack.Screen name="debug-cancellation" options={{ headerShown: false, presentation: "modal" }} />
+        )}
       </Stack>
     </>
   );

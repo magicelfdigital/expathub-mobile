@@ -1,0 +1,44 @@
+appId: com.expathub.app
+name: Reverse trial on paywall dismiss
+tags:
+  - conversion-lifts
+  - mobile-ui
+---
+# Drives the ProPaywall reverse-trial gate end-to-end.
+#
+# - Opens the paywall via the `expathub://` deep link so the test does not
+#   depend on the home/quiz flow.
+# - First dismiss: predicate in `src/lib/conversionLifts.ts` evaluates to
+#   true → `applyReverseTrialOnDismiss` runs → toast bus fires the
+#   "Enjoy 48 hours of full access — on us." copy through
+#   `<GlobalToast testID="toast" />`.
+# - Second open + dismiss: AsyncStorage now has `reverseTrial_used=true`,
+#   so the predicate short-circuits and no toast is rendered.
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- openLink: expathub://subscribe
+- assertVisible:
+    id: "pro-paywall"
+- tapOn:
+    id: "pro-paywall-close"
+- assertVisible:
+    id: "toast"
+- assertVisible: "Enjoy 48 hours of full access — on us."
+
+# Re-open the paywall and dismiss again. The trial has already been
+# burned, so the toast must NOT reappear. Wait a beat first to give any
+# (regressed) async toast render a chance to surface — then re-check to
+# protect against timing-sensitive false passes.
+- openLink: expathub://subscribe
+- assertVisible:
+    id: "pro-paywall"
+- tapOn:
+    id: "pro-paywall-close"
+- assertNotVisible:
+    id: "toast"
+- extendedWaitUntil:
+    notVisible:
+      id: "toast"
+    timeout: 4000
+- assertNotVisible: "Enjoy 48 hours of full access — on us."

@@ -670,7 +670,7 @@ export function ProPaywall({
     : `Cancel anytime before day ${TRIAL_DURATION_DAYS} — you won't be charged.`;
 
   return (
-    <View style={{ flex: 1, backgroundColor: tokens.color.bg }}>
+    <View testID="pro-paywall" style={{ flex: 1, backgroundColor: tokens.color.bg }}>
       <ScrollView
         style={s.scroll}
         contentContainerStyle={[
@@ -679,7 +679,7 @@ export function ProPaywall({
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Pressable onPress={handleClose} hitSlop={12} style={s.closeButton}>
+        <Pressable testID="pro-paywall-close" onPress={handleClose} hitSlop={12} style={s.closeButton}>
           <Ionicons name="close" size={24} color={tokens.color.text} />
         </Pressable>
 
