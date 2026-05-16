@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
-import { Animated, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { Animated, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { QUIZ_QUESTIONS, TIMELINE_CALLOUTS, type QuizAnswer, type TimelineTone } from "@/src/data/quiz";
 import { tokens } from "@/theme/tokens";
@@ -28,9 +28,27 @@ export default function QuizScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const { width: screenWidth } = useWindowDimensions();
+  const { prefill, edit } = useLocalSearchParams<{ prefill?: string; edit?: string }>();
+  const isEditMode = edit === "1";
+
+  const prefillAnswers = useMemo<Record<number, string>>(() => {
+    if (!prefill) return {};
+    try {
+      const parsed = JSON.parse(prefill);
+      if (!parsed || typeof parsed !== "object") return {};
+      const out: Record<number, string> = {};
+      for (let i = 1; i <= QUIZ_QUESTIONS.length; i++) {
+        const v = (parsed as Record<string, unknown>)[String(i)] ?? (parsed as Record<number, unknown>)[i];
+        if (typeof v === "string") out[i] = v;
+      }
+      return out;
+    } catch {
+      return {};
+    }
+  }, [prefill]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [answers, setAnswers] = useState<Record<number, string>>(prefillAnswers);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const startedRef = useRef(false);
   const completedRef = useRef(false);
@@ -111,37 +129,66 @@ export default function QuizScreen() {
       // remaining non-next branch)
       completedRef.current = true;
       trackEvent("quiz_completed", { totalQuestions: TOTAL });
-      router.push({
-        pathname: "/onboarding/result",
+      const target = {
+        pathname: "/onboarding/result" as const,
         params: { answers: JSON.stringify(newAnswers) },
-      });
+      };
+      if (isEditMode) router.replace(target);
+      else router.push(target);
     },
-    [currentIndex, animateTransition, router],
+    [currentIndex, animateTransition, router, isEditMode],
   );
 
-  const selectAnswer = useCallback((value: string) => {
-    const q = QUIZ_QUESTIONS[currentIndex];
-    const questionId = q.id;
-    const newAnswers = { ...answers, [questionId]: value };
-    setAnswers(newAnswers);
+  const handleUpdateResults = useCallback(() => {
+    completedRef.current = true;
+    const changedCount = Object.keys(answers).filter(
+      (k) => answers[Number(k)] !== prefillAnswers[Number(k)],
+    ).length;
+    trackEvent("quiz_edit_resubmitted", { changedCount });
+    router.replace({
+      pathname: "/onboarding/result",
+      params: { answers: JSON.stringify(answers) },
+    });
+  }, [router, answers, prefillAnswers]);
 
-    trackEvent(
-      "quiz_question_answered",
-      buildQuizAnsweredPayload({
-        questionId,
-        questionIndex: currentIndex,
-        category: q.category,
-        answer: value,
-      }),
-    );
+  const jumpToQuestion = useCallback(
+    (index: number) => {
+      if (index === currentIndex) return;
+      const direction = index > currentIndex ? "forward" : "back";
+      animateTransition(direction, () => setCurrentIndex(index));
+    },
+    [currentIndex, animateTransition],
+  );
 
-    // Timeline question: don't auto-advance — show inline callout + Next button.
-    if (shouldDeferAdvanceForTimeline(questionId)) {
-      return;
-    }
+  const selectAnswer = useCallback(
+    (value: string) => {
+      const q = QUIZ_QUESTIONS[currentIndex];
+      const questionId = q.id;
+      const newAnswers = { ...answers, [questionId]: value };
+      setAnswers(newAnswers);
 
-    advanceFromAnswers(newAnswers);
-  }, [currentIndex, answers, advanceFromAnswers]);
+      trackEvent(
+        "quiz_question_answered",
+        buildQuizAnsweredPayload({
+          questionId,
+          questionIndex: currentIndex,
+          category: q.category,
+          answer: value,
+        }),
+      );
+
+      // In edit mode, don't auto-advance.
+      if (isEditMode) return;
+
+      // Timeline question: don't auto-advance — show inline callout + Next button.
+      if (shouldDeferAdvanceForTimeline(questionId)) {
+        return;
+      }
+
+      advanceFromAnswers(newAnswers);
+    },
+    [currentIndex, answers, advanceFromAnswers, isEditMode],
+  );
 
   const handleNext = useCallback(() => {
     advanceFromAnswers(answers);
@@ -162,12 +209,68 @@ export default function QuizScreen() {
           <Ionicons name="chevron-back" size={24} color={tokens.color.text} />
         </Pressable>
         <Text style={styles.progressLabel}>Question {currentIndex + 1} of {TOTAL}</Text>
-        <View style={{ width: 24 }} />
+        {isEditMode ? (
+          <Pressable
+            onPress={handleUpdateResults}
+            hitSlop={8}
+            testID="quiz-update-results"
+            accessibilityRole="button"
+            accessibilityLabel="Save changes and update results"
+          >
+            <Text style={styles.updateResultsLink}>Update</Text>
+          </Pressable>
+        ) : (
+          <View style={{ width: 24 }} />
+        )}
       </View>
 
-      <View style={styles.progressBarBg}>
-        <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
-      </View>
+      {isEditMode ? (
+        <View style={styles.editBanner} testID="quiz-edit-banner">
+          <Ionicons name="create-outline" size={14} color={tokens.color.teal} />
+          <Text style={styles.editBannerText}>
+            Editing your answers. Change anything and tap Update.
+          </Text>
+        </View>
+      ) : null}
+
+      {isEditMode ? (
+        <View style={styles.questionStripWrapper}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.questionStrip}
+          >
+            {QUIZ_QUESTIONS.map((_, idx) => {
+              const isCurrent = idx === currentIndex;
+              const isAnswered = !!answers[QUIZ_QUESTIONS[idx].id];
+              return (
+                <Pressable
+                  key={idx}
+                  onPress={() => jumpToQuestion(idx)}
+                  style={[
+                    styles.questionDot,
+                    isCurrent && styles.questionDotCurrent,
+                    !isCurrent && isAnswered && styles.questionDotAnswered,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.questionDotText,
+                      (isCurrent || isAnswered) && styles.questionDotTextActive,
+                    ]}
+                  >
+                    {idx + 1}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      ) : (
+        <View style={styles.progressBarBg}>
+          <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
+        </View>
+      )}
 
       <Animated.View style={[styles.questionWrap, { transform: [{ translateX: slideAnim }] }]}>
         {/*
@@ -363,6 +466,65 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: tokens.font.bodySemiBold,
     fontWeight: "600",
+  },
+  updateResultsLink: {
+    fontSize: 14,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600",
+    color: tokens.color.teal,
+  },
+  editBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    backgroundColor: "rgba(51, 196, 220, 0.10)",
+    borderWidth: 1,
+    borderColor: "rgba(51, 196, 220, 0.30)",
+    marginBottom: 12,
+  },
+  editBannerText: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: tokens.font.body,
+    color: "#0E7A8A",
+    lineHeight: 17,
+  },
+  questionStripWrapper: {
+    marginBottom: 16,
+  },
+  questionStrip: {
+    gap: 8,
+    paddingRight: 20,
+  },
+  questionDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(28,43,94,0.06)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(28,43,94,0.1)",
+  },
+  questionDotCurrent: {
+    backgroundColor: tokens.color.teal,
+    borderColor: tokens.color.teal,
+  },
+  questionDotAnswered: {
+    backgroundColor: "rgba(51, 196, 220, 0.15)",
+    borderColor: "rgba(51, 196, 220, 0.3)",
+  },
+  questionDotText: {
+    fontSize: 12,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600",
+    color: tokens.color.subtext,
+  },
+  questionDotTextActive: {
+    color: "#fff",
   },
 });
 

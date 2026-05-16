@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { DragBottomSheet, type DragBottomSheetHandle } from "@/src/components/DragBottomSheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   calculateQuizResult,
@@ -380,6 +381,16 @@ export default function ResultScreen() {
     router.replace("/onboarding/quiz");
   };
 
+  const handleEditAnswers = () => {
+    trackEvent("result_edit_answers_tapped", {
+      readiness_level: readiness.level,
+    });
+    router.replace({
+      pathname: "/onboarding/quiz",
+      params: { prefill: JSON.stringify(answers), edit: "1" },
+    });
+  };
+
   const handleExploreTopMatch = async () => {
     if (!result.topMatch?.slug) return;
     await completeOnboarding(result, true, numericAnswers);
@@ -399,7 +410,7 @@ export default function ResultScreen() {
         <View style={styles.card}>
           <View style={styles.successRow}>
             <Ionicons name="checkmark-circle" size={16} color={tokens.color.teal} />
-            <Text style={styles.successText}>Sent! Check your inbox. Your full breakdown is on its way.</Text>
+            <Text style={styles.successText}>Sent. Check your inbox — your full breakdown is on its way.</Text>
           </View>
         </View>
       );
@@ -449,11 +460,12 @@ export default function ResultScreen() {
   });
 
   const [revealedLevels, setRevealedLevels] = useState<Record<BlockerLevel, boolean>>({
-    critical: false,
+    critical: true,
     moderate: false,
     explore: false,
   });
   const [sheetBlocker, setSheetBlocker] = useState<Blocker | null>(null);
+  const sheetRef = React.useRef<DragBottomSheetHandle | null>(null);
   const openBlockerSheet = (blocker: Blocker) => {
     setSheetBlocker(blocker);
     trackEvent("result_blocker_card_tapped", {
@@ -462,16 +474,25 @@ export default function ResultScreen() {
     });
   };
   const closeSheet = () => setSheetBlocker(null);
+  const requestSheetClose = () => {
+    if (sheetRef.current) {
+      sheetRef.current.close();
+    } else {
+      closeSheet();
+    }
+  };
   const scrollToSection = (level: BlockerLevel) => {
     if (grouped[level].length === 0) return;
     const wasRevealed = revealedLevels[level];
-    setRevealedLevels((prev) => ({ ...prev, [level]: true }));
+    setRevealedLevels((prev) => ({ ...prev, [level]: !wasRevealed }));
+    if (wasRevealed) {
+      return;
+    }
     const doScroll = () => {
       const y = sectionYRef.current[level];
       scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
     };
-    if (wasRevealed) doScroll();
-    else setTimeout(doScroll, 60);
+    setTimeout(doScroll, 60);
     trackEvent("result_pill_opened", { level, count: grouped[level].length });
   };
   const openWorksheetFromSheet = async () => {
@@ -552,35 +573,18 @@ export default function ResultScreen() {
             onDismiss={() => setActiveDelta(null)}
           />
         ) : null}
-        {result.topMatch ? (
-          <Pressable
-            onPress={handleExploreTopMatch}
-            disabled={!result.topMatch.slug}
-            style={({ pressed }) => [styles.card, styles.topMatchCard, pressed && result.topMatch?.slug ? { opacity: 0.92 } : null]}
-            accessibilityRole={result.topMatch.slug ? "button" : undefined}
-            accessibilityLabel={`Best fit: ${result.topMatch.name}`}
-            testID="result-top-match-card"
-          >
-            <Text style={styles.sectionLabel}>Your best fit</Text>
-            <View style={styles.matchRow}>
-              <Text style={styles.matchFlag}>{result.topMatch.flag}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.matchName}>{result.topMatch.name}</Text>
-                <Text style={styles.matchDesc}>{result.topMatch.description}</Text>
-              </View>
-              {result.topMatch.slug ? (
-                <Ionicons name="chevron-forward" size={20} color={tokens.color.subtext} />
-              ) : null}
-            </View>
-          </Pressable>
-        ) : null}
-
         <View style={styles.card}>
           <View style={styles.readinessHeaderRow}>
             <Text style={styles.readinessLabel}>Relocation readiness</Text>
-            <Pressable onPress={handleRestart} hitSlop={8} testID="result-restart-link">
-              <Text style={styles.restartLinkInline}>Restart</Text>
-            </Pressable>
+            <View style={styles.headerLinksRow}>
+              <Pressable onPress={handleEditAnswers} hitSlop={8} testID="result-edit-answers-link">
+                <Text style={styles.restartLinkInline}>Edit answers</Text>
+              </Pressable>
+              <Text style={styles.headerLinkDot}>·</Text>
+              <Pressable onPress={handleRestart} hitSlop={8} testID="result-restart-link">
+                <Text style={styles.restartLinkInline}>Restart</Text>
+              </Pressable>
+            </View>
           </View>
           <View style={styles.readinessPctRow}>
             <Text style={styles.readinessPctValue} testID="readiness-pct-value">
@@ -623,15 +627,16 @@ export default function ResultScreen() {
                       ]}
                       accessibilityRole="button"
                       accessibilityState={{ expanded: revealed, disabled }}
-                      accessibilityLabel={`${revealed ? "Showing" : "Show"} ${shown} ${LEVEL_COLORS[lvl].label} items`}
+                      accessibilityLabel={`${revealed ? "Hide" : "Show"} ${shown} ${LEVEL_COLORS[lvl].label} items`}
+                      accessibilityHint="Expands the list below"
                       testID={`count-pill-${lvl}`}
                     >
                       <View style={[styles.countPillDot, { backgroundColor: LEVEL_COLORS[lvl].chip }]} />
                       <Text style={styles.countPillText}>{shown} {LEVEL_COLORS[lvl].label.toLowerCase()}</Text>
                       <Ionicons
-                        name={revealed ? "checkmark" : "add"}
+                        name={revealed ? "chevron-up" : "chevron-down"}
                         size={14}
-                        color={tokens.color.subtext}
+                        color={LEVEL_COLORS[lvl].chip}
                       />
                     </Pressable>
                   );
@@ -641,6 +646,32 @@ export default function ResultScreen() {
             </>
           ) : null}
         </View>
+
+        {result.topMatch ? (
+          <Pressable
+            onPress={handleExploreTopMatch}
+            disabled={!result.topMatch.slug}
+            style={({ pressed }) => [styles.card, styles.topMatchCard, pressed && result.topMatch?.slug ? { opacity: 0.92 } : null]}
+            accessibilityRole={result.topMatch.slug ? "button" : undefined}
+            accessibilityLabel={`Top region to explore: ${result.topMatch.name}`}
+            testID="result-top-match-card"
+          >
+            <Text style={styles.sectionLabel}>Top region to explore</Text>
+            <View style={styles.matchRow}>
+              <Text style={styles.matchFlag}>{result.topMatch.flag}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.matchName}>Start with {result.topMatch.name}</Text>
+                <Text style={styles.matchDesc}>{result.topMatch.description}</Text>
+              </View>
+              {result.topMatch.slug ? (
+                <Ionicons name="chevron-forward" size={20} color={tokens.color.subtext} />
+              ) : null}
+            </View>
+            <Text style={styles.topMatchFootnote}>
+              Based on the region you picked. You can compare other countries any time.
+            </Text>
+          </Pressable>
+        ) : null}
 
         {renderBlockerSection("critical")}
         {renderBlockerSection("moderate")}
@@ -680,15 +711,13 @@ export default function ResultScreen() {
         </Pressable>
       </View>
 
-      <Modal
+      <DragBottomSheet
+        ref={sheetRef}
         visible={sheetBlocker !== null}
-        transparent
-        animationType="slide"
-        onRequestClose={closeSheet}
+        onClose={closeSheet}
+        testID="blocker-sheet"
       >
-        <Pressable style={styles.sheetBackdrop} onPress={closeSheet} testID="sheet-backdrop" />
-        <View style={[styles.sheetContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-          <View style={styles.sheetHandle} />
+        <View style={{ paddingBottom: Math.max(insets.bottom, 16) }}>
           {sheetBlocker ? (
             <>
               <View style={styles.sheetHeader}>
@@ -697,7 +726,7 @@ export default function ResultScreen() {
                 </View>
                 <Text style={styles.sheetTitle} numberOfLines={2}>{sheetBlocker.title}</Text>
                 <Pressable
-                  onPress={closeSheet}
+                  onPress={requestSheetClose}
                   hitSlop={12}
                   style={styles.sheetClose}
                   accessibilityRole="button"
@@ -737,7 +766,7 @@ export default function ResultScreen() {
             </>
           ) : null}
         </View>
-      </Modal>
+      </DragBottomSheet>
 
       <QuizSaveModal
         visible={savePromptVisible}
@@ -759,17 +788,50 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     gap: 16,
   },
+  readinessPctValue: {
+    fontSize: 32,
+    fontFamily: tokens.font.display,
+    color: tokens.color.text,
+    lineHeight: 36,
+  },
+  readinessPctRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
+    marginBottom: 8,
+  },
+  readinessPctOf: {
+    fontSize: 14,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
+  },
   readinessHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
   },
+  headerLinksRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerLinkDot: {
+    fontSize: 13,
+    color: tokens.color.subtext,
+  },
   restartLinkInline: {
     fontSize: 13,
     fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     textDecorationLine: "underline",
+  },
+  topMatchFootnote: {
+    marginTop: 12,
+    fontSize: 12,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
+    lineHeight: 17,
   },
   countPillRow: {
     flexDirection: "row",
@@ -780,11 +842,11 @@ const styles = StyleSheet.create({
   countPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    borderWidth: 1,
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1.5,
   },
   countPillDot: {
     width: 7,

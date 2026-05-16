@@ -173,7 +173,9 @@ type AnalyticsEvent =
   | "result_blocker_worksheet_tapped"
   | "result_top_match_tapped"
   | "auth_prompt_shown"
-  | "auth_prompt_converted";
+  | "auth_prompt_converted"
+  | "result_edit_answers_tapped"
+  | "quiz_edit_resubmitted";
 
 type EventProperties = Record<string, string | number | boolean | undefined>;
 

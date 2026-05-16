@@ -94,6 +94,12 @@ export const Animated = {
   createAnimatedComponent: (C: any) => C,
 };
 
+export const PanResponder = {
+  create: (_config: AnyProps) => ({
+    panHandlers: {},
+  }),
+};
+
 export function useWindowDimensions() {
   return { width: 400, height: 800, scale: 2, fontScale: 1 };
 }
@@ -142,6 +148,7 @@ export default {
   StyleSheet,
   Platform,
   Animated,
+  PanResponder,
   useWindowDimensions,
   Dimensions,
   Alert,
