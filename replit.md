@@ -206,7 +206,7 @@ When writing or modifying code, always observe these constraints:
 
 1. **Do not touch entitlement or billing logic** unless the task explicitly requires it. Files to treat as protected: `src/contexts/EntitlementContext.tsx`, `src/contexts/entitlementDerivation.ts`, `src/billing/entitlementGate.ts`, `src/config/subscription.ts`, `src/subscriptions/revenuecat.ts`, `src/subscriptions/stripeWeb.ts`, `contexts/SubscriptionContext.tsx`.
 
-2. **Monetization model:** Two subscriptions only — Monthly Explorer (iOS `monthly_subscription_all_access`, $14.99/mo, no trial) and Annual Pathfinder (iOS `ExpatHub_pathfinder`, $89/yr, 14-day trial). Single entitlement ID: `full_access_subscription`. No Decision Pass. No Country Lifetime Unlock. Do not add, reference, or restore any retired products.
+2. **Monetization model:** Two subscriptions only — Monthly Explorer (iOS `monthly_subscription_all_access`, $14.99/mo, 14-day trial) and Annual Pathfinder (iOS `ExpatHub_pathfinder`, $89/yr, 14-day trial). Single entitlement ID: `full_access_subscription`. No Decision Pass. No Country Lifetime Unlock. Do not add, reference, or restore any retired products.
 
 3. **Country count is 11.** The canonical list is `LAUNCH_COUNTRIES` in `src/config/subscription.ts`. Do not hardcode a different list anywhere.
 
