@@ -202,30 +202,34 @@ export default function QuizScreen() {
           <View style={styles.optionsWrap}>
             {question.options.map((opt) => {
               const selected = answers[question.id] === opt.value;
+              const showCalloutHere =
+                question.id === TIMELINE_QUESTION_ID &&
+                selected &&
+                answers[TIMELINE_QUESTION_ID] === opt.value;
               return (
-                <Pressable
-                  key={opt.value}
-                  onPress={() => selectAnswer(opt.value)}
-                  style={({ pressed }) => [
-                    styles.optionCard,
-                    selected && styles.optionCardSelected,
-                    pressed && { opacity: 0.9 },
-                  ]}
-                >
-                  {opt.emoji ? (
-                    <Text style={styles.optionEmoji}>{opt.emoji}</Text>
+                <React.Fragment key={opt.value}>
+                  <Pressable
+                    onPress={() => selectAnswer(opt.value)}
+                    style={({ pressed }) => [
+                      styles.optionCard,
+                      selected && styles.optionCardSelected,
+                      pressed && { opacity: 0.9 },
+                    ]}
+                  >
+                    {opt.emoji ? (
+                      <Text style={styles.optionEmoji}>{opt.emoji}</Text>
+                    ) : null}
+                    <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                  {showCalloutHere ? (
+                    <TimelineCallout value={answers[TIMELINE_QUESTION_ID] as QuizAnswer} />
                   ) : null}
-                  <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>
-                    {opt.label}
-                  </Text>
-                </Pressable>
+                </React.Fragment>
               );
             })}
           </View>
-
-          {question.id === TIMELINE_QUESTION_ID && answers[TIMELINE_QUESTION_ID] ? (
-            <TimelineCallout value={answers[TIMELINE_QUESTION_ID] as QuizAnswer} />
-          ) : null}
 
           {question.id === TIMELINE_QUESTION_ID ? (
             <Pressable
