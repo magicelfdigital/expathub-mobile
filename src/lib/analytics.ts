@@ -163,6 +163,14 @@ type AnalyticsEvent =
   | "planner_step_completed"
   | "planner_completed"
   | "planner_step_expanded"
+  // planner_step_collapsed properties:
+  //   stepId: string         — the generic planner step that was closed
+  //   country: string        — country slug the planner was attached to
+  //   msOpen: number         — wall-clock ms the step was expanded for
+  //   bounced: boolean       — true when msOpen < PLANNER_BOUNCE_THRESHOLD_MS;
+  //                            tag (not drop) lets the warehouse exclude
+  //                            accidental taps from dwell-time stats while
+  //                            still surfacing them in raw event counts.
   | "planner_step_collapsed"
   | "password_reset_opened"
   | "password_reset_submitted"
@@ -178,6 +186,15 @@ type AnalyticsEvent =
   | "quiz_edit_resubmitted";
 
 type EventProperties = Record<string, string | number | boolean | undefined>;
+
+// Open/close cycles for an expanded planner step shorter than this are
+// flagged with `bounced: true` on the `planner_step_collapsed` event so
+// the analytics warehouse can exclude accidental taps from dwell-time
+// stats. 500ms was chosen to be safely below realistic reading time
+// while still catching most fat-fingered chevron presses; the event is
+// still emitted so the unmount-on-close case (user opened a step and
+// immediately navigated away) remains visible as raw signal.
+export const PLANNER_BOUNCE_THRESHOLD_MS = 500;
 
 const listeners: Array<(event: AnalyticsEvent, props: EventProperties) => void> = [];
 

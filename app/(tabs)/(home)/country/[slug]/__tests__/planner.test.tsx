@@ -32,6 +32,7 @@ const trackEvent = jest.fn();
 jest.mock("@/src/lib/analytics", () => ({
   trackEvent: (...args: any[]) => trackEvent(...args),
   logFbEvent: () => {},
+  PLANNER_BOUNCE_THRESHOLD_MS: 500,
 }));
 
 const startPlan = jest.fn();
@@ -346,7 +347,59 @@ describe("PlannerScreen — functional", () => {
     expect(collapsed[0][1]).toMatchObject({
       stepId: GENERIC_PLAN_STEPS[0].id,
       country: "portugal",
+      // Two synchronous taps in the same tick → msOpen well under 500ms,
+      // so the event must be flagged as a bounce for the warehouse to
+      // exclude from dwell-time stats.
+      bounced: true,
     });
+    expect(typeof collapsed[0][1].msOpen).toBe("number");
+    expect(collapsed[0][1].msOpen).toBeLessThan(500);
+  });
+
+  it("tags planner_step_collapsed with bounced=false when the step was open past the threshold", () => {
+    const { GENERIC_PLAN_STEPS } = require("@/src/data/planSteps");
+    activeCountrySlug = "portugal";
+    activePathwayId = "skilled-migrant";
+    let renderer: any;
+    act(() => {
+      renderer = TestRenderer.create(<PlannerScreen />);
+    });
+    const stepRow = renderer.root.findAll((n: any) => {
+      if (n.type !== "Pressable") return false;
+      if (typeof n.props?.onPress !== "function") return false;
+      const texts = n.findAllByType("Text");
+      return texts.some((t: any) => {
+        const c = t.props?.children;
+        const flat = Array.isArray(c) ? c.join("") : String(c ?? "");
+        return flat === GENERIC_PLAN_STEPS[0].title;
+      });
+    })[0];
+    expect(stepRow).toBeDefined();
+
+    const realNow = Date.now;
+    let now = 1_000_000;
+    Date.now = () => now;
+    try {
+      act(() => {
+        stepRow.props.onPress(); // expand at t=now
+      });
+      now += 1500; // dwell 1.5s — well past the 500ms threshold
+      act(() => {
+        stepRow.props.onPress(); // collapse
+      });
+    } finally {
+      Date.now = realNow;
+    }
+    const collapsed = trackEvent.mock.calls.filter(
+      (c) => c[0] === "planner_step_collapsed",
+    );
+    expect(collapsed).toHaveLength(1);
+    expect(collapsed[0][1]).toMatchObject({
+      stepId: GENERIC_PLAN_STEPS[0].id,
+      country: "portugal",
+      bounced: false,
+    });
+    expect(collapsed[0][1].msOpen).toBeGreaterThanOrEqual(500);
   });
 
   it("renders the Spain country name (not Portugal) when the route slug is spain — even with selectedCountrySlug=portugal as a decoy", () => {

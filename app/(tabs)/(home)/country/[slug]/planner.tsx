@@ -28,7 +28,7 @@ import { PlannerConfetti } from "@/src/components/PlannerConfetti";
 import { PlannerLegacyStepBody } from "@/src/components/PlannerLegacyStepBody";
 import { useProgress } from "@/src/hooks/useProgress";
 import { useAutoCompletePlannerSteps } from "@/src/hooks/useAutoCompletePlannerSteps";
-import { trackEvent } from "@/src/lib/analytics";
+import { PLANNER_BOUNCE_THRESHOLD_MS, trackEvent } from "@/src/lib/analytics";
 import {
   GENERIC_PLAN_STEPS,
   PLAN_STAGES,
@@ -442,10 +442,19 @@ export default function PlannerScreen() {
       openedStepRef.current = null;
       return;
     }
+    const msOpen = Date.now() - open.openedAt;
+    // Tag very-short open/close cycles as bounced so the analytics
+    // warehouse can filter accidental taps / fat-fingered chevron
+    // presses out of the dwell-time distribution without losing the
+    // signal entirely (the event itself is still emitted, including
+    // the unmount-on-close case where the user opened a step then
+    // immediately navigated away).
+    // See PLANNER_BOUNCE_THRESHOLD_MS in src/lib/analytics.ts.
     trackEvent("planner_step_collapsed", {
       stepId: open.stepId,
       country: open.country,
-      msOpen: Date.now() - open.openedAt,
+      msOpen,
+      bounced: msOpen < PLANNER_BOUNCE_THRESHOLD_MS,
     });
     openedStepRef.current = null;
   }, []);
