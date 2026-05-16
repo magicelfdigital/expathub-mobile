@@ -40,7 +40,7 @@ export default function AccountScreen() {
   } = useSubscription();
 
   const { quizResult, clearForRetake } = useOnboarding();
-  const { activeCountrySlug, startPlan, resetPlan } = usePlan();
+  const { activeCountrySlug, startPlan, requestResetPlan } = usePlan();
   const { percent: planPercent } = useProgressPercent(activeCountrySlug);
   const planCountry = activeCountrySlug ? getCountry(activeCountrySlug) ?? null : null;
   const planCountryName =
@@ -83,24 +83,17 @@ export default function AccountScreen() {
     [startPlan],
   );
 
-  const handleResetPlan = useCallback(async () => {
-    const confirmed = Platform.OS === "web"
-      ? window.confirm("Reset your active plan? Your step progress will be cleared.")
-      : await new Promise<boolean>((resolve) => {
-          Alert.alert(
-            "Reset plan?",
-            "This clears your active plan and step progress. You can start a new plan from any country anytime.",
-            [
-              { text: "Keep plan", style: "cancel", onPress: () => resolve(false) },
-              { text: "Reset", style: "destructive", onPress: () => resolve(true) },
-            ],
-            { cancelable: true, onDismiss: () => resolve(false) },
-          );
-        });
-      if (!confirmed) return;
-      setShowPlanSwitcher(false);
-      resetPlan();
-  }, [resetPlan]);
+  const handleResetPlan = useCallback(() => {
+    setShowPlanSwitcher(false);
+    // PlanContext.requestResetPlan renders the branded ResetPlanDialog on
+    // web and falls back to Alert.alert on native. Closing the switcher
+    // sheet first avoids overlapping presentations on iOS.
+    if (Platform.OS === "web") {
+      requestResetPlan();
+    } else {
+      setTimeout(() => requestResetPlan(), 0);
+    }
+  }, [requestResetPlan]);
 
   const [deleting, setDeleting] = useState(false);
   const [deletedSuccess, setDeletedSuccess] = useState(false);

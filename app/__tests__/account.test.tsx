@@ -75,6 +75,7 @@ jest.mock("@/src/contexts/PlanContext", () => ({
     activeCountrySlug: null,
     startPlan: jest.fn(),
     resetPlan: jest.fn(),
+    requestResetPlan: jest.fn(),
   }),
 }));
 

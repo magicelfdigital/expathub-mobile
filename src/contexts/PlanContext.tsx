@@ -18,6 +18,7 @@ type PlanContextValue = PlanState & {
   completeStep: (stepId: string) => void;
   uncompleteStep: (stepId: string) => void;
   resetPlan: () => void;
+  requestResetPlan: (onConfirmed?: () => void) => void;
   setHasPets: (val: boolean) => void;
   isComplete: boolean;
 };
@@ -44,6 +45,8 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<PlanState>(EMPTY);
   const [isLoaded, setIsLoaded] = useState(false);
   const [switchPrompt, setSwitchPrompt] = useState<SwitchPrompt | null>(null);
+  const [resetPromptVisible, setResetPromptVisible] = useState(false);
+  const resetCallbackRef = useRef<(() => void) | null>(null);
   const stateRef = useRef<PlanState>(state);
   stateRef.current = state;
   const pendingClear = useRef(false);
@@ -151,6 +154,30 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     setState(EMPTY);
   }, []);
 
+  const requestResetPlan = useCallback((onConfirmed?: () => void) => {
+    if (Platform.OS === "web") {
+      resetCallbackRef.current = onConfirmed ?? null;
+      setResetPromptVisible(true);
+    } else {
+      Alert.alert(
+        "Reset plan?",
+        "This clears your active plan and step progress. You can start a new plan from any country anytime.",
+        [
+          { text: "Keep plan", style: "cancel" },
+          {
+            text: "Reset",
+            style: "destructive",
+            onPress: () => {
+              resetPlan();
+              onConfirmed?.();
+            },
+          },
+        ],
+        { cancelable: true },
+      );
+    }
+  }, [resetPlan]);
+
   const setHasPets = useCallback((val: boolean) => {
     setState((prev) => ({ ...prev, hasPets: val }));
   }, []);
@@ -166,10 +193,11 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
       completeStep,
       uncompleteStep,
       resetPlan,
+      requestResetPlan,
       setHasPets,
       isComplete,
     }),
-    [state, isLoaded, startPlan, completeStep, uncompleteStep, resetPlan, setHasPets, isComplete]
+    [state, isLoaded, startPlan, completeStep, uncompleteStep, resetPlan, requestResetPlan, setHasPets, isComplete]
   );
 
   const handleCancelSwitch = useCallback(() => setSwitchPrompt(null), []);
@@ -180,15 +208,34 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     doStartPlan(countrySlug, pathwayId);
   }, [switchPrompt, doStartPlan]);
 
+  const handleCancelReset = useCallback(() => {
+    resetCallbackRef.current = null;
+    setResetPromptVisible(false);
+  }, []);
+  const handleConfirmReset = useCallback(() => {
+    const cb = resetCallbackRef.current;
+    resetCallbackRef.current = null;
+    setResetPromptVisible(false);
+    resetPlan();
+    cb?.();
+  }, [resetPlan]);
+
   return (
     <PlanContext.Provider value={value}>
       {children}
       {Platform.OS === "web" && (
-        <SwitchPlanDialog
-          prompt={switchPrompt}
-          onCancel={handleCancelSwitch}
-          onConfirm={handleConfirmSwitch}
-        />
+        <>
+          <SwitchPlanDialog
+            prompt={switchPrompt}
+            onCancel={handleCancelSwitch}
+            onConfirm={handleConfirmSwitch}
+          />
+          <ResetPlanDialog
+            visible={resetPromptVisible}
+            onCancel={handleCancelReset}
+            onConfirm={handleConfirmReset}
+          />
+        </>
       )}
     </PlanContext.Provider>
   );
@@ -256,6 +303,62 @@ function SwitchPlanDialog({
               <Text style={dialogStyles.confirmBtnText}>
                 Focus on {newLabel}
               </Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function ResetPlanDialog({
+  visible,
+  onCancel,
+  onConfirm,
+}: {
+  visible: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+    >
+      <Pressable
+        style={dialogStyles.overlay}
+        onPress={onCancel}
+        testID="reset-plan-overlay"
+      >
+        <Pressable style={dialogStyles.sheet} onPress={() => {}}>
+          <Text style={dialogStyles.title}>Reset plan?</Text>
+          <Text style={dialogStyles.body}>
+            This clears your active plan and step progress. You can start a new
+            plan from any country anytime.
+          </Text>
+
+          <View style={dialogStyles.actions}>
+            <Pressable
+              testID="reset-plan-cancel"
+              onPress={onCancel}
+              style={({ pressed }) => [
+                dialogStyles.cancelBtn,
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <Text style={dialogStyles.cancelBtnText}>Keep plan</Text>
+            </Pressable>
+            <Pressable
+              testID="reset-plan-confirm"
+              onPress={onConfirm}
+              style={({ pressed }) => [
+                dialogStyles.confirmBtn,
+                pressed && { opacity: 0.9 },
+              ]}
+            >
+              <Text style={dialogStyles.confirmBtnText}>Reset</Text>
             </Pressable>
           </View>
         </Pressable>

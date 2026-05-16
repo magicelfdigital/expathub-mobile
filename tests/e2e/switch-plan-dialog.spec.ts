@@ -379,39 +379,32 @@ test.describe("Switch-plan confirmation dialog (web)", () => {
     expect(parsedAfterConfirm.completedSteps).toEqual([]);
   });
 
-  // Task #139 — the "Reset active plan" row in the account screen's
-  // plan-switcher sheet still uses a native `window.confirm` on web
-  // (app/account.tsx `handleResetPlan`). It isn't covered by the
-  // switch-plan dialog above (different code path, different confirm
-  // mechanism), so a regression — the row going missing, the confirm
-  // wiring becoming a no-op, or `resetPlan` not clearing storage —
-  // wouldn't be caught by the existing specs. This case drives that
-  // exact flow end-to-end and asserts the persisted plan is cleared.
-  test("account screen reset clears the active plan after confirming", async ({
+  // Task #141 — the "Reset active plan" row in the account screen's
+  // plan-switcher sheet originally used a native `window.confirm` on
+  // web, which clashed with the calm in-app feel of every other
+  // confirmation. It now routes through `PlanContext.requestResetPlan`,
+  // which on web renders a branded `ResetPlanDialog` (mirroring the
+  // SwitchPlanDialog pattern) and falls back to `Alert.alert` on
+  // native. This case drives that flow end-to-end and asserts:
+  //   - no native browser dialog appears (failOnNativeDialog),
+  //   - the branded modal (testID `reset-plan-overlay`) is shown,
+  //   - cancelling preserves the active plan,
+  //   - confirming clears the persisted plan storage.
+  test("account screen reset opens a branded dialog and clears the plan on confirm", async ({
     page,
     context,
   }) => {
     test.setTimeout(TEST_TIMEOUT_MS);
 
+    await failOnNativeDialog(page);
     await seedAndRouteContext(context);
-
-    // Accept the native confirm dialog fired by handleResetPlan. We
-    // assert at least one confirm dialog was actually shown so the
-    // test fails if the row ever regresses to a no-op or silently
-    // calls resetPlan without confirming.
-    let confirmDialogCount = 0;
-    page.on("dialog", async (dialog) => {
-      if (dialog.type() === "confirm") {
-        confirmDialogCount += 1;
-      }
-      await dialog.accept().catch(() => {});
-    });
 
     await page.goto("/account", { waitUntil: "domcontentloaded" });
 
     const switchLink = page.getByTestId("account-active-plan-switch");
     await expect(switchLink).toBeVisible({ timeout: TEST_TIMEOUT_MS });
 
+    // 1. Open the plan-switcher sheet, tap "Reset active plan".
     await switchLink.click();
     const sheet = page.getByTestId("account-plan-switch-sheet");
     await expect(sheet).toBeVisible({ timeout: 10_000 });
@@ -419,6 +412,36 @@ test.describe("Switch-plan confirmation dialog (web)", () => {
     const resetBtn = page.getByTestId("account-plan-reset");
     await expect(resetBtn).toBeVisible();
     await resetBtn.click();
+
+    // 2. The branded dialog should appear — testIDs come from
+    //    `ResetPlanDialog` in src/contexts/PlanContext.tsx.
+    const overlay = page.getByTestId("reset-plan-overlay");
+    const cancelBtn = page.getByTestId("reset-plan-cancel");
+    const confirmBtn = page.getByTestId("reset-plan-confirm");
+
+    await expect(overlay).toBeVisible({ timeout: 10_000 });
+    await expect(cancelBtn).toBeVisible();
+    await expect(confirmBtn).toBeVisible();
+
+    // 3. Cancel keeps the seeded Portugal plan intact.
+    await cancelBtn.click();
+    await expect(overlay).toBeHidden({ timeout: 5_000 });
+
+    const planAfterCancel = await page.evaluate(
+      (key) => window.localStorage.getItem(key),
+      PLAN_STORAGE_KEY,
+    );
+    expect(planAfterCancel).not.toBeNull();
+    const parsedAfterCancel = JSON.parse(planAfterCancel as string);
+    expect(parsedAfterCancel.activeCountrySlug).toBe("portugal");
+
+    // 4. Re-open the switcher, tap reset again, confirm → plan cleared.
+    await switchLink.click();
+    await expect(sheet).toBeVisible({ timeout: 10_000 });
+    await resetBtn.click();
+    await expect(overlay).toBeVisible({ timeout: 10_000 });
+    await confirmBtn.click();
+    await expect(overlay).toBeHidden({ timeout: 5_000 });
 
     // PlanContext.resetPlan removes the storage key entirely via a
     // pendingClear flag in its persistence effect; poll until that
@@ -437,7 +460,5 @@ test.describe("Switch-plan confirmation dialog (web)", () => {
         },
       )
       .toBeNull();
-
-    expect(confirmDialogCount).toBeGreaterThan(0);
   });
 });
