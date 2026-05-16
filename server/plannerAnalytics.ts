@@ -756,6 +756,17 @@ export function renderPlannerAnalyticsHtml(
     ? `/api/admin/planner-analytics?country=${encodeURIComponent(activeCountry)}`
     : `/api/admin/planner-analytics`;
 
+  const csvQueryParts: string[] = [];
+  if (activeCountry) {
+    csvQueryParts.push(`country=${encodeURIComponent(activeCountry)}`);
+  }
+  if (!activeCountry && minPlans !== DEFAULT_MIN_PLANS_FOR_COUNTRY_BREAKDOWN) {
+    csvQueryParts.push(`minPlans=${minPlans}`);
+  }
+  const csvHref = csvQueryParts.length
+    ? `/admin/planner-analytics.csv?${csvQueryParts.join("&")}`
+    : `/admin/planner-analytics.csv`;
+
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -906,6 +917,7 @@ export function renderPlannerAnalyticsHtml(
         ? `Showing only <strong>${escapeHtml(titleCaseCountry(activeCountry))}</strong> because the country filter is active. Clear the filter to compare every country side by side.`
         : `Includes any country with at least ${minPlans} plan${minPlans === 1 ? "" : "s"} started — adjust via <code>?minPlans=N</code>. Click a country name to drill in.`
     }
+    <a href="${escapeHtml(csvHref)}">Download CSV</a>
   </p>
   <table>
     <thead>
@@ -921,6 +933,39 @@ export function renderPlannerAnalyticsHtml(
   </table>
 </body>
 </html>`;
+}
+
+function csvEscape(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return "";
+  const str = String(value);
+  if (/[",\r\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+export function renderPlannerAnalyticsCsv(data: PlannerAnalyticsResult): string {
+  const header = [
+    "country",
+    "plans_started",
+    "reached_100",
+    "pct_reaching_100",
+    "median_days_to_completion",
+  ].join(",");
+  const rows = data.byCountry.map((row) =>
+    [
+      csvEscape(row.country),
+      csvEscape(row.plansStarted),
+      csvEscape(row.plansCompleted),
+      csvEscape(row.completionRatePct.toFixed(1)),
+      csvEscape(
+        row.medianDaysToCompletion === null
+          ? ""
+          : row.medianDaysToCompletion.toFixed(1),
+      ),
+    ].join(","),
+  );
+  return [header, ...rows].join("\r\n") + "\r\n";
 }
 
 export function renderAdminIndexHtml(): string {
@@ -1033,6 +1078,36 @@ export function registerPlannerAnalyticsRoutes(
     } catch (err: any) {
       console.error("Planner analytics error:", err?.message);
       res.status(500).json({ error: "Failed to compute planner analytics" });
+    } finally {
+      await pool.end();
+    }
+  });
+
+  app.get("/admin/planner-analytics.csv", async (req, res) => {
+    if (!deps.requireAdminBasicAuth(req, res)) return;
+    const pool = deps.getPool();
+    if (!pool) {
+      res.status(503).type("text/plain").send("Database not configured");
+      return;
+    }
+    try {
+      const data = await computePlannerAnalytics(
+        pool,
+        readPlannerAnalyticsOptions(req),
+      );
+      const csv = renderPlannerAnalyticsCsv(data);
+      const filenameSuffix = data.filter.country
+        ? `-${data.filter.country.replace(/[^a-z0-9-]+/gi, "-")}`
+        : "";
+      res.type("text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="planner-analytics-by-country${filenameSuffix}.csv"`,
+      );
+      res.send(csv);
+    } catch (err: any) {
+      console.error("Planner analytics CSV error:", err?.message);
+      res.status(500).type("text/plain").send("Failed to compute planner analytics");
     } finally {
       await pool.end();
     }

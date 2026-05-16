@@ -1,5 +1,6 @@
 import {
   computePlannerAnalytics,
+  renderPlannerAnalyticsCsv,
   renderPlannerAnalyticsHtml,
   type PlannerAnalyticsResult,
 } from "../plannerAnalytics";
@@ -558,5 +559,93 @@ describe("renderPlannerAnalyticsHtml", () => {
   it("shows an empty-state message when no countries qualify", () => {
     const html = renderPlannerAnalyticsHtml(baseResult({ byCountry: [] }));
     expect(html).toContain("No countries have at least 3 plans started yet.");
+  });
+
+  it("links to the CSV export for the per-country breakdown", () => {
+    const html = renderPlannerAnalyticsHtml(baseResult());
+    expect(html).toContain('href="/admin/planner-analytics.csv"');
+    expect(html).toContain(">Download CSV</a>");
+  });
+
+  it("propagates the active country filter into the CSV download link", () => {
+    const html = renderPlannerAnalyticsHtml(
+      baseResult({
+        filter: { country: "portugal", minPlansForCountryBreakdown: 3 },
+      }),
+    );
+    expect(html).toContain(
+      'href="/admin/planner-analytics.csv?country=portugal"',
+    );
+  });
+
+  it("propagates a non-default minPlans value into the CSV download link", () => {
+    const html = renderPlannerAnalyticsHtml(
+      baseResult({
+        filter: { country: null, minPlansForCountryBreakdown: 7 },
+      }),
+    );
+    expect(html).toContain(
+      'href="/admin/planner-analytics.csv?minPlans=7"',
+    );
+  });
+});
+
+describe("renderPlannerAnalyticsCsv", () => {
+  function makeResult(
+    byCountry: PlannerAnalyticsResult["byCountry"],
+  ): PlannerAnalyticsResult {
+    return {
+      generatedAt: "2026-04-28T00:00:00.000Z",
+      totalSteps: 10,
+      filter: { country: null, minPlansForCountryBreakdown: 3 },
+      countries: [],
+      totals: {
+        plansStarted: 0,
+        plansCompleted: 0,
+        completionRatePct: 0,
+        medianDaysToCompletion: null,
+        medianSampleSize: 0,
+        medianExcludedUnknownStart: 0,
+        medianExcludedUnknownStartPct: 0,
+      },
+      stepCompletion: [],
+      stageDropOff: [],
+      weekly: [],
+      byCountry,
+    };
+  }
+
+  it("renders the header and one row per country with median formatting", () => {
+    const csv = renderPlannerAnalyticsCsv(
+      makeResult([
+        {
+          country: "portugal",
+          plansStarted: 6,
+          plansCompleted: 2,
+          completionRatePct: 33.3,
+          medianDaysToCompletion: 10,
+        },
+        {
+          country: "spain",
+          plansStarted: 4,
+          plansCompleted: 0,
+          completionRatePct: 0,
+          medianDaysToCompletion: null,
+        },
+      ]),
+    );
+    const lines = csv.trim().split("\r\n");
+    expect(lines[0]).toBe(
+      "country,plans_started,reached_100,pct_reaching_100,median_days_to_completion",
+    );
+    expect(lines[1]).toBe("portugal,6,2,33.3,10.0");
+    expect(lines[2]).toBe("spain,4,0,0.0,");
+  });
+
+  it("returns just the header row when no countries qualify", () => {
+    const csv = renderPlannerAnalyticsCsv(makeResult([]));
+    expect(csv).toBe(
+      "country,plans_started,reached_100,pct_reaching_100,median_days_to_completion\r\n",
+    );
   });
 });
