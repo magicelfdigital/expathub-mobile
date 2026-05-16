@@ -44,3 +44,6 @@ yarn-error.*
 .vercel
 
 .env
+
+# monitoring runtime artifacts
+monitoring/analytics-health-state.json
