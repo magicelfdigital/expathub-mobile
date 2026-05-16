@@ -1,10 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
-import { Animated, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Animated, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { QUIZ_QUESTIONS, TIMELINE_CALLOUTS, type QuizAnswer, type TimelineTone } from "@/src/data/quiz";
-import { QuizSaveModal } from "@/src/components/QuizSaveModal";
 import { tokens } from "@/theme/tokens";
 import { trackEvent } from "@/src/lib/analytics";
 import {
@@ -32,12 +31,9 @@ export default function QuizScreen() {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [savePromptVisible, setSavePromptVisible] = useState(false);
-  const [savePromptNoCount, setSavePromptNoCount] = useState(0);
   const slideAnim = useRef(new Animated.Value(0)).current;
   const startedRef = useRef(false);
   const completedRef = useRef(false);
-  const savePromptShownRef = useRef(false);
   const lastIndexRef = useRef(0);
   const answersRef = useRef<Record<number, string>>({});
 
@@ -95,27 +91,24 @@ export default function QuizScreen() {
 
   const advanceFromAnswers = useCallback(
     (newAnswers: Record<number, string>) => {
+      // The mid-quiz save prompt was removed. The equivalent email-capture
+      // moment now fires on the result screen, after the score reveal —
+      // see app/onboarding/result.tsx. We always pass
+      // savePromptAlreadyShown=true here so decideQuizAdvance can never
+      // return a "save_prompt" decision, even if older callers don't get
+      // updated.
       const decision = decideQuizAdvance({
         currentIndex,
         total: TOTAL,
         answers: newAnswers,
-        savePromptAlreadyShown: savePromptShownRef.current,
+        savePromptAlreadyShown: true,
       });
-      if (decision.kind === "save_prompt") {
-        savePromptShownRef.current = true;
-        setSavePromptNoCount(decision.noCount);
-        setSavePromptVisible(true);
-        trackEvent("quiz_save_shown", {
-          questionIndex: currentIndex,
-          noCount: decision.noCount,
-        });
-        return;
-      }
       if (decision.kind === "next") {
         animateTransition("forward", () => setCurrentIndex(currentIndex + 1));
         return;
       }
-      // finish
+      // finish (save_prompt is suppressed above so this is the only
+      // remaining non-next branch)
       completedRef.current = true;
       trackEvent("quiz_completed", { totalQuestions: TOTAL });
       router.push({
@@ -154,17 +147,6 @@ export default function QuizScreen() {
     advanceFromAnswers(answers);
   }, [advanceFromAnswers, answers]);
 
-  const handleSavePromptContinue = useCallback(() => {
-    setSavePromptVisible(false);
-    animateTransition("forward", () => setCurrentIndex((idx) => idx + 1));
-  }, [animateTransition]);
-
-  const handleSavePromptClose = useCallback(() => {
-    setSavePromptVisible(false);
-    // Advance the quiz so the user is not stranded on the question they just answered.
-    animateTransition("forward", () => setCurrentIndex((idx) => idx + 1));
-  }, [animateTransition]);
-
   const goBack = useCallback(() => {
     if (currentIndex > 0) {
       animateTransition("back", () => setCurrentIndex(currentIndex - 1));
@@ -188,12 +170,13 @@ export default function QuizScreen() {
       </View>
 
       <Animated.View style={[styles.questionWrap, { transform: [{ translateX: slideAnim }] }]}>
-        <ScrollView
-          style={styles.questionScroll}
-          contentContainerStyle={styles.questionScrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+        {/*
+          Flex-only layout (no ScrollView) so every question + its
+          options fit on screen without scrolling. The tightest case is
+          Q9 (5 region options) — option padding, gap and font sizes
+          have been tuned so even that fits an iPhone SE viewport.
+        */}
+        <View style={styles.questionInner}>
           {question.type === "region" && (
             <Text style={styles.categoryLabel}>{question.category}</Text>
           )}
@@ -219,7 +202,7 @@ export default function QuizScreen() {
                     {opt.emoji ? (
                       <Text style={styles.optionEmoji}>{opt.emoji}</Text>
                     ) : null}
-                    <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>
+                    <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]} numberOfLines={2}>
                       {opt.label}
                     </Text>
                   </Pressable>
@@ -246,15 +229,8 @@ export default function QuizScreen() {
               <Ionicons name="arrow-forward" size={18} color="#fff" />
             </Pressable>
           ) : null}
-        </ScrollView>
+        </View>
       </Animated.View>
-
-      <QuizSaveModal
-        visible={savePromptVisible}
-        noCount={savePromptNoCount}
-        onClose={handleSavePromptClose}
-        onContinue={handleSavePromptContinue}
-      />
     </View>
   );
 }
@@ -284,7 +260,7 @@ const styles = StyleSheet.create({
     height: 4,
     backgroundColor: "rgba(28,43,94,0.1)",
     borderRadius: 2,
-    marginBottom: 32,
+    marginBottom: 20,
     overflow: "hidden",
   },
   progressBarFill: {
@@ -296,39 +272,36 @@ const styles = StyleSheet.create({
     flex: 1,
     overflow: "hidden",
   },
-  questionScroll: {
+  questionInner: {
     flex: 1,
-  },
-  questionScrollContent: {
-    flexGrow: 1,
+    paddingTop: 8,
+    paddingBottom: 16,
     justifyContent: "center",
-    paddingTop: 16,
-    paddingBottom: 32,
   },
   categoryLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: tokens.font.bodySemiBold,
     fontWeight: "600",
     color: tokens.color.teal,
     textTransform: "uppercase",
     letterSpacing: 1,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   questionText: {
-    fontSize: 22,
+    fontSize: 20,
     fontFamily: tokens.font.display,
     color: tokens.color.text,
-    lineHeight: 32,
-    marginBottom: 32,
+    lineHeight: 26,
+    marginBottom: 18,
   },
   optionsWrap: {
-    gap: 12,
+    gap: 8,
   },
   optionCard: {
     backgroundColor: "#fff",
     borderRadius: 14,
-    paddingVertical: 18,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderWidth: 1.5,
     borderColor: "rgba(28,43,94,0.1)",
     flexDirection: "row",

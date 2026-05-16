@@ -137,7 +137,18 @@ async function getActualPriceUSD(productId: string): Promise<number | undefined>
   }
 }
 
-type PaywallEntryPoint = "compare" | "brief" | "pathway" | "general" | "country";
+type PaywallEntryPoint =
+  | "compare"
+  | "brief"
+  | "pathway"
+  | "general"
+  | "country"
+  // Surfaces added when the paywall placement was moved to end-of-results
+  // and worksheet-open. Tagged distinctly so dashboards can split
+  // conversion by the new placements vs. the legacy mid-list ones.
+  | "result_screen"
+  | "worksheet_list"
+  | "worksheet_detail";
 
 type ProPaywallProps = {
   countrySlug?: string;

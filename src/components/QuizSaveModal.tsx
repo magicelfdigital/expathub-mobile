@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { getApiUrl } from "@/lib/query-client";
@@ -18,6 +18,21 @@ export function QuizSaveModal({ visible, noCount, onClose, onContinue }: Props) 
   const [busy, setBusy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // The old mid-quiz placement fired `quiz_save_shown` from the quiz screen
+  // when it decided to surface the modal. Now that the modal mounts on the
+  // result screen we own the impression event here, so dashboards keep
+  // getting a `shown` row for every appearance.
+  const shownOnceRef = useRef(false);
+  useEffect(() => {
+    if (!visible) {
+      shownOnceRef.current = false;
+      return;
+    }
+    if (shownOnceRef.current) return;
+    shownOnceRef.current = true;
+    trackEvent("quiz_save_shown", { noCount, placement: "result_screen" });
+  }, [visible, noCount]);
 
   const handleSubmit = async () => {
     if (busy) return;
@@ -42,7 +57,11 @@ export function QuizSaveModal({ visible, noCount, onClose, onContinue }: Props) 
         }),
       });
       if (!res.ok) throw new Error("Could not save right now.");
-      trackEvent("quiz_save_submitted", { noCount });
+      // `placement` distinguishes the new post-result modal from the
+      // legacy mid-quiz one in admin dashboards. The modal currently only
+      // mounts on the result screen, but we tag the event explicitly so
+      // analytics consumers don't have to infer it.
+      trackEvent("quiz_save_submitted", { noCount, placement: "result_screen" });
       setSubmitted(true);
     } catch (e: any) {
       setError(e?.message ?? "Something went wrong.");
@@ -52,7 +71,7 @@ export function QuizSaveModal({ visible, noCount, onClose, onContinue }: Props) 
   };
 
   const handleClose = () => {
-    trackEvent("quiz_save_dismissed", { noCount, submitted });
+    trackEvent("quiz_save_dismissed", { noCount, submitted, placement: "result_screen" });
     setEmail("");
     setSubmitted(false);
     setError(null);
@@ -81,13 +100,16 @@ export function QuizSaveModal({ visible, noCount, onClose, onContinue }: Props) 
               </View>
               <Text style={s.title}>Check your inbox</Text>
               <Text style={s.body}>
-                We'll send your blocker breakdown and starter guide shortly. Want to keep going for your full score?
+                We'll send your blocker breakdown and starter guide shortly. Your results are ready below.
               </Text>
+              {/*
+                The legacy copy here was "Finish the quiz", which made
+                sense when the modal mounted mid-quiz. Now that the modal
+                only appears on the result screen (post-reveal), the
+                accurate action is to dismiss back to the results.
+              */}
               <Pressable onPress={handleContinue} style={s.primaryBtn}>
-                <Text style={s.primaryBtnText}>Finish the quiz</Text>
-              </Pressable>
-              <Pressable onPress={handleClose} style={s.secondaryBtn}>
-                <Text style={s.secondaryBtnText}>I'll come back later</Text>
+                <Text style={s.primaryBtnText}>Back to my results</Text>
               </Pressable>
             </>
           ) : (
@@ -95,10 +117,10 @@ export function QuizSaveModal({ visible, noCount, onClose, onContinue }: Props) 
               <View style={[s.iconWrap, { backgroundColor: "rgba(232,153,26,0.15)" }]}>
                 <Ionicons name="bookmark" size={28} color={tokens.color.gold} />
               </View>
-              <Text style={s.title}>Save your progress</Text>
+              <Text style={s.title}>Save your results</Text>
               <Text style={s.body}>
-                You've identified {noCount} blockers so far. Drop your email and we'll send your personalised starter
-                guide — no account required.
+                You flagged {noCount} blockers in your readiness check. Drop your email and we'll send your full
+                breakdown plus the worksheets that lift each score — no account required.
               </Text>
 
               <TextInput

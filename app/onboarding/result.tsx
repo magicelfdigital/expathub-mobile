@@ -29,6 +29,7 @@ import {
   shouldShowPaywallAfterUrgent,
 } from "@/src/onboarding/resultFlow";
 import { WORKSHEET_BY_QUESTION_ID } from "@/src/data/worksheets";
+import { QuizSaveModal } from "@/src/components/QuizSaveModal";
 
 const READINESS_COLORS: Record<ReadinessLevel, string> = {
   just_getting_started: "#9BA8C0",
@@ -188,6 +189,30 @@ export default function ResultScreen() {
   const [emailSent, setEmailSent] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
   const [saveCardDismissed, setSaveCardDismissed] = useState(false);
+  const [savePromptVisible, setSavePromptVisible] = useState(false);
+  const savePromptShownRef = React.useRef(false);
+
+  // Replaces the mid-quiz save modal. Trigger the same email-capture moment
+  // here on the result screen, AFTER the score is revealed, when the user
+  // landed with at least 3 "no" answers. Analytics events (quiz_save_shown
+  // / quiz_save_submitted / quiz_save_dismissed) are still fired from the
+  // QuizSaveModal component itself so existing dashboards keep working.
+  const savePromptNoCount = useMemo(() => {
+    let n = 0;
+    for (let i = 1; i <= 9; i++) {
+      if ((answers as Record<string, unknown>)[String(i)] === "no") n++;
+    }
+    return n;
+  }, [answers]);
+
+  React.useEffect(() => {
+    if (savePromptShownRef.current) return;
+    if (savePromptNoCount < 3) return;
+    savePromptShownRef.current = true;
+    // Let the result reveal land before surfacing the ask.
+    const t = setTimeout(() => setSavePromptVisible(true), 900);
+    return () => clearTimeout(t);
+  }, [savePromptNoCount]);
 
   const handleEmailResults = async () => {
     const addr = email;
@@ -256,7 +281,16 @@ export default function ResultScreen() {
   const handleUnlockRoadmap = async () => {
     await completeOnboarding(result, true, numericAnswers);
     trackEvent("paywall_unlock_tapped", { source: "result_screen", readiness_level: readiness.level });
-    router.push("/subscribe");
+    // Pass surface so ProPaywall tags its own view/dismiss/conversion
+    // events with `entryPoint: "result_screen"`, keeping this placement
+    // distinguishable from the legacy mid-list paywall in dashboards.
+    router.push({
+      pathname: "/subscribe" as any,
+      params: {
+        entryPoint: "result_screen",
+        unlockLabel: "unlock your full readiness roadmap",
+      },
+    });
   };
 
   const handleRestart = () => {
@@ -417,6 +451,9 @@ export default function ResultScreen() {
 
   const showPaywallAfterUrgent = shouldShowPaywallAfterUrgent(result.blockers);
 
+  const handleSavePromptClose = () => setSavePromptVisible(false);
+  const handleSavePromptContinue = () => setSavePromptVisible(false);
+
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <ScrollView
@@ -503,10 +540,17 @@ export default function ResultScreen() {
 
         {renderBlockerSection("critical")}
         {renderBlockerSection("moderate")}
-
-        {showPaywallAfterUrgent ? renderPaywallCta() : null}
-
         {renderBlockerSection("explore")}
+
+        {/*
+          The paywall CTA used to sit BETWEEN the urgent (critical/moderate)
+          blockers and the explore section, which interrupted the list the
+          user had just earned and read as bait-and-switch. It now sits at
+          the END of the blocker list so the upgrade ask is still one tap
+          away without breaking up the content. A second sticky CTA at the
+          bottom of the screen keeps it visible while scrolling.
+        */}
+        {showPaywallAfterUrgent ? renderPaywallCta() : null}
 
         {result.blockers.length === 0 ? (
           <View style={styles.card}>
@@ -590,6 +634,13 @@ export default function ResultScreen() {
           ) : null}
         </View>
       </Modal>
+
+      <QuizSaveModal
+        visible={savePromptVisible}
+        noCount={savePromptNoCount}
+        onClose={handleSavePromptClose}
+        onContinue={handleSavePromptContinue}
+      />
     </View>
   );
 }

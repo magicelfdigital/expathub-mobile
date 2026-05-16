@@ -18,6 +18,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import {
   useSubmitWorksheet,
   useWorksheetResponse,
+  useWorksheetResponses,
 } from "@/src/hooks/useWorksheets";
 import {
   WORKSHEET_BY_ID,
@@ -35,11 +36,14 @@ export default function WorksheetDetailScreen() {
   const { user } = useAuth();
   const { hasFullAccess } = useSubscription();
   // Worksheet definitions are statically bundled, so we render them from
-  // local data rather than a gated backend fetch. The paywall fires on
-  // submit (the POST endpoint enforces entitlement server-side and the
-  // mutation surfaces 402 as a user-visible error).
+  // local data rather than a gated backend fetch. Gating now happens at
+  // OPEN (see the effect below): a non-entitled user who has already
+  // completed one worksheet is redirected to /subscribe before they can
+  // fill anything in. The POST endpoint still enforces entitlement
+  // server-side as a backstop and surfaces 402 as a user-visible error.
   const worksheet = id ? WORKSHEET_BY_ID[id] ?? null : null;
   const existing = useWorksheetResponse(id);
+  const { data: allResponses } = useWorksheetResponses();
   const submit = useSubmitWorksheet();
 
   const [answers, setAnswers] = useState<WorksheetAnswers>({});
@@ -48,6 +52,30 @@ export default function WorksheetDetailScreen() {
   useEffect(() => {
     if (existing?.answers) setAnswers(existing.answers);
   }, [existing?.worksheetId]);
+
+  // Paywall at OPEN, not at submit. Free users get one worksheet
+  // end-to-end; any subsequent attempt redirects to /subscribe BEFORE
+  // they fill anything in. Users editing a previously completed
+  // worksheet are always allowed through.
+  useEffect(() => {
+    if (!worksheet) return;
+    if (hasFullAccess) return;
+    if (existing) return; // already completed — they can edit it
+    const completedCount = (allResponses ?? []).length;
+    if (completedCount >= 1) {
+      // Surface tag lets analytics split detail-open redirects from
+      // list-tap redirects, since they happen at different points in the
+      // funnel. unlockLabel mirrors the list-row gating copy.
+      router.replace({
+        pathname: "/subscribe" as any,
+        params: {
+          redirectTo: `/(tabs)/(home)/worksheets/${worksheet.id}`,
+          entryPoint: "worksheet_detail",
+          unlockLabel: "unlock remaining 7 worksheets",
+        },
+      });
+    }
+  }, [worksheet, hasFullAccess, existing, allResponses, router]);
 
   const allAnswered = useMemo(() => {
     if (!worksheet) return false;
@@ -67,13 +95,12 @@ export default function WorksheetDetailScreen() {
       });
       return;
     }
-    if (!hasFullAccess) {
-      router.push({
-        pathname: "/subscribe" as any,
-        params: { redirectTo: `/(tabs)/(home)/worksheets/${worksheet.id}` },
-      });
-      return;
-    }
+    // The paywall now fires when the user OPENS a locked worksheet (see
+    // the open-time redirect above), not when they submit it. By the time
+    // they reach this submit handler, they're either entitled, editing
+    // their existing response, or completing their one free worksheet —
+    // all of which should go through to the server. The backend still
+    // enforces the same "one free per user" rule as a backstop.
     try {
       await submit.mutateAsync({ worksheetId: worksheet.id, answers });
       router.back();

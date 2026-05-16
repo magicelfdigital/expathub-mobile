@@ -1929,10 +1929,41 @@ async function registerWorksheetRoutes(app: Express): Promise<void> {
   app.get("/api/worksheets/:worksheetId", async (req: Request, res: Response) => {
     const userId = await getUserIdFromToken(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const entitled = await hasActiveEntitlement(req);
-    if (!entitled) { res.status(402).json({ error: "Subscription required" }); return; }
     const def = WORKSHEET_BY_ID[req.params.worksheetId];
     if (!def) { res.status(404).json({ error: "Unknown worksheet" }); return; }
+    // Free users get one worksheet end-to-end. We allow the detail fetch
+    // when:
+    //   (a) the user is entitled, OR
+    //   (b) the user has no prior responses (their one free worksheet), OR
+    //   (c) the user already has a response for THIS worksheet (editing).
+    // Anything else returns 402 so the client can route to /subscribe.
+    const entitled = await hasActiveEntitlement(req);
+    if (!entitled) {
+      const pool = getPool();
+      if (pool) {
+        let blocked = false;
+        try {
+          await ensureWorksheetTables(pool);
+          const r = await pool.query(
+            `SELECT worksheet_id FROM user_worksheet_responses WHERE user_id = $1`,
+            [userId],
+          );
+          const ids: string[] = r.rows.map((row: any) => row.worksheet_id);
+          const hasThis = ids.includes(req.params.worksheetId);
+          if (ids.length >= 1 && !hasThis) {
+            blocked = true;
+          }
+        } finally {
+          // Close the pool exactly once. `pg.Pool#end` rejects when called
+          // twice, so we route all teardown through this finally block.
+          await pool.end();
+        }
+        if (blocked) {
+          res.status(402).json({ error: "Subscription required" });
+          return;
+        }
+      }
+    }
     res.json({
       id: def.id,
       questionId: def.questionId,
@@ -1943,14 +1974,42 @@ async function registerWorksheetRoutes(app: Express): Promise<void> {
     });
   });
 
-  // Submit / replace the response for a worksheet. Auth + active subscription
-  // required (paywall is also enforced client-side; this is the backstop).
+  // Submit / replace the response for a worksheet. Auth required. Free
+  // users get one worksheet end-to-end — they may insert their first
+  // response or update one they previously submitted. Any second-or-later
+  // insert from a non-entitled user is rejected with 402 (the open-time
+  // UI redirect normally prevents reaching this branch).
   app.post("/api/worksheets/:worksheetId/submit", async (req: Request, res: Response) => {
     const userId = await getUserIdFromToken(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
     const entitled = await hasActiveEntitlement(req);
-    if (!entitled) { res.status(402).json({ error: "Subscription required" }); return; }
     const { worksheetId } = req.params;
+    if (!entitled) {
+      const pool = getPool();
+      if (pool) {
+        let blocked = false;
+        try {
+          await ensureWorksheetTables(pool);
+          const r = await pool.query(
+            `SELECT worksheet_id FROM user_worksheet_responses WHERE user_id = $1`,
+            [userId],
+          );
+          const ids: string[] = r.rows.map((row: any) => row.worksheet_id);
+          const hasThis = ids.includes(worksheetId);
+          if (ids.length >= 1 && !hasThis) {
+            blocked = true;
+          }
+        } finally {
+          // Close the pool exactly once — see matching note on the GET
+          // endpoint above.
+          await pool.end();
+        }
+        if (blocked) {
+          res.status(402).json({ error: "Subscription required" });
+          return;
+        }
+      }
+    }
     const { answers } = (req.body ?? {}) as { answers?: unknown };
     if (!worksheetId || !answers) {
       res.status(400).json({ error: "worksheetId and answers are required" });

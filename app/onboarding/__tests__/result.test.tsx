@@ -279,6 +279,11 @@ describe("ResultScreen — funnel analytics", () => {
     );
     expect(tapped).toHaveLength(1);
     expect(tapped[0][1]).toMatchObject({ source: "result_screen" });
-    expect(__getRouter().push).toHaveBeenCalledWith("/subscribe");
+    expect(__getRouter().push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: "/subscribe",
+        params: expect.objectContaining({ entryPoint: "result_screen" }),
+      }),
+    );
   });
 });

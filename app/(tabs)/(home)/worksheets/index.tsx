@@ -76,19 +76,42 @@ export default function WorksheetsListScreen() {
           <ActivityIndicator color={tokens.color.primary} style={styles.loading} />
         ) : null}
 
+        {/*
+          Free users get one worksheet end-to-end. Anything beyond their
+          first completed worksheet is locked, and the row shows a "Pro"
+          badge so the upgrade ask is visible BEFORE the user invests time
+          filling it in. The gate has also moved off the submit endpoint
+          (see worksheets/[id].tsx and the open-time redirect there).
+        */}
         <View style={styles.list}>
           {(worksheets ?? []).map((w) => {
             const score = responseByQid.get(w.questionId);
             const completed = typeof score === "number";
+            const locked = !hasFullAccess && !completed && completedCount >= 1;
             return (
               <Pressable
                 key={w.id}
-                onPress={() =>
+                onPress={() => {
+                  if (locked) {
+                    // Tag the paywall surface so dashboards can attribute
+                    // views/dismissals/conversions to the worksheet-list
+                    // placement specifically. unlockLabel personalizes the
+                    // paywall headline with what's actually behind the gate.
+                    router.push({
+                      pathname: "/subscribe" as any,
+                      params: {
+                        redirectTo: `/(tabs)/(home)/worksheets/${w.id}`,
+                        entryPoint: "worksheet_list",
+                        unlockLabel: "unlock remaining 7 worksheets",
+                      },
+                    });
+                    return;
+                  }
                   router.push({
                     pathname: "/(tabs)/(home)/worksheets/[id]" as any,
                     params: { id: w.id },
-                  })
-                }
+                  });
+                }}
                 style={({ pressed }) => [
                   styles.row,
                   pressed && styles.rowPressed,
@@ -97,9 +120,9 @@ export default function WorksheetsListScreen() {
               >
                 <View style={styles.rowIcon}>
                   <Ionicons
-                    name={completed ? "checkmark-circle" : hasFullAccess ? "ellipse-outline" : "lock-closed"}
+                    name={completed ? "checkmark-circle" : locked ? "lock-closed" : "ellipse-outline"}
                     size={18}
-                    color={completed ? tokens.color.teal : hasFullAccess ? tokens.color.subtext : tokens.color.gold}
+                    color={completed ? tokens.color.teal : locked ? tokens.color.gold : tokens.color.subtext}
                   />
                 </View>
                 <View style={{ flex: 1 }}>
@@ -108,6 +131,8 @@ export default function WorksheetsListScreen() {
                 </View>
                 {completed ? (
                   <Text style={styles.scorePill}>{score!.toFixed(1)} / 3</Text>
+                ) : locked ? (
+                  <Text style={styles.proPill} testID={`worksheet-pro-${w.id}`}>Pro</Text>
                 ) : null}
                 <Ionicons name="chevron-forward" size={18} color={tokens.color.subtext} />
               </Pressable>
@@ -192,5 +217,18 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: tokens.radius.pill,
     overflow: "hidden",
+  },
+  proPill: {
+    fontSize: tokens.text.small,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: tokens.weight.semibold,
+    color: tokens.color.gold,
+    backgroundColor: "rgba(232,153,26,0.15)",
+    paddingHorizontal: tokens.space.sm,
+    paddingVertical: 4,
+    borderRadius: tokens.radius.pill,
+    overflow: "hidden",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
 });

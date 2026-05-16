@@ -21,21 +21,18 @@ const CTA_BG = "#606CB9";
 const AMBER = "#d97706";
 const BG = "#F7F6F2";
 
-const BENEFITS = [
-  {
-    icon: "locate-outline" as const,
-    text: "Your relocation readiness on a clear scale \u2014 from just getting started to ready to plan",
-  },
-  {
-    icon: "checkmark-circle-outline" as const,
-    text: "Your top blockers named specifically \u2014 not generic advice, your actual gaps",
-  },
-  {
-    icon: "warning-outline" as const,
-    text: "A first action for each blocker so you know exactly where to start",
-  },
+// Single-row proof strip replaces the old 3-item benefits list AND the
+// standalone trust paragraph. Three icons, three short claims — same
+// promise, ~70% less vertical space.
+const PROOF_STRIP = [
+  { icon: "shield-checkmark-outline" as const, text: "250+ data points" },
+  { icon: "time-outline" as const, text: "90 seconds" },
+  { icon: "lock-closed-outline" as const, text: "No sign-up" },
 ];
 
+// Rotated, not stacked: we still ship all three testimonials but show
+// only one per visit so the page stays short. Random per render is fine
+// here — the variance is the point.
 const TESTIMONIALS = [
   {
     quote:
@@ -61,6 +58,13 @@ export default function IntroScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
+  // Pick one testimonial per mount. Keeps the page short while still
+  // exercising the full quote bank across sessions.
+  const testimonial = React.useMemo(
+    () => TESTIMONIALS[Math.floor(Math.random() * TESTIMONIALS.length)],
+    [],
+  );
+
   React.useEffect(() => {
     if (!_onboardingTracked) {
       _onboardingTracked = true;
@@ -84,24 +88,18 @@ export default function IntroScreen() {
         </View>
 
         <Text style={s.headline}>
-          Not Sure Which Country Is Right for You?
+          Find the country that actually fits you.
         </Text>
         <Text style={s.subtitle}>
-          Take the 90-second quiz. Get a personalised fit score, your top country match, and exactly what's holding you back.
+          A 90-second quiz. Get your fit score, top country match, and what&rsquo;s holding you back.
         </Text>
 
-        <Text style={s.sectionLabel}>WHAT YOU'LL GET</Text>
-        <View style={s.benefitList}>
-          {BENEFITS.map((b, i) => (
-            <View key={i} style={s.benefitRow}>
-              <View style={s.benefitIcon}>
-                <Ionicons name={b.icon} size={16} color={TEAL} />
-              </View>
-              <Text style={s.benefitText}>{b.text}</Text>
-            </View>
-          ))}
-        </View>
-
+        {/*
+          Demo-first ordering: the preview card shows what the quiz
+          produces, so the user can judge the promise visually instead of
+          re-reading a benefits list. Trust strip + a single testimonial
+          sit below as supporting proof.
+        */}
         <View style={s.previewCard}>
           <View style={s.previewHeader}>
             <Text style={s.previewHeaderText}>SAMPLE RESULT PREVIEW</Text>
@@ -131,28 +129,21 @@ export default function IntroScreen() {
                 </Text>
               </View>
             </View>
-
-            <View style={s.gapRow}>
-              <Ionicons name="warning-outline" size={14} color={AMBER} />
-              <Text style={s.gapText}>
-                Main gap: <Text style={s.gapBold}>Visa Pathway</Text> — identify your specific visa before committing.
-              </Text>
-            </View>
           </View>
         </View>
 
-        <Text style={s.trustText}>
-          ExpatHub analyzes over 250 data points across healthcare, cost of living, visa complexity, and tax treaties to match your profile to a country.
-        </Text>
-
-        <Text style={[s.sectionLabel, { marginTop: 24 }]}>WHAT OTHERS SAY</Text>
-        <View style={s.testimonialList}>
-          {TESTIMONIALS.map((t, i) => (
-            <View key={i} style={s.testimonialCard}>
-              <Text style={s.testimonialQuote}>&ldquo;{t.quote}&rdquo;</Text>
-              <Text style={s.testimonialAttribution}>&mdash; {t.attribution}</Text>
+        <View style={s.proofStrip}>
+          {PROOF_STRIP.map((p) => (
+            <View key={p.text} style={s.proofItem}>
+              <Ionicons name={p.icon} size={16} color={TEAL} />
+              <Text style={s.proofText}>{p.text}</Text>
             </View>
           ))}
+        </View>
+
+        <View style={s.testimonialCard}>
+          <Text style={s.testimonialQuote}>&ldquo;{testimonial.quote}&rdquo;</Text>
+          <Text style={s.testimonialAttribution}>&mdash; {testimonial.attribution}</Text>
         </View>
       </ScrollView>
 
@@ -201,26 +192,27 @@ const s = StyleSheet.create({
 
   logoWrap: {
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 14,
   },
   logo: {
-    height: 52,
-    width: 240,
+    height: 36,
+    width: 160,
   },
 
   headline: {
-    fontSize: 28,
+    fontSize: 26,
     fontFamily: tokens.font.display,
     fontWeight: "700",
     color: HEADING_COLOR,
-    marginBottom: 8,
+    marginBottom: 6,
+    lineHeight: 32,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: tokens.font.body,
     color: BODY_COLOR,
-    lineHeight: 23,
-    marginBottom: 24,
+    lineHeight: 21,
+    marginBottom: 18,
   },
 
   sectionLabel: {
@@ -232,32 +224,30 @@ const s = StyleSheet.create({
     marginBottom: 14,
   },
 
-  benefitList: {
-    gap: 14,
-    marginBottom: 24,
-  },
-  benefitRow: {
+  proofStrip: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-  },
-  benefitIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: TEAL_BG,
-    justifyContent: "center",
     alignItems: "center",
-    flexShrink: 0,
-    marginTop: 0,
+    justifyContent: "space-between",
+    backgroundColor: PURPLE_LIGHT_BG,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: PURPLE_LIGHT_BORDER,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginTop: 14,
+    marginBottom: 16,
   },
-  benefitText: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: tokens.font.body,
-    color: BODY_COLOR,
-    lineHeight: 20,
-    paddingTop: 3,
+  proofItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexShrink: 1,
+  },
+  proofText: {
+    fontSize: 12,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600",
+    color: HEADING_COLOR,
   },
 
   previewCard: {
@@ -266,7 +256,6 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: PURPLE_BORDER,
     overflow: "hidden",
-    marginBottom: 16,
     ...Platform.select({
       ios: { shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 } },
       android: { elevation: 2 },
@@ -347,9 +336,6 @@ const s = StyleSheet.create({
     borderColor: PURPLE_LIGHT_BORDER,
     padding: 12,
   },
-  matchFlag: {
-    fontSize: 24,
-  },
   matchTextWrap: {
     flex: 1,
     gap: 3,
@@ -365,32 +351,6 @@ const s = StyleSheet.create({
     fontFamily: tokens.font.body,
     color: BODY_COLOR,
     lineHeight: 17,
-  },
-
-  gapRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-    marginTop: 2,
-  },
-  gapText: {
-    flex: 1,
-    fontSize: 13,
-    fontFamily: tokens.font.body,
-    color: BODY_COLOR,
-    lineHeight: 17,
-  },
-  gapBold: {
-    fontFamily: tokens.font.bodyBold,
-    fontWeight: "700",
-  },
-
-  trustText: {
-    fontSize: 14,
-    fontFamily: tokens.font.body,
-    color: BODY_COLOR,
-    lineHeight: 20,
-    marginBottom: 8,
   },
 
   stickyFooter: {
@@ -423,9 +383,9 @@ const s = StyleSheet.create({
   },
 
   footerMeta: {
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 6,
     marginTop: 8,
   },
   metaRow: {
@@ -450,9 +410,6 @@ const s = StyleSheet.create({
     color: SECTION_LABEL,
   },
 
-  testimonialList: {
-    gap: 12,
-  },
   testimonialCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
