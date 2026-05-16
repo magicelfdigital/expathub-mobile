@@ -378,4 +378,66 @@ test.describe("Switch-plan confirmation dialog (web)", () => {
     expect(parsedAfterConfirm.activePathwayId).toBe(SPAIN_PATHWAY_KEY);
     expect(parsedAfterConfirm.completedSteps).toEqual([]);
   });
+
+  // Task #139 — the "Reset active plan" row in the account screen's
+  // plan-switcher sheet still uses a native `window.confirm` on web
+  // (app/account.tsx `handleResetPlan`). It isn't covered by the
+  // switch-plan dialog above (different code path, different confirm
+  // mechanism), so a regression — the row going missing, the confirm
+  // wiring becoming a no-op, or `resetPlan` not clearing storage —
+  // wouldn't be caught by the existing specs. This case drives that
+  // exact flow end-to-end and asserts the persisted plan is cleared.
+  test("account screen reset clears the active plan after confirming", async ({
+    page,
+    context,
+  }) => {
+    test.setTimeout(TEST_TIMEOUT_MS);
+
+    await seedAndRouteContext(context);
+
+    // Accept the native confirm dialog fired by handleResetPlan. We
+    // assert at least one confirm dialog was actually shown so the
+    // test fails if the row ever regresses to a no-op or silently
+    // calls resetPlan without confirming.
+    let confirmDialogCount = 0;
+    page.on("dialog", async (dialog) => {
+      if (dialog.type() === "confirm") {
+        confirmDialogCount += 1;
+      }
+      await dialog.accept().catch(() => {});
+    });
+
+    await page.goto("/account", { waitUntil: "domcontentloaded" });
+
+    const switchLink = page.getByTestId("account-active-plan-switch");
+    await expect(switchLink).toBeVisible({ timeout: TEST_TIMEOUT_MS });
+
+    await switchLink.click();
+    const sheet = page.getByTestId("account-plan-switch-sheet");
+    await expect(sheet).toBeVisible({ timeout: 10_000 });
+
+    const resetBtn = page.getByTestId("account-plan-reset");
+    await expect(resetBtn).toBeVisible();
+    await resetBtn.click();
+
+    // PlanContext.resetPlan removes the storage key entirely via a
+    // pendingClear flag in its persistence effect; poll until that
+    // settles so we don't race the next tick.
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(
+            (key) => window.localStorage.getItem(key),
+            PLAN_STORAGE_KEY,
+          ),
+        {
+          timeout: 10_000,
+          message:
+            "expected expathub_plan to be cleared from localStorage after confirming reset",
+        },
+      )
+      .toBeNull();
+
+    expect(confirmDialogCount).toBeGreaterThan(0);
+  });
 });
