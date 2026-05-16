@@ -27,6 +27,20 @@ const MOBILE_EVENTS = [
     file: "src/components/ProPaywall.tsx",
     requiredParams: ["plan"],
   },
+  // Mid-funnel signal for Meta App Promotion optimisation. Fires when the
+  // user taps a plan on the paywall, before purchase confirmation.
+  {
+    event: "AddToCart",
+    file: "src/components/ProPaywall.tsx",
+    requiredParams: ["plan"],
+  },
+  // Mid-funnel signal: visitor submitted an email in the country waitlist
+  // modal. Mirrors web's `trackLead` from QuizSaveModal.
+  {
+    event: "Lead",
+    file: "app/(tabs)/explore/index.tsx",
+    requiredParams: ["source"],
+  },
 ];
 
 // The mobile SDK auto-stamps fb_currency: "USD" on any logEvent call that
@@ -53,8 +67,16 @@ const WEB_EVENTS = [
   },
   {
     event: "Lead",
-    file: "web/src/pages/Start.tsx",
+    files: ["web/src/pages/Start.tsx", "web/src/components/QuizSaveModal.tsx"],
     helper: "trackLead",
+  },
+  // Mid-funnel signal: visitor tapped a plan on /pricing, before redirect
+  // to Stripe Checkout. Mirrors mobile's `AddToCart` in ProPaywall.
+  {
+    event: "AddToCart",
+    file: "web/src/pages/Pricing.tsx",
+    helper: "trackAddToCart",
+    requiredArgPatterns: [/plan/],
   },
   {
     event: "StartTrial",

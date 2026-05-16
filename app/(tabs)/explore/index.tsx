@@ -6,7 +6,7 @@ import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, Vi
 import { Screen } from "@/components/Screen";
 import { useCountry } from "@/contexts/CountryContext";
 import { useLayout } from "@/src/hooks/useLayout";
-import { trackEvent } from "@/src/lib/analytics";
+import { trackEvent, logFbEvent } from "@/src/lib/analytics";
 import { getApiUrl } from "@/lib/query-client";
 import { tokens } from "@/theme/tokens";
 import { PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
@@ -75,6 +75,14 @@ function WaitlistModal({
       }
       setSubmitted(true);
       trackEvent("waitlist_joined", { country: countrySlug });
+      // Mid-funnel Meta signal for App Promotion optimisation. We forward
+      // the country slug (non-PII) and a fixed source tag; the email itself
+      // is intentionally NOT included — see PII guardrail in
+      // scripts/check-meta-events.mjs.
+      logFbEvent("Lead", undefined, {
+        source: "country_waitlist",
+        country: countrySlug,
+      });
     } catch (err: any) {
       setError(err.message || "Failed to join waitlist");
     } finally {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import {
+  trackLead,
   trackQuizSaveDismissed,
   trackQuizSaveSubmitted,
 } from "@/lib/pixel";
@@ -57,6 +58,11 @@ export function QuizSaveModal({ visible, noCount, onClose, onContinue }: Props) 
       });
       if (!res.ok) throw new Error("Could not save right now.");
       trackQuizSaveSubmitted({ noCount });
+      // Mid-funnel Meta signal so App Promotion / Conversions campaigns can
+      // optimise against email captures from the save-your-progress modal,
+      // not just the post-result email gate. Source tag distinguishes this
+      // from `Lead` calls on /start (`source: "readiness_quiz"`).
+      trackLead({ source: "quiz_save", noCount });
       setSubmitted(true);
     } catch (err: unknown) {
       const message =

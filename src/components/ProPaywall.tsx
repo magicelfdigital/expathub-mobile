@@ -455,6 +455,11 @@ export function ProPaywall({
   }
 
   async function handleMonthlySubscribe() {
+    // Mid-funnel Meta signal: fired on ANY plan tap (including the
+    // anonymous-user → auth redirect path) so App Promotion campaigns
+    // see the full intent population, not just authenticated taps.
+    // Mirrors web's `trackAddToCart` in web/src/lib/pixel.ts.
+    logFbEvent("AddToCart", undefined, { plan: "monthly" });
     if (!user) {
       console.log("[PURCHASE] Monthly tapped but user not logged in — redirecting to auth");
       await storePendingPurchase("monthly", resolvedCountrySlug);
@@ -491,6 +496,11 @@ export function ProPaywall({
   }
 
   async function handleAnnualSubscribe() {
+    // Mid-funnel Meta signal: fired on ANY plan tap (including the
+    // anonymous-user → auth redirect path) so App Promotion campaigns
+    // see the full intent population, not just authenticated taps.
+    // Mirrors web's `trackAddToCart` in web/src/lib/pixel.ts.
+    logFbEvent("AddToCart", undefined, { plan: "annual" });
     if (!user) {
       console.log("[PURCHASE] Annual tapped but user not logged in — redirecting to auth");
       await storePendingPurchase("annual", resolvedCountrySlug);

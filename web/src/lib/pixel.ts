@@ -61,6 +61,15 @@ export function trackLead(params?: PixelEventParams): void {
   safeTrack("Lead", params);
 }
 
+// Mid-funnel Meta signal — fires when a visitor taps a plan on the paywall
+// but hasn't yet redirected to Stripe Checkout. Meta's App Promotion /
+// Conversions campaigns optimise better when they see this "intent" step
+// in addition to the terminal `StartTrial` / `Subscribe`. Mirrored on
+// mobile by `logFbEvent("AddToCart", ...)` in src/components/ProPaywall.tsx.
+export function trackAddToCart(params: PixelEventParams = {}): void {
+  safeTrack("AddToCart", { value: 0, currency: "USD", ...params });
+}
+
 type PurchaseParams = {
   value?: number;
   currency?: string;

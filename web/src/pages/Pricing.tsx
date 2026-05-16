@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { webApiClient } from "@/lib/api";
-import { trackInitiateCheckout, trackStartTrial } from "@/lib/pixel";
+import { trackAddToCart, trackInitiateCheckout, trackStartTrial } from "@/lib/pixel";
 import { useAbVariants } from "@/hooks/useAbVariants";
 
 const MONTHLY_PRICE_USD = 14.99;
@@ -41,6 +41,14 @@ export default function Pricing() {
         annual_variant: variants.annual.variant,
         session_id: variants.sessionId,
       };
+      // Mid-funnel Meta signal — fires on plan tap, before the Stripe
+      // Checkout redirect. Pairs with `AddToCart` on the mobile paywall so
+      // App Promotion campaigns get the same intent step across surfaces.
+      trackAddToCart({
+        plan,
+        source: "web_pricing",
+        ...variantProps,
+      });
       if (plan === "annual") {
         trackStartTrial({
           value: 0,

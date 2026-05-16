@@ -46,6 +46,8 @@ Before changing campaigns, verify the funnel events are landing in **Meta Events
 | 3 | Open the paywall (any entry point) | `ViewedPaywall` | `entry_point`, `top_country` | `src/components/ProPaywall.tsx` (`logFbEvent("ViewedPaywall", …)`) |
 | 4 | Tap the annual / 14-day-trial CTA, confirm in sandbox | `StartTrial` | `plan: "annual"`, `value: 0`, `fb_currency: "USD"` | `src/components/ProPaywall.tsx` → `logFbPurchaseEvent("annual_subscription")` |
 | 5 | After the trial flow, buy the monthly plan in sandbox | `Subscribe` | `plan: "monthly"`, `value` = live RC price (USD), `fb_currency: "USD"` | `src/components/ProPaywall.tsx` → `logFbPurchaseEvent("monthly_subscription")` |
+| 6 | Tap any plan button on the paywall (before confirming purchase) | `AddToCart` | `plan: "monthly" \| "annual"` | `src/components/ProPaywall.tsx` → `handleMonthlySubscribe` / `handleAnnualSubscribe` |
+| 7 | Submit an email in the "Join waitlist" modal for a Coming Soon country | `Lead` | `source: "country_waitlist"`, `country` | `app/(tabs)/explore/index.tsx` → `WaitlistModal.handleSubmit` |
 
 5. PII guardrail — for **every** event above, confirm Test Events shows **only** the params listed. There must be no `email`, `userId`, `uid`, `firstName`, or `lastName` field. If any of these appear, stop and file a bug; do not proceed.
 
@@ -62,6 +64,8 @@ Before changing campaigns, verify the funnel events are landing in **Meta Events
 | 3 | Submit the quiz email capture | `Lead` | `funnel: "readiness_quiz"` | `web/src/pages/Start.tsx` → `trackLead(...)` |
 | 4 | Land on `/pricing` and start the annual trial | `StartTrial` | `value: 0`, `currency: "USD"`, `plan: "annual"`, `source: "web_pricing"` | `web/src/pages/Pricing.tsx` → `trackStartTrial(...)` |
 | 5 | Stripe checkout returns to `/account?subscribed=true&...` | `Subscribe` | `value` (from URL), `currency`, `plan`, `source: "web_checkout_success"` | `web/src/pages/Account.tsx` → `trackSubscribe(...)` |
+| 6 | Tap a plan button on `/pricing` (before Stripe redirect) | `AddToCart` | `plan: "monthly" \| "annual"`, `value: 0`, `currency: "USD"`, `source: "web_pricing"` | `web/src/pages/Pricing.tsx` → `trackAddToCart(...)` |
+| 7 | Submit an email in the mid-quiz "Save your progress" modal | `Lead` | `source: "quiz_save"`, `noCount` | `web/src/components/QuizSaveModal.tsx` → `trackLead(...)` |
 
 4. Cross-check in **Events Manager** → **Test Events** → enter the test browser ID and confirm each row above shows up with the expected params and nothing else.
 

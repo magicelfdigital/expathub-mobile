@@ -66,7 +66,13 @@ export type FbStandardEvent =
   | "CompletedQuiz"
   | "ViewedPaywall"
   | "StartTrial"
-  | "Subscribe";
+  | "Subscribe"
+  // Mid-funnel signals for Meta App Promotion optimisation. `Lead` fires when
+  // a visitor submits an email (quiz save modal, country waitlist). `AddToCart`
+  // fires when they tap a plan on the paywall before confirming purchase.
+  // See docs/meta-app-promotion-setup.md.
+  | "Lead"
+  | "AddToCart";
 
 export function logFbEvent(
   eventName: FbStandardEvent,
