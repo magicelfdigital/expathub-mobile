@@ -87,7 +87,7 @@ export default function WorksheetDetailScreen() {
         params: {
           redirectTo: `/(tabs)/(home)/worksheets/${worksheet.id}`,
           entryPoint: "worksheet_detail",
-          unlockLabel: "unlock remaining 7 worksheets",
+          unlockLabel: "the remaining 7 worksheets",
         },
       });
     }
