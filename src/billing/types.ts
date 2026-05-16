@@ -75,6 +75,13 @@ export interface PollingConfig {
   timeoutMs: number;
 }
 
+export type BillingAnalyticsEvent = "billing_pre_check_failed";
+
+export type BillingAnalyticsHook = (
+  event: BillingAnalyticsEvent,
+  properties: Record<string, string | number | boolean | undefined>,
+) => void;
+
 export const DEFAULT_POLLING_CONFIG: PollingConfig = {
   intervalMs: 2000,
   timeoutMs: 60000,

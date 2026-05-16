@@ -4,6 +4,7 @@ import type {
   BackendEntitlements,
   OrchestratorResult,
   PollingConfig,
+  BillingAnalyticsHook,
 } from "./types";
 import { DEFAULT_POLLING_CONFIG } from "./types";
 import { poll } from "./polling";
@@ -19,6 +20,7 @@ export class BillingOrchestrator {
     private rcClient: RevenueCatClient,
     private backendClient: BackendClient,
     private pollingConfig: PollingConfig = DEFAULT_POLLING_CONFIG,
+    private analytics?: BillingAnalyticsHook,
   ) {}
 
   async purchase(
@@ -126,6 +128,12 @@ export class BillingOrchestrator {
         "[BillingOrchestrator] restore pre-check attempt 2 failed, falling through to RC restore",
         err,
       );
+      try {
+        this.analytics?.("billing_pre_check_failed", {
+          error: err instanceof Error ? err.message : String(err),
+          attempts: 2,
+        });
+      } catch {}
       return null;
     }
   }

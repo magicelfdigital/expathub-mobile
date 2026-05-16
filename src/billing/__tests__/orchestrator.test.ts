@@ -350,6 +350,60 @@ describe("BillingOrchestrator", () => {
       expect(result.status).toBe("confirmed");
       expect(result.entitlements.hasFullAccess).toBe(true);
     });
+
+    it("fires billing_pre_check_failed analytics when both pre-check attempts error", async () => {
+      const rc = mockRCClient();
+      let callCount = 0;
+      const backend = mockBackendClient({
+        getEntitlements: jest.fn().mockImplementation(async () => {
+          callCount++;
+          if (callCount <= 2) {
+            throw new Error("backend 503");
+          }
+          return makeActiveEntitlements();
+        }),
+      });
+      const analytics = jest.fn();
+      const orchestrator = new BillingOrchestrator(
+        rc,
+        backend,
+        { intervalMs: 100, timeoutMs: 5000 },
+        analytics,
+      );
+
+      const resultPromise = orchestrator.restore("usr_123");
+      jest.runAllTimersAsync();
+      await resultPromise;
+
+      expect(analytics).toHaveBeenCalledTimes(1);
+      expect(analytics).toHaveBeenCalledWith(
+        "billing_pre_check_failed",
+        expect.objectContaining({ error: "backend 503", attempts: 2 }),
+      );
+    });
+
+    it("does not fire billing_pre_check_failed analytics when only first attempt errors", async () => {
+      const rc = mockRCClient();
+      let callCount = 0;
+      const backend = mockBackendClient({
+        getEntitlements: jest.fn().mockImplementation(async () => {
+          callCount++;
+          if (callCount === 1) throw new Error("network blip");
+          return makeActiveEntitlements();
+        }),
+      });
+      const analytics = jest.fn();
+      const orchestrator = new BillingOrchestrator(
+        rc,
+        backend,
+        { intervalMs: 100, timeoutMs: 5000 },
+        analytics,
+      );
+
+      await orchestrator.restore("usr_123");
+
+      expect(analytics).not.toHaveBeenCalled();
+    });
   });
 
   describe("restore() — timeout path", () => {

@@ -189,7 +189,11 @@ type AnalyticsEvent =
   | "auth_prompt_shown"
   | "auth_prompt_converted"
   | "result_edit_answers_tapped"
-  | "quiz_edit_resubmitted";
+  | "quiz_edit_resubmitted"
+  // Fires when both attempts of the restore pre-check (backend
+  // entitlements fetch) throw — lets us alert on a sustained backend
+  // outage that would otherwise silently slow every restore.
+  | "billing_pre_check_failed";
 
 type EventProperties = Record<string, string | number | boolean | undefined>;
 

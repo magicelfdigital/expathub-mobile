@@ -1,7 +1,8 @@
 import { Platform } from "react-native";
 import { BillingOrchestrator } from "./orchestrator";
 import { createBackendClient } from "./backendClient";
-import type { RevenueCatClient, BackendClient } from "./types";
+import type { RevenueCatClient, BackendClient, BillingAnalyticsHook } from "./types";
+import { trackEvent } from "@/src/lib/analytics";
 
 export { hasEntitlement } from "./entitlementGate";
 export { BillingOrchestrator } from "./orchestrator";
@@ -113,10 +114,20 @@ export function getOrchestrator(getToken: () => string | null): BillingOrchestra
   _tokenRef.current = getToken;
   if (!_orchestrator) {
     _backendClient = createBackendClient(tokenGetter);
-    _orchestrator = new BillingOrchestrator(createRCClient(), _backendClient, {
-      intervalMs: 2000,
-      timeoutMs: 60000,
-    });
+    const analyticsHook: BillingAnalyticsHook = (event, properties) => {
+      try {
+        trackEvent(event, properties);
+      } catch {}
+    };
+    _orchestrator = new BillingOrchestrator(
+      createRCClient(),
+      _backendClient,
+      {
+        intervalMs: 2000,
+        timeoutMs: 60000,
+      },
+      analyticsHook,
+    );
   }
   return _orchestrator;
 }
