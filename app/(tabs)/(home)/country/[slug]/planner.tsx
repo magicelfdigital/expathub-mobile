@@ -134,6 +134,7 @@ function StepCard({
   const hasReference =
     isPaid &&
     ((step.legacyModuleIds && step.legacyModuleIds.length > 0) ||
+      step.id === "research_quiz" ||
       step.id === "school_research" ||
       step.id === "move_date_set" ||
       step.id === "housing_research" ||
@@ -149,7 +150,6 @@ function StepCard({
       <View style={styles.stepRow}>
         <Pressable
           onPress={handleCheckboxPress}
-          disabled={isPending}
           style={styles.checkboxPressable}
           testID={`planner-step-checkbox-${step.id}`}
           accessibilityRole="checkbox"
@@ -233,6 +233,31 @@ function ReferencePanel({
   countryName: string;
   pathwayId?: string | null;
 }) {
+  const router = useRouter();
+
+  if (step.id === "research_quiz") {
+    return (
+      <View style={styles.referenceTextWrap}>
+        <Text style={styles.referenceBody}>
+          Retake the 90-second readiness quiz any time. Your latest score replaces the previous one and updates your country matches.
+        </Text>
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: "/onboarding/quiz" as any,
+              params: { mode: "retake" },
+            })
+          }
+          style={styles.referenceCta}
+          testID="planner-retake-quiz"
+        >
+          <Ionicons name="refresh" size={14} color={tokens.color.white} />
+          <Text style={styles.referenceCtaText}>Retake the quiz</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   // visa pathway: pair EligibilitySnapshot with the confirm_pathway checklist
   if (step.id === "visa_pathway" && countrySlug) {
     return (
@@ -786,6 +811,23 @@ const styles = StyleSheet.create({
     fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     lineHeight: 18,
+  },
+  referenceCta: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: tokens.space.sm,
+    paddingHorizontal: tokens.space.md,
+    paddingVertical: tokens.space.sm,
+    borderRadius: tokens.radius.md,
+    backgroundColor: tokens.color.primary,
+  },
+  referenceCtaText: {
+    fontSize: tokens.text.small,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: tokens.weight.semibold,
+    color: tokens.color.white,
   },
   upsellRow: {
     flexDirection: "row",

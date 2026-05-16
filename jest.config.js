@@ -76,7 +76,11 @@ module.exports = {
       preset: "ts-jest",
       testEnvironment: "jsdom",
       roots: ["<rootDir>/src/hooks"],
-      moduleNameMapper: sharedModuleNameMapper,
+      moduleNameMapper: {
+        ...sharedModuleNameMapper,
+        "^@react-native-async-storage/async-storage$":
+          "<rootDir>/src/lib/__mocks__/async-storage.ts",
+      },
       transform: tsJestTransform,
       testMatch: ["**/__tests__/**/*.test.ts", "**/__tests__/**/*.test.tsx"],
     },
