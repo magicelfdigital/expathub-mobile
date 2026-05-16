@@ -1,0 +1,6 @@
+{
+  "endpoint": "https://www.expathub.website/api/_internal/analytics-health",
+  "expectedStatus": 200,
+  "timeoutMs": 15000,
+  "description": "Polls the unauthenticated analytics health probe. The probe returns HTTP 503 once the in-process counter of $identify events arriving without $anon_distinct_id is non-zero (see server/routes.ts). A non-200 response means PostHog can no longer stitch pre-account events to the post-account user on at least one surface, which silently breaks every funnel that crosses the signup boundary. The monitor opens a GitHub issue on failure so the on-call sees it within minutes."
+}

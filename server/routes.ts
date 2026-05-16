@@ -313,6 +313,9 @@ function getBaseUrl(req: Request): string {
 // is never dropped.
 
 let identifyMissingAnonIdCount = 0;
+let identifyMissingAnonIdLastAt: string | null = null;
+const identifyMissingAnonIdBySurface: Record<string, number> = {};
+const ANALYTICS_HEALTH_STARTED_AT = new Date().toISOString();
 
 export function getIdentifyMissingAnonIdCount(): number {
   return identifyMissingAnonIdCount;
@@ -320,6 +323,34 @@ export function getIdentifyMissingAnonIdCount(): number {
 
 export function resetIdentifyMissingAnonIdCount(): void {
   identifyMissingAnonIdCount = 0;
+  identifyMissingAnonIdLastAt = null;
+  for (const k of Object.keys(identifyMissingAnonIdBySurface)) {
+    delete identifyMissingAnonIdBySurface[k];
+  }
+}
+
+export interface AnalyticsHealthSnapshot {
+  healthy: boolean;
+  identify_missing_anon_id: {
+    count: number;
+    last_seen_at: string | null;
+    by_surface: Record<string, number>;
+  };
+  started_at: string;
+  generated_at: string;
+}
+
+export function getAnalyticsHealthSnapshot(): AnalyticsHealthSnapshot {
+  return {
+    healthy: identifyMissingAnonIdCount === 0,
+    identify_missing_anon_id: {
+      count: identifyMissingAnonIdCount,
+      last_seen_at: identifyMissingAnonIdLastAt,
+      by_surface: { ...identifyMissingAnonIdBySurface },
+    },
+    started_at: ANALYTICS_HEALTH_STARTED_AT,
+    generated_at: new Date().toISOString(),
+  };
 }
 
 function inspectIdentifyPayload(body: unknown): void {
@@ -333,11 +364,23 @@ function inspectIdentifyPayload(body: unknown): void {
       : undefined;
   if (typeof anonId !== "string" || anonId.length === 0) {
     identifyMissingAnonIdCount += 1;
+    identifyMissingAnonIdLastAt = new Date().toISOString();
+    const surfaceRaw =
+      properties && typeof properties === "object"
+        ? (properties as { surface?: unknown }).surface
+        : undefined;
+    const surface =
+      typeof surfaceRaw === "string" && surfaceRaw.length > 0
+        ? surfaceRaw
+        : "unknown";
+    identifyMissingAnonIdBySurface[surface] =
+      (identifyMissingAnonIdBySurface[surface] ?? 0) + 1;
     const distinctId = (body as { distinct_id?: unknown }).distinct_id;
     console.warn(
       "[analytics] $identify event missing $anon_distinct_id; PostHog cannot stitch pre-account events",
       {
         distinct_id: typeof distinctId === "string" ? distinctId : undefined,
+        surface,
         missing_count: identifyMissingAnonIdCount,
       },
     );
@@ -352,6 +395,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerPlannerAnalyticsRoutes(app, { requireAdminBasicAuth, getPool });
   registerQuizSaveAnalyticsRoutes(app, { requireAdminBasicAuth, getPool });
   registerAuthPromptAnalyticsRoutes(app, { requireAdminBasicAuth, getPool });
+
+  // Analytics health probe — exposes the in-process counter of `$identify`
+  // events that arrived without `$anon_distinct_id`. Designed to be scraped
+  // by an external uptime check (UptimeRobot, BetterStack, etc.) so that a
+  // regression on any surface (web, mobile, future entry point) pages us
+  // within minutes instead of being buried in server logs. The endpoint is
+  // unauthenticated by design — uptime probes typically can't carry Basic
+  // Auth — and only exposes counts, no PII. Healthy state returns HTTP 200;
+  // any non-zero count returns HTTP 503 so the uptime check fires an alert
+  // on a status-code rule alone, no log-parsing required.
+  app.get("/api/_internal/analytics-health", (_req, res) => {
+    const snapshot = getAnalyticsHealthSnapshot();
+    res.setHeader("Cache-Control", "no-store");
+    res.status(snapshot.healthy ? 200 : 503).json(snapshot);
+  });
 
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {

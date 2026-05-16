@@ -61,3 +61,51 @@ No dependencies beyond Node 20's built-in `fetch`, `crypto`, and `fs`.
 | `monitoring/proposals.json` | Change entries from the most recent run |
 | `scripts/monitoring/hash-monitor.mjs` | The monitoring runner script |
 | `.github/workflows/monitor-briefs.yml` | GitHub Actions workflow definition |
+
+---
+
+## Analytics Health Probe
+
+In addition to source-content monitoring, this directory also runs an
+uptime check against the deployed analytics health endpoint
+(`/api/_internal/analytics-health`, defined in `server/routes.ts`).
+
+The probe returns HTTP 503 once the in-process counter of `$identify`
+events received without `$anon_distinct_id` is non-zero. A non-zero
+count means PostHog can no longer stitch pre-account events to the
+post-account user on at least one surface (web, mobile, or a future
+entry point), which silently breaks every conversion funnel that
+crosses the signup boundary.
+
+**Pipeline:**
+
+1. `.github/workflows/monitor-analytics-health.yml` runs every 15
+   minutes (and on manual dispatch).
+2. It executes `scripts/monitoring/analytics-health-check.mjs`, which
+   reads `monitoring/analytics-health.json` for the endpoint URL,
+   fetches it, and exits non-zero on anything other than HTTP 200.
+3. On failure the workflow opens (or comments on) a single standing
+   GitHub issue labelled `analytics-health` and `alert` so the on-call
+   sees one persistent thread per outage rather than a noisy stream.
+4. On the next successful run the workflow auto-closes the standing
+   issue.
+
+**Run locally** (against any environment):
+
+```bash
+ANALYTICS_HEALTH_URL=http://localhost:5000/api/_internal/analytics-health \
+  node scripts/monitoring/analytics-health-check.mjs
+```
+
+**Clearing the counter:** the counter lives in process memory.
+Restarting the backend workflow resets it; the next probe run will
+auto-close the alert issue.
+
+**Analytics health files:**
+
+| File | Purpose |
+|------|---------|
+| `monitoring/analytics-health.json` | Probe config (endpoint URL, expected status, timeout) |
+| `monitoring/analytics-health-state.json` | Snapshot of the most recent probe run (written by the script) |
+| `scripts/monitoring/analytics-health-check.mjs` | The probe runner |
+| `.github/workflows/monitor-analytics-health.yml` | Scheduled probe + issue-management workflow |

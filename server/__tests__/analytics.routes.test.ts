@@ -191,6 +191,54 @@ describe("POST /api/analytics — $identify payload inspection", () => {
     expect(insertCall).toBeUndefined();
   });
 
+  it("reports healthy (HTTP 200) when no warnings have fired", async () => {
+    const res = await request(app).get("/api/_internal/analytics-health");
+    expect(res.status).toBe(200);
+    expect(res.body.healthy).toBe(true);
+    expect(res.body.identify_missing_anon_id.count).toBe(0);
+    expect(res.body.identify_missing_anon_id.last_seen_at).toBeNull();
+    expect(res.body.identify_missing_anon_id.by_surface).toEqual({});
+    expect(res.headers["cache-control"]).toBe("no-store");
+  });
+
+  it("tracks the surface of the missing-anon-id warning", async () => {
+    fetchMock.mockResolvedValue(upstreamOk());
+
+    await request(app)
+      .post("/api/analytics")
+      .send({
+        event: "$identify",
+        distinct_id: "user:1",
+        properties: { surface: "mobile" },
+      });
+    await request(app)
+      .post("/api/analytics")
+      .send({
+        event: "$identify",
+        distinct_id: "user:2",
+        properties: { surface: "web" },
+      });
+    await request(app)
+      .post("/api/analytics")
+      .send({
+        event: "$identify",
+        distinct_id: "user:3",
+        properties: { surface: "mobile" },
+      });
+
+    const res = await request(app).get("/api/_internal/analytics-health");
+    expect(res.status).toBe(503);
+    expect(res.body.healthy).toBe(false);
+    expect(res.body.identify_missing_anon_id.count).toBe(3);
+    expect(res.body.identify_missing_anon_id.by_surface).toEqual({
+      mobile: 2,
+      web: 1,
+    });
+    expect(typeof res.body.identify_missing_anon_id.last_seen_at).toBe(
+      "string",
+    );
+  });
+
   it("still responds 200 (and warns once) when the upstream proxy throws", async () => {
     fetchMock.mockRejectedValueOnce(new Error("network down"));
 

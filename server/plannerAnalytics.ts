@@ -1224,6 +1224,18 @@ export function renderAdminIndexHtml(): string {
         for the paid-intro and annual-price tests.
       </div>
     </li>
+    <li>
+      <a href="/api/_internal/analytics-health">Analytics health probe (JSON)</a>
+      <div class="desc">
+        In-process counter of <code>$identify</code> events that arrived
+        without <code>$anon_distinct_id</code>, broken down by surface, with
+        the timestamp of the most recent warning. Unauthenticated and
+        designed for an external uptime check: returns HTTP 200 while
+        healthy and HTTP 503 once the counter is non-zero, so any uptime
+        monitor (UptimeRobot, BetterStack, etc.) can alert on the status
+        code alone — no log scraping required.
+      </div>
+    </li>
   </ul>
 </body>
 </html>`;
