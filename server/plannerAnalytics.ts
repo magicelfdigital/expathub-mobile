@@ -1045,7 +1045,9 @@ export function renderAdminIndexHtml(): string {
         events, broken out by <code>entry_point</code> (e.g.
         <code>worksheet_list_anon</code>) with an 8-week trend. Configurable
         via <code>?days=N</code> (default 30). JSON at
-        <code>/api/admin/auth-prompt-analytics</code>.
+        <code>/api/admin/auth-prompt-analytics</code>. Includes a PostHog
+        backfill action for importing historical events that pre-date the
+        local <code>auth_prompt_events</code> table.
       </div>
     </li>
     <li>
