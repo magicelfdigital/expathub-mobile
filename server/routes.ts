@@ -1943,7 +1943,8 @@ async function registerWorksheetRoutes(app: Express): Promise<void> {
   app.get("/api/worksheets/:worksheetId", async (req: Request, res: Response) => {
     const userId = await getUserIdFromToken(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
-    const def = WORKSHEET_BY_ID[req.params.worksheetId];
+    const worksheetIdParam = String(req.params.worksheetId);
+    const def = WORKSHEET_BY_ID[worksheetIdParam];
     if (!def) { res.status(404).json({ error: "Unknown worksheet" }); return; }
     // Free users get one worksheet end-to-end. We allow the detail fetch
     // when:
@@ -1963,7 +1964,7 @@ async function registerWorksheetRoutes(app: Express): Promise<void> {
             [userId],
           );
           const ids: string[] = r.rows.map((row: any) => row.worksheet_id);
-          const hasThis = ids.includes(req.params.worksheetId);
+          const hasThis = ids.includes(worksheetIdParam);
           if (ids.length >= 1 && !hasThis) {
             blocked = true;
           }
@@ -1997,7 +1998,7 @@ async function registerWorksheetRoutes(app: Express): Promise<void> {
     const userId = await getUserIdFromToken(req);
     if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
     const entitled = await hasActiveEntitlement(req);
-    const { worksheetId } = req.params;
+    const worksheetId = String(req.params.worksheetId);
     if (!entitled) {
       const pool = getPool();
       if (pool) {
