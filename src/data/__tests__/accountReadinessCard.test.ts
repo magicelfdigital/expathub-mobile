@@ -8,7 +8,6 @@ import {
 import type { QuizResult } from "../quiz";
 
 const baseResult: QuizResult = {
-  tier: "exploring",
   score: 8,
   maxScore: 16,
   regionPreference: "southern_europe",

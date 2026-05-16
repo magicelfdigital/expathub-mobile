@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  MAX_SCORE,
   QUIZ_QUESTIONS,
   calculateQuizResult,
+  getReadinessLabel,
   type ReadinessLevel,
   type RegionPreference,
-  type Tier,
 } from "@quiz-data";
 import LockedSection from "@/components/LockedSection";
 import { QuizSaveModal } from "@/components/QuizSaveModal";
@@ -449,17 +450,18 @@ export default function Start() {
       await identifyByEmail(email).catch(() => {});
 
       const computed = result ?? calculateQuizResult(answers);
-      const tier: Tier = computed.tier;
-      // Use the 4-value readiness level for analytics so web events line up
-      // with mobile's `tier` field (mobile sends `readiness.level`, not the
-      // 3-value Tier). Fresh `getReadinessLabel(...)` always returns a value;
-      // the optional chain is defensive against legacy persisted shapes.
+      // Mobile and web both send the 4-value readiness level as `tier` on the
+      // backend payload — the underlying `readiness_leads.tier` /
+      // `quiz_leads.tier` columns are kept under their legacy name for now.
+      // Fresh `getReadinessLabel(...)` always returns a value; the optional
+      // chain is defensive against legacy persisted shapes.
       const readinessLevel: ReadinessLevel =
-        computed.readiness?.level ?? "curious_explorer";
+        computed.readiness?.level ??
+        getReadinessLabel(computed.score, computed.maxScore ?? MAX_SCORE).level;
       await webApiClient.readinessLead({
         email: email.trim(),
         score: computed.score,
-        tier,
+        tier: readinessLevel,
         risks: computed.risks,
         // Pass a typed-as-string answers map for the readiness_leads jsonb.
         answers: Object.fromEntries(
@@ -473,7 +475,7 @@ export default function Start() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim(),
-          tier,
+          tier: readinessLevel,
           regionPreference: region,
           score: computed.score,
           risks: computed.risks,
@@ -483,7 +485,7 @@ export default function Start() {
       trackLead({
         funnel: "web_quiz_funnel",
         surface: "web",
-        tier,
+        tier: readinessLevel,
         region,
       });
       // Mirror mobile's result-screen `quiz_completed` (with tier/score/action)
@@ -560,8 +562,10 @@ export default function Start() {
       {step.kind === "results" && result ? (
         <ResultsView
           matches={matches}
-          tier={result.tier}
-          readinessLevel={result.readiness?.level ?? "curious_explorer"}
+          readinessLevel={
+            result.readiness?.level ??
+            getReadinessLabel(result.score, result.maxScore ?? MAX_SCORE).level
+          }
           score={result.score}
           hasAccess={hasAccess}
           onRestart={restartQuiz}
@@ -789,14 +793,12 @@ function EmailGateView({
 
 function ResultsView({
   matches,
-  tier,
   readinessLevel,
   score,
   hasAccess,
   onRestart,
 }: {
   matches: CountryMatch[];
-  tier: Tier;
   readinessLevel: ReadinessLevel;
   score: number;
   hasAccess: boolean;
@@ -804,12 +806,16 @@ function ResultsView({
 }) {
   const top = matches[0];
   const rest = matches.slice(1);
-  const tierLabel =
-    tier === "ready"
+  // Visible readiness badge — derived directly from the 4-value readiness
+  // level so the UI matches the same framing the mobile app uses.
+  const readinessLabel =
+    readinessLevel === "ready_to_plan"
       ? "Ready to plan"
-      : tier === "exploring"
+      : readinessLevel === "serious_researcher"
         ? "Serious researcher"
-        : "Curious explorer";
+        : readinessLevel === "curious_explorer"
+          ? "Curious explorer"
+          : "Just getting started";
 
   // Fire a single locked-section signal once on results render so PostHog +
   // Pixel can attribute the funnel without waiting on scroll. We also mirror
@@ -823,10 +829,9 @@ function ResultsView({
       section: "web_quiz_results",
       country: top?.slug ?? "none",
     });
-    // Use the 4-value readiness level for `tier` so web events line up with
-    // mobile's `tier` field (mobile sends `readiness.level`, not the 3-value
-    // Tier). The visible `tierLabel` in the UI keeps using `tier` since the
-    // copy was designed around the 3-bucket framing.
+    // Send the 4-value readiness level as `tier` on analytics events so web
+    // events line up with mobile's `tier` field (mobile sends
+    // `readiness.level`).
     trackResultScreenViewed({ matchScore: score, tier: readinessLevel });
     trackCompletedQuiz({
       top_country: top?.slug ?? "none",
@@ -841,7 +846,7 @@ function ResultsView({
           className="rounded-full bg-[var(--color-gold)]/15 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-[var(--color-ink)]"
           data-testid="quiz-tier"
         >
-          {tierLabel} · {score}/16
+          {readinessLabel} · {score}/16
         </span>
       </div>
       <h2 className="mt-3 font-display text-3xl sm:text-4xl">

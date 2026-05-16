@@ -1,6 +1,5 @@
 export type QuizAnswer = "yes" | "somewhat" | "not_sure" | "no";
 export type RegionPreference = "southern_europe" | "northern_europe" | "north_america" | "latin_america" | "other";
-export type Tier = "dreaming" | "exploring" | "ready";
 export type BlockerLevel = "critical" | "moderate" | "explore";
 export type ReadinessLevel =
   | "just_getting_started"
@@ -40,7 +39,6 @@ export interface Blocker {
 }
 
 export interface QuizResult {
-  tier: Tier;
   score: number;
   /** Maximum possible score; absent on legacy persisted results. Default {@link MAX_SCORE}. */
   maxScore?: number;
@@ -467,18 +465,12 @@ export function calculateQuizResult(
 
   const displayScore = Math.min(MAX_SCORE, Math.round((weightedRaw / WEIGHTED_MAX) * MAX_SCORE));
 
-  let tier: Tier;
-  if (displayScore <= 5) tier = "dreaming";
-  else if (displayScore <= 11) tier = "exploring";
-  else tier = "ready";
-
   const regionPreference = (answers[9] ?? "southern_europe") as RegionPreference;
   const blockers = getBlockers(answers);
   const readiness = getReadinessLabel(displayScore, MAX_SCORE);
   const topMatch = pickTopMatch(regionPreference);
 
   return {
-    tier,
     score: displayScore,
     maxScore: MAX_SCORE,
     readiness,
@@ -582,18 +574,12 @@ export function calculateQuizResultWithWorksheets(
 
   const displayScore = Math.min(MAX_SCORE, Math.round((weightedRaw / WEIGHTED_MAX) * MAX_SCORE));
 
-  let tier: Tier;
-  if (displayScore <= 5) tier = "dreaming";
-  else if (displayScore <= 11) tier = "exploring";
-  else tier = "ready";
-
   const regionPreference = (answers[9] ?? "southern_europe") as RegionPreference;
   const blockers = getBlockers(effectiveAnswers);
   const readiness = getReadinessLabel(displayScore, MAX_SCORE);
   const topMatch = pickTopMatch(regionPreference);
 
   return {
-    tier,
     score: displayScore,
     maxScore: MAX_SCORE,
     readiness,
@@ -603,18 +589,6 @@ export function calculateQuizResultWithWorksheets(
     blockers,
   };
 }
-
-export const TIER_LABELS: Record<Tier, string> = {
-  dreaming: "Dreaming",
-  exploring: "Exploring",
-  ready: "Ready to Act",
-};
-
-export const TIER_DESCRIPTIONS: Record<Tier, string> = {
-  dreaming: "You're in the early stages \u2014 lots of ideas, not much concrete planning yet. That's perfectly fine.",
-  exploring: "You've started doing real research. A few key gaps remain before you're ready to commit.",
-  ready: "You've done serious homework. You're close to pulling the trigger on a move.",
-};
 
 export function getGapMessage(risks: string[]): string {
   if (risks.length === 0) return "No critical gaps identified - focus on timeline.";

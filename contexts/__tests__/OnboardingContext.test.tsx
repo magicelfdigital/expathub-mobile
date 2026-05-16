@@ -6,7 +6,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { QuizResult } from "@/src/data/quiz";
 
 const baseResult: QuizResult = {
-  tier: "exploring",
   score: 8,
   maxScore: 16,
   regionPreference: "southern_europe",
@@ -177,7 +176,7 @@ describe("OnboardingContext — mutations", () => {
       await ref.current!.completeOnboarding(baseResult);
     });
 
-    const updated: QuizResult = { ...baseResult, score: 14, tier: "ready" };
+    const updated: QuizResult = { ...baseResult, score: 14 };
     await act(async () => {
       await ref.current!.saveQuizResult(updated);
     });
