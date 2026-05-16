@@ -3,6 +3,7 @@ import {
   extractEntryPoint,
   isAuthPromptEventName,
   recordAuthPromptEvent,
+  renderAuthPromptAnalyticsCsv,
   resetAuthPromptAnalyticsEnsureCache,
   UNKNOWN_ENTRY_POINT,
 } from "../authPromptAnalytics";
@@ -148,5 +149,58 @@ describe("computeAuthPromptAnalytics", () => {
     const data = await computeAuthPromptAnalytics(pool, { windowDays: 30 });
     expect(data.totals.conversionRate).toBeNull();
     expect(data.byEntryPoint).toEqual([]);
+  });
+});
+
+describe("renderAuthPromptAnalyticsCsv", () => {
+  it("emits per-entry-point rows, a total row, and weekly rows", () => {
+    const csv = renderAuthPromptAnalyticsCsv({
+      windowDays: 30,
+      totals: { entryPoint: "all", shown: 140, converted: 36, conversionRate: 36 / 140 },
+      byEntryPoint: [
+        { entryPoint: "worksheet_list_anon", shown: 100, converted: 20, conversionRate: 0.2 },
+        { entryPoint: "worksheet_detail_anon", shown: 40, converted: 16, conversionRate: 0.4 },
+      ],
+      weekly: [
+        { weekStart: "2026-05-04", shown: 50, converted: 10, conversionRate: 0.2 },
+        { weekStart: "2026-05-11", shown: 0, converted: 0, conversionRate: null },
+      ],
+    });
+    const lines = csv.trim().split("\n");
+    expect(lines[0]).toBe("# Auth-prompt analytics — last 30 days");
+    expect(lines[2]).toBe("section,key,shown,converted,conversion_rate");
+    expect(lines).toContain("entry_point,worksheet_list_anon,100,20,0.2000");
+    expect(lines).toContain("entry_point,worksheet_detail_anon,40,16,0.4000");
+    expect(lines).toContain("entry_point,__total__,140,36,0.2571");
+    expect(lines).toContain("weekly,2026-05-04,50,10,0.2000");
+    // Null conversion rate becomes an empty field.
+    expect(lines).toContain("weekly,2026-05-11,0,0,");
+    expect(csv.endsWith("\n")).toBe(true);
+  });
+
+  it("escapes entry_point values containing commas or quotes", () => {
+    const csv = renderAuthPromptAnalyticsCsv({
+      windowDays: 7,
+      totals: { entryPoint: "all", shown: 1, converted: 0, conversionRate: 0 },
+      byEntryPoint: [
+        { entryPoint: 'weird,"value"', shown: 1, converted: 0, conversionRate: 0 },
+      ],
+      weekly: [],
+    });
+    expect(csv).toContain('entry_point,"weird,""value""",1,0,0.0000');
+  });
+
+  it("defuses CSV formula injection on caller-supplied entry_point values", () => {
+    const csv = renderAuthPromptAnalyticsCsv({
+      windowDays: 7,
+      totals: { entryPoint: "all", shown: 0, converted: 0, conversionRate: null },
+      byEntryPoint: [
+        { entryPoint: "=SUM(A1:A9)", shown: 1, converted: 0, conversionRate: 0 },
+        { entryPoint: "@cmd", shown: 1, converted: 0, conversionRate: 0 },
+      ],
+      weekly: [],
+    });
+    expect(csv).toContain("entry_point,'=SUM(A1:A9),1,0,0.0000");
+    expect(csv).toContain("entry_point,'@cmd,1,0,0.0000");
   });
 });

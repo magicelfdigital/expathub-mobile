@@ -378,6 +378,69 @@ function renderWeeklyTable(weeks: AuthPromptWeeklyMetrics[]): string {
   </table>`;
 }
 
+function csvEscape(value: string | number | null): string {
+  if (value === null || value === undefined) return "";
+  let str = String(value);
+  // Defuse CSV formula injection: spreadsheet apps treat cells beginning
+  // with =, +, -, @, tab, or CR as formulas. `entry_point` is caller-
+  // supplied so prefix any such leading character with a single quote.
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+  if (/[",\r\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function fmtRateForCsv(rate: number | null): string {
+  if (rate === null) return "";
+  // Four decimal places preserves enough precision for spreadsheet recompute
+  // while staying compact (e.g. 0.2000 rather than 0.20000000000000001).
+  return rate.toFixed(4);
+}
+
+export function renderAuthPromptAnalyticsCsv(data: AuthPromptAnalytics): string {
+  const { windowDays, totals, byEntryPoint, weekly } = data;
+  const lines: string[] = [];
+  lines.push(`# Auth-prompt analytics — last ${windowDays} days`);
+  lines.push("");
+  lines.push("section,key,shown,converted,conversion_rate");
+  for (const m of byEntryPoint) {
+    lines.push(
+      [
+        "entry_point",
+        csvEscape(m.entryPoint),
+        m.shown,
+        m.converted,
+        fmtRateForCsv(m.conversionRate),
+      ].join(","),
+    );
+  }
+  lines.push(
+    [
+      "entry_point",
+      "__total__",
+      totals.shown,
+      totals.converted,
+      fmtRateForCsv(totals.conversionRate),
+    ].join(","),
+  );
+  for (const w of weekly) {
+    lines.push(
+      [
+        "weekly",
+        csvEscape(w.weekStart),
+        w.shown,
+        w.converted,
+        fmtRateForCsv(w.conversionRate),
+      ].join(","),
+    );
+  }
+  // Trailing newline keeps tools like `tail` and Excel happy.
+  return lines.join("\n") + "\n";
+}
+
 export function renderAuthPromptAnalyticsHtml(data: AuthPromptAnalytics): string {
   const { totals, byEntryPoint, windowDays, weekly } = data;
   const entryPointRows = byEntryPoint.length
@@ -461,6 +524,7 @@ export function renderAuthPromptAnalyticsHtml(data: AuthPromptAnalytics): string
 
   <p style="margin-top:24px;color:#888;font-size:12px">
     JSON: <code>/api/admin/auth-prompt-analytics?days=${windowDays}</code>
+    · <a href="/admin/auth-prompt-analytics.csv?days=${windowDays}">Download CSV</a>
   </p>
 </body>
 </html>`;
@@ -503,7 +567,45 @@ export function registerAuthPromptAnalyticsRoutes(
     }
   });
 
+  const sendCsv = async (req: Request, res: Response) => {
+    if (!deps.requireAdminBasicAuth(req, res)) return;
+    const pool = deps.getPool();
+    if (!pool) {
+      res
+        .status(503)
+        .type("text/plain")
+        .send("Database not configured (set DATABASE_URL).");
+      return;
+    }
+    try {
+      const windowDays = readWindowDays(req);
+      const data = await computeAuthPromptAnalytics(pool, { windowDays });
+      const filename = `auth-prompt-analytics-${windowDays}d.csv`;
+      res
+        .type("text/csv; charset=utf-8")
+        .setHeader(
+          "Content-Disposition",
+          `attachment; filename="${filename}"`,
+        )
+        .send(renderAuthPromptAnalyticsCsv(data));
+    } catch (err: any) {
+      console.error("Auth-prompt analytics CSV error:", err?.message);
+      res
+        .status(500)
+        .type("text/plain")
+        .send(`Failed to compute auth-prompt analytics: ${err?.message ?? "unknown"}`);
+    } finally {
+      await pool.end();
+    }
+  };
+
+  app.get("/admin/auth-prompt-analytics.csv", sendCsv);
+
   app.get("/admin/auth-prompt-analytics", async (req, res) => {
+    if (req.query.format === "csv") {
+      await sendCsv(req, res);
+      return;
+    }
     if (!deps.requireAdminBasicAuth(req, res)) return;
     const pool = deps.getPool();
     if (!pool) {
