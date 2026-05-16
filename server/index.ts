@@ -3,8 +3,10 @@ import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import * as fs from "fs";
 import * as path from "path";
+import pg from "pg";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { spawnSync } from "child_process";
+import { startAuthPromptBackfillSchedule } from "./authPromptBackfillScheduler";
 
 const app = express();
 const log = console.log;
@@ -259,6 +261,21 @@ function setupErrorHandler(app: express.Application) {
   }
 
   setupErrorHandler(app);
+
+  // Daily PostHog → local `auth_prompt_events` reconciliation. Keeps the
+  // local table aligned with PostHog without operator intervention so a
+  // transient live-write failure doesn't leave the dashboard stale.
+  // Skipped in tests (NODE_ENV=test) and when PostHog credentials are
+  // missing — the scheduler logs and exits cleanly in either case.
+  if (process.env.NODE_ENV !== "test") {
+    startAuthPromptBackfillSchedule({
+      getPool: () => {
+        const dbUrl = process.env.DATABASE_URL;
+        if (!dbUrl) return null;
+        return new pg.Pool({ connectionString: dbUrl });
+      },
+    });
+  }
 
   const port = parseInt(process.env.PORT || "5000", 10);
   server.listen(
