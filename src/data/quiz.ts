@@ -1,5 +1,5 @@
 export type QuizAnswer = "yes" | "somewhat" | "not_sure" | "no";
-export type RegionPreference = "southern_europe" | "northern_europe" | "latin_america" | "other";
+export type RegionPreference = "southern_europe" | "northern_europe" | "north_america" | "latin_america" | "other";
 export type Tier = "dreaming" | "exploring" | "ready";
 export type BlockerLevel = "critical" | "moderate" | "explore";
 export type ReadinessLevel =
@@ -164,6 +164,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     options: [
       { label: "Southern Europe (Portugal, Spain)", value: "southern_europe", emoji: "\u{1F1F5}\u{1F1F9}\u{1F1EA}\u{1F1F8}" },
       { label: "Northern Europe (UK, Ireland)", value: "northern_europe", emoji: "\u{1F1EC}\u{1F1E7}\u{1F1EE}\u{1F1EA}" },
+      { label: "North America (Canada)", value: "north_america", emoji: "\u{1F1E8}\u{1F1E6}" },
       { label: "Latin America (Mexico, Costa Rica)", value: "latin_america", emoji: "\u{1F1F2}\u{1F1FD}\u{1F1E8}\u{1F1F7}" },
       { label: "Southeast Asia / Other", value: "other", emoji: "\u{1F30F}" },
     ],

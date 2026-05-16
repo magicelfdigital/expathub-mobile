@@ -132,6 +132,20 @@ const COUNTRY_MATCHES: CountryMatch[] = [
     ],
   },
   {
+    slug: "canada",
+    name: "Canada",
+    flag: "🇨🇦",
+    matchScore: 85,
+    region: "north_america",
+    brief:
+      "Express Entry, the Provincial Nominee Programs, and the Start-up Visa each have very different timelines and points thresholds — the wrong stream can add 12+ months.",
+    highlights: [
+      "Express Entry CRS cutoffs have hovered around 480–540 for general draws; category-based draws (French, healthcare, STEM) often clear at much lower scores.",
+      "Provincial Nominee Programs add 600 CRS points and are the cleanest route for applicants outside the federal cutoff.",
+      "Start-up Visa grants permanent residency up-front with a qualifying designated-organization commitment.",
+    ],
+  },
+  {
     slug: "mexico",
     name: "Mexico",
     flag: "🇲🇽",
