@@ -1,0 +1,50 @@
+1. Stop wasting keyword slots on duplicates (biggest one)
+
+Apple combines tokens across name + subtitle + keyword field, so any word that appears in the name or subtitle should be removed from the keyword field. Your current 100-char field repeats relocation and planner — both already in the subtitle — and expat is in the app name.
+
+Also: don't use spaces after commas, and split phrases into single words. Apple auto-combines tokens, so "move abroad" wastes 6 chars vs "move,abroad" which ranks for both individually plus the phrase. Same for "digital nomad", "retire abroad".
+
+A rewrite of the keyword field (100 chars, no spaces):
+
+visa,golden,d7,nomad,citizenship,passport,emigrate,overseas,live,country,quiz,tax,move,gap,year
+
+That's ~92 chars and gets you ranked for combinations like "golden visa", "d7 visa", "live overseas", "nomad visa", "tax abroad", "gap year", "move overseas" — terms you currently miss entirely.
+
+2. Use the subtitle for keywords the name doesn't already cover
+
+Current: Relocation guides & planning (28 chars, ranks for "relocation", "guides", "planning")
+
+Stronger: Visa, residency & moving plan (29 chars — adds visa, residency, moving as ranking terms; drops "guides" which is low-volume)
+
+Or, country-pitched: Visa & residency move planner (29 chars)
+
+3. Tighten the app name to lead with a real search term
+
+ExpatHub - Move Abroad Smarter (30 chars) burns 6 chars on "Smarter" which nobody searches for.
+
+Try: ExpatHub: Move Abroad & Visa (28 chars) — keeps brand, adds "visa" as a ranking term in the highest-weight field. Or ExpatHub: Relocate Overseas (27 chars) if you want broader reach.
+
+4. Front-load the description
+
+Apple shows only the first ~3 lines before "more". Your current opening — "Moving to another country is one of the biggest decisions you'll ever make" — is brand-y but doesn't tell the user what the app does. Lead with the concrete promise:
+
+Take the 2-minute Country Fit Quiz and get a personalised readiness score, your top destination match, and a clear list of what's blocking your move — across 11 countries.
+
+(Doesn't affect ranking, but lifts conversion, which Apple uses as a ranking signal.)
+
+Medium-effort lifts
+5. Add localized storefronts to double your keyword field
+
+App Store indexes keyword fields per locale. By adding English (UK) and English (Australia) alongside English (US), you get three independent 100-char keyword fields — Apple ranks the user against all of them. Costs ~10 min to set up in App Store Connect, no translation needed (the copy is already in English). This is the single biggest free ASO win for an English-only app.
+
+6. In-app events
+
+App Store Connect lets you publish "In-App Events" (e.g., "Country Fit Quiz refresh", "New: Australia pathway"). Events appear on your product page and in search, and they're indexed. You can run up to 10 active at a time.
+
+7. Custom product pages
+
+You can create up to 35 alternate product pages with different screenshots, preview videos, and promo text, then deep-link to each from Apple Search Ads or Meta. Useful if you want to A/B a "digital nomad" angle vs a "retire abroad" angle without changing the default listing.
+
+8. Screenshots & preview video
+
+The single biggest conversion lever. If your current screenshots are device frames with feature labels, consider testing: large headline text + a hero benefit per screenshot (e.g., "Find your country in 2 minutes" / "Compare 11 destinations on 14 factors" / "Plan your move step by step"). Apple Search Ads + Product Page Optimization can A/B these for you.
