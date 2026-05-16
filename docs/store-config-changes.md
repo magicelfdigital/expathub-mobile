@@ -1,9 +1,8 @@
-# Store + Stripe Configuration Changes — 2 Tier / 14-day Trial Migration
+# Store + Stripe Configuration — 2-Tier Subscription Setup
 
-This doc captures the manual store-side configuration that goes with the
-codebase changes from the **4-tier (Decision Pass, Country Lifetime, Monthly,
-Annual) → 2-tier (Monthly + Annual)** simplification, and the **7-day → 14-day
-free trial** change applied to both plans.
+This doc captures the manual store-side configuration needed to support the
+**2-tier subscription model**: **Monthly Explorer ($14.99/month, no trial)**
+and **Annual Pathfinder ($89/year, 14-day free trial)**.
 
 > **Scope:** ExpatHub ships on **iOS + Web only**. Google Play Console / Android
 > billing configuration is intentionally out of scope and has been removed from
@@ -21,11 +20,11 @@ free trial** change applied to both plans.
 |---|---|
 | RevenueCat product IDs (iOS) | `monthly_subscription_all_access` (monthly), `ExpatHub_pathfinder` (annual) |
 | Mobile prices (display) | `$14.99/month`, `$89/year` |
-| Trial length (mobile + web) | **14 days** (constant: `TRIAL_DURATION_DAYS` in `src/config/subscription.ts`) |
+| Trial length (annual only) | **14 days** (constant: `TRIAL_DURATION_DAYS` in `src/config/subscription.ts`). Monthly has no trial. |
 | Web checkout endpoint | `POST /api/stripe/checkout` with body `{ plan: "monthly" \| "annual" }` |
 | Stripe price ID env vars | `STRIPE_MONTHLY_PRICE_ID`, `STRIPE_ANNUAL_PRICE_ID` |
-| Stripe trial config | `subscription_data.trial_period_days: 14` (server-side) |
-| Removed legacy code paths | Decision Pass and Country Lifetime products are no longer offered. The entitlement gate ignores any legacy `decisionPass` / `countryUnlocks` fields the backend may still return. |
+| Stripe trial config | `subscription_data.trial_period_days: 14` (server-side, annual only) |
+| Single entitlement | `full_access_subscription` — granted by either plan |
 
 ---
 
@@ -34,26 +33,27 @@ free trial** change applied to both plans.
 1. **Subscriptions group** (auto-renewing): keep two products only —
    - `monthly_subscription_all_access` — Monthly Explorer — **$14.99/month**
    - `ExpatHub_pathfinder` — Annual Pathfinder — **$89/year**
-2. For **each** product, open **Subscription Pricing** → **Introductory
-   Offer** → **Free Trial** → **14 days**, available to **New Subscribers**
-   (and, optionally, lapsed subscribers — confirm with marketing).
-3. Remove the old offers: any 7-day intro on `ExpatHub_pathfinder`, and
-   any standalone non-renewing products for the **30-Day Decision Pass** or
-   **Country Lifetime** packs. If the products cannot be deleted, mark them
-   **Cleared for Sale → No** so they stop appearing in offerings.
+2. For **`ExpatHub_pathfinder` only**, open **Subscription Pricing** →
+   **Introductory Offer** → **Free Trial** → **14 days**, available to
+   **New Subscribers** (and, optionally, lapsed subscribers — confirm with
+   marketing). **Do not** add any introductory offer to
+   `monthly_subscription_all_access` — Monthly Explorer ships with no
+   trial.
+3. Make sure no other auto-renewing or non-renewing products are
+   **Cleared for Sale**. The app only reads the two SKUs above.
 4. Submit the changes for review with a screenshot of the new paywall.
 
 ## 3. RevenueCat dashboard
 
-1. **Products**: ensure only `monthly_subscription_all_access` and `ExpatHub_pathfinder` are
-   active. Archive the Decision Pass and Country Lifetime products so they
-   stop appearing in offerings.
+1. **Products**: ensure only `monthly_subscription_all_access` and
+   `ExpatHub_pathfinder` are active. Any other products should be archived
+   so they stop appearing in offerings.
 2. **Offerings → Default**: keep two packages mapped to those products
    (`$rc_monthly` / `$rc_annual` is fine).
-3. **Entitlements**: a single entitlement `full_access` should be granted by
-   both products. Remove `decision_access` and any `country_<slug>`
-   entitlements — the app no longer reads them.
-4. Verify Apple + Google service credentials are still valid so trial events
+3. **Entitlements**: a single entitlement `full_access_subscription`
+   should be granted by both products. No other entitlements should be
+   active — the app only reads this one.
+4. Verify Apple service credentials are still valid so trial events
    propagate.
 5. **Experiments (paid intro vs free trial)** — RevenueCat dashboard →
    **Experiments → New experiment**:
@@ -133,12 +133,14 @@ free trial** change applied to both plans.
 
 - [ ] iOS sandbox purchase of `ExpatHub_pathfinder` shows the **14-day free
       trial** introductory offer in the App Store sheet.
-- [ ] iOS sandbox purchase of `monthly_subscription_all_access` shows the **14-day free
-      trial** introductory offer.
-- [ ] RevenueCat customer info reports a single `full_access` entitlement
-      after either purchase.
-- [ ] Web `/pricing` → "Start 14-day free trial" → Stripe Checkout shows
-      "14-day free trial" and **$0 due today**.
-- [ ] After the trial, Stripe charges $14.99 (monthly) or $89 (annual).
-- [ ] No UI surface mentions Decision Pass, Country Lifetime, or a 7-day
-      trial.
+- [ ] iOS sandbox purchase of `monthly_subscription_all_access` shows
+      **no introductory offer** and charges $14.99 immediately.
+- [ ] RevenueCat customer info reports a single `full_access_subscription`
+      entitlement after either purchase.
+- [ ] Web `/pricing` → "Start 14-day free trial" (Annual Pathfinder) →
+      Stripe Checkout shows "14-day free trial" and **$0 due today**.
+- [ ] Web `/pricing` → Monthly Explorer → Stripe Checkout shows **$14.99
+      due today** and no trial.
+- [ ] After the annual trial, Stripe charges $89. Monthly is charged
+      $14.99 immediately on first checkout and on each renewal.
+- [ ] No UI surface mentions a 7-day trial anywhere.

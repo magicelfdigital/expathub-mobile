@@ -2,17 +2,15 @@
 
 This document specifies how the ExpatHub website (expathub.world) should implement user authentication, content gating, and the purchase/subscription flow to match the mobile app experience. The web version uses Stripe for payments and shares the same auth backend as the mobile app.
 
-> ⚠️ **Purchase model is out of date (April 2026).** The web side now offers
-> **two recurring plans only** — Monthly Explorer ($14.99/mo) and Annual
-> Pathfinder ($89/yr) — each with a **14-day free trial** applied via Stripe
-> `subscription_data.trial_period_days`. The **`decision_pass`** and
-> **`country_lifetime`** purchase types described in sections below have been
-> removed; the resume-pending-purchase flow now only handles `monthly` and
-> `annual` plan keys. For the current source of truth, see:
+> This document describes the **2-tier purchase model** (as of v1.4). The
+> web side offers two recurring plans: **Monthly Explorer ($14.99/mo, no
+> trial)** and **Annual Pathfinder ($89/yr, 14-day free trial via Stripe
+> `subscription_data.trial_period_days`)**. The resume-pending-purchase
+> flow only handles `monthly` and `annual` plan keys. Source of truth:
 >
 > - `web/src/pages/Pricing.tsx` — the live two-plan layout
 > - `server/routes.ts` → `POST /api/stripe/checkout` — accepts
->   `{ plan: "monthly" \| "annual" }` and applies the 14-day trial
+>   `{ plan: "monthly" \| "annual" }` and applies the 14-day annual trial
 > - `docs/store-config-changes.md` — Stripe + RevenueCat operator setup
 
 ---
@@ -47,22 +45,20 @@ After every successful auth event (login, register, OR session restore), call `l
 
 - **Free content is accessible without login.** Users can browse countries, pathways (free tier), resources, vendors, and community links without any account.
 - **Premium content viewing requires login.** If a logged-out user navigates to a premium Decision Brief, show a gate: "Sign in to view this content" with a CTA to the auth modal/page.
-- **Purchase buttons are always visible.** The paywall shows all three purchase options to everyone, including logged-out users.
+- **Purchase buttons are always visible.** The paywall shows both subscription options to everyone, including logged-out users.
 - **Purchases require auth.** When a logged-out user taps a purchase button, the app stores the pending purchase intent, redirects to the auth flow, and auto-resumes the purchase after successful login/register.
 
 ### 1.4 Pending Purchase Flow (Critical)
 
-This is the key UX innovation — users see prices and can tap "buy" before having an account:
+This is the key UX innovation — users see prices and can tap "subscribe" before having an account:
 
-1. User taps a purchase CTA (e.g., "Start 30-Day Decision Access — $29").
+1. User taps a plan CTA (e.g., "Start 14-day free trial — Annual Pathfinder").
 2. If NOT logged in:
-   a. Store `{ type, countrySlug }` in `localStorage` under key `pending_purchase`.
-      - `type` is one of: `"decision_pass"`, `"country_lifetime"`, `"monthly"`.
-      - `countrySlug` is the current country context (e.g., `"portugal"`) or `null`.
+   a. Store `{ plan }` in `localStorage` under key `pending_purchase`.
+      - `plan` is one of: `"monthly"`, `"annual"`.
    b. Redirect to the auth modal/page.
 3. After successful login/register, the auth modal auto-closes (navigates back).
-4. The paywall component detects the user is now logged in, reads `pending_purchase` from localStorage, clears it, and auto-initiates the purchase flow for the stored type.
-   - **For `country_lifetime`:** The resume logic passes `pending.countrySlug` as a slug override to the purchase handler. This is critical — do NOT fall back to the current page's country context, because the user may have been redirected and the page context may have changed. Always use the stored slug.
+4. The paywall component detects the user is now logged in, reads `pending_purchase` from localStorage, clears it, and auto-initiates the Stripe Checkout flow for the stored plan.
 5. If the user dismisses auth without logging in, they return to the paywall — pending purchase stays in storage for next attempt.
 
 ### 1.5 Forgot Password
@@ -93,30 +89,32 @@ The forgot password flow allows users to reset their password:
 
 ## 2. Subscription Tiers & Products
 
-ExpatHub uses a 3-tier monetization model:
+ExpatHub uses a 2-tier subscription model:
 
-| Tier | Price | Type | Stripe Product | What It Unlocks |
+| Tier | Price | Trial | Stripe Price ID env | What It Unlocks |
 |---|---|---|---|---|
-| **30-Day Decision Pass** | $29 | One-time (consumable) | `STRIPE_DECISION_PASS_PRICE_ID` | Full access to all 8 launch countries for 30 days |
-| **Country Lifetime Unlock** | $69 per country | One-time (non-consumable) | One price per country | Permanent access to one country's Decision Briefs |
-| **Monthly Subscription** | $14.99/month | Recurring | `STRIPE_MONTHLY_PRICE_ID` | Ongoing full access to everything |
+| **Monthly Explorer** | $14.99/month | None | `STRIPE_MONTHLY_PRICE_ID` | Ongoing full access to all 11 launch countries |
+| **Annual Pathfinder** | $89/year | 14 days | `STRIPE_ANNUAL_PRICE_ID` | Ongoing full access to all 11 launch countries |
 
-### 2.1 Access Hierarchy
+Both plans grant the single `full_access_subscription` entitlement.
+
+### 2.1 Access Check
 
 Check access in this order (first match wins):
 
-1. **Active monthly subscription** → full access to everything
-2. **Active Decision Pass** (purchased < 30 days ago) → full access to everything
-3. **Country Lifetime Unlock** → access to that specific country's Decision Briefs only
-4. **None** → free content only, show paywall for premium content
+1. **Active Monthly Explorer or Annual Pathfinder subscription** → full access.
+2. **Sandbox / promo override or active 48h reverse trial** → full access.
+3. **None** → free content only, show paywall for premium content.
 
 ### 2.2 Launch Countries
 
 ```
-portugal, spain, canada, costa-rica, panama, ecuador, malta, united-kingdom
+portugal, spain, canada, costa-rica, panama, ecuador, malta,
+united-kingdom, germany, ireland, australia
 ```
 
-Each country can have a lifetime unlock product. Product IDs follow the pattern: `country_lifetime_<slug>` (with hyphens replaced by underscores, e.g., `country_lifetime_costa_rica`).
+All 11 launch countries unlock from a single subscription — there are no
+per-country products.
 
 ---
 
@@ -128,20 +126,21 @@ The Express backend at port 5000 provides these Stripe endpoints:
 
 | Endpoint | Method | Body | Response | Notes |
 |---|---|---|---|---|
-| `POST /api/stripe/checkout` | POST | `{ priceId }` | `{ url }` | Creates a Checkout Session, returns redirect URL |
+| `POST /api/stripe/checkout` | POST | `{ plan: "monthly" \| "annual" }` | `{ url }` | Creates a Checkout Session (subscription mode; annual adds 14-day trial), returns redirect URL |
 | `POST /api/stripe/portal` | POST | `{ customerId }` | `{ url }` | Creates Customer Portal session for subscription management |
 | `GET /api/stripe/status` | GET | — | `{ hasProAccess }` | Checks if current user has active subscription |
 
 ### 3.2 Checkout Flow
 
-1. User clicks purchase CTA on the paywall.
-2. Frontend calls `POST /api/stripe/checkout` with the appropriate `priceId`.
+1. User clicks a plan CTA on the paywall.
+2. Frontend calls `POST /api/stripe/checkout` with `{ plan: "monthly" | "annual" }`.
 3. Backend creates a Stripe Checkout Session with:
-   - `mode: "subscription"` for monthly, `mode: "payment"` for one-time purchases (Decision Pass, Country Unlock).
+   - `mode: "subscription"` for both plans.
+   - For `annual`, includes `subscription_data.trial_period_days: 14` to enable the 14-day free trial.
    - `success_url`: Return URL with `?checkout=success` query param.
    - `cancel_url`: Return URL with `?checkout=cancel` query param.
    - `customer_email`: The logged-in user's email (to link Stripe customer to ExpatHub account).
-   - `metadata`: Include `{ userId, purchaseType, countrySlug }` for webhook processing.
+   - `metadata`: Includes `{ userId, plan }` for webhook processing.
 4. Frontend redirects to `session.url` (Stripe-hosted checkout page).
 5. After payment, Stripe redirects back to the success/cancel URL.
 
@@ -150,9 +149,7 @@ The Express backend at port 5000 provides these Stripe endpoints:
 On the success return URL (`?checkout=success`):
 - Show a brief confirmation message.
 - Call `GET /api/stripe/status` to verify the subscription is active.
-- Refresh the entitlement state.
-- If the purchase was a Decision Pass, store the purchase timestamp in localStorage (`decision_pass_purchased_at`) as an ISO date string.
-- If the purchase was a Country Lifetime Unlock, add the country slug to the localStorage array (`country_lifetime_unlocks`).
+- Refresh the entitlement state from the backend (no client-side timestamps to maintain — there are no longer any one-time purchase records to track in localStorage).
 
 ### 3.4 Webhook Processing (Backend)
 
@@ -170,10 +167,10 @@ The webhook should update the user's subscription status in the database, keyed 
 | Variable | Where | Description |
 |---|---|---|
 | `STRIPE_SECRET_KEY` | Backend (secret) | Stripe API secret key |
-| `EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID` | Frontend (public) | Stripe Price ID for monthly subscription |
-| `EXPO_PUBLIC_STRIPE_DECISION_PASS_PRICE_ID` | Frontend (public) | Stripe Price ID for Decision Pass |
-
-Country lifetime unlock price IDs can be configured per country or use a single price with metadata.
+| `STRIPE_MONTHLY_PRICE_ID` | Backend | Stripe Price ID for Monthly Explorer ($14.99/mo) |
+| `STRIPE_ANNUAL_PRICE_ID` | Backend | Stripe Price ID for Annual Pathfinder ($89/yr); 14-day trial is configured in code, not on the price |
+| `EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID` | Frontend (public) | Public mirror of the monthly Stripe Price ID |
+| `EXPO_PUBLIC_STRIPE_ANNUAL_PRICE_ID` | Frontend (public) | Public mirror of the annual Stripe Price ID |
 
 ---
 
@@ -192,33 +189,21 @@ RevenueCat works on web out of the box. The mobile app already initializes it an
 On web, after the user logs in:
 1. Initialize RevenueCat with the appropriate API key.
 2. Call `Purchases.logIn(userId.toString())` to associate the web session with the RevenueCat user.
-3. Check `customerInfo.entitlements.active` for:
-   - `decision_access` → Decision Pass is active
-   - `full_access_subscription` → Monthly subscription is active
-   - `country_<slug>` → Country lifetime unlock is active
+3. Check `customerInfo.entitlements.active` for `full_access_subscription` — granted by either the Monthly Explorer or Annual Pathfinder subscription.
 
 ### 4.3 Entitlement Check Priority
 
 When determining access on web:
-1. Check RevenueCat entitlements (covers mobile purchases).
-2. Check Stripe subscription status via `/api/stripe/status` (covers web purchases).
-3. Check localStorage for Decision Pass timestamp and country unlocks (local fallback).
+1. Check RevenueCat entitlements (covers mobile-originated subscriptions).
+2. Check Stripe subscription status via `/api/stripe/status` (covers web-originated subscriptions).
+3. Apply any sandbox/promo override or active 48h reverse trial.
 4. If none → no access, show paywall.
 
 ### 4.4 RevenueCat Entitlement IDs
 
 | Entitlement | Meaning |
 |---|---|
-| `decision_access` | 30-Day Decision Pass is active |
-| `full_access_subscription` | Monthly subscription is active |
-| `country_portugal` | Portugal lifetime unlock |
-| `country_spain` | Spain lifetime unlock |
-| `country_canada` | Canada lifetime unlock |
-| `country_costa_rica` | Costa Rica lifetime unlock |
-| `country_panama` | Panama lifetime unlock |
-| `country_ecuador` | Ecuador lifetime unlock |
-| `country_malta` | Malta lifetime unlock |
-| `country_united_kingdom` | United Kingdom lifetime unlock |
+| `full_access_subscription` | Active Monthly Explorer or Annual Pathfinder subscription |
 
 ---
 
@@ -230,28 +215,22 @@ Premium content (Decision Briefs) is gated by the `ProGate` component:
 
 ```
 if (hasFullAccess) → show content
-else if (hasCountryAccess(slug)) → show content
 else → show ProPaywall
 ```
 
-- `hasFullAccess` = true when user has monthly subscription OR active Decision Pass.
-- `hasCountryAccess(slug)` = true when user has a lifetime unlock for that specific country.
+- `hasFullAccess` = true when the user has an active Monthly Explorer or Annual Pathfinder subscription, OR an active sandbox/promo override, OR an active 48h reverse trial.
 
 ### 5.2 Paywall Display
 
-The `ProPaywall` shows three purchase options in priority order:
+The `ProPaywall` shows two subscription options:
 
-1. **30-Day Decision Pass — $29** (primary CTA, highlighted)
-   - "Full access to all 8 launch countries for 30 days"
-   - Best for users exploring multiple countries
-   
-2. **Unlock [Country Name] Forever — $69** (shown only when country context exists)
-   - "Permanent access to [Country Name]'s Decision Briefs"
-   - Best for users decided on one country
-   
-3. **Monthly Access — $14.99/mo** (secondary option)
+1. **Annual Pathfinder — $89/year** (primary CTA, highlighted)
+   - "Start your 14-day free trial"
+   - Best long-term value
+
+2. **Monthly Explorer — $14.99/month** (secondary option)
    - "Ongoing access to everything, cancel anytime"
-   - For users who want continuous access
+   - For users who want flexibility
 
 ### 5.3 Paywall Behavior
 
@@ -274,39 +253,7 @@ The mobile app's `purchasePackage()` returns an explicit status. On web, mimic t
 
 **Close logic:** Only close the paywall when `status` is `"purchased"` OR `"already_owned"` AND the user actually has access (`hasProAccess === true`). If the status indicates a purchase but access isn't confirmed, show: "Purchase could not be confirmed. Please try again or restore purchases."
 
-### 5.5 Country Unlock Handler — Slug Override
-
-The country unlock handler accepts an optional `slugOverride` parameter:
-
-```
-function handleCountryUnlock(slugOverride?: string) {
-  const slug = slugOverride ?? currentPageCountrySlug;
-  // Use `slug` (NOT `currentPageCountrySlug`) for ALL of:
-  // - Product ID lookup
-  // - Analytics tracking
-  // - Recording the unlock
-  // - Logging
-}
-```
-
-**When storing a pending purchase:**
-```
-storePendingPurchase("country_lifetime", slug);
-```
-
-**When resuming after auth:**
-```
-handleCountryUnlock(pending.countrySlug);  // Pass the stored slug
-```
-
-**Button binding (normal tap, no resume):**
-```
-onPress={() => handleCountryUnlock()}  // Arrow function — prevents event object leaking into slugOverride
-```
-
-**Never bind directly:** `onPress={handleCountryUnlock}` would pass the press event object as `slugOverride`, causing it to be treated as a string slug.
-
-### 5.6 Sandbox Mode
+### 5.5 Sandbox Mode
 
 In development (`__DEV__` or `EXPO_PUBLIC_SANDBOX_MODE=true`), show a toggle to simulate Pro access without real purchases. This bypasses all payment flows and grants full access locally.
 
@@ -317,10 +264,9 @@ In development (`__DEV__` or `EXPO_PUBLIC_SANDBOX_MODE=true`), show a toggle to 
 The account screen (accessible via profile icon in header) shows:
 
 - **User email**
-- **Current access level**: Free, Decision Pass (X days left), Country Unlock (which countries), Monthly Subscriber
-- **Unlocked countries** as visual chips/badges
-- **Manage subscription** button → opens Stripe Customer Portal (web) or App Store/Play Store (mobile)
-- **Upgrade CTA** if user is on free tier or has partial access
+- **Current access level**: Free, Monthly Explorer, Annual Pathfinder (with trial countdown if applicable), or Reverse Trial (with countdown)
+- **Manage subscription** button → opens Stripe Customer Portal (web) or App Store (mobile)
+- **Upgrade CTA** if user is on the free tier
 - **Logout** button
 
 ---
@@ -341,13 +287,11 @@ All auth and purchase logs use these prefixes for easy filtering:
 - `[AUTH] Session restored for user {id}, syncing with RevenueCat` — on token restore + `GET /api/auth` success
 - `[RC] loginUser called before init, attempting initPurchases first for user {id}` — race condition self-heal
 - `[RC] Logged in user: {id}` + active entitlements — after RevenueCat `logIn`
-- `[PURCHASE] Stored pending purchase: {type, countrySlug}` — when storing pending intent before auth redirect
-- `[PURCHASE] Resuming country_lifetime with stored slug={slug}` — when resuming from pending after auth
-- `[PURCHASE] handleCountryUnlock using slug={slug}` — inside handler, confirming which slug is actually used
-- `[PURCHASE] Country unlock result: status={status}, hasProAccess={bool}, slug={slug}` — after purchase attempt
-- `[PURCHASE] Decision Pass result: status={status}, hasProAccess={bool}` — after purchase attempt
+- `[PURCHASE] Stored pending purchase: {plan}` — when storing pending intent before auth redirect
+- `[PURCHASE] Resuming {plan} after auth` — when resuming from pending after auth
 - `[PURCHASE] Monthly result: status={status}, hasProAccess={bool}` — after purchase attempt
-- On Stripe checkout redirect: log the price ID being used
+- `[PURCHASE] Annual result: status={status}, hasProAccess={bool}` — after purchase attempt
+- On Stripe checkout redirect: log the plan being used
 - On checkout return: log success/cancel status
 
 ---
@@ -355,17 +299,17 @@ All auth and purchase logs use these prefixes for easy filtering:
 ## 8. Data Flow Summary
 
 ```
-User taps "Buy" on paywall
+User taps a plan on paywall
     │
     ├─ Logged in?
-    │   ├─ YES → Initiate Stripe Checkout → Redirect to Stripe → Return with success/cancel
+    │   ├─ YES → Initiate Stripe Checkout for { plan } → Redirect → Return with success/cancel
     │   │                                                              │
     │   │                                               ├─ success → check status + hasProAccess
     │   │                                               │              ├─ both OK → close paywall
     │   │                                               │              └─ no access → show error
     │   │                                               └─ cancel → stay on paywall (no error)
     │   │
-    │   └─ NO → Store { type, countrySlug } in localStorage → Redirect to auth
+    │   └─ NO → Store { plan } in localStorage → Redirect to auth
     │                                                              │
     │                                         ├─ Login/Register success
     │                                         │       │
@@ -373,9 +317,8 @@ User taps "Buy" on paywall
     │                                         │       │
     │                                         │       └─ Paywall reads pending purchase, clears it
     │                                         │              │
-    │                                         │              ├─ decision_pass → handleDecisionPassPurchase()
-    │                                         │              ├─ country_lifetime → handleCountryUnlock(pending.countrySlug)
-    │                                         │              └─ monthly → handleMonthlySubscribe()
+    │                                         │              ├─ monthly → handleMonthlySubscribe()
+    │                                         │              └─ annual → handleAnnualSubscribe()
     │                                         │
     │                                         └─ Auth dismissed → return to paywall (pending purchase stays)
 ```
@@ -394,13 +337,11 @@ User taps "Buy" on paywall
 - [ ] Forgot password form calling `POST /api/auth/forgot-password` (proxied on web, direct on native)
 
 ### Pending Purchase
-- [ ] Pending purchase storage in localStorage (`{ type, countrySlug }`)
-- [ ] Auto-resume purchase after auth success
-- [ ] Country unlock resume passes `pending.countrySlug` as slug override (not page context)
-- [ ] Button binding uses arrow function `() => handleCountryUnlock()` (no event leakage)
+- [ ] Pending purchase storage in localStorage (`{ plan: "monthly" | "annual" }`)
+- [ ] Auto-resume Stripe Checkout after auth success
 
 ### Payments
-- [ ] Stripe Checkout integration for all 3 tiers
+- [ ] Stripe Checkout integration for both plans (monthly + annual, with 14-day trial on annual)
 - [ ] Post-checkout: check explicit status (`purchased` / `already_owned` / `cancelled`)
 - [ ] Close paywall only when status is purchased/already_owned AND hasProAccess is true
 - [ ] Post-checkout cancel: stay on paywall, no error message
@@ -410,9 +351,7 @@ User taps "Buy" on paywall
 ### Entitlements
 - [ ] RevenueCat web SDK initialization
 - [ ] RevenueCat user login sync (`logIn(userId)`) at all 3 auth points
-- [ ] Cross-platform entitlement checking (RC + Stripe + localStorage)
-- [ ] Decision Pass expiration tracking (30-day countdown)
-- [ ] Country lifetime unlock tracking
+- [ ] Cross-platform entitlement checking (RC + Stripe), with sandbox / 48h reverse-trial overrides applied locally
 
 ### UI
 - [ ] Content gating with ProGate/ProPaywall components
@@ -422,4 +361,3 @@ User taps "Buy" on paywall
 ### Logging
 - [ ] Prefixed console logging: `[AUTH]`, `[PURCHASE]`, `[GATE]`, `[RC]`
 - [ ] Purchase results log explicit status + hasProAccess
-- [ ] Country unlock logs the resolved slug at resume and inside handler

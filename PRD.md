@@ -6,14 +6,12 @@
 **Company:** Magic Elf Digital
 **Contact:** support@expathub.website
 
-> ⚠️ **Sections describing monetization below are out of date.** As of v1.4,
-> ExpatHub ships a **2-tier subscription model only**: Monthly Explorer
-> ($14.99/mo, no trial) and Annual Pathfinder ($89/yr, 14-day free trial).
-> The **30-Day Decision Pass ($29)** and **Country Lifetime Unlock ($69)**
-> products described below have been fully retired and removed from the
-> codebase. Country count is **11**, not 8. The single entitlement is
-> `full_access_subscription`. For the current source of truth, see
-> `replit.md`, `src/config/subscription.ts`, and `CHANGELOG.md`.
+> The monetization sections below describe the **2-tier subscription
+> model** (as of v1.4): Monthly Explorer ($14.99/mo, no trial) and Annual
+> Pathfinder ($89/yr, 14-day free trial). Country count is **11**. The
+> single entitlement is `full_access_subscription`. For the current source
+> of truth, see `replit.md`, `src/config/subscription.ts`, and
+> `CHANGELOG.md`.
 
 ---
 
@@ -41,7 +39,7 @@
 
 ### What It Is
 
-ExpatHub is a mobile-first application that provides decision-ready intelligence for international relocation. It covers visa pathways, work authorization rules, financial realities, and residency options across 8 launch countries.
+ExpatHub is a mobile-first application that provides decision-ready intelligence for international relocation. It covers visa pathways, work authorization rules, financial realities, and residency options across 11 launch countries.
 
 ### Problem Statement
 
@@ -72,10 +70,13 @@ ExpatHub provides:
 | Ecuador | South America | Rentista Visa, Jubilado (Retirement) Visa |
 | Malta | Europe | Nomad Residence Permit, Global Residence Programme |
 | United Kingdom | Europe | Skilled Worker Visa, Global Talent Visa, Innovator Founder Visa |
+| Germany | Europe | Skilled worker and freelance pathways |
+| Ireland | Europe | Critical Skills and Stamp pathways |
+| Australia | Oceania | Skilled and employer-sponsored pathways |
 
 ### Coming Soon
 
-France, Italy, Thailand, Mexico, Ireland, Germany, Netherlands, Sweden, Norway, Denmark, Switzerland, Austria, Greece, Belize, Guatemala, Colombia, Uruguay, Chile, Argentina, Brazil, Japan, Singapore, Malaysia, Australia, New Zealand.
+France, Italy, Thailand, Mexico, New Zealand.
 
 ---
 
@@ -104,36 +105,32 @@ France, Italy, Thailand, Mexico, Ireland, Germany, Netherlands, Sweden, Norway, 
 ### Freemium Tiers
 
 **Free Tier:**
-- Country browsing and selection (32 countries listed, 8 decision-ready)
+- Country browsing and selection (11 decision-ready countries plus coming-soon list)
 - Pathway summaries (title, description, who it's for, who it's not for)
 - Official government resource links
 - Vendor directory per country
 - Community links per country
-- Country comparison matrix (5 free rows)
+- Country comparison matrix (4 free rows)
 - Explore topics (remote work, sponsorship, flexibility, permanent residency, compare)
 
-**Pro Tier (3 purchase options):**
+**Pro Tier (2 subscription options):**
 
-1. **30-Day Decision Pass — $29 one-time (consumable)**
-   - Full access to all 8 launch countries for 30 days
-   - Decision Briefs, premium pathway details, pro comparison rows
-   - Product ID: `decision_pass_30d`
+1. **Monthly Explorer — $14.99/month, auto-renewing (no free trial)**
+   - Ongoing full access to all 11 launch countries and premium content
+   - iOS product ID: `monthly_subscription_all_access`
 
-2. **Country Lifetime Unlock — $69 per country, one-time (non-consumable)**
-   - Permanent access to one country's Decision Briefs and premium pathway details
-   - Product IDs: `country_lifetime_<slug>` (e.g., `country_lifetime_portugal`)
+2. **Annual Pathfinder — $89/year, auto-renewing (14-day free trial)**
+   - Ongoing full access to all 11 launch countries and premium content
+   - iOS product ID: `ExpatHub_pathfinder`
 
-3. **Monthly Subscription — $14.99/month, auto-renewing**
-   - Ongoing full access to all countries and premium content
-   - Product ID: `expathub_monthly`
+Both plans grant the same single entitlement (`full_access_subscription`).
 
 ### Payment Processing
 
 | Platform | Provider | Details |
 |----------|----------|---------|
-| iOS | RevenueCat | Entitlements: `decision_access`, `full_access_subscription`, `country_<slug>`. Products: `decision_pass_30d`, `country_lifetime_<slug>` (×8), `expathub_monthly`. API key env: `EXPO_PUBLIC_RC_IOS_KEY` |
-| Android | RevenueCat | Same entitlements and products. API key env: `EXPO_PUBLIC_RC_ANDROID_KEY` |
-| Web | Stripe | Checkout Sessions for purchase, Customer Portal for management. Server-side via `STRIPE_SECRET_KEY` |
+| iOS | RevenueCat | Entitlement: `full_access_subscription`. Products: `monthly_subscription_all_access`, `ExpatHub_pathfinder`. API key env: `EXPO_PUBLIC_RC_IOS_KEY` |
+| Web | Stripe | Checkout Sessions for the two plans, Customer Portal for management. Server-side via `STRIPE_SECRET_KEY`; checkout accepts `{ plan: "monthly" \| "annual" }` and applies a 14-day trial via `subscription_data.trial_period_days` for annual |
 
 ### Revenue Targets
 
@@ -197,7 +194,7 @@ France, Italy, Thailand, Mexico, Ireland, Germany, Netherlands, Sweden, Norway, 
 
 **Priority:** P1
 
-- Side-by-side comparison of all 8 launch countries
+- Side-by-side comparison of all 11 launch countries
 - Free rows: Residency pathways, Work without sponsorship, Path to permanent residency, Typical timeline, Language requirement
 - Pro rows: Work sponsorship reality, Income thresholds, Tax exposure risk, Bureaucracy difficulty, Not ideal for
 - Horizontally scrollable table
@@ -365,8 +362,8 @@ Root Layout
 **Route:** `/(tabs)/explore/compare`
 
 - Horizontally scrollable comparison matrix
-- All 8 launch countries as columns
-- 10 comparison rows (5 free, 5 pro-gated)
+- All 11 launch countries as columns
+- 14 comparison rows (4 free, 10 pro-gated)
 - Pro rows show lock icon and upgrade prompt for non-Pro users
 
 ### 6.5 Community Screen
@@ -479,26 +476,24 @@ Root Layout
 **Route:** `/account`
 
 - User email display
-- Access level indicator: Decision Pass / Country Unlock / Monthly / Free
-- Unlocked countries displayed as chips (for country lifetime unlocks)
-- Decision Pass: shows days remaining
-- Manage subscription link
+- Access level indicator: Monthly Explorer / Annual Pathfinder / Reverse Trial / Free
+- Active plan, renewal/expiry date, and trial status when relevant
+- Manage subscription link (App Store on iOS, Stripe Customer Portal on web)
 - Logout button
 
 ### 6.16 ProPaywall (Component)
 
 - **Header:** Contextual headline based on entry point
 - **Value propositions:** Dynamic based on country/pathway context
-- **Pricing:** Three purchase options
-  - Decision Pass: $29 one-time, 30-day full access (primary CTA)
-  - Country Lifetime Unlock: $69 one-time per country (shown when country context exists)
-  - Monthly Subscription: $14.99/month, ongoing full access (secondary option)
-  - Dynamic pricing from RevenueCat when available
+- **Pricing:** Two subscription options
+  - Annual Pathfinder: $89/year with a 14-day free trial (primary CTA)
+  - Monthly Explorer: $14.99/month, no trial (secondary option)
+  - Dynamic pricing from RevenueCat (mobile) and Stripe (web) when available
 - **Actions:**
-  - Purchase button per tier (initiates purchase)
+  - Subscribe button per plan (initiates purchase)
   - Restore purchases button
   - Manage subscription button (for existing subscribers)
-- **Pending purchase flow:** If user is not logged in, stores purchase intent and redirects to auth screen
+- **Pending purchase flow:** If user is not logged in, stores plan intent (`monthly` or `annual`) and redirects to auth screen
 - **Sandbox toggle:** Dev-only switch to simulate Pro access
 - **Coverage summary:** Shows decision-ready country count
 
@@ -595,26 +590,24 @@ changeLog[]?              — Record of content changes with severity
 ### Access Hierarchy
 
 ```
-Monthly Subscription (full_access_subscription)
-    > Decision Pass 30-day (decision_access)
-        > Country Lifetime Unlock (country_<slug>)
-            > None (free tier)
+Active subscription (full_access_subscription)
+    > Sandbox / promo / 48h reverse-trial override
+        > None (free tier)
 ```
 
-- `hasFullAccess` = `true` when user has an active monthly subscription OR an active (non-expired) decision pass
-- `hasCountryAccess(slug)` = `true` when user has a country lifetime unlock for that specific country
-- Content gating checks `hasFullAccess` first, then falls back to `hasCountryAccess(slug)` for country-specific content
+- `hasFullAccess` = `true` when the user has an active Monthly Explorer or Annual Pathfinder subscription, OR an active sandbox/promo override, OR an active 48-hour reverse trial.
+- `hasProAccess` is currently equivalent to `hasFullAccess`.
+- Content gating checks `hasFullAccess` only.
 
 ### Entitlement Flow
 
 ```
 App Launch
     │
-    ├── iOS/Android: Initialize RevenueCat SDK
+    ├── iOS: Initialize RevenueCat SDK
     │   ├── Configure with platform API key
     │   ├── Get customer info
-    │   ├── Check for entitlements: decision_access, full_access_subscription, country_<slug>
-    │   ├── Check Decision Pass expiry (30-day window from purchase)
+    │   ├── Check for the single entitlement: full_access_subscription
     │   └── Listen for real-time customer info updates
     │
     └── Web: Check Stripe subscription status
@@ -622,82 +615,69 @@ App Launch
             └── Returns { hasProAccess: boolean }
 ```
 
+The entitlement context also layers in sandbox/promo overrides and the 48h
+reverse trial granted on paywall dismissal (`REVERSE_TRIAL_DURATION_MS` in
+`EntitlementContext`).
+
 ### Content Gating Rules
 
-| Content | Free Users | Decision Pass | Country Unlock | Monthly Sub |
-|---------|------------|---------------|----------------|-------------|
-| Pathway title, summary, whoFor, notFor | Visible | Visible | Visible | Visible |
-| Pathway steps, timeline, costRange | Blocked (ProGate) | Visible | Visible (owned country) | Visible |
-| Decision Brief (any) | Blocked (ProGate) | Visible | Visible (owned country) | Visible |
-| Compare matrix (free rows) | Visible | Visible | Visible | Visible |
-| Compare matrix (pro rows) | Blocked | Visible | Blocked | Visible |
-| Resources | Visible | Visible | Visible | Visible |
-| Vendors | Visible | Visible | Visible | Visible |
-| Community | Visible | Visible | Visible | Visible |
+| Content | Free Users | Subscriber (Monthly or Annual) |
+|---------|------------|--------------------------------|
+| Pathway title, summary, whoFor, notFor | Visible | Visible |
+| Pathway steps, timeline, costRange | Blocked (ProGate) | Visible |
+| Decision Brief (any) | Blocked (ProGate) | Visible |
+| Compare matrix (4 free rows) | Visible | Visible |
+| Compare matrix (pro rows) | Blocked | Visible |
+| Worksheets (submit) | Blocked (ProPaywall) | Visible |
+| Resources | Visible | Visible |
+| Vendors | Visible | Visible |
+| Community | Visible | Visible |
+
+An active reverse trial or sandbox override grants the same access as a
+paid subscriber for its duration.
 
 ### ProGate Component Behavior
 
-1. Check `hasFullAccess` from EntitlementContext (subscription or decision pass)
-2. If full access: render children (premium content)
-3. Check `hasCountryAccess(slug)` for country-specific content
-4. If country access: render children
-5. If loading: show spinner
-6. If no access: render ProPaywall with context props
+1. Check `hasFullAccess` from EntitlementContext (subscription, sandbox, or reverse trial).
+2. If full access: render children (premium content).
+3. If loading: show spinner.
+4. If no access: render ProPaywall with context props.
 
 ### ProPaywall Display
 
-- Shows 3 purchase options:
-  - **Decision Pass ($29)** — Primary CTA. "Full access for 30 days"
-  - **Country Lifetime Unlock ($69)** — Shown when country context exists. "Permanent access to [Country]"
-  - **Monthly Subscription ($14.99/mo)** — Secondary option. "Ongoing full access"
-- Contextual value propositions based on entry point
-- Pending purchase flow for logged-out users (see below)
+- Shows 2 subscription options:
+  - **Annual Pathfinder ($89/yr)** — Primary CTA. "Start your 14-day free trial"
+  - **Monthly Explorer ($14.99/mo)** — Secondary option. "Ongoing full access, cancel anytime"
+- Contextual value propositions based on entry point and the user's top country.
+- Pending purchase flow for logged-out users (see below).
 
 ### Purchase Flow
 
-**Decision Pass (iOS/Android — RevenueCat):**
-1. User taps "Get Decision Pass" on paywall
-2. If not logged in: store purchase intent, redirect to auth screen
-3. After login: resume purchase flow
-4. App calls `purchasePackage("decision_pass_30d")`
-5. RevenueCat handles App Store / Play Store purchase dialog
-6. On success: `decision_access` entitlement activates, purchase timestamp stored in AsyncStorage
-7. ProGate re-evaluates and shows premium content
-
-**Country Lifetime Unlock (iOS/Android — RevenueCat):**
-1. User taps "Unlock [Country]" on paywall
-2. If not logged in: store purchase intent with country slug, redirect to auth screen
-3. After login: resume purchase flow
-4. App calls `purchasePackage("country_lifetime_<slug>")`
-5. RevenueCat handles purchase dialog
-6. On success: `country_<slug>` entitlement activates, slug added to AsyncStorage unlocks array
-7. ProGate re-evaluates for that country's content
-
-**Monthly Subscription (iOS/Android — RevenueCat):**
-1. User taps "Subscribe Monthly" on paywall
-2. If not logged in: store purchase intent, redirect to auth screen
-3. After login: resume purchase flow
-4. App calls `purchasePackage("expathub_monthly")`
-5. RevenueCat handles subscription dialog
-6. On success: `full_access_subscription` entitlement activates
-7. ProGate re-evaluates and shows all premium content
+**Mobile (iOS — RevenueCat):**
+1. User taps a plan CTA on the paywall.
+2. If not logged in: store plan intent (`monthly` or `annual`), redirect to auth screen.
+3. After login: resume purchase flow.
+4. App calls `purchasePackage("monthly_subscription_all_access")` or `purchasePackage("ExpatHub_pathfinder")`.
+5. RevenueCat handles the App Store purchase / trial-start dialog.
+6. On success: `full_access_subscription` entitlement activates.
+7. ProGate re-evaluates and shows all premium content.
 
 **Web (Stripe):**
-1. User taps purchase option on paywall
-2. Frontend calls `POST /api/stripe/checkout` with `priceId`
-3. Server creates Stripe Checkout Session
-4. User redirected to Stripe-hosted checkout page
-5. On success: redirected back with `?checkout=success`
-6. App checks `GET /api/stripe/status` for updated entitlement
+1. User taps a plan CTA on the paywall.
+2. Frontend calls `POST /api/stripe/checkout` with `{ plan: "monthly" | "annual" }`.
+3. Server creates a Stripe Checkout Session (`mode: "subscription"`); annual sessions add `subscription_data.trial_period_days: 14`.
+4. User is redirected to the Stripe-hosted checkout page.
+5. On success: redirected back with `?checkout=success`.
+6. App checks `GET /api/stripe/status` for the refreshed entitlement.
 
 ### Pending Purchase Flow (Logged-Out Users)
 
-1. User taps any purchase option while not logged in
-2. App stores purchase intent in memory: `{ type: "decision_pass" | "country_lifetime" | "monthly", slug?: string }`
-3. User redirected to auth screen
-4. After successful login/registration, app checks for pending purchase intent
-5. If intent exists: automatically resumes purchase flow with stored parameters
-6. If no intent: normal post-login navigation
+1. User taps a plan CTA while not logged in.
+2. App stores plan intent: `{ plan: "monthly" | "annual" }` (localStorage on web, in-memory on mobile).
+3. User is redirected to the auth screen.
+4. After successful login/registration, the paywall checks for the stored intent.
+5. If intent exists: automatically resumes the matching checkout/purchase flow.
+6. If no intent: normal post-login navigation.
 
 ### Sandbox Mode
 
@@ -1048,9 +1028,13 @@ Creates a Stripe Checkout Session for web subscription purchases.
 **Request:**
 ```json
 {
-  "priceId": "price_xxxxx"
+  "plan": "monthly"
 }
 ```
+
+`plan` must be `"monthly"` or `"annual"`. When `plan` is `"annual"`, the
+server includes `subscription_data.trial_period_days: 14` on the Checkout
+Session to apply the 14-day free trial.
 
 **Response (200):**
 ```json
@@ -1060,7 +1044,7 @@ Creates a Stripe Checkout Session for web subscription purchases.
 ```
 
 **Errors:**
-- 400: `priceId` not provided
+- 400: `plan` not provided or not one of `"monthly"` / `"annual"`
 - 503: Stripe not configured (no `STRIPE_SECRET_KEY`)
 - 500: Stripe API error
 
@@ -1376,14 +1360,13 @@ Changes to these fields automatically trigger a review:
 - [ ] Review privacy policy for GDPR/CCPA compliance
 
 ### Payment Configuration
-- [ ] Replace RevenueCat test keys with production keys (`appl_` for iOS, `goog_` for Android)
-- [ ] Configure RevenueCat dashboard: entitlements `decision_access`, `full_access_subscription`, `country_<slug>` for 8 launch countries
-- [ ] Create RevenueCat products: `decision_pass_30d` (consumable, $29), `country_lifetime_<slug>` (non-consumable, $69 each for 8 countries), `expathub_monthly` (auto-renewing, $14.99/mo)
-- [ ] Set up App Store Connect: `decision_pass_30d` consumable ($29), 8× `country_lifetime_*` non-consumables ($69 each), `expathub_monthly` subscription ($14.99/mo)
-- [ ] Set up Google Play: matching in-app products and subscription
+- [ ] Replace RevenueCat test key with production key (`appl_` for iOS)
+- [ ] Configure RevenueCat dashboard: single entitlement `full_access_subscription` granted by both subscription products
+- [ ] Create RevenueCat products: `monthly_subscription_all_access` (auto-renewing, $14.99/mo, no trial) and `ExpatHub_pathfinder` (auto-renewing, $89/yr, 14-day free trial)
+- [ ] Set up App Store Connect: `monthly_subscription_all_access` ($14.99/mo) and `ExpatHub_pathfinder` ($89/yr with 14-day introductory free trial)
 - [ ] Set `STRIPE_SECRET_KEY` for web subscriptions
-- [ ] Configure Stripe price IDs for monthly subscription
-- [ ] Test full purchase flow on all platforms (all 3 tiers)
+- [ ] Configure `STRIPE_MONTHLY_PRICE_ID` and `STRIPE_ANNUAL_PRICE_ID` (annual trial set in code via `subscription_data.trial_period_days: 14`)
+- [ ] Test full purchase flow on iOS and web (both plans, including the 14-day annual trial)
 - [ ] Test forgot password flow end-to-end (native and web)
 - [ ] Run Playwright e2e suite (`tests/e2e/locked-section.spec.ts`, `tests/e2e/cancellation-exit-offer.spec.ts`, and `tests/e2e/worksheet-signup-submit.spec.ts` — anonymous worksheet tap → register → fill in → submit flow against Expo web at port 8081)
 

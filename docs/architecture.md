@@ -6,20 +6,17 @@
 **Company:** Magic Elf Digital
 **Contact:** support@expathub.website
 
-> ⚠️ **Pricing & entitlement sections below are out of date.** As of v1.4,
-> ExpatHub ships **two paid tiers only** — Monthly Explorer ($14.99/mo, no
-> trial) and Annual Pathfinder ($89/yr, 14-day free trial). The legacy
-> **30-Day Decision Pass** and **Country Lifetime Unlock** products described
-> below have been fully removed from the codebase. The entitlement gate
-> ignores any `decisionPass` / `countryUnlocks` fields the backend may still
-> return; only `hasFullAccess` (active subscription, sandbox override, or
-> active 48h reverse trial) grants paid access. Country count is **11**, not
-> 8. For the current source of truth, see:
+> Pricing & entitlement sections below describe the **2-tier model**
+> (as of v1.4): Monthly Explorer ($14.99/mo, no trial) and Annual Pathfinder
+> ($89/yr, 14-day free trial). The entitlement gate grants paid access via
+> `hasFullAccess` only — active subscription, sandbox override, or active
+> 48h reverse trial. Country count is **11**. For the current source of
+> truth, see:
 >
 > - `src/config/subscription.ts` — product IDs, prices, `TRIAL_DURATION_DAYS`
 > - `src/billing/entitlementGate.ts` + `src/contexts/EntitlementContext.tsx`
-> - `docs/store-config-changes.md` — App Store / Play / RevenueCat / Stripe
->   operator setup for the 2-tier model
+> - `docs/store-config-changes.md` — App Store / RevenueCat / Stripe operator
+>   setup for the 2-tier model
 
 ---
 
@@ -51,7 +48,7 @@ ExpatHub is a mobile-first application built with Expo and React Native that pro
 | Business model   | Freemium with 2-tier subscription (Monthly Explorer / Annual Pathfinder) |
 | Company          | Magic Elf Digital                                             |
 | Launch countries | Portugal, Spain, Canada, Costa Rica, Panama, Ecuador, Malta, United Kingdom, Germany, Ireland, Australia |
-| Total countries  | 16 listed (11 decision-ready, 5 coming soon)                  |
+| Total countries  | 16 listed (11 decision-ready, 5 coming soon: France, Italy, Thailand, Mexico, New Zealand) |
 
 ### Core Value Proposition
 
@@ -185,9 +182,8 @@ Provider nesting order (outermost → innermost):
 The `SubscriptionProvider` internally wraps `EntitlementProvider` (`src/contexts/EntitlementContext.tsx`) which manages RevenueCat entitlements, Stripe status, and subscription state with a customer info listener for real-time updates.
 
 Exposed access functions:
-- `hasFullAccess` — active subscription OR active decision pass
-- `hasCountryAccess(slug)` — country-specific lifetime unlock
-- `hasProAccess` — any paid access (full or country-level)
+- `hasFullAccess` — active subscription, sandbox override, or active 48h reverse trial
+- `hasProAccess` — any paid access (currently equivalent to `hasFullAccess`)
 
 ### 3.4 Component Library
 
@@ -195,7 +191,7 @@ ExpatHub uses a custom design token system with no external UI libraries. All co
 
 | Component           | File                              | Purpose                                                 |
 |---------------------|-----------------------------------|---------------------------------------------------------|
-| ProPaywall          | src/components/ProPaywall.tsx     | 3-tier purchase modal with contextual value propositions|
+| ProPaywall          | src/components/ProPaywall.tsx     | 2-plan subscription modal with contextual value propositions|
 | ProGate             | src/lib/requireProAccess.ts       | Content gating: checks access → shows paywall           |
 | DecisionBriefCard   | src/components/DecisionBriefCard.tsx | Premium brief content display                        |
 | CompareMatrix       | src/components/CompareMatrix.tsx  | Horizontally scrollable country comparison table        |
@@ -227,7 +223,7 @@ ExpatHub uses a custom design token system with no external UI libraries. All co
 |------------------------------|--------|-------------------------------------------------------------|
 | `/api/auth`                  | ALL    | Proxy to expathub.world auth API (signin, register, signout, session check) |
 | `/api/auth/forgot-password`  | POST   | Proxy to expathub.website for password reset (avoids CORS on web) |
-| `/api/stripe/checkout`       | POST   | Create Stripe Checkout Session (accepts `priceId`)          |
+| `/api/stripe/checkout`       | POST   | Create Stripe Checkout Session (body: `{ plan: "monthly" \| "annual" }`; annual applies 14-day trial server-side) |
 | `/api/stripe/portal`         | POST   | Create Stripe Customer Portal session (accepts `customerId`)|
 | `/api/stripe/status`         | GET    | Check current user's subscription status                    |
 | `/api/stripe/webhook`        | POST   | Stripe webhook handler for payment events                   |
@@ -363,67 +359,56 @@ On web, auth requests are proxied through the Express backend at `/api/auth` to 
 
 ## 7. Subscription & Payment Architecture
 
-### 7.1 Three-Tier Model
+### 7.1 Two-Tier Subscription Model
 
-| Tier                     | Price        | Type             | Product ID                    | Access Granted                       |
-|--------------------------|--------------|------------------|-------------------------------|--------------------------------------|
-| 30-Day Decision Pass     | $29          | Consumable       | `decision_pass_30d`           | Full access to all 8 countries for 30 days |
-| Country Lifetime Unlock  | $69/country  | Non-consumable   | `country_lifetime_<slug>`     | Permanent access to one country      |
-| Monthly Subscription     | $14.99/mo    | Auto-renewing    | `expathub_monthly`            | Ongoing full access to everything    |
+| Tier               | Price       | Trial   | Type           | iOS Product ID                      | Access Granted                                |
+|--------------------|-------------|---------|----------------|-------------------------------------|-----------------------------------------------|
+| Monthly Explorer   | $14.99/mo   | None    | Auto-renewing  | `monthly_subscription_all_access`   | Ongoing full access to all 11 countries       |
+| Annual Pathfinder  | $89/yr      | 14 days | Auto-renewing  | `ExpatHub_pathfinder`               | Ongoing full access to all 11 countries       |
+
+Both plans grant the single `full_access_subscription` entitlement.
 
 ### 7.2 Access Hierarchy
 
 ```
-Monthly Subscription (full_access_subscription)
-    > Decision Pass 30-day (decision_access)
-        > Country Lifetime Unlock (country_<slug>)
-            > None (free tier)
+Active subscription (full_access_subscription)
+    > Sandbox / promo / 48h reverse-trial override
+        > None (free tier)
 ```
 
-| Function                 | Returns true when                                          |
-|--------------------------|------------------------------------------------------------|
-| `hasFullAccess`          | Active subscription OR active (non-expired) decision pass  |
-| `hasCountryAccess(slug)` | Country-specific lifetime unlock for that slug            |
-| `hasProAccess`           | Any paid access (full or country-level)                   |
+| Function          | Returns true when                                                                       |
+|-------------------|-----------------------------------------------------------------------------------------|
+| `hasFullAccess`   | Active subscription, sandbox/promo override, or active 48h reverse trial                |
+| `hasProAccess`    | Any paid access (currently equivalent to `hasFullAccess` — no per-country tier remains) |
 
-### 7.3 RevenueCat (iOS / Android)
+### 7.3 RevenueCat (iOS)
 
 | Attribute           | Detail                                                      |
 |---------------------|-------------------------------------------------------------|
 | SDK                 | `react-native-purchases`                                    |
 | API key (iOS)       | `EXPO_PUBLIC_RC_IOS_KEY` environment variable               |
-| API key (Android)   | `EXPO_PUBLIC_RC_ANDROID_KEY` environment variable            |
 | Initialization      | `src/subscriptions/revenuecat.ts`                           |
 | Customer info       | Real-time listener in EntitlementContext                     |
 
 RevenueCat entitlement IDs:
 
-| Entitlement ID               | Meaning                         |
-|------------------------------|---------------------------------|
-| `decision_access`            | 30-Day Decision Pass is active  |
-| `full_access_subscription`   | Monthly subscription is active  |
-| `country_portugal`           | Portugal lifetime unlock        |
-| `country_spain`              | Spain lifetime unlock           |
-| `country_canada`             | Canada lifetime unlock          |
-| `country_costa_rica`         | Costa Rica lifetime unlock      |
-| `country_panama`             | Panama lifetime unlock          |
-| `country_ecuador`            | Ecuador lifetime unlock         |
-| `country_malta`              | Malta lifetime unlock           |
-| `country_united_kingdom`     | United Kingdom lifetime unlock  |
+| Entitlement ID               | Meaning                                  |
+|------------------------------|------------------------------------------|
+| `full_access_subscription`   | Active Monthly Explorer or Annual Pathfinder subscription |
 
 ### 7.4 Stripe (Web)
 
 | Attribute           | Detail                                                      |
 |---------------------|-------------------------------------------------------------|
 | Server-side key     | `STRIPE_SECRET_KEY` environment variable                    |
-| Checkout            | Stripe Checkout Sessions for one-time and recurring payments|
+| Checkout            | Stripe Checkout Sessions for the two subscription plans     |
 | Customer Portal     | Stripe Customer Portal for subscription management          |
 | Webhook             | `POST /api/stripe/webhook` for server-side event tracking   |
 | Implementation      | `src/subscriptions/stripeWeb.ts`                            |
 
 Stripe checkout modes:
-- `mode: "payment"` — Decision Pass and Country Lifetime Unlock (one-time)
-- `mode: "subscription"` — Monthly Subscription (recurring)
+- `mode: "subscription"` for both Monthly Explorer and Annual Pathfinder
+- Annual sessions add `subscription_data.trial_period_days: 14` for the 14-day free trial
 
 ### 7.5 Entitlement Context
 
@@ -434,22 +419,19 @@ Stripe checkout modes:
 
 EntitlementContext state:
 
-| Field                    | Type       | Purpose                                         |
-|--------------------------|------------|--------------------------------------------------|
-| `hasProAccess`           | boolean    | Any paid access                                  |
-| `hasFullAccess`          | boolean    | Subscription or decision pass                    |
-| `accessType`             | string     | `decision_pass`, `country_lifetime`, `subscription`, `sandbox`, `none` |
-| `source`                 | string     | `revenuecat`, `stripe`, `sandbox`, `none`        |
-| `loading`                | boolean    | Entitlement check in progress                    |
-| `managementURL`          | string     | Platform subscription management URL             |
-| `expirationDate`         | string     | Subscription expiration (ISO date)               |
-| `decisionPassExpiresAt`  | string     | Decision pass expiration (ISO date)              |
-| `decisionPassDaysLeft`   | number     | Days remaining on decision pass                  |
-| `unlockedCountries`      | string[]   | Array of unlocked country slugs                  |
+| Field             | Type     | Purpose                                                                       |
+|-------------------|----------|-------------------------------------------------------------------------------|
+| `hasProAccess`    | boolean  | Any paid access                                                               |
+| `hasFullAccess`   | boolean  | Subscription, sandbox, or reverse trial                                       |
+| `accessType`      | string   | `subscription`, `sandbox`, `reverse_trial`, `none`                            |
+| `source`          | string   | `revenuecat`, `stripe`, `sandbox`, `reverse_trial`, `none`                    |
+| `loading`         | boolean  | Entitlement check in progress                                                 |
+| `managementURL`   | string   | Platform subscription management URL                                          |
+| `expirationDate`  | string   | Subscription expiration (ISO date)                                            |
 
-Local storage keys:
-- `decision_pass_purchased_at` — ISO date string in AsyncStorage
-- `country_lifetime_unlocks` — JSON array of country slugs in AsyncStorage
+The 48h reverse trial granted on paywall dismissal is tracked in
+AsyncStorage and gated by `REVERSE_TRIAL_DURATION_MS` in
+`EntitlementContext`.
 
 ### 7.6 Content Gating
 
@@ -462,20 +444,15 @@ User requests premium content
    └──────┬──────┘
           │ NO
           ▼
-   ┌─────────────────────┐     YES
-   │ hasCountryAccess(slug)├──────────► Show content
-   └──────┬──────────────┘
-          │ NO
-          ▼
      Show ProPaywall
-     (3-tier purchase options)
+     (Monthly / Annual)
 ```
 
-| Component    | Purpose                                                          |
-|--------------|------------------------------------------------------------------|
-| ProGate      | Wraps premium content; checks access hierarchy before rendering  |
-| ProPaywall   | 3-tier purchase modal with contextual value propositions         |
-| Sandbox mode | Dev-only toggle (`__DEV__`) to simulate full access              |
+| Component    | Purpose                                                                       |
+|--------------|-------------------------------------------------------------------------------|
+| ProGate      | Wraps premium content; checks `hasFullAccess` before rendering                |
+| ProPaywall   | 2-plan subscription modal with contextual value propositions                  |
+| Sandbox mode | Dev-only toggle (`__DEV__`) to simulate full access                           |
 
 ---
 
