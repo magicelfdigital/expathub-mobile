@@ -121,6 +121,17 @@ export default function WorksheetDetailScreen() {
       await submit.mutateAsync({ worksheetId: worksheet.id, answers });
       router.back();
     } catch (err: any) {
+      if (err?.code === "subscription_required") {
+        router.push({
+          pathname: "/subscribe" as any,
+          params: {
+            redirectTo: `/(tabs)/(home)/worksheets/${worksheet.id}`,
+            entryPoint: "worksheet_submit_402",
+            unlockLabel: "the remaining 7 worksheets",
+          },
+        });
+        return;
+      }
       Alert.alert("Could not save", err?.message ?? "Please try again.");
     }
   };

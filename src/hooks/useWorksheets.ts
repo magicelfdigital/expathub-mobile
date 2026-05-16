@@ -140,7 +140,9 @@ export function useSubmitWorksheet() {
         },
       );
       if (res.status === 402) {
-        throw new Error("A subscription is required to save this worksheet.");
+        const err = new Error("A subscription is required to save this worksheet.");
+        (err as any).code = "subscription_required";
+        throw err;
       }
       if (!res.ok) throw new Error(`Submit failed: ${res.status}`);
       return res.json() as Promise<{
