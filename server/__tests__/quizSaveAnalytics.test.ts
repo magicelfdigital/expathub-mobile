@@ -206,11 +206,13 @@ describe("computeQuizSaveAnalytics", () => {
       { source: null, n: "5" },
     ];
 
-    // The weekly query now groups by (week_start, placement) and the grid
-    // CROSS JOIN guarantees every placement bucket exists per week. The fake
-    // rows below mirror that shape: each week emits one row per placement,
-    // with zeros where nothing landed in that bucket.
+    // The weekly query now groups by (week_start, placement, surface) and
+    // the grid CROSS JOIN guarantees every (placement, surface) cell exists
+    // per week. The fake rows below mirror that shape: each week emits one
+    // row per (placement × surface), with zeros where nothing landed in
+    // that bucket.
     const placements = ["mid_quiz", "result_screen", "unknown"];
+    const surfaces = ["web", "mobile"];
     const weeklyTotals = [
       { week_start: "2026-03-09", shown: 0, submitted: 0, dismissed: 0 },
       { week_start: "2026-03-16", shown: 0, submitted: 0, dismissed: 0 },
@@ -222,9 +224,17 @@ describe("computeQuizSaveAnalytics", () => {
       { week_start: "2026-04-27", shown: 25, submitted: 2, dismissed: 18 },
     ];
     // For weeks with activity we split: half to mid_quiz, half to
-    // result_screen, and any odd remainder to the unknown bucket. This keeps
-    // the per-placement totals deterministic and lets us assert specific
-    // numbers below.
+    // result_screen, and any odd remainder to the unknown bucket. We then
+    // attribute mid_quiz to web and result_screen + unknown to mobile so
+    // the surface split mirrors the real-world emission pattern (web =
+    // legacy mid-quiz prompt, mobile = new post-result modal + pre-
+    // migration NULL placements) and the per-surface assertions below
+    // stay deterministic.
+    const surfaceFor: Record<string, string> = {
+      mid_quiz: "web",
+      result_screen: "mobile",
+      unknown: "mobile",
+    };
     const weeklyRows = weeklyTotals.flatMap((wk) => {
       const split = {
         mid_quiz: {
@@ -243,13 +253,24 @@ describe("computeQuizSaveAnalytics", () => {
           dismissed: wk.dismissed - 2 * Math.floor(wk.dismissed / 2),
         },
       } as const;
-      return placements.map((p) => ({
-        week_start: wk.week_start,
-        placement: p,
-        shown: split[p as keyof typeof split].shown,
-        submitted: split[p as keyof typeof split].submitted,
-        dismissed: split[p as keyof typeof split].dismissed,
-      }));
+      // Emit zero rows for every (placement × surface) cell — the SQL grid
+      // does this via CROSS JOIN, so the fake response must too — and then
+      // fill in the non-zero counts for the (placement, attributed-surface)
+      // pair so the totals stay deterministic.
+      return placements.flatMap((p) =>
+        surfaces.map((s) => ({
+          week_start: wk.week_start,
+          placement: p,
+          surface: s,
+          shown: s === surfaceFor[p] ? split[p as keyof typeof split].shown : 0,
+          submitted:
+            s === surfaceFor[p] ? split[p as keyof typeof split].submitted : 0,
+          dismissed:
+            s === surfaceFor[p]
+              ? split[p as keyof typeof split].dismissed
+              : 0,
+        })),
+      );
     });
 
     const { pool } = makeFakePool((call) => {
@@ -378,6 +399,87 @@ describe("computeQuizSaveAnalytics", () => {
     });
     expect(result.weekly[7].weekStart).toBe("2026-04-27");
     expect(result.weekly[7].recoveryRate).toBeCloseTo(2 / 25);
+
+    // Per-surface weekly split: web carries the mid_quiz attribution
+    // (half of each week's totals) and mobile carries result_screen +
+    // unknown (the other half plus odd remainders). Quiet weeks emit
+    // zero-filled buckets with a null recoveryRate so the small-multiples
+    // chart can rely on a consistent shape.
+    expect(result.weekly[0].bySurface.web).toEqual({
+      shown: 0,
+      submitted: 0,
+      dismissed: 0,
+      recoveryRate: null,
+    });
+    expect(result.weekly[0].bySurface.mobile).toEqual({
+      shown: 0,
+      submitted: 0,
+      dismissed: 0,
+      recoveryRate: null,
+    });
+    // Week of 2026-03-23: web sees mid_quiz only (5/0/4); mobile sees
+    // result_screen (5/0/4) plus the unknown remainder (0/1/0), so mobile
+    // totals are 5/1/4.
+    expect(result.weekly[2].bySurface.web).toEqual({
+      shown: 5,
+      submitted: 0,
+      dismissed: 4,
+      recoveryRate: 0,
+    });
+    expect(result.weekly[2].bySurface.mobile).toEqual({
+      shown: 5,
+      submitted: 1,
+      dismissed: 4,
+      recoveryRate: 0.2,
+    });
+    // Week of 2026-04-13: web = mid_quiz (12/2/9); mobile = result_screen
+    // (12/2/9) + unknown remainder (1/1/0) = 13/3/9.
+    expect(result.weekly[5].bySurface.web).toEqual({
+      shown: 12,
+      submitted: 2,
+      dismissed: 9,
+      recoveryRate: 2 / 12,
+    });
+    expect(result.weekly[5].bySurface.mobile).toEqual({
+      shown: 13,
+      submitted: 3,
+      dismissed: 9,
+      recoveryRate: 3 / 13,
+    });
+    // Web + mobile must always reconcile back to the combined weekly totals.
+    for (const w of result.weekly) {
+      expect(w.bySurface.web.shown + w.bySurface.mobile.shown).toBe(w.shown);
+      expect(w.bySurface.web.submitted + w.bySurface.mobile.submitted).toBe(
+        w.submitted,
+      );
+      expect(w.bySurface.web.dismissed + w.bySurface.mobile.dismissed).toBe(
+        w.dismissed,
+      );
+    }
+  });
+
+  it("groups the weekly SQL query by (week_start, placement, surface) and CROSS JOINs the surface grid", async () => {
+    // Guard against accidental regression: the dashboard depends on the
+    // weekly query emitting a per-surface row for every (week, placement)
+    // cell so a quiet surface still anchors the small-multiples chart.
+    const captured: string[] = [];
+    const { pool } = makeFakePool((call) => {
+      if (/CREATE TABLE/.test(call.text)) return { rows: [] };
+      if (/per_week/.test(call.text)) {
+        captured.push(call.text);
+        return { rows: [] };
+      }
+      return { rows: [] };
+    });
+
+    await computeQuizSaveAnalytics(pool, { windowDays: 30 });
+
+    expect(captured).toHaveLength(1);
+    const sql = captured[0];
+    expect(sql).toMatch(/CROSS JOIN placements pl CROSS JOIN surfaces s/);
+    expect(sql).toMatch(/unnest\(ARRAY\['web', 'mobile'\]\) AS surface/);
+    expect(sql).toMatch(/GROUP BY 1, 2, 3/);
+    expect(sql).toMatch(/AND p\.surface = g\.surface/);
   });
 
   it("rolls unexpected weekly placement values into the unknown bucket", async () => {

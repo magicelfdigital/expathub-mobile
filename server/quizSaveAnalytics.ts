@@ -177,6 +177,17 @@ export interface WeeklyPlacementMetrics {
   recoveryRate: number | null;
 }
 
+// Per-surface counts within a single week. Same shape as
+// `WeeklyPlacementMetrics` — kept as a distinct alias so the intent at the
+// call site stays obvious.
+export interface WeeklySurfaceMetrics {
+  shown: number;
+  submitted: number;
+  dismissed: number;
+  // submitted ÷ shown — null when shown is 0 so the UI can render "—".
+  recoveryRate: number | null;
+}
+
 export interface WeeklyMetrics {
   // Monday of the ISO week, formatted YYYY-MM-DD.
   weekStart: string;
@@ -190,6 +201,13 @@ export interface WeeklyMetrics {
   // includes all three placement buckets (zero-filled) so the chart can rely
   // on a consistent shape even for quiet weeks.
   byPlacement: Record<Placement, WeeklyPlacementMetrics>;
+  // Per-surface breakdown so the dashboard can plot the web funnel and the
+  // mobile onboarding quiz independently — surface-level trends often
+  // diverge (e.g. a web copy change shouldn't be masked by mobile noise) and
+  // blending them hides the attribution. Every week always includes both
+  // surface buckets (zero-filled) so the small-multiples chart can rely on a
+  // consistent shape even for quiet weeks.
+  bySurface: Record<Surface, WeeklySurfaceMetrics>;
 }
 
 export interface QuizSaveAnalytics {
@@ -347,6 +365,7 @@ export async function computeQuizSaveAnalytics(
   const weeklyResult = await pool.query<{
     week_start: string;
     placement: string;
+    surface: string;
     shown: string | number;
     submitted: string | number;
     dismissed: string | number;
@@ -359,36 +378,46 @@ export async function computeQuizSaveAnalytics(
      placements AS (
        SELECT unnest(ARRAY['mid_quiz', 'result_screen', 'unknown']) AS placement
      ),
+     surfaces AS (
+       SELECT unnest(ARRAY['web', 'mobile']) AS surface
+     ),
      grid AS (
-       SELECT w.week_start, pl.placement
-         FROM weeks w CROSS JOIN placements pl
+       SELECT w.week_start, pl.placement, s.surface
+         FROM weeks w CROSS JOIN placements pl CROSS JOIN surfaces s
      ),
      per_week AS (
        -- Normalise unexpected placement values into 'unknown' so legacy
        -- or malformed strings still reconcile against the fixed grid
        -- placements above and don't silently drop out of the weekly
        -- totals. This mirrors normalisePlacement() in TypeScript.
+       -- Similarly collapse any non-'web' surface into 'mobile' so the
+       -- two grid buckets always reconcile (matches classifySurface()).
        SELECT date_trunc('week', created_at)::date AS week_start,
               CASE
                 WHEN placement IN ('mid_quiz', 'result_screen') THEN placement
                 ELSE 'unknown'
               END                                  AS placement,
+              CASE WHEN surface = 'web' THEN 'web' ELSE 'mobile' END
+                                                   AS surface,
               COUNT(*) FILTER (WHERE event = 'quiz_save_shown')::int     AS shown,
               COUNT(*) FILTER (WHERE event = 'quiz_save_submitted')::int AS submitted,
               COUNT(*) FILTER (WHERE event = 'quiz_save_dismissed')::int AS dismissed
          FROM quiz_save_events
         WHERE created_at >= date_trunc('week', NOW()) - INTERVAL '7 weeks'
-        GROUP BY 1, 2
+        GROUP BY 1, 2, 3
      )
      SELECT to_char(g.week_start, 'YYYY-MM-DD')   AS week_start,
             g.placement                            AS placement,
+            g.surface                              AS surface,
             COALESCE(p.shown, 0)::int             AS shown,
             COALESCE(p.submitted, 0)::int         AS submitted,
             COALESCE(p.dismissed, 0)::int         AS dismissed
        FROM grid g
        LEFT JOIN per_week p
-         ON p.week_start = g.week_start AND p.placement = g.placement
-      ORDER BY g.week_start ASC, g.placement ASC`,
+         ON p.week_start = g.week_start
+        AND p.placement = g.placement
+        AND p.surface = g.surface
+      ORDER BY g.week_start ASC, g.surface ASC, g.placement ASC`,
   );
 
   const emptyPlacement = (): WeeklyPlacementMetrics => ({
@@ -397,12 +426,28 @@ export async function computeQuizSaveAnalytics(
     dismissed: 0,
     recoveryRate: null,
   });
+  const emptySurface = (): WeeklySurfaceMetrics => ({
+    shown: 0,
+    submitted: 0,
+    dismissed: 0,
+    recoveryRate: null,
+  });
+  // Per-placement counts accumulate across surfaces; per-surface counts
+  // accumulate across placements. We keep raw running totals during the
+  // walk and finalise `recoveryRate` once both sums are complete, so a
+  // row-by-row update can't divide before the denominator is final.
   const weeklyMap = new Map<string, WeeklyMetrics>();
+  const placementSums = new Map<string, Record<Placement, WeeklyPlacementMetrics>>();
+  const surfaceSums = new Map<string, Record<Surface, WeeklySurfaceMetrics>>();
   for (const row of weeklyResult.rows) {
     const weekStart = String(row.week_start);
     const placement = normalisePlacement(
       typeof row.placement === "string" ? row.placement : null,
     );
+    const surface: Surface =
+      typeof row.surface === "string" && row.surface.toLowerCase() === "web"
+        ? "web"
+        : "mobile";
     const shown = Number(row.shown) || 0;
     const submitted = Number(row.submitted) || 0;
     const dismissed = Number(row.dismissed) || 0;
@@ -419,25 +464,59 @@ export async function computeQuizSaveAnalytics(
           result_screen: emptyPlacement(),
           unknown: emptyPlacement(),
         },
+        bySurface: {
+          web: emptySurface(),
+          mobile: emptySurface(),
+        },
       };
       weeklyMap.set(weekStart, bucket);
+      placementSums.set(weekStart, {
+        mid_quiz: emptyPlacement(),
+        result_screen: emptyPlacement(),
+        unknown: emptyPlacement(),
+      });
+      surfaceSums.set(weekStart, {
+        web: emptySurface(),
+        mobile: emptySurface(),
+      });
     }
-    bucket.byPlacement[placement] = {
-      shown,
-      submitted,
-      dismissed,
-      recoveryRate: shown > 0 ? submitted / shown : null,
-    };
+    const pSum = placementSums.get(weekStart)!;
+    pSum[placement].shown += shown;
+    pSum[placement].submitted += submitted;
+    pSum[placement].dismissed += dismissed;
+    const sSum = surfaceSums.get(weekStart)!;
+    sSum[surface].shown += shown;
+    sSum[surface].submitted += submitted;
+    sSum[surface].dismissed += dismissed;
     bucket.shown += shown;
     bucket.submitted += submitted;
     bucket.dismissed += dismissed;
   }
+  const finaliseRate = <T extends { shown: number; submitted: number }>(
+    m: T,
+  ): T & { recoveryRate: number | null } => ({
+    ...m,
+    recoveryRate: m.shown > 0 ? m.submitted / m.shown : null,
+  });
   const weekly: WeeklyMetrics[] = Array.from(weeklyMap.values())
     .sort((a, b) => a.weekStart.localeCompare(b.weekStart))
-    .map((w) => ({
-      ...w,
-      recoveryRate: w.shown > 0 ? w.submitted / w.shown : null,
-    }));
+    .map((w) => {
+      const pSum = placementSums.get(w.weekStart)!;
+      const sSum = surfaceSums.get(w.weekStart)!;
+      return {
+        ...w,
+        recoveryRate: w.shown > 0 ? w.submitted / w.shown : null,
+        byPlacement: {
+          mid_quiz: finaliseRate(pSum.mid_quiz),
+          result_screen: finaliseRate(pSum.result_screen),
+          unknown: finaliseRate(pSum.unknown),
+        },
+        bySurface: {
+          web: finaliseRate(sSum.web),
+          mobile: finaliseRate(sSum.mobile),
+        },
+      };
+    });
 
   return { windowDays, totals, bySurface, byPlacement, emailGate, weekly };
 }
@@ -624,6 +703,122 @@ function renderWeeklyChartSvg(weeks: WeeklyMetrics[]): string {
   </div>`;
 }
 
+const SURFACE_LABELS: Record<Surface, string> = {
+  web: "Web funnel",
+  mobile: "Mobile quiz",
+};
+
+// Compact per-surface trend chart. Renders the same shown/submitted bars
+// plus a recovery-rate line, but scoped to a single surface so the
+// dashboard can show web and mobile side-by-side as small multiples. Each
+// chart is independently scaled so a quiet surface still reads — surface
+// trends are compared by shape week-over-week, not by absolute height
+// against the other surface.
+function renderWeeklySurfaceChartSvg(
+  weeks: WeeklyMetrics[],
+  surface: Surface,
+): string {
+  const width = 360;
+  const height = 160;
+  const padLeft = 36;
+  const padRight = 36;
+  const padTop = 12;
+  const padBottom = 28;
+  const innerW = width - padLeft - padRight;
+  const innerH = height - padTop - padBottom;
+  const n = weeks.length;
+  const series = weeks.map((w) => w.bySurface[surface]);
+  const maxShown = Math.max(1, ...series.map((s) => s.shown));
+  const slot = innerW / Math.max(n, 1);
+  const barW = Math.max(4, Math.min(18, slot * 0.55));
+  const yBar = (v: number) => padTop + innerH - (v / maxShown) * innerH;
+  const xCenter = (i: number) => padLeft + slot * (i + 0.5);
+  const yRate = (r: number | null) =>
+    r === null ? null : padTop + innerH - r * innerH;
+
+  const bars = weeks
+    .map((w, i) => {
+      const s = w.bySurface[surface];
+      const cx = xCenter(i);
+      const shownTop = yBar(s.shown);
+      const submittedTop = yBar(s.submitted);
+      const baseY = padTop + innerH;
+      return `
+        <g>
+          <rect x="${cx - barW / 2}" y="${shownTop}" width="${barW}" height="${baseY - shownTop}" fill="#cfe1f7" rx="2"><title>${escapeHtml(
+            w.weekStart,
+          )} (${escapeHtml(SURFACE_LABELS[surface])}): ${fmtInt(s.shown)} shown</title></rect>
+          <rect x="${cx - barW / 2}" y="${submittedTop}" width="${barW}" height="${baseY - submittedTop}" fill="#0a66c2" rx="2"><title>${escapeHtml(
+            w.weekStart,
+          )} (${escapeHtml(SURFACE_LABELS[surface])}): ${fmtInt(s.submitted)} submitted</title></rect>
+        </g>`;
+    })
+    .join("");
+
+  const points = weeks.map((w, i) => ({
+    x: xCenter(i),
+    y: yRate(w.bySurface[surface].recoveryRate),
+    rate: w.bySurface[surface].recoveryRate,
+    weekStart: w.weekStart,
+  }));
+  const segs: string[] = [];
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1];
+    const b = points[i];
+    if (a.y !== null && b.y !== null) {
+      segs.push(
+        `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#d97706" stroke-width="1.75" />`,
+      );
+    }
+  }
+  const dots = points
+    .filter((p) => p.y !== null)
+    .map(
+      (p) =>
+        `<circle cx="${p.x}" cy="${p.y}" r="3" fill="#d97706"><title>${escapeHtml(
+          p.weekStart,
+        )} — ${escapeHtml(SURFACE_LABELS[surface])}: ${fmtPct(p.rate)} recovery</title></circle>`,
+    )
+    .join("");
+
+  const xLabels = weeks
+    .map((w, i) => {
+      const short = w.weekStart.slice(5);
+      return `<text x="${xCenter(i)}" y="${padTop + innerH + 14}" text-anchor="middle" font-size="9" fill="#666">${escapeHtml(short)}</text>`;
+    })
+    .join("");
+  const yTicks = [0, 0.5, 1]
+    .map((frac) => {
+      const y = padTop + innerH - frac * innerH;
+      const count = Math.round(maxShown * frac);
+      const pct = `${Math.round(frac * 100)}%`;
+      return `
+        <line x1="${padLeft}" y1="${y}" x2="${padLeft + innerW}" y2="${y}" stroke="#eee" stroke-width="1" />
+        <text x="${padLeft - 4}" y="${y + 3}" text-anchor="end" font-size="9" fill="#666">${fmtInt(count)}</text>
+        <text x="${padLeft + innerW + 4}" y="${y + 3}" text-anchor="start" font-size="9" fill="#d97706">${pct}</text>`;
+    })
+    .join("");
+
+  return `
+    <figure style="margin:0;flex:1 1 320px;min-width:280px">
+      <figcaption style="font-size:12px;font-weight:600;color:#333;margin-bottom:4px">${escapeHtml(SURFACE_LABELS[surface])}</figcaption>
+      <svg viewBox="0 0 ${width} ${height}" width="100%" role="img" aria-label="${escapeHtml(SURFACE_LABELS[surface])} weekly save-prompt impressions, submissions, and recovery rate" style="background:#fff;border:1px solid #e5e5e5;border-radius:10px">
+        ${yTicks}
+        ${bars}
+        <g>${segs.join("")}${dots}</g>
+        ${xLabels}
+      </svg>
+    </figure>`;
+}
+
+function renderWeeklySurfaceCharts(weeks: WeeklyMetrics[]): string {
+  return `
+  <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px">
+    ${renderWeeklySurfaceChartSvg(weeks, "web")}
+    ${renderWeeklySurfaceChartSvg(weeks, "mobile")}
+  </div>`;
+}
+
 function renderWeeklyTable(weeks: WeeklyMetrics[]): string {
   // We render the per-placement recovery rates alongside the combined
   // totals so the dashboard reader can see the new post-result modal trend
@@ -717,6 +912,11 @@ export function renderQuizSaveAnalyticsHtml(data: QuizSaveAnalytics): string {
   <h2>Weekly trend (last 8 weeks) <a href="/api/admin/quiz-save-analytics.csv" style="font-size:12px;font-weight:normal;margin-left:8px;color:#0a66c2;text-decoration:none">Download CSV</a></h2>
   <p class="desc">Always covers the most recent 8 ISO weeks (Mon–Sun) regardless of the window above, so trends remain comparable as you change the filter. Bars use the left axis (counts); the lines use the right axis (recovery rate). The orange line is the combined rate; the blue and green lines split it by placement so the new post-result modal can be compared against the legacy mid-quiz prompt over time.</p>
   ${renderWeeklyChartSvg(weekly)}
+
+  <h2>Weekly trend by surface</h2>
+  <p class="desc">Same 8-week window, split into web and mobile so a surface-specific change (e.g. a web copy edit) isn't masked by movement on the other surface. Each chart is scaled independently; compare shapes week-over-week, not absolute heights between charts.</p>
+  ${renderWeeklySurfaceCharts(weekly)}
+
   ${renderWeeklyTable(weekly)}
 
   <h2>Save-prompt funnel by placement</h2>
