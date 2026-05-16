@@ -371,21 +371,254 @@ export interface AnalyticsHealthSnapshot {
     last_seen_at: string | null;
     by_surface: Record<string, number>;
   };
+  cross_device_bridge: {
+    emitted: number;
+    failed: number;
+    last_failure_at: string | null;
+  };
   started_at: string;
   generated_at: string;
 }
 
 export function getAnalyticsHealthSnapshot(): AnalyticsHealthSnapshot {
   return {
-    healthy: identifyMissingAnonIdCount === 0,
+    healthy:
+      identifyMissingAnonIdCount === 0 && crossDeviceBridgesFailed === 0,
     identify_missing_anon_id: {
       count: identifyMissingAnonIdCount,
       last_seen_at: identifyMissingAnonIdLastAt,
       by_surface: { ...identifyMissingAnonIdBySurface },
     },
+    cross_device_bridge: {
+      emitted: crossDeviceBridgesEmitted,
+      failed: crossDeviceBridgesFailed,
+      last_failure_at: crossDeviceBridgeLastFailureAt,
+    },
     started_at: ANALYTICS_HEALTH_STARTED_AT,
     generated_at: new Date().toISOString(),
   };
+}
+
+// ── Cross-device email → distinct_id reconciliation ───────────────────────
+// Same-device join works today: when a visitor enters their email at the
+// readiness-lead / quiz-save gate, mobile + web promote the live distinct_id
+// from `anon:<random>` to `email:<sha256>` and send a `$identify` event that
+// aliases the two so PostHog merges them on the spot (Task #55).
+//
+// What still leaks is the *cross-device* case: a person who enters their
+// email on phone (becomes `email:<hash>`) and later registers on a laptop
+// where the gate was skipped (becomes `user:<id>` directly off the laptop's
+// own `anon:<random>`). PostHog has no way to know `email:<hash>` and
+// `user:<id>` are the same human until the user re-enters that email
+// somewhere already-identified — meanwhile the funnel double-counts them.
+//
+// To close that gap we keep an in-process map of `email_sha256` → the set of
+// distinct_ids we have already observed sending `$identify` with that hash.
+// When a *new* distinct_id shows up for a known email we forward an extra
+// `$identify` event upstream that aliases the previously-known id to the
+// new one, so PostHog merges them server-to-server with no extra client work.
+// The map is bounded (FIFO eviction past `RECONCILE_MAX_EMAILS`) so even a
+// long-running process won't grow unbounded.
+//
+// This is observational + corrective only: original events are still
+// forwarded unchanged, and we never emit anything that wasn't already
+// implied by the client's own identify payloads.
+const RECONCILE_MAX_EMAILS = 50_000;
+const emailToDistinctIds = new Map<string, Set<string>>();
+// Per-email cache of bridge pairs we have already emitted upstream. Pair
+// shape is `${distinctId}→${anonDistinctId}` so reversed aliases are
+// treated as distinct (PostHog cares about the direction). This prevents
+// repeated $identify events from re-emitting the same bridge every time
+// an already-known distinct_id re-identifies with the same email — once
+// PostHog has merged a pair, replaying it is just noise.
+const emittedBridges = new Map<string, Set<string>>();
+let crossDeviceBridgesEmitted = 0;
+let crossDeviceBridgesFailed = 0;
+let crossDeviceBridgeLastFailureAt: string | null = null;
+
+export function getCrossDeviceBridgeCount(): number {
+  return crossDeviceBridgesEmitted;
+}
+
+export function getCrossDeviceBridgeFailureCount(): number {
+  return crossDeviceBridgesFailed;
+}
+
+export function getCrossDeviceBridgeLastFailureAt(): string | null {
+  return crossDeviceBridgeLastFailureAt;
+}
+
+export function resetCrossDeviceBridgeState(): void {
+  crossDeviceBridgesEmitted = 0;
+  crossDeviceBridgesFailed = 0;
+  crossDeviceBridgeLastFailureAt = null;
+  emailToDistinctIds.clear();
+  emittedBridges.clear();
+}
+
+function hasEmittedBridge(
+  emailHash: string,
+  distinctId: string,
+  anonDistinctId: string,
+): boolean {
+  const set = emittedBridges.get(emailHash);
+  return !!set && set.has(`${distinctId}→${anonDistinctId}`);
+}
+
+function markBridgeEmitted(
+  emailHash: string,
+  distinctId: string,
+  anonDistinctId: string,
+): void {
+  let set = emittedBridges.get(emailHash);
+  if (!set) {
+    set = new Set();
+    emittedBridges.set(emailHash, set);
+  }
+  set.add(`${distinctId}→${anonDistinctId}`);
+}
+
+// Truncate the SHA-256 to its first 8 chars before logging. Enough to
+// correlate failures with a specific person across log lines without
+// leaking the full hash (which is reversible against a known email).
+function safeEmailHashTag(hash: string): string {
+  return hash.length > 8 ? `${hash.slice(0, 8)}…` : hash;
+}
+
+function recordBridgeFailure(
+  reason: string,
+  context: {
+    distinctId: string;
+    anonDistinctId: string;
+    emailHash: string;
+  },
+): void {
+  crossDeviceBridgesFailed += 1;
+  crossDeviceBridgeLastFailureAt = new Date().toISOString();
+  console.warn(
+    "[analytics] cross-device $identify bridge failed; PostHog merge may be lost",
+    {
+      reason,
+      distinct_id: context.distinctId,
+      anon_distinct_id: context.anonDistinctId,
+      email_sha256_prefix: safeEmailHashTag(context.emailHash),
+      failure_count: crossDeviceBridgesFailed,
+    },
+  );
+}
+
+function rankDistinctId(id: string): number {
+  if (id.startsWith("user:")) return 3;
+  if (id.startsWith("email:")) return 2;
+  return 1;
+}
+
+function recordEmailDistinctId(
+  emailHash: string,
+  distinctId: string,
+): string[] {
+  let set = emailToDistinctIds.get(emailHash);
+  if (!set) {
+    if (emailToDistinctIds.size >= RECONCILE_MAX_EMAILS) {
+      const oldestKey = emailToDistinctIds.keys().next().value as
+        | string
+        | undefined;
+      if (oldestKey !== undefined) emailToDistinctIds.delete(oldestKey);
+    }
+    set = new Set();
+    emailToDistinctIds.set(emailHash, set);
+  } else {
+    // Refresh insertion order so active emails aren't evicted.
+    emailToDistinctIds.delete(emailHash);
+    emailToDistinctIds.set(emailHash, set);
+  }
+  const priorIds = Array.from(set).filter((prior) => prior !== distinctId);
+  set.add(distinctId);
+  return priorIds;
+}
+
+function forwardBridgeIdentify(params: {
+  distinctId: string;
+  anonDistinctId: string;
+  emailHash: string;
+}): void {
+  crossDeviceBridgesEmitted += 1;
+  const body = {
+    event: "$identify",
+    distinct_id: params.distinctId,
+    properties: {
+      $anon_distinct_id: params.anonDistinctId,
+      email_sha256: params.emailHash,
+      surface: "server_reconcile",
+      distinct_id: params.distinctId,
+    },
+  };
+  // Failure observability — the bridge is the mechanism that prevents
+  // cross-device double-counting, so a silent failure here would erode
+  // funnel accuracy without anyone noticing. We log + bump a counter on
+  // both synchronous throws (e.g. malformed URL) and async rejections
+  // (upstream unreachable / non-2xx network error) so the health probe
+  // and log search can surface regressions.
+  try {
+    const promise = fetch(`${AUTH_API_URL}/api/analytics`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (promise && typeof (promise as Promise<unknown>).then === "function") {
+      (promise as Promise<{ ok: boolean; status: number }>)
+        .then((response) => {
+          if (!response || !response.ok) {
+            recordBridgeFailure(
+              `upstream_status_${response?.status ?? "unknown"}`,
+              params,
+            );
+          }
+        })
+        .catch((err) => {
+          recordBridgeFailure(
+            `upstream_error: ${err?.message ?? String(err)}`,
+            params,
+          );
+        });
+    }
+  } catch (err: any) {
+    recordBridgeFailure(`throw: ${err?.message ?? String(err)}`, params);
+  }
+}
+
+function reconcileEmailIdentities(body: unknown): void {
+  if (!body || typeof body !== "object") return;
+  if ((body as { event?: unknown }).event !== "$identify") return;
+  const properties = (body as { properties?: unknown }).properties;
+  if (!properties || typeof properties !== "object") return;
+  const emailHashRaw = (properties as { email_sha256?: unknown }).email_sha256;
+  if (typeof emailHashRaw !== "string" || emailHashRaw.length === 0) return;
+  const distinctIdRaw = (body as { distinct_id?: unknown }).distinct_id;
+  if (typeof distinctIdRaw !== "string" || distinctIdRaw.length === 0) return;
+  const emailHash = emailHashRaw.toLowerCase();
+  const distinctId = distinctIdRaw;
+  const priorIds = recordEmailDistinctId(emailHash, distinctId);
+  if (priorIds.length === 0) return;
+  const newRank = rankDistinctId(distinctId);
+  for (const prior of priorIds) {
+    const priorRank = rankDistinctId(prior);
+    // Always alias toward the higher-tier id so `user:<id>` wins over
+    // `email:<hash>` wins over `anon:<random>`. PostHog uses the
+    // `distinct_id` of an `$identify` as the surviving person.
+    const winner = newRank >= priorRank ? distinctId : prior;
+    const loser = newRank >= priorRank ? prior : distinctId;
+    // Dedup: once we've already told PostHog about a (winner, loser) pair
+    // for this email, replaying the same $identify is just noise — every
+    // subsequent event from `loser` is already routed to `winner` upstream.
+    if (hasEmittedBridge(emailHash, winner, loser)) continue;
+    markBridgeEmitted(emailHash, winner, loser);
+    forwardBridgeIdentify({
+      distinctId: winner,
+      anonDistinctId: loser,
+      emailHash,
+    });
+  }
 }
 
 function inspectIdentifyPayload(body: unknown): void {
@@ -634,6 +867,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/analytics", async (req: Request, res: Response) => {
     inspectIdentifyPayload(req.body);
+    reconcileEmailIdentities(req.body);
     // Persist quiz-save modal events locally (in addition to forwarding
     // upstream) so /admin/quiz-save-analytics can compute the recovery
     // rate without depending on PostHog's API. Failures are swallowed —
