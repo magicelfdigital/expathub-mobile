@@ -1,0 +1,43 @@
+Here's a friend-friendly smoke test list for ExpatHub Web — short, plain-English, and ordered roughly the way a new visitor would explore the site. Tell them to flag anything that looks broken, confusing, or just "off."
+
+Quick Smoke Test — ExpatHub
+Site: https://expathub.website
+
+1. First impressions (no login)
+ Home page loads, looks clean, nothing visibly broken
+ Click around the top nav — Countries, Compare, Readiness Quiz, etc. — every link goes somewhere sensible
+ Open a country page (e.g. Portugal, Spain, Canada) — the page loads with sections for Decision Brief, Pathways, Vendors, Resources
+ Try a "Coming Soon" country (e.g. France, Italy) — you should see a waitlist signup, not full content
+2. Readiness quiz
+ Go to Readiness Quiz and answer all 9 questions
+ Results page shows: a score, a top country match, and a "Worth Your Attention" section
+ Try the "Just email me the results" option with your email — confirm the email arrives in your inbox
+ If your top country has a full guide, you should see a "Create Free Account" button
+3. Sign up / log in
+ Create a new account with email + password
+ Log out, then log back in
+ Try "Forgot password" — confirm the reset email arrives
+ While logged in, your name/email should show in the account menu
+4. Free vs paid content
+ On a country page, free sections load fine
+ When you hit a premium section (full Decision Brief, detailed pathways, advanced comparison rows), a paywall pops up
+ Paywall shows only two options: Monthly Explorer ($14.99/mo) and Annual Pathfinder ($89/yr). Nothing else.
+ Both options mention a 14-day free trial
+5. Checkout (use Stripe test card if possible, otherwise just check the flow loads)
+ Click either subscription button — Stripe checkout page opens
+ Country, email, and trial info look correct on Stripe's page
+ (Optional, real card) Complete checkout → bounced back to the app → premium content is unlocked → account menu shows active subscription
+6. Comparison tool
+ Open Compare, pick 2–3 countries
+ Free rows show; locked rows show as locked (until logged in as paid)
+7. Relocation planner (paid feature)
+ On a country page, open the Planner
+ Fill in a few steps, refresh the page — your progress should still be there
+8. Saved / Continue
+ Browse a few country pages — "Continue where you left off" or "Last viewed" should pick them up
+ Bookmark a resource — it should appear on the Saved page
+9. Mobile
+ Open the site on a phone — layout adapts, nothing overlaps or gets clipped
+ Nav menu opens and closes cleanly
+10. Account hygiene
+ Try the account deletion option — confirms before deleting, and afterwards you really are logged out and can't log back in
