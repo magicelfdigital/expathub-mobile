@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 import { trackEvent } from "@/src/lib/analytics";
 import { PLAN_STEPS } from "@/src/data/planSteps";
 
@@ -89,18 +89,28 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     if (existingSlug && existingSlug !== countrySlug) {
       const prevLabel = existingSlug.charAt(0).toUpperCase() + existingSlug.slice(1).replace(/-/g, " ");
       const newLabel = countryName || countrySlug.charAt(0).toUpperCase() + countrySlug.slice(1).replace(/-/g, " ");
-      Alert.alert(
-        "Switch your focus?",
-        `You have an active plan for ${prevLabel}. Switching will reset your progress and start fresh for ${newLabel}.`,
-        [
-          { text: "Keep current plan", style: "cancel" },
-          {
-            text: `Focus on ${newLabel}`,
-            style: "destructive",
-            onPress: () => doStartPlan(countrySlug, pathwayId),
-          },
-        ],
-      );
+      const message = `You have an active plan for ${prevLabel}. Switching will reset your progress and start fresh for ${newLabel}.`;
+      if (Platform.OS === "web") {
+        const confirmed = typeof window !== "undefined" && typeof window.confirm === "function"
+          ? window.confirm(`Switch your focus?\n\n${message}`)
+          : false;
+        if (confirmed) {
+          doStartPlan(countrySlug, pathwayId);
+        }
+      } else {
+        Alert.alert(
+          "Switch your focus?",
+          message,
+          [
+            { text: "Keep current plan", style: "cancel" },
+            {
+              text: `Focus on ${newLabel}`,
+              style: "destructive",
+              onPress: () => doStartPlan(countrySlug, pathwayId),
+            },
+          ],
+        );
+      }
     } else {
       doStartPlan(countrySlug, pathwayId);
     }
