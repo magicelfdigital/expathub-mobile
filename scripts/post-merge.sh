@@ -16,6 +16,9 @@ else
   echo "[post-merge] DATABASE_URL not set; skipping db:push"
 fi
 
+echo "[post-merge] Verifying Meta event call sites..."
+node scripts/check-meta-events.mjs
+
 echo "[post-merge] Building web/ for production fallback..."
 npx vite build --config web/vite.config.ts
 

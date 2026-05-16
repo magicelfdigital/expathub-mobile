@@ -1,0 +1,22 @@
+name: Meta event verification
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check-meta-events:
+    name: Verify Meta event call sites
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run Meta event regression check
+        run: node scripts/check-meta-events.mjs

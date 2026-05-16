@@ -17,14 +17,20 @@ This checklist assumes the SDK + Pixel work in this task is already merged and a
 
 Before changing campaigns, verify the funnel events are landing in **Meta Events Manager**.
 
-> **Pre-flight (do this first, before opening Events Manager):**
-> Run `node scripts/check-meta-events.mjs` from the repo root. This is a static
-> check that asserts every event listed below still has a call site in source
-> and that no obvious PII fields (email, userId, firstName, etc.) are being
-> forwarded into a Meta payload. If this fails, do not bother with a TestFlight
-> build — fix the call sites first. The check is the source of truth for which
-> call sites must exist; if you intentionally rename or move an event, update
-> the script and this doc in the same commit.
+> **Pre-flight (CI runs this automatically — read this if it fails):**
+> The static check at `scripts/check-meta-events.mjs` asserts that every event
+> listed below still has a call site in source and that no obvious PII fields
+> (email, userId, firstName, etc.) are being forwarded into a Meta payload. It
+> runs on every push and pull request via the **Meta event verification**
+> GitHub Actions workflow (`.github/workflows/meta-events.yml`) and blocks
+> merge on failure. It also runs locally as part of `scripts/post-merge.sh`,
+> so a regression will show up the next time the post-merge hook runs.
+>
+> If the CI job fails, do not bother with a TestFlight build — fix the call
+> sites first. The script is the source of truth for which call sites must
+> exist; if you intentionally rename or move an event, update the script and
+> this doc in the same commit. You can reproduce the check locally with
+> `node scripts/check-meta-events.mjs`.
 
 ### Mobile app (iOS, react-native-fbsdk-next)
 
