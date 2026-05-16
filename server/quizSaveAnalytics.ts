@@ -963,7 +963,7 @@ export function renderQuizSaveAnalyticsHtml(
       .join("")}
   </div>
 
-  <h2>Weekly trend (last 8 weeks) <a href="/api/admin/quiz-save-analytics.csv" style="font-size:12px;font-weight:normal;margin-left:8px;color:#0a66c2;text-decoration:none">Download CSV</a></h2>
+  <h2>Weekly trend (last 8 weeks) <a href="/api/admin/quiz-save-analytics.csv?days=${windowDays}" style="font-size:12px;font-weight:normal;margin-left:8px;color:#0a66c2;text-decoration:none">Download CSV</a></h2>
   <p class="desc">Always covers the most recent 8 ISO weeks (Mon–Sun) regardless of the window above, so trends remain comparable as you change the filter. Bars use the left axis (counts); the lines use the right axis (recovery rate). The orange line is the combined rate; the blue and green lines split it by placement so the new post-result modal can be compared against the legacy mid-quiz prompt over time.</p>
   ${renderWeeklyChartSvg(weekly)}
 
@@ -1067,6 +1067,46 @@ function csvCell(value: string | number | null): string {
 function csvRate(rate: number | null): string {
   if (rate === null) return "";
   return rate.toFixed(4);
+}
+
+// Renders the totals + per-surface block that sits above the weekly trend
+// section. Kept as its own function so the route can compose a single CSV
+// from the three logical sections (totals, per-surface, weekly) the team
+// asked for, and so each section can be unit-tested in isolation.
+export function renderQuizSaveAnalyticsSummaryCsv(
+  data: Pick<QuizSaveAnalytics, "windowDays" | "totals" | "bySurface">,
+): string {
+  const header = ["scope", "shown", "submitted", "dismissed", "recovery_rate"];
+  const summaryRow = (
+    scope: string,
+    m: SurfaceMetrics,
+  ): string =>
+    [
+      csvCell(scope),
+      csvCell(m.shown),
+      csvCell(m.submitted),
+      csvCell(m.dismissed),
+      csvRate(m.recoveryRate),
+    ].join(",");
+  const lines = [
+    `# window_days,${csvCell(data.windowDays)}`,
+    header.join(","),
+    summaryRow("total", data.totals),
+    summaryRow("web", data.bySurface.web),
+    summaryRow("mobile", data.bySurface.mobile),
+  ];
+  return `${lines.join("\n")}\n`;
+}
+
+// Combines the totals + per-surface summary and the weekly trend into a
+// single CSV download. Sections are separated by a blank line so common
+// spreadsheet importers (Numbers, Excel, Sheets) can still parse the file
+// even if a human-readable section break is present — the blank line lands
+// as an empty row, which is harmless.
+export function renderQuizSaveAnalyticsCsv(data: QuizSaveAnalytics): string {
+  return `${renderQuizSaveAnalyticsSummaryCsv(data)}\n${renderQuizSaveAnalyticsWeeklyCsv(
+    data.weekly,
+  )}`;
 }
 
 export function renderQuizSaveAnalyticsWeeklyCsv(
@@ -1364,7 +1404,7 @@ export function registerQuizSaveAnalyticsRoutes(
       const data = await computeQuizSaveAnalytics(pool, {
         windowDays: readWindowDays(req),
       });
-      const csv = renderQuizSaveAnalyticsWeeklyCsv(data.weekly);
+      const csv = renderQuizSaveAnalyticsCsv(data);
       // Suggest a dated filename so repeated downloads don't collide in the
       // user's Downloads folder. Date is derived from the most recent week
       // start when available, otherwise today's UTC date.

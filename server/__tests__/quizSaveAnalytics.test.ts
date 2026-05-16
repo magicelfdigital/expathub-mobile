@@ -4,8 +4,11 @@ import {
   computeQuizSaveAnalytics,
   isQuizSaveEventName,
   recordQuizSaveEvent,
+  renderQuizSaveAnalyticsCsv,
+  renderQuizSaveAnalyticsSummaryCsv,
   renderQuizSaveAnalyticsWeeklyCsv,
   resetQuizSaveAnalyticsEnsureCache,
+  type QuizSaveAnalytics,
   type WeeklyMetrics,
 } from "../quizSaveAnalytics";
 
@@ -636,6 +639,10 @@ describe("renderQuizSaveAnalyticsWeeklyCsv", () => {
       },
       unknown: { shown: 0, submitted: 0, dismissed: 0, recoveryRate: null },
     },
+    bySurface: {
+      web: { shown: 0, submitted: 0, dismissed: 0, recoveryRate: null },
+      mobile: { shown: 0, submitted: 0, dismissed: 0, recoveryRate: null },
+    },
     ...overrides,
   });
 
@@ -716,5 +723,116 @@ describe("renderQuizSaveAnalyticsWeeklyCsv", () => {
       baseWeek({ weekStart: "2026-03-09" }),
     ]);
     expect(csv.endsWith("\n")).toBe(true);
+  });
+});
+
+describe("renderQuizSaveAnalyticsSummaryCsv / renderQuizSaveAnalyticsCsv", () => {
+  const baseAnalytics = (
+    overrides: Partial<QuizSaveAnalytics> = {},
+  ): QuizSaveAnalytics => ({
+    windowDays: 30,
+    totals: { shown: 100, submitted: 12, dismissed: 80, recoveryRate: 0.12 },
+    bySurface: {
+      web: { shown: 60, submitted: 8, dismissed: 50, recoveryRate: 8 / 60 },
+      mobile: { shown: 40, submitted: 4, dismissed: 30, recoveryRate: 0.1 },
+    },
+    byPlacement: {
+      mid_quiz: { shown: 0, submitted: 0, dismissed: 0, recoveryRate: null },
+      result_screen: {
+        shown: 0,
+        submitted: 0,
+        dismissed: 0,
+        recoveryRate: null,
+      },
+      unknown: { shown: 0, submitted: 0, dismissed: 0, recoveryRate: null },
+    },
+    emailGate: {
+      directCaptures: 0,
+      saveCaptures: 0,
+      saveShareOfCaptures: null,
+      unavailable: true,
+    },
+    weekly: [],
+    ...overrides,
+  });
+
+  it("writes the window header, schema, and totals + per-surface rows", () => {
+    const csv = renderQuizSaveAnalyticsSummaryCsv(baseAnalytics());
+    expect(csv).toBe(
+      [
+        "# window_days,30",
+        "scope,shown,submitted,dismissed,recovery_rate",
+        "total,100,12,80,0.1200",
+        "web,60,8,50,0.1333",
+        "mobile,40,4,30,0.1000",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("composes summary and weekly sections separated by a blank line", () => {
+    const csv = renderQuizSaveAnalyticsCsv(
+      baseAnalytics({
+        weekly: [
+          {
+            weekStart: "2026-05-04",
+            shown: 10,
+            submitted: 1,
+            dismissed: 8,
+            recoveryRate: 0.1,
+            byPlacement: {
+              mid_quiz: {
+                shown: 10,
+                submitted: 1,
+                dismissed: 8,
+                recoveryRate: 0.1,
+              },
+              result_screen: {
+                shown: 0,
+                submitted: 0,
+                dismissed: 0,
+                recoveryRate: null,
+              },
+              unknown: {
+                shown: 0,
+                submitted: 0,
+                dismissed: 0,
+                recoveryRate: null,
+              },
+            },
+            bySurface: {
+              web: {
+                shown: 6,
+                submitted: 1,
+                dismissed: 4,
+                recoveryRate: 1 / 6,
+              },
+              mobile: {
+                shown: 4,
+                submitted: 0,
+                dismissed: 4,
+                recoveryRate: 0,
+              },
+            },
+          },
+        ],
+      }),
+    );
+    const lines = csv.split("\n");
+    // Summary section.
+    expect(lines.slice(0, 5)).toEqual([
+      "# window_days,30",
+      "scope,shown,submitted,dismissed,recovery_rate",
+      "total,100,12,80,0.1200",
+      "web,60,8,50,0.1333",
+      "mobile,40,4,30,0.1000",
+    ]);
+    // Blank line separates the two sections so spreadsheet importers can
+    // still parse the file and humans can tell the sections apart.
+    expect(lines[5]).toBe("");
+    expect(lines[6]).toContain("week_start,shown,submitted,dismissed");
+    expect(lines[7]).toBe(
+      "2026-05-04,10,1,8,0.1000,10,1,0.1000,0,0,,0,0,",
+    );
   });
 });
