@@ -19,6 +19,34 @@ const confidenceColors: Record<DisplayConfidenceLevel, { bg: string; border: str
   Conditional: { bg: "#fef2f2", border: "#fecaca", text: "#991b1b" },
 };
 
+function splitIntoParagraphs(text: string): string[] {
+  const explicit = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
+  const out: string[] = [];
+  for (const chunk of explicit) {
+    if (chunk.length <= 280) {
+      out.push(chunk);
+      continue;
+    }
+    const sentences = chunk.match(/[^.!?]+(?:[.!?]+["')\]]*|$)/g)?.map((s) => s.trim()).filter(Boolean) ?? [chunk];
+    if (sentences.length <= 1) {
+      out.push(chunk);
+      continue;
+    }
+    let buf = "";
+    for (const sent of sentences) {
+      const next = buf ? `${buf} ${sent}` : sent;
+      if (next.length > 320 && buf) {
+        out.push(buf);
+        buf = sent;
+      } else {
+        buf = next;
+      }
+    }
+    if (buf) out.push(buf);
+  }
+  return out;
+}
+
 function BulletList({
   items,
   icon,
@@ -32,14 +60,26 @@ function BulletList({
 }) {
   return (
     <View style={s.bulletList}>
-      {items.map((item) => (
-        <View key={item} style={s.bulletRow}>
-          <View style={[s.bulletIcon, { backgroundColor: iconBg }]}>
-            <Ionicons name={icon as any} size={12} color={iconColor} />
+      {items.map((item) => {
+        const paragraphs = splitIntoParagraphs(item);
+        return (
+          <View key={item} style={s.bulletRow}>
+            <View style={[s.bulletIcon, { backgroundColor: iconBg }]}>
+              <Ionicons name={icon as any} size={12} color={iconColor} />
+            </View>
+            <View style={s.bulletTextColumn}>
+              {paragraphs.map((para, idx) => (
+                <Text
+                  key={`${idx}-${para.slice(0, 24)}`}
+                  style={[s.bulletText, idx > 0 && s.bulletParagraphSpacing]}
+                >
+                  {para}
+                </Text>
+              ))}
+            </View>
           </View>
-          <Text style={s.bulletText}>{item}</Text>
-        </View>
-      ))}
+        );
+      })}
     </View>
   );
 }
@@ -406,12 +446,17 @@ const s = {
     justifyContent: "center" as const,
     marginTop: 1,
   },
-  bulletText: {
+  bulletTextColumn: {
     flex: 1,
+  },
+  bulletText: {
     fontSize: tokens.text.body,
     fontFamily: tokens.font.body,
     color: tokens.color.text,
-    lineHeight: 20,
+    lineHeight: 22,
+  },
+  bulletParagraphSpacing: {
+    marginTop: 10,
   },
   reviewedAt: {
     fontSize: tokens.text.small,
