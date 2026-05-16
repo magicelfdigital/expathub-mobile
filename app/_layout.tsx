@@ -1,7 +1,9 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+
+import { clearLocalDataIfSignedOut } from "@/src/lib/clearDeviceData";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
@@ -85,11 +87,21 @@ export default function RootLayout() {
     DMSans_700Bold,
   });
 
+  const [bootCleanupDone, setBootCleanupDone] = useState(false);
+
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    // Runs once per cold start: if no JWT is on the device, wipe non-billing
+    // local data so the next session starts clean. Billing/entitlement keys
+    // (reverse-trial markers, promo code) are intentionally preserved by
+    // clearLocalDataIfSignedOut to prevent trial-grant abuse on reinstall.
+    clearLocalDataIfSignedOut().finally(() => setBootCleanupDone(true));
+  }, []);
+
+  useEffect(() => {
+    if ((fontsLoaded || fontError) && bootCleanupDone) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError, bootCleanupDone]);
 
   useEffect(() => {
     initCrashlytics();
@@ -99,6 +111,10 @@ export default function RootLayout() {
   }, []);
 
   if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
+  if (!bootCleanupDone) {
     return null;
   }
 
