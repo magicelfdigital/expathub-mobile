@@ -67,6 +67,7 @@ module.exports = {
           "<rootDir>/src/lib/__mocks__/async-storage.ts",
         "^posthog-react-native$":
           "<rootDir>/src/lib/__mocks__/posthog-react-native.ts",
+        "^expo-constants$": "<rootDir>/src/lib/__mocks__/expo-constants.ts",
       },
       transform: tsJestTransform,
       testMatch: ["**/__tests__/**/*.test.ts"],
@@ -96,6 +97,7 @@ module.exports = {
           "<rootDir>/src/lib/__mocks__/async-storage.ts",
         "^posthog-react-native$":
           "<rootDir>/src/lib/__mocks__/posthog-react-native.ts",
+        "^expo-constants$": "<rootDir>/src/lib/__mocks__/expo-constants.ts",
       },
       transform: tsJestTransform,
       testMatch: ["**/__tests__/**/*.test.ts", "**/__tests__/**/*.test.tsx"],
@@ -105,7 +107,10 @@ module.exports = {
       preset: "ts-jest",
       testEnvironment: "jsdom",
       roots: ["<rootDir>/app"],
-      moduleNameMapper: sharedModuleNameMapper,
+      moduleNameMapper: {
+        ...sharedModuleNameMapper,
+        "^expo-constants$": "<rootDir>/src/lib/__mocks__/expo-constants.ts",
+      },
       setupFiles: ["<rootDir>/src/__test-mocks__/screens-setup.ts"],
       transform: {
         "^.+\\.tsx?$": [
