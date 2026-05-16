@@ -714,7 +714,7 @@ export function renderQuizSaveAnalyticsHtml(data: QuizSaveAnalytics): string {
       .join("")}
   </div>
 
-  <h2>Weekly trend (last 8 weeks)</h2>
+  <h2>Weekly trend (last 8 weeks) <a href="/api/admin/quiz-save-analytics.csv" style="font-size:12px;font-weight:normal;margin-left:8px;color:#0a66c2;text-decoration:none">Download CSV</a></h2>
   <p class="desc">Always covers the most recent 8 ISO weeks (Mon–Sun) regardless of the window above, so trends remain comparable as you change the filter. Bars use the left axis (counts); the lines use the right axis (recovery rate). The orange line is the combined rate; the blue and green lines split it by placement so the new post-result modal can be compared against the legacy mid-quiz prompt over time.</p>
   ${renderWeeklyChartSvg(weekly)}
   ${renderWeeklyTable(weekly)}
@@ -794,6 +794,71 @@ export function renderQuizSaveAnalyticsHtml(data: QuizSaveAnalytics): string {
 </html>`;
 }
 
+// CSV escape: quote any field containing a comma, quote, or newline, and
+// double any embedded quotes. Kept inline so the analytics module has no
+// new dependencies for a one-off export route.
+function csvCell(value: string | number | null): string {
+  if (value === null || value === undefined) return "";
+  const str = typeof value === "number" ? String(value) : value;
+  if (/[",\n\r]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+// Round to 4 decimal places for spreadsheet-friendly recovery rates while
+// keeping enough precision to distinguish small differences (0.0123 vs
+// 0.0124). Empty when the rate is null so a quiet week renders blank
+// rather than as "0" in the spreadsheet.
+function csvRate(rate: number | null): string {
+  if (rate === null) return "";
+  return rate.toFixed(4);
+}
+
+export function renderQuizSaveAnalyticsWeeklyCsv(
+  weeks: WeeklyMetrics[],
+): string {
+  const header = [
+    "week_start",
+    "shown",
+    "submitted",
+    "dismissed",
+    "recovery_rate",
+    "mid_quiz_shown",
+    "mid_quiz_submitted",
+    "mid_quiz_recovery_rate",
+    "result_screen_shown",
+    "result_screen_submitted",
+    "result_screen_recovery_rate",
+    "unknown_shown",
+    "unknown_submitted",
+    "unknown_recovery_rate",
+  ];
+  const lines = [header.join(",")];
+  for (const w of weeks) {
+    lines.push(
+      [
+        csvCell(w.weekStart),
+        csvCell(w.shown),
+        csvCell(w.submitted),
+        csvCell(w.dismissed),
+        csvRate(w.recoveryRate),
+        csvCell(w.byPlacement.mid_quiz.shown),
+        csvCell(w.byPlacement.mid_quiz.submitted),
+        csvRate(w.byPlacement.mid_quiz.recoveryRate),
+        csvCell(w.byPlacement.result_screen.shown),
+        csvCell(w.byPlacement.result_screen.submitted),
+        csvRate(w.byPlacement.result_screen.recoveryRate),
+        csvCell(w.byPlacement.unknown.shown),
+        csvCell(w.byPlacement.unknown.submitted),
+        csvRate(w.byPlacement.unknown.recoveryRate),
+      ].join(","),
+    );
+  }
+  // Trailing newline keeps the file POSIX-friendly for spreadsheet importers.
+  return `${lines.join("\n")}\n`;
+}
+
 function readWindowDays(req: Request): number {
   const raw = req.query.days;
   if (typeof raw !== "string") return 30;
@@ -809,6 +874,40 @@ export function registerQuizSaveAnalyticsRoutes(
     getPool: () => pg.Pool | null;
   },
 ): void {
+  app.get("/api/admin/quiz-save-analytics.csv", async (req, res) => {
+    if (!deps.requireAdminBasicAuth(req, res)) return;
+    const pool = deps.getPool();
+    if (!pool) {
+      res.status(503).type("text/plain").send("Database not configured");
+      return;
+    }
+    try {
+      const data = await computeQuizSaveAnalytics(pool, {
+        windowDays: readWindowDays(req),
+      });
+      const csv = renderQuizSaveAnalyticsWeeklyCsv(data.weekly);
+      // Suggest a dated filename so repeated downloads don't collide in the
+      // user's Downloads folder. Date is derived from the most recent week
+      // start when available, otherwise today's UTC date.
+      const stamp =
+        data.weekly.length > 0
+          ? data.weekly[data.weekly.length - 1].weekStart
+          : new Date().toISOString().slice(0, 10);
+      res
+        .type("text/csv; charset=utf-8")
+        .set(
+          "Content-Disposition",
+          `attachment; filename="quiz-save-weekly-${stamp}.csv"`,
+        )
+        .send(csv);
+    } catch (err: any) {
+      console.error("Quiz save analytics CSV error:", err?.message);
+      res.status(500).type("text/plain").send("Failed to compute CSV");
+    } finally {
+      await pool.end();
+    }
+  });
+
   app.get("/api/admin/quiz-save-analytics", async (req, res) => {
     if (!deps.requireAdminBasicAuth(req, res)) return;
     const pool = deps.getPool();

@@ -4,7 +4,9 @@ import {
   computeQuizSaveAnalytics,
   isQuizSaveEventName,
   recordQuizSaveEvent,
+  renderQuizSaveAnalyticsWeeklyCsv,
   resetQuizSaveAnalyticsEnsureCache,
+  type WeeklyMetrics,
 } from "../quizSaveAnalytics";
 
 type QueryCall = { text: string; values: unknown[] };
@@ -512,5 +514,105 @@ describe("computeQuizSaveAnalytics", () => {
     await expect(
       computeQuizSaveAnalytics(pool, { windowDays: 30 }),
     ).rejects.toThrow(/statement timeout/);
+  });
+});
+
+describe("renderQuizSaveAnalyticsWeeklyCsv", () => {
+  const baseWeek = (overrides: Partial<WeeklyMetrics>): WeeklyMetrics => ({
+    weekStart: "2026-04-27",
+    shown: 0,
+    submitted: 0,
+    dismissed: 0,
+    recoveryRate: null,
+    byPlacement: {
+      mid_quiz: { shown: 0, submitted: 0, dismissed: 0, recoveryRate: null },
+      result_screen: {
+        shown: 0,
+        submitted: 0,
+        dismissed: 0,
+        recoveryRate: null,
+      },
+      unknown: { shown: 0, submitted: 0, dismissed: 0, recoveryRate: null },
+    },
+    ...overrides,
+  });
+
+  it("emits the full header on the first line", () => {
+    const csv = renderQuizSaveAnalyticsWeeklyCsv([]);
+    const header = csv.split("\n")[0];
+    expect(header).toBe(
+      [
+        "week_start",
+        "shown",
+        "submitted",
+        "dismissed",
+        "recovery_rate",
+        "mid_quiz_shown",
+        "mid_quiz_submitted",
+        "mid_quiz_recovery_rate",
+        "result_screen_shown",
+        "result_screen_submitted",
+        "result_screen_recovery_rate",
+        "unknown_shown",
+        "unknown_submitted",
+        "unknown_recovery_rate",
+      ].join(","),
+    );
+  });
+
+  it("renders totals and per-placement counts with recovery rates", () => {
+    const csv = renderQuizSaveAnalyticsWeeklyCsv([
+      baseWeek({
+        weekStart: "2026-04-20",
+        shown: 40,
+        submitted: 7,
+        dismissed: 30,
+        recoveryRate: 7 / 40,
+        byPlacement: {
+          mid_quiz: {
+            shown: 20,
+            submitted: 3,
+            dismissed: 15,
+            recoveryRate: 3 / 20,
+          },
+          result_screen: {
+            shown: 20,
+            submitted: 4,
+            dismissed: 15,
+            recoveryRate: 4 / 20,
+          },
+          unknown: {
+            shown: 0,
+            submitted: 0,
+            dismissed: 0,
+            recoveryRate: null,
+          },
+        },
+      }),
+    ]);
+    const lines = csv.trim().split("\n");
+    expect(lines).toHaveLength(2);
+    // recovery_rate column is rounded to 4dp; the unknown bucket has a null
+    // rate and renders as an empty cell so spreadsheet readers see a blank
+    // rather than "0" for a quiet bucket.
+    expect(lines[1]).toBe(
+      "2026-04-20,40,7,30,0.1750,20,3,0.1500,20,4,0.2000,0,0,",
+    );
+  });
+
+  it("leaves recovery_rate blank for weeks with no impressions", () => {
+    const csv = renderQuizSaveAnalyticsWeeklyCsv([
+      baseWeek({ weekStart: "2026-03-09" }),
+    ]);
+    expect(csv.trim().split("\n")[1]).toBe(
+      "2026-03-09,0,0,0,,0,0,,0,0,,0,0,",
+    );
+  });
+
+  it("ends with a trailing newline for POSIX-friendly imports", () => {
+    const csv = renderQuizSaveAnalyticsWeeklyCsv([
+      baseWeek({ weekStart: "2026-03-09" }),
+    ]);
+    expect(csv.endsWith("\n")).toBe(true);
   });
 });
