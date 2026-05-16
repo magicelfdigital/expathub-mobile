@@ -17,10 +17,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import {
   useSubmitWorksheet,
-  useWorksheetDetail,
   useWorksheetResponse,
 } from "@/src/hooks/useWorksheets";
-import type { WorksheetAnswers } from "@/src/data/worksheets";
+import {
+  WORKSHEET_BY_ID,
+  type WorksheetAnswers,
+} from "@/src/data/worksheets";
 import { tokens } from "@/theme/tokens";
 
 const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
@@ -32,7 +34,11 @@ export default function WorksheetDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const { hasFullAccess } = useSubscription();
-  const { data: worksheet, isLoading: detailLoading } = useWorksheetDetail(id);
+  // Worksheet definitions are statically bundled, so we render them from
+  // local data rather than a gated backend fetch. The paywall fires on
+  // submit (the POST endpoint enforces entitlement server-side and the
+  // mutation surfaces 402 as a user-visible error).
+  const worksheet = id ? WORKSHEET_BY_ID[id] ?? null : null;
   const existing = useWorksheetResponse(id);
   const submit = useSubmitWorksheet();
 
@@ -42,27 +48,6 @@ export default function WorksheetDetailScreen() {
   useEffect(() => {
     if (existing?.answers) setAnswers(existing.answers);
   }, [existing?.worksheetId]);
-
-  // Gate routing — runs before the detail query because the query is
-  // disabled when the user is not signed in or non-entitled. This prevents
-  // a perpetual spinner for free / logged-out users. The /subscribe screen
-  // routes back here once entitlement becomes active.
-  useEffect(() => {
-    if (!id) return;
-    if (!user) {
-      router.replace({
-        pathname: "/auth" as any,
-        params: { mode: "register" },
-      });
-      return;
-    }
-    if (!hasFullAccess) {
-      router.replace({
-        pathname: "/subscribe" as any,
-        params: { redirectTo: `/(tabs)/(home)/worksheets/${id}` },
-      });
-    }
-  }, [id, user, hasFullAccess, router]);
 
   const allAnswered = useMemo(() => {
     if (!worksheet) return false;
@@ -76,7 +61,17 @@ export default function WorksheetDetailScreen() {
   const onSubmit = async () => {
     if (!worksheet || !allAnswered) return;
     if (!user) {
-      Alert.alert("Sign in", "Create a free account to save your answers.");
+      router.push({
+        pathname: "/auth" as any,
+        params: { mode: "register", redirectTo: `/(tabs)/(home)/worksheets/${worksheet.id}` },
+      });
+      return;
+    }
+    if (!hasFullAccess) {
+      router.push({
+        pathname: "/subscribe" as any,
+        params: { redirectTo: `/(tabs)/(home)/worksheets/${worksheet.id}` },
+      });
       return;
     }
     try {
@@ -87,21 +82,15 @@ export default function WorksheetDetailScreen() {
     }
   };
 
-  // While we redirect non-entitled / unauth users, or while the detail is
-  // genuinely loading for an entitled user, show a spinner. If the query
-  // settled with no worksheet (e.g. 404), the redirect effect above will
-  // already be in flight; the spinner is a safe interim state.
+  // Worksheet definitions are bundled with the app, so the only reason
+  // we'd land here is an unknown id from a stale deep link.
   if (!worksheet) {
     return (
       <View style={[styles.container, styles.center, { paddingTop: insets.top + WEB_TOP_INSET }]}>
         <Stack.Screen options={{ headerShown: false }} />
-        {detailLoading || !user || !hasFullAccess ? (
-          <ActivityIndicator color={tokens.color.primary} />
-        ) : (
-          <Text style={{ color: tokens.color.subtext }}>
-            Worksheet not available.
-          </Text>
-        )}
+        <Text style={{ color: tokens.color.subtext }}>
+          Worksheet not available.
+        </Text>
       </View>
     );
   }
