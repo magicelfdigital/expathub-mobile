@@ -2,6 +2,7 @@ import {
   backfillAuthPromptEventsFromPostHog,
   PostHogBackfillConfigError,
   resetAuthPromptAnalyticsEnsureCache,
+  resetAuthPromptBackfillRunsEnsureCache,
 } from "../authPromptAnalytics";
 
 type QueryCall = { text: string; values: unknown[] };
@@ -47,6 +48,7 @@ function makeFetch(pages: any[][]) {
 
 beforeEach(() => {
   resetAuthPromptAnalyticsEnsureCache();
+  resetAuthPromptBackfillRunsEnsureCache();
 });
 
 describe("backfillAuthPromptEventsFromPostHog", () => {
@@ -105,9 +107,17 @@ describe("backfillAuthPromptEventsFromPostHog", () => {
     expect(fetchCalls[0].body.query.query).toContain("auth_prompt_shown");
     expect(fetchCalls[0].body.query.query).toContain("auth_prompt_converted");
 
-    // Two INSERTs with explicit created_at + posthog_event_id
-    const inserts = calls.filter((c) => c.text.startsWith("INSERT"));
+    // Two INSERTs into auth_prompt_events with explicit created_at +
+    // posthog_event_id, plus one summary INSERT into auth_prompt_backfill_runs.
+    const inserts = calls.filter((c) =>
+      c.text.startsWith("INSERT INTO auth_prompt_events"),
+    );
     expect(inserts).toHaveLength(2);
+    const runInserts = calls.filter((c) =>
+      c.text.startsWith("INSERT INTO auth_prompt_backfill_runs"),
+    );
+    expect(runInserts).toHaveLength(1);
+    expect(runInserts[0].values).toEqual([2, 2, 0, null]);
     expect(inserts[0].text).toContain("ON CONFLICT");
     expect(inserts[0].text).toContain("posthog_event_id");
     expect(inserts[0].values[0]).toBe("auth_prompt_shown");
@@ -154,7 +164,9 @@ describe("backfillAuthPromptEventsFromPostHog", () => {
     });
     expect(summary.fetched).toBe(1);
     expect(summary.inserted).toBe(1);
-    const inserts = calls.filter((c) => c.text.startsWith("INSERT"));
+    const inserts = calls.filter((c) =>
+      c.text.startsWith("INSERT INTO auth_prompt_events"),
+    );
     expect(inserts).toHaveLength(1);
     // Empty entry_point falls back to "unknown"
     expect(inserts[0].values[1]).toBe("unknown");

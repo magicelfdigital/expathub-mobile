@@ -465,6 +465,7 @@ export interface BackfillBanner {
 export function renderAuthPromptAnalyticsHtml(
   data: AuthPromptAnalytics,
   banner: BackfillBanner | null = null,
+  backfillRuns: BackfillRunRecord[] = [],
 ): string {
   const { totals, byEntryPoint, windowDays, weekly } = data;
   const entryPointRows = byEntryPoint.length
@@ -515,6 +516,7 @@ export function renderAuthPromptAnalyticsHtml(
   <div class="nav"><a href="/admin">← Admin tools</a></div>
   <h1>Auth-prompt (signup nudge) analytics</h1>
   ${bannerHtml}
+  ${renderBackfillHistory(backfillRuns)}
   <details style="margin:12px 0 16px;background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:10px 14px;">
     <summary style="cursor:pointer;font-weight:600;">Backfill from PostHog</summary>
     <p style="color:#555;font-size:13px;margin-top:8px">
@@ -777,7 +779,175 @@ export async function backfillAuthPromptEventsFromPostHog(
     offset += rows.length;
   }
 
+  // Persist a run summary so the dashboard can show *when* the table was
+  // last reconciled with PostHog without re-running the import. Recording
+  // lives here (inside the backfill operation) rather than at any single
+  // call site so every caller — the admin POST route, the scheduled
+  // self-heal, ad-hoc scripts — gets the same history entry consistently.
+  // A recording failure must never mask a successful backfill.
+  try {
+    await recordAuthPromptBackfillRun(pool, summary, since);
+  } catch (recordErr: any) {
+    console.error(
+      "Failed to record auth-prompt backfill run:",
+      recordErr?.message,
+    );
+  }
+
   return summary;
+}
+
+// ── Backfill run history (task #106) ─────────────────────────────────────
+//
+// Each time the PostHog backfill runs we persist a small summary row so
+// the dashboard can show *when* the local table was last reconciled with
+// PostHog without re-running the import. The table is intentionally
+// narrow — just the counts that operators care about and the `since`
+// filter used so a partial backfill is distinguishable from a full one.
+
+export interface BackfillRunRecord {
+  id: number;
+  ranAt: string;
+  fetched: number;
+  inserted: number;
+  skipped: number;
+  since: string | null;
+}
+
+let ensureRunsTablePromise: Promise<void> | null = null;
+
+export function resetAuthPromptBackfillRunsEnsureCache(): void {
+  ensureRunsTablePromise = null;
+}
+
+export async function ensureAuthPromptBackfillRunsTable(
+  pool: pg.Pool,
+): Promise<void> {
+  if (!ensureRunsTablePromise) {
+    ensureRunsTablePromise = (async () => {
+      await pool.query(
+        `CREATE TABLE IF NOT EXISTS auth_prompt_backfill_runs (
+           id SERIAL PRIMARY KEY,
+           ran_at TIMESTAMP NOT NULL DEFAULT NOW(),
+           fetched INTEGER NOT NULL DEFAULT 0,
+           inserted INTEGER NOT NULL DEFAULT 0,
+           skipped INTEGER NOT NULL DEFAULT 0,
+           since_value VARCHAR(64)
+         )`,
+      );
+    })().catch((err) => {
+      ensureRunsTablePromise = null;
+      throw err;
+    });
+  }
+  await ensureRunsTablePromise;
+}
+
+export async function recordAuthPromptBackfillRun(
+  pool: pg.Pool,
+  summary: { fetched: number; inserted: number; skipped: number },
+  since: string | null,
+): Promise<void> {
+  await ensureAuthPromptBackfillRunsTable(pool);
+  const sinceValue =
+    since && since.trim().length > 0 ? since.trim().slice(0, 64) : null;
+  await pool.query(
+    `INSERT INTO auth_prompt_backfill_runs
+       (fetched, inserted, skipped, since_value)
+     VALUES ($1, $2, $3, $4)`,
+    [summary.fetched, summary.inserted, summary.skipped, sinceValue],
+  );
+}
+
+export async function getRecentAuthPromptBackfillRuns(
+  pool: pg.Pool,
+  limit = 5,
+): Promise<BackfillRunRecord[]> {
+  await ensureAuthPromptBackfillRunsTable(pool);
+  const capped = Math.max(1, Math.min(50, Math.floor(limit)));
+  const result = await pool.query<{
+    id: number;
+    ran_at: Date | string;
+    fetched: number | string;
+    inserted: number | string;
+    skipped: number | string;
+    since_value: string | null;
+  }>(
+    `SELECT id, ran_at, fetched, inserted, skipped, since_value
+       FROM auth_prompt_backfill_runs
+      ORDER BY ran_at DESC, id DESC
+      LIMIT $1`,
+    [capped],
+  );
+  return result.rows.map((row) => {
+    const ranAt =
+      row.ran_at instanceof Date
+        ? row.ran_at.toISOString()
+        : new Date(String(row.ran_at)).toISOString();
+    return {
+      id: Number(row.id),
+      ranAt,
+      fetched: Number(row.fetched) || 0,
+      inserted: Number(row.inserted) || 0,
+      skipped: Number(row.skipped) || 0,
+      since: row.since_value ?? null,
+    };
+  });
+}
+
+function renderBackfillHistory(runs: BackfillRunRecord[]): string {
+  if (runs.length === 0) {
+    return `
+  <div style="background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:12px 14px;margin:12px 0;color:#555;font-size:13px;">
+    No PostHog backfill has run yet. Use the form above to import historical events.
+  </div>`;
+  }
+  const [latest, ...rest] = runs;
+  const latestRanAt = escapeHtml(latest.ranAt);
+  const latestSince = latest.since
+    ? ` (since <code>${escapeHtml(latest.since)}</code>)`
+    : " (full history)";
+  const historyRows = rest
+    .map(
+      (run) => `
+      <tr>
+        <td><code>${escapeHtml(run.ranAt)}</code></td>
+        <td>${run.since ? `<code>${escapeHtml(run.since)}</code>` : '<span style="color:#888">full history</span>'}</td>
+        <td style="text-align:right">${fmtInt(run.fetched)}</td>
+        <td style="text-align:right">${fmtInt(run.inserted)}</td>
+        <td style="text-align:right">${fmtInt(run.skipped)}</td>
+      </tr>`,
+    )
+    .join("");
+  const historyTable =
+    rest.length > 0
+      ? `
+    <details style="margin-top:10px;">
+      <summary style="cursor:pointer;font-size:12px;color:#555;">Previous runs (${rest.length})</summary>
+      <table style="margin-top:8px;">
+        <thead>
+          <tr>
+            <th>Ran at (UTC)</th>
+            <th>Since</th>
+            <th style="text-align:right">Fetched</th>
+            <th style="text-align:right">Inserted</th>
+            <th style="text-align:right">Skipped</th>
+          </tr>
+        </thead>
+        <tbody>${historyRows}</tbody>
+      </table>
+    </details>`
+      : "";
+  return `
+  <div style="background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:12px 14px;margin:12px 0;">
+    <div style="font-size:13px;color:#555;">
+      Last PostHog backfill: <strong><time datetime="${latestRanAt}">${latestRanAt}</time></strong>${latestSince}
+      — fetched <strong>${fmtInt(latest.fetched)}</strong>,
+      inserted <strong>${fmtInt(latest.inserted)}</strong>,
+      skipped <strong>${fmtInt(latest.skipped)}</strong>.
+    </div>
+    ${historyTable}
+  </div>`;
 }
 
 export function registerAuthPromptAnalyticsRoutes(
@@ -860,6 +1030,9 @@ export function registerAuthPromptAnalyticsRoutes(
         : "");
     const since = sinceRaw && sinceRaw.trim().length > 0 ? sinceRaw.trim() : null;
     try {
+      // backfillAuthPromptEventsFromPostHog persists a row to
+      // auth_prompt_backfill_runs internally so every caller (this route,
+      // the scheduled self-heal, ad-hoc scripts) contributes to history.
       const summary = await backfillAuthPromptEventsFromPostHog(pool, { since });
       // HTML form submissions expect to land back on the dashboard with a
       // human-readable summary; programmatic callers (Accept: application/json)
@@ -921,7 +1094,22 @@ export function registerAuthPromptAnalyticsRoutes(
               skipped: Number(req.query.skipped) || 0,
             }
           : null;
-      res.type("text/html").send(renderAuthPromptAnalyticsHtml(data, banner));
+      // Fetch a short history (last 5 runs) so operators can see when
+      // the table was last reconciled with PostHog without re-running.
+      // A failure here should not break the dashboard — degrade to an
+      // empty list so the rest of the page still renders.
+      let recentRuns: BackfillRunRecord[] = [];
+      try {
+        recentRuns = await getRecentAuthPromptBackfillRuns(pool, 5);
+      } catch (runsErr: any) {
+        console.error(
+          "Failed to load auth-prompt backfill run history:",
+          runsErr?.message,
+        );
+      }
+      res
+        .type("text/html")
+        .send(renderAuthPromptAnalyticsHtml(data, banner, recentRuns));
     } catch (err: any) {
       console.error("Auth-prompt analytics HTML error:", err?.message);
       res
