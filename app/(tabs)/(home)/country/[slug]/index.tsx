@@ -4,6 +4,8 @@ import React, { useEffect } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
 import { BookmarkButton } from "@/src/components/BookmarkButton";
+import { WorksheetDeltaBanner } from "@/src/components/WorksheetDeltaBanner";
+import { usePendingWorksheetDelta } from "@/src/hooks/usePendingWorksheetDelta";
 import { Screen } from "@/components/Screen";
 import { useCountry } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -107,6 +109,7 @@ export default function CountryDetailScreen() {
   const { percent: planPercent } = useProgressPercent(
     hasPlanForThisCountry ? countrySlug : null,
   );
+  const { activeDelta, dismiss: dismissDelta } = usePendingWorksheetDelta();
 
   const go = (leaf: string) => {
     if (!countrySlug) return;
@@ -143,6 +146,10 @@ export default function CountryDetailScreen() {
             </View>
           ) : null}
         </View>
+
+        {activeDelta ? (
+          <WorksheetDeltaBanner delta={activeDelta} onDismiss={dismissDelta} />
+        ) : null}
 
         {hasAccess && accessType === "subscription" ? (
           <View style={styles.accessBanner}>

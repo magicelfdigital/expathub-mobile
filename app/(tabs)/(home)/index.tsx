@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Screen } from "@/components/Screen";
 import { BookmarkButton } from "@/src/components/BookmarkButton";
+import { WorksheetDeltaBanner } from "@/src/components/WorksheetDeltaBanner";
+import { usePendingWorksheetDelta } from "@/src/hooks/usePendingWorksheetDelta";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
 import { useOnboarding } from "@/contexts/OnboardingContext";
@@ -32,6 +34,7 @@ export default function HomeScreen() {
   const { activeCountrySlug } = usePlan();
   const { hasActiveSubscription } = useSubscription();
   const { percent: planPercent } = useProgressPercent(activeCountrySlug);
+  const { activeDelta, dismiss: dismissDelta } = usePendingWorksheetDelta();
 
   const planCountry = useMemo(
     () => (activeCountrySlug ? getCountry(activeCountrySlug) ?? null : null),
@@ -127,6 +130,10 @@ export default function HomeScreen() {
               </Pressable>
             </View>
           </View>
+        ) : null}
+
+        {activeDelta ? (
+          <WorksheetDeltaBanner delta={activeDelta} onDismiss={dismissDelta} />
         ) : null}
 
         {!isLoaded ? (
