@@ -321,6 +321,11 @@ export default function ResultScreen() {
     explore: 0,
   });
 
+  const [revealedLevels, setRevealedLevels] = useState<Record<BlockerLevel, boolean>>({
+    critical: false,
+    moderate: false,
+    explore: false,
+  });
   const [sheetBlocker, setSheetBlocker] = useState<Blocker | null>(null);
   const openBlockerSheet = (blocker: Blocker) => {
     setSheetBlocker(blocker);
@@ -332,8 +337,14 @@ export default function ResultScreen() {
   const closeSheet = () => setSheetBlocker(null);
   const scrollToSection = (level: BlockerLevel) => {
     if (grouped[level].length === 0) return;
-    const y = sectionYRef.current[level];
-    scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
+    const wasRevealed = revealedLevels[level];
+    setRevealedLevels((prev) => ({ ...prev, [level]: true }));
+    const doScroll = () => {
+      const y = sectionYRef.current[level];
+      scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
+    };
+    if (wasRevealed) doScroll();
+    else setTimeout(doScroll, 60);
     trackEvent("result_pill_opened", { level, count: grouped[level].length });
   };
   const openWorksheetFromSheet = async () => {
@@ -354,6 +365,7 @@ export default function ResultScreen() {
   const renderBlockerSection = (level: BlockerLevel) => {
     const items = grouped[level];
     if (items.length === 0) return null;
+    if (!revealedLevels[level]) return null;
     return (
       <View
         style={styles.blockerSection}
@@ -422,28 +434,36 @@ export default function ResultScreen() {
           {hasAnyBlockers ? (
             <>
               <View style={styles.countPillRow}>
-                {(["critical", "moderate", "explore"] as const).map((lvl) =>
-                  counts[lvl] > 0 ? (
+                {(["critical", "moderate", "explore"] as const).map((lvl) => {
+                  if (counts[lvl] === 0) return null;
+                  const revealed = revealedLevels[lvl];
+                  return (
                     <Pressable
                       key={lvl}
                       onPress={() => scrollToSection(lvl)}
                       style={({ pressed }) => [
                         styles.countPill,
                         { backgroundColor: LEVEL_COLORS[lvl].bg, borderColor: LEVEL_COLORS[lvl].border },
+                        revealed && { borderWidth: 2 },
                         pressed && { opacity: 0.85 },
                       ]}
                       accessibilityRole="button"
-                      accessibilityLabel={`Jump to ${counts[lvl]} ${LEVEL_COLORS[lvl].label} items`}
+                      accessibilityState={{ expanded: revealed }}
+                      accessibilityLabel={`${revealed ? "Showing" : "Show"} ${counts[lvl]} ${LEVEL_COLORS[lvl].label} items`}
                       testID={`count-pill-${lvl}`}
                     >
                       <View style={[styles.countPillDot, { backgroundColor: LEVEL_COLORS[lvl].chip }]} />
                       <Text style={styles.countPillText}>{counts[lvl]} {LEVEL_COLORS[lvl].label.toLowerCase()}</Text>
-                      <Ionicons name="arrow-down" size={12} color={tokens.color.subtext} />
+                      <Ionicons
+                        name={revealed ? "checkmark" : "add"}
+                        size={14}
+                        color={tokens.color.subtext}
+                      />
                     </Pressable>
-                  ) : null,
-                )}
+                  );
+                })}
               </View>
-              <Text style={styles.pillHint}>Tap any item below to open a worksheet and improve your score.</Text>
+              <Text style={styles.pillHint}>Tap a label above to see what's affecting that part of your score.</Text>
             </>
           ) : null}
         </View>
