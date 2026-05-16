@@ -1385,6 +1385,7 @@ Changes to these fields automatically trigger a review:
 - [ ] Configure Stripe price IDs for monthly subscription
 - [ ] Test full purchase flow on all platforms (all 3 tiers)
 - [ ] Test forgot password flow end-to-end (native and web)
+- [ ] Run Playwright e2e suite (`tests/e2e/locked-section.spec.ts`, `tests/e2e/cancellation-exit-offer.spec.ts`, and `tests/e2e/worksheet-signup-submit.spec.ts` — anonymous worksheet tap → register → fill in → submit flow against Expo web at port 8081)
 
 ### App Store Submission
 - [ ] Apple App Review — currently in review process

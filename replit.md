@@ -291,5 +291,5 @@ When writing or modifying code, always observe these constraints:
 ## Automated Testing
 
 - **Mobile (Jest):** `src/billing/__tests__/conversionLifts.test.ts` — exercises pure predicates in `src/lib/conversionLifts.ts` (`shouldGrantReverseTrialOnDismiss`, `getInitialCancellationStep`). Real screen-mount tests for account, planner, quiz, and result screens. `useProgress` hook tests. Full suite: 391 passing tests.
-- **Web e2e (Playwright):** `tests/e2e/locked-section.spec.ts` and `tests/e2e/cancellation-exit-offer.spec.ts`. Config in `playwright.config.ts`. Run with `PLAYWRIGHT_BASE_URL=http://localhost:5000 npx playwright test`.
+- **Web e2e (Playwright):** `tests/e2e/locked-section.spec.ts` and `tests/e2e/cancellation-exit-offer.spec.ts` target the React+Vite SPA at port 5000 — run with `PLAYWRIGHT_BASE_URL=http://localhost:5000 npx playwright test`. `tests/e2e/worksheet-signup-submit.spec.ts` covers the anonymous → register → fill in → submit worksheet flow against the Expo web build at port 8081 — run with `PLAYWRIGHT_EXPO_BASE_URL=http://localhost:8081 npx playwright test tests/e2e/worksheet-signup-submit.spec.ts`. Config in `playwright.config.ts`.
 - **CI:** Meta Pixel event verification checklist with CI check.

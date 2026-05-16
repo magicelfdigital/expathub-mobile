@@ -36,6 +36,7 @@
 9. [Analytics](#9-analytics)
 10. [Environment & Deployment](#10-environment--deployment)
 11. [External Service Dependencies](#11-external-service-dependencies)
+12. [Automated Testing](#12-automated-testing)
 
 ---
 
@@ -634,6 +635,48 @@ Build tools:
 | RevenueCat           | iOS/Android in-app purchases   | `EntitlementContext`, `src/subscriptions/revenuecat.ts`|
 | Stripe               | Web payments                   | `src/subscriptions/stripeWeb.ts`, Express `/api/stripe/*` routes |
 | Neon (PostgreSQL)    | Database hosting               | Drizzle ORM, `shared/schema.ts`                       |
+
+---
+
+## 12. Automated Testing
+
+### 12.1 Mobile (Jest)
+
+| Suite                                                | Purpose                                                                                 |
+|------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| `src/billing/__tests__/conversionLifts.test.ts`      | Pure predicates in `src/lib/conversionLifts.ts` (`shouldGrantReverseTrialOnDismiss`, `getInitialCancellationStep`) |
+| Screen-mount tests                                   | Account, planner, quiz, and result screens                                              |
+| Hook tests                                           | `useProgress`                                                                           |
+
+Full suite: 391 passing tests.
+
+### 12.2 Web e2e (Playwright)
+
+| Spec                                              | Target           | Flow Covered                                                                                                                  |
+|---------------------------------------------------|------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| `tests/e2e/locked-section.spec.ts`                | React+Vite SPA (port 5000) | LockedSection blur previews and CTA on the marketing site                                                            |
+| `tests/e2e/cancellation-exit-offer.spec.ts`       | React+Vite SPA (port 5000) | Cancellation flow with the 50% × 3 months exit offer                                                                 |
+| `tests/e2e/worksheet-signup-submit.spec.ts`       | Expo web (port 8081) | Anonymous user taps a worksheet row → registers a fresh account → lands on the worksheet detail → fills in → submits → response is captured |
+
+Config: `playwright.config.ts`.
+
+Run commands:
+
+```bash
+# SPA specs
+PLAYWRIGHT_BASE_URL=http://localhost:5000 npx playwright test \
+  tests/e2e/locked-section.spec.ts tests/e2e/cancellation-exit-offer.spec.ts
+
+# Expo web worksheet spec
+PLAYWRIGHT_EXPO_BASE_URL=http://localhost:8081 npx playwright test \
+  tests/e2e/worksheet-signup-submit.spec.ts
+```
+
+The worksheet spec seeds `hasSeenOnboarding` into `localStorage` (Expo's AsyncStorage web adapter) to bypass the `OnboardingGate` and mocks `/api/auth/me`, `/api/auth/register`, `/api/worksheets`, `/api/worksheets/responses`, and `/api/worksheets/:id/submit` with CORS-enabled JSON responses (Expo bundles `EXPO_PUBLIC_DOMAIN` so API calls are cross-origin).
+
+### 12.3 CI
+
+Meta Pixel event verification checklist with CI check.
 
 ---
 
