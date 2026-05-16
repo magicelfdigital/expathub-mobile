@@ -248,6 +248,38 @@ describe("ResultScreen — funnel analytics", () => {
     });
   });
 
+  it("Edit answers link fires result_edit_answers_tapped and router.replace with prefill + edit=1", async () => {
+    let renderer: any;
+    act(() => {
+      renderer = TestRenderer.create(<ResultScreen />);
+    });
+    const link = renderer!.root.findByProps({ testID: "result-edit-answers-link" });
+    expect(link).toBeDefined();
+    await act(async () => {
+      await link.props.onPress();
+    });
+    const tapped = trackEvent.mock.calls.filter(
+      (c) => c[0] === "result_edit_answers_tapped",
+    );
+    expect(tapped).toHaveLength(1);
+    expect(tapped[0][1]).toMatchObject({
+      readiness_level: expect.any(String),
+    });
+    expect(__getRouter().replace).toHaveBeenCalledWith({
+      pathname: "/onboarding/quiz",
+      params: expect.objectContaining({
+        prefill: ANSWERS_HIGH_READY,
+        edit: "1",
+      }),
+    });
+    // The prefill param must be a JSON-decodable copy of the user's answers
+    // so the quiz can re-hydrate every selection (regression: a stringified
+    // [object Object] would silently strand the editor with empty state).
+    const replaceCall = __getRouter().replace.mock.calls[0][0] as any;
+    const decoded = JSON.parse(replaceCall.params.prefill);
+    expect(decoded).toMatchObject({ 1: "yes", 8: "twelve_months" });
+  });
+
   it("Unlock Roadmap CTA fires paywall_unlock_tapped with source='result_screen' and routes to /subscribe", async () => {
     // need at least one urgent blocker for the paywall CTA to render
     __setSearchParams({

@@ -1016,23 +1016,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 12,
   },
-  readinessPctRow: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    gap: 8,
-    marginBottom: 8,
-  },
-  readinessPctValue: {
-    fontSize: 32,
-    fontFamily: tokens.font.display,
-    color: tokens.color.text,
-    lineHeight: 36,
-  },
-  readinessPctOf: {
-    fontSize: 13,
-    fontFamily: tokens.font.body,
-    color: tokens.color.subtext,
-  },
   readinessBarTrack: {
     height: 10,
     backgroundColor: "rgba(28,43,94,0.08)",
