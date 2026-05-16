@@ -100,6 +100,34 @@ test.describe("Worksheet anonymous → signup → submit", () => {
       return route.fulfill(jsonResponse({ ok: true }));
     });
 
+    // BookmarkProvider fetches /api/notes and /api/bookmarks on mount
+    // and expects arrays — calling `.filter()` on the result. The
+    // catch-all above returns `{ ok: true }` which would crash the
+    // provider and trigger the ErrorBoundary, which in turn navigates
+    // the app back to "/" and breaks this whole funnel mid-flight.
+    // Returning empty arrays here keeps the provider quiet so the
+    // worksheet detail screen actually stays mounted.
+    await context.route("**/api/bookmarks", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        return route.fulfill(corsPreflight());
+      }
+      // Toggle/save bookmark endpoints (POST/DELETE on /api/bookmarks/:slug)
+      // are handled by the catch-all below; the list GET needs an array.
+      if (route.request().method() === "GET") {
+        return route.fulfill(jsonResponse([]));
+      }
+      return route.fulfill(jsonResponse({ ok: true }));
+    });
+    await context.route("**/api/notes", async (route) => {
+      if (route.request().method() === "OPTIONS") {
+        return route.fulfill(corsPreflight());
+      }
+      if (route.request().method() === "GET") {
+        return route.fulfill(jsonResponse([]));
+      }
+      return route.fulfill(jsonResponse({ ok: true }));
+    });
+
     // /api/auth/me — anonymous initially, populated after register.
     await context.route("**/api/auth/me", async (route) => {
       if (route.request().method() === "OPTIONS") {
