@@ -1,8 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Platform } from "react-native";
+import { Alert, Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { trackEvent } from "@/src/lib/analytics";
 import { PLAN_STEPS } from "@/src/data/planSteps";
+import { tokens } from "@/theme/tokens";
 
 type PlanState = {
   activeCountrySlug: string | null;
@@ -21,6 +22,13 @@ type PlanContextValue = PlanState & {
   isComplete: boolean;
 };
 
+type SwitchPrompt = {
+  countrySlug: string;
+  pathwayId: string;
+  prevLabel: string;
+  newLabel: string;
+};
+
 const STORAGE_KEY = "expathub_plan";
 
 const EMPTY: PlanState = {
@@ -35,6 +43,7 @@ const PlanContext = createContext<PlanContextValue | undefined>(undefined);
 export function PlanProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<PlanState>(EMPTY);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [switchPrompt, setSwitchPrompt] = useState<SwitchPrompt | null>(null);
   const stateRef = useRef<PlanState>(state);
   stateRef.current = state;
   const pendingClear = useRef(false);
@@ -91,12 +100,7 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
       const newLabel = countryName || countrySlug.charAt(0).toUpperCase() + countrySlug.slice(1).replace(/-/g, " ");
       const message = `You have an active plan for ${prevLabel}. Switching will reset your progress and start fresh for ${newLabel}.`;
       if (Platform.OS === "web") {
-        const confirmed = typeof window !== "undefined" && typeof window.confirm === "function"
-          ? window.confirm(`Switch your focus?\n\n${message}`)
-          : false;
-        if (confirmed) {
-          doStartPlan(countrySlug, pathwayId);
-        }
+        setSwitchPrompt({ countrySlug, pathwayId, prevLabel, newLabel });
       } else {
         Alert.alert(
           "Switch your focus?",
@@ -168,7 +172,26 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
     [state, isLoaded, startPlan, completeStep, uncompleteStep, resetPlan, setHasPets, isComplete]
   );
 
-  return <PlanContext.Provider value={value}>{children}</PlanContext.Provider>;
+  const handleCancelSwitch = useCallback(() => setSwitchPrompt(null), []);
+  const handleConfirmSwitch = useCallback(() => {
+    if (!switchPrompt) return;
+    const { countrySlug, pathwayId } = switchPrompt;
+    setSwitchPrompt(null);
+    doStartPlan(countrySlug, pathwayId);
+  }, [switchPrompt, doStartPlan]);
+
+  return (
+    <PlanContext.Provider value={value}>
+      {children}
+      {Platform.OS === "web" && (
+        <SwitchPlanDialog
+          prompt={switchPrompt}
+          onCancel={handleCancelSwitch}
+          onConfirm={handleConfirmSwitch}
+        />
+      )}
+    </PlanContext.Provider>
+  );
 }
 
 export function usePlan() {
@@ -176,3 +199,137 @@ export function usePlan() {
   if (!ctx) throw new Error("usePlan must be used within PlanProvider");
   return ctx;
 }
+
+function SwitchPlanDialog({
+  prompt,
+  onCancel,
+  onConfirm,
+}: {
+  prompt: SwitchPrompt | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const visible = prompt !== null;
+  const prevLabel = prompt?.prevLabel ?? "";
+  const newLabel = prompt?.newLabel ?? "";
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+    >
+      <Pressable
+        style={dialogStyles.overlay}
+        onPress={onCancel}
+        testID="switch-plan-overlay"
+      >
+        <Pressable style={dialogStyles.sheet} onPress={() => {}}>
+          <Text style={dialogStyles.title}>Switch your focus?</Text>
+          <Text style={dialogStyles.body}>
+            You have an active plan for{" "}
+            <Text style={dialogStyles.bodyStrong}>{prevLabel}</Text>. Switching
+            will reset your progress and start fresh for{" "}
+            <Text style={dialogStyles.bodyStrong}>{newLabel}</Text>.
+          </Text>
+
+          <View style={dialogStyles.actions}>
+            <Pressable
+              testID="switch-plan-cancel"
+              onPress={onCancel}
+              style={({ pressed }) => [
+                dialogStyles.cancelBtn,
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <Text style={dialogStyles.cancelBtnText}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              testID="switch-plan-confirm"
+              onPress={onConfirm}
+              style={({ pressed }) => [
+                dialogStyles.confirmBtn,
+                pressed && { opacity: 0.9 },
+              ]}
+            >
+              <Text style={dialogStyles.confirmBtnText}>
+                Focus on {newLabel}
+              </Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+const DESTRUCTIVE = "#B3261E";
+
+const dialogStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  sheet: {
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.lg,
+    padding: 28,
+    width: "100%",
+    maxWidth: 420,
+    gap: 16,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "800",
+    fontFamily: tokens.font.display,
+    color: tokens.color.text,
+  },
+  body: {
+    fontSize: 14,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
+    lineHeight: 20,
+  },
+  bodyStrong: {
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.text,
+    fontWeight: "700",
+  },
+  actions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8,
+  },
+  cancelBtn: {
+    flex: 1,
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.md,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+  },
+  cancelBtnText: {
+    color: tokens.color.text,
+    fontSize: 15,
+    fontWeight: "700",
+    fontFamily: tokens.font.bodyBold,
+  },
+  confirmBtn: {
+    flex: 1,
+    backgroundColor: DESTRUCTIVE,
+    borderRadius: tokens.radius.md,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  confirmBtnText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "700",
+    fontFamily: tokens.font.bodyBold,
+  },
+});

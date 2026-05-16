@@ -23,6 +23,18 @@ export const Platform = {
   select: (obj: any) => obj.ios ?? obj.default,
 };
 
+export const StyleSheet = {
+  create<T extends Record<string, unknown>>(styles: T): T {
+    return styles;
+  },
+};
+
+const passthrough = (_props: any) => null;
+export const Modal = passthrough;
+export const Pressable = passthrough;
+export const Text = passthrough;
+export const View = passthrough;
+
 export const Alert = {
   alert(title: string, message?: string, buttons?: AlertButton[]) {
     getCalls().push({ title, message, buttons });
