@@ -1,0 +1,146 @@
+name: Maestro
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  reverse-trial-and-exit-offer:
+    name: Reverse-trial + exit-offer iOS e2e
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    env:
+      EXPO_NO_TELEMETRY: "1"
+      CI: "true"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Maestro CLI
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Maestro install
+        run: maestro --version
+
+      - name: Boot iOS simulator
+        id: simulator
+        run: |
+          DEVICE_ID=$(xcrun simctl create \
+            "maestro-ci" \
+            "iPhone 15" \
+            "com.apple.CoreSimulator.SimRuntime.iOS-17-5" \
+            || xcrun simctl create "maestro-ci" "iPhone 15")
+          echo "device_id=$DEVICE_ID" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$DEVICE_ID"
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+
+      - name: Expo prebuild (iOS)
+        run: npx expo prebuild --platform ios --no-install --clean
+
+      - name: Install CocoaPods
+        working-directory: ios
+        run: pod install --repo-update
+
+      # NOTE: The workspace name (`ios/ExpatHub.xcworkspace`) and
+      # scheme (`ExpatHub`) are derived from Expo's prebuild output
+      # for `expo.name = "ExpatHub"` in `app.json`. If that name
+      # changes, update both `-workspace` and `-scheme` below.
+      - name: Build Expo dev client for simulator
+        run: |
+          set -euo pipefail
+          # Pipe through xcpretty if available, but preserve the
+          # xcodebuild exit code so a real build failure fails CI.
+          if command -v xcpretty >/dev/null 2>&1; then
+            set -o pipefail
+            xcodebuild \
+              -workspace ios/ExpatHub.xcworkspace \
+              -scheme ExpatHub \
+              -configuration Debug \
+              -sdk iphonesimulator \
+              -destination "generic/platform=iOS Simulator" \
+              -derivedDataPath ios/build \
+              CODE_SIGNING_ALLOWED=NO \
+              | xcpretty
+          else
+            xcodebuild \
+              -workspace ios/ExpatHub.xcworkspace \
+              -scheme ExpatHub \
+              -configuration Debug \
+              -sdk iphonesimulator \
+              -destination "generic/platform=iOS Simulator" \
+              -derivedDataPath ios/build \
+              CODE_SIGNING_ALLOWED=NO
+          fi
+          APP_PATH=$(find ios/build/Build/Products/Debug-iphonesimulator -maxdepth 2 -name "*.app" | head -n1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Failed to locate built .app under ios/build/Build/Products/Debug-iphonesimulator" >&2
+            exit 1
+          fi
+          echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
+
+      - name: Install app on simulator
+        run: xcrun simctl install "${{ steps.simulator.outputs.device_id }}" "$APP_PATH"
+
+      - name: Start Metro bundler
+        run: |
+          npx expo start --dev-client --ios > metro.log 2>&1 &
+          echo $! > metro.pid
+          # Wait for Metro to be healthy. Fail the job (rather than
+          # silently proceeding into a doomed Maestro run) if the
+          # bundler never comes up within the timeout window.
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8081/status > /dev/null 2>&1; then
+              echo "Metro is up after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Metro bundler failed to become ready within 60s" >&2
+          echo "--- metro.log ---" >&2
+          cat metro.log >&2 || true
+          exit 1
+
+      - name: Run Maestro flows
+        run: |
+          maestro test \
+            .maestro/reverse-trial-on-dismiss.yaml \
+            .maestro/cancellation-exit-offer.yaml
+
+      - name: Stop Metro bundler
+        if: always()
+        run: |
+          if [ -f metro.pid ]; then
+            kill "$(cat metro.pid)" 2>/dev/null || true
+          fi
+
+      - name: Upload Metro log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: metro-log
+          path: metro.log
+          if-no-files-found: ignore
+
+      - name: Upload Maestro debug output on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-debug
+          path: ~/.maestro/tests
+          if-no-files-found: ignore
