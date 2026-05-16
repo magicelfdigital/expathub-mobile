@@ -54,6 +54,31 @@ jest.mock("@/src/billing/backendClient", () => ({
   getBackendBase: () => "http://test",
 }));
 
+const quizSaveModalRenders: Array<{ visible: boolean; noCount: number }> = [];
+jest.mock("@/src/components/QuizSaveModal", () => {
+  const React = require("react");
+  return {
+    QuizSaveModal: (props: {
+      visible: boolean;
+      noCount: number;
+      onClose: () => void;
+      onContinue: () => void;
+    }) => {
+      quizSaveModalRenders.push({
+        visible: props.visible,
+        noCount: props.noCount,
+      });
+      return React.createElement("QuizSaveModal", {
+        testID: "quiz-save-modal",
+        visible: props.visible,
+        noCount: props.noCount,
+        onClose: props.onClose,
+        onContinue: props.onContinue,
+      });
+    },
+  };
+});
+
 import * as React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import {
@@ -101,6 +126,7 @@ beforeEach(() => {
   trackEvent.mockReset();
   logFbEvent.mockReset();
   completeOnboarding.mockClear();
+  quizSaveModalRenders.length = 0;
   __resetRouter();
   __setSearchParams({ answers: ANSWERS_HIGH_READY });
   (global as any).fetch = jest.fn(async () => ({ ok: true, json: async () => ({}) }));
@@ -347,5 +373,145 @@ describe("ResultScreen — funnel analytics", () => {
         params: expect.objectContaining({ entryPoint: "result_screen" }),
       }),
     );
+  });
+});
+
+describe("ResultScreen — save-progress prompt for low-readiness takers", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  function findSaveModalNode(root: any) {
+    return root.findAll(
+      (n: any) => n.props && n.props.testID === "quiz-save-modal",
+    )[0];
+  }
+
+  it("renders QuizSaveModal with visible=true ~900ms after mount when there are ≥3 'no' answers", () => {
+    __setSearchParams({
+      answers: JSON.stringify({
+        1: "no",
+        2: "no",
+        3: "no",
+        4: "yes",
+        5: "yes",
+        6: "yes",
+        7: "yes",
+        8: "twelve_months",
+      }),
+    });
+    let renderer: any;
+    act(() => {
+      renderer = TestRenderer.create(<ResultScreen />);
+    });
+    const initial = findSaveModalNode(renderer!.root);
+    expect(initial).toBeDefined();
+    expect(initial.props.visible).toBe(false);
+    expect(initial.props.noCount).toBe(3);
+    act(() => {
+      jest.advanceTimersByTime(900);
+    });
+    const after = findSaveModalNode(renderer!.root);
+    expect(after.props.visible).toBe(true);
+    expect(after.props.noCount).toBe(3);
+  });
+
+  it("never makes QuizSaveModal visible when there are fewer than 3 'no' answers", () => {
+    __setSearchParams({
+      answers: JSON.stringify({
+        1: "no",
+        2: "no",
+        3: "yes",
+        4: "yes",
+        5: "yes",
+        6: "yes",
+        7: "yes",
+        8: "twelve_months",
+      }),
+    });
+    let renderer: any;
+    act(() => {
+      renderer = TestRenderer.create(<ResultScreen />);
+    });
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+    const node = findSaveModalNode(renderer!.root);
+    expect(node).toBeDefined();
+    expect(node.props.noCount).toBe(2);
+    expect(
+      quizSaveModalRenders.every((r) => r.visible === false),
+    ).toBe(true);
+  });
+
+  it("only triggers the save prompt once: after dismissal, re-renders and timers never re-open it (savePromptShownRef guard)", () => {
+    __setSearchParams({
+      answers: JSON.stringify({
+        1: "no",
+        2: "no",
+        3: "no",
+        4: "no",
+        5: "yes",
+        6: "yes",
+        7: "yes",
+        8: "twelve_months",
+      }),
+    });
+    let renderer: any;
+    act(() => {
+      renderer = TestRenderer.create(<ResultScreen />);
+    });
+    // Helper: count false→true transitions in the recorded prop history.
+    const countOpens = () => {
+      let opens = 0;
+      let prev = false;
+      for (const r of quizSaveModalRenders) {
+        if (!prev && r.visible) opens++;
+        prev = r.visible;
+      }
+      return opens;
+    };
+
+    // No timer fired yet — modal must still be hidden.
+    expect(findSaveModalNode(renderer!.root).props.visible).toBe(false);
+    expect(countOpens()).toBe(0);
+
+    // First trigger fires after 900ms.
+    act(() => {
+      jest.advanceTimersByTime(900);
+    });
+    expect(findSaveModalNode(renderer!.root).props.visible).toBe(true);
+    expect(countOpens()).toBe(1);
+
+    // Simulate the user dismissing the modal — this is exactly what the
+    // production handler does (setSavePromptVisible(false)). We invoke
+    // the real onClose prop passed down to QuizSaveModal so we exercise
+    // the actual dismissal path, not a synthetic one.
+    const onClose = findSaveModalNode(renderer!.root).props.onClose;
+    expect(typeof onClose).toBe("function");
+    act(() => {
+      onClose();
+    });
+    expect(findSaveModalNode(renderer!.root).props.visible).toBe(false);
+
+    // Force several re-renders and drain a generous timer window. The
+    // guard ref must prevent the effect from scheduling a second timer
+    // and must prevent any new false→true transition from happening.
+    act(() => {
+      renderer!.update(<ResultScreen />);
+      renderer!.update(<ResultScreen />);
+      renderer!.update(<ResultScreen />);
+    });
+    act(() => {
+      jest.advanceTimersByTime(10_000);
+    });
+
+    // Still hidden, and exactly one open ever recorded across the whole
+    // lifetime of this render — the guard held.
+    expect(findSaveModalNode(renderer!.root).props.visible).toBe(false);
+    expect(countOpens()).toBe(1);
   });
 });
