@@ -18,7 +18,9 @@ import {
   VALID_PROMO_CODES,
 } from "@/src/config/subscription";
 import { trackEvent } from "@/src/lib/analytics";
-import { useAuth, AUTH_API_URL } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { getApiUrl } from "@/lib/query-client";
+import { getBackendBase } from "@/src/billing/backendClient";
 import { getBackendClientInstance } from "@/src/billing";
 import type { BackendEntitlements } from "@/src/billing";
 import { hasEntitlement } from "@/src/billing";
@@ -118,6 +120,32 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     return () => clearTimeout(t);
   }, [reverseTrialExpiresAt]);
 
+  // Best-effort sync of the locally-granted reverse trial to the backend
+  // so server-side entitlement checks (e.g. worksheet submit) honor it.
+  // Idempotent on the server; safe to call repeatedly. Silently no-ops
+  // when the user isn't signed in or the request fails.
+  const syncReverseTrialToServer = useCallback(async () => {
+    if (!token) return;
+    let base: string;
+    try {
+      base = getBackendBase();
+    } catch {
+      base = getApiUrl().replace(/\/$/, "");
+    }
+    try {
+      await fetch(`${base}/api/reverse-trial/start`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch {
+      // Non-fatal — local state remains the source of truth for the UI,
+      // and the server call will be retried on the next grant / login.
+    }
+  }, [token]);
+
   const startReverseTrial = useCallback(async () => {
     const now = Date.now();
     await AsyncStorage.setItem(REVERSE_TRIAL_STARTED_KEY, String(now));
@@ -128,8 +156,18 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     trackEvent?.("reverse_trial_granted", {
       expiresAt: now + REVERSE_TRIAL_DURATION_MS,
     });
+    // Fire and forget — server-side record enables worksheet submit etc.
+    void syncReverseTrialToServer();
     return { ok: true, expiresAt: now + REVERSE_TRIAL_DURATION_MS };
-  }, []);
+  }, [syncReverseTrialToServer]);
+
+  // If the trial was granted before the user signed in, register it the
+  // first time we see them authenticated with an active local trial.
+  useEffect(() => {
+    if (!token || !user) return;
+    if (!reverseTrialActive) return;
+    void syncReverseTrialToServer();
+  }, [token, user, reverseTrialActive, syncReverseTrialToServer]);
 
   const resetReverseTrial = useCallback(async () => {
     await AsyncStorage.removeItem(REVERSE_TRIAL_STARTED_KEY);

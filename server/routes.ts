@@ -1638,6 +1638,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ── Worksheets ──
   await registerWorksheetRoutes(app);
 
+  // ── Reverse trial ──
+  // Records the 48h reverse trial server-side so its start time can't be
+  // forged. Idempotent: returns the existing trial if one was already
+  // recorded. Used by `hasActiveEntitlement` as a fallback when the user
+  // has no paid subscription upstream.
+  app.post("/api/reverse-trial/start", async (req: Request, res: Response) => {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const pool = getPool();
+    if (!pool) { res.status(500).json({ error: "Database unavailable" }); return; }
+    try {
+      await ensureReverseTrialTable(pool);
+      const r = await pool.query<{ started_at: Date }>(
+        `INSERT INTO user_reverse_trials (user_id)
+         VALUES ($1)
+         ON CONFLICT (user_id) DO NOTHING
+         RETURNING started_at`,
+        [userId],
+      );
+      let startedAt: Date;
+      if (r.rows[0]) {
+        startedAt = r.rows[0].started_at;
+      } else {
+        const existing = await pool.query<{ started_at: Date }>(
+          `SELECT started_at FROM user_reverse_trials WHERE user_id = $1`,
+          [userId],
+        );
+        startedAt = existing.rows[0].started_at;
+      }
+      const startedMs = new Date(startedAt).getTime();
+      const expiresAt = startedMs + REVERSE_TRIAL_DURATION_MS;
+      res.json({
+        startedAt: new Date(startedMs).toISOString(),
+        expiresAt: new Date(expiresAt).toISOString(),
+        active: expiresAt > Date.now(),
+      });
+    } catch (err) {
+      console.error("[reverse-trial] start failed", err);
+      res.status(500).json({ error: "Failed to record trial" });
+    } finally {
+      await pool.end().catch(() => {});
+    }
+  });
+
+  app.get("/api/reverse-trial", async (req: Request, res: Response) => {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    const pool = getPool();
+    if (!pool) { res.json({ active: false }); return; }
+    try {
+      await ensureReverseTrialTable(pool);
+      const r = await pool.query<{ started_at: Date }>(
+        `SELECT started_at FROM user_reverse_trials WHERE user_id = $1`,
+        [userId],
+      );
+      if (!r.rows[0]) { res.json({ active: false }); return; }
+      const startedMs = new Date(r.rows[0].started_at).getTime();
+      const expiresAt = startedMs + REVERSE_TRIAL_DURATION_MS;
+      res.json({
+        startedAt: new Date(startedMs).toISOString(),
+        expiresAt: new Date(expiresAt).toISOString(),
+        active: expiresAt > Date.now(),
+      });
+    } catch {
+      res.json({ active: false });
+    } finally {
+      await pool.end().catch(() => {});
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
@@ -1706,6 +1776,40 @@ async function ensureWorksheetTables(pool: pg.Pool): Promise<void> {
   worksheetTablesEnsured = true;
 }
 
+const REVERSE_TRIAL_DURATION_MS = 48 * 60 * 60 * 1000;
+
+let reverseTrialTableEnsured = false;
+async function ensureReverseTrialTable(pool: pg.Pool): Promise<void> {
+  if (reverseTrialTableEnsured) return;
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_reverse_trials (
+      user_id VARCHAR(255) PRIMARY KEY,
+      started_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+  reverseTrialTableEnsured = true;
+}
+
+async function hasActiveReverseTrial(userId: string): Promise<boolean> {
+  const pool = getPool();
+  if (!pool) return false;
+  try {
+    await ensureReverseTrialTable(pool);
+    const r = await pool.query<{ started_at: Date }>(
+      `SELECT started_at FROM user_reverse_trials WHERE user_id = $1`,
+      [userId],
+    );
+    const row = r.rows[0];
+    if (!row) return false;
+    const startedMs = new Date(row.started_at).getTime();
+    return startedMs + REVERSE_TRIAL_DURATION_MS > Date.now();
+  } catch {
+    return false;
+  } finally {
+    await pool.end().catch(() => {});
+  }
+}
+
 async function hasActiveEntitlement(req: Request): Promise<boolean> {
   const authHeader = req.headers.authorization;
   if (!authHeader) return false;
@@ -1714,24 +1818,36 @@ async function hasActiveEntitlement(req: Request): Promise<boolean> {
       method: "GET",
       headers: { "Content-Type": "application/json", Authorization: authHeader },
     });
-    if (!upstream.ok) return false;
-    const data = (await upstream.json()) as Record<string, unknown> & {
-      subscription?: { status?: string } | null;
-      entitlements?: Record<string, { isActive?: boolean }> | null;
-    };
-    if (data.hasFullAccess === true || data.hasProAccess === true) return true;
-    if (data.hasActiveSubscription === true || data.subscriptionActive === true) return true;
-    if (data.subscription && typeof data.subscription === "object") {
-      const status = (data.subscription as { status?: string }).status;
-      if (status === "active" || status === "trialing") return true;
+    if (upstream.ok) {
+      const data = (await upstream.json()) as Record<string, unknown> & {
+        subscription?: { status?: string } | null;
+        entitlements?: Record<string, { isActive?: boolean }> | null;
+      };
+      if (data.hasFullAccess === true || data.hasProAccess === true) return true;
+      if (data.hasActiveSubscription === true || data.subscriptionActive === true) return true;
+      if (data.subscription && typeof data.subscription === "object") {
+        const status = (data.subscription as { status?: string }).status;
+        if (status === "active" || status === "trialing") return true;
+      }
+      if (data.entitlements && typeof data.entitlements === "object") {
+        const ent = (data.entitlements as Record<string, { isActive?: boolean }>)[
+          "full_access_subscription"
+        ];
+        if (ent && ent.isActive === true) return true;
+      }
     }
-    if (data.entitlements && typeof data.entitlements === "object") {
-      const ent = (data.entitlements as Record<string, { isActive?: boolean }>)[
-        "full_access_subscription"
-      ];
-      if (ent && ent.isActive === true) return true;
-    }
-    return false;
+  } catch {
+    // fall through to reverse-trial check
+  }
+
+  // Reverse-trial fallback: a paying subscription was not found upstream,
+  // but the user may be inside the 48h reverse-trial window granted on
+  // paywall dismissal. The trial is recorded server-side via
+  // POST /api/reverse-trial/start so the start time can't be forged.
+  try {
+    const userId = await getUserIdFromToken(req);
+    if (!userId) return false;
+    return await hasActiveReverseTrial(userId);
   } catch {
     return false;
   }
