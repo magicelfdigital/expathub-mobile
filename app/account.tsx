@@ -17,6 +17,7 @@ import { trackEvent } from "@/src/lib/analytics";
 import { FREE_TIER_DISPLAY_NAME, PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
 import { getOrchestrator, clearRefreshCooldown } from "@/src/billing";
 import { EntitlementPollingTimeoutError } from "@/src/billing/errors";
+import { DEFAULT_POLLING_CONFIG } from "@/src/billing/types";
 import { getReadinessLabel, MAX_SCORE } from "@/src/data/quiz";
 import { getReadinessBadgeColor, getReadinessFillPercent } from "@/src/data/readinessUi";
 import { usePlan } from "@/src/contexts/PlanContext";
@@ -104,6 +105,7 @@ export default function AccountScreen() {
   const [deleting, setDeleting] = useState(false);
   const [deletedSuccess, setDeletedSuccess] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [restoreHint, setRestoreHint] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [exitOfferEligible, setExitOfferEligible] = useState(false);
@@ -140,6 +142,11 @@ export default function AccountScreen() {
     }
     setRestoring(true);
     setStatusMsg(null);
+    setRestoreHint("Confirming with the App Store…");
+    const timeoutSeconds = Math.round(DEFAULT_POLLING_CONFIG.timeoutMs / 1000);
+    const hintTimer = setTimeout(() => {
+      setRestoreHint(`Still confirming — this can take up to ${timeoutSeconds} seconds.`);
+    }, 5000);
     try {
       clearRefreshCooldown(user.id.toString());
       const orchestrator = getOrchestrator(() => token);
@@ -162,6 +169,8 @@ export default function AccountScreen() {
         setStatusMsg("Restore failed. Please try again later.");
       }
     } finally {
+      clearTimeout(hintTimer);
+      setRestoreHint(null);
       setRestoring(false);
     }
   };
@@ -564,8 +573,22 @@ export default function AccountScreen() {
           ) : (
             <Ionicons name="arrow-undo" size={18} color={tokens.color.primary} />
           )}
-          <Text style={s.actionRowText}>Restore Purchases</Text>
-          <Ionicons name="chevron-forward" size={16} color={tokens.color.subtext} style={{ marginLeft: "auto" as any }} />
+          <View style={{ flex: 1, marginLeft: 0 }}>
+            <Text style={s.actionRowText}>Restore Purchases</Text>
+            {restoring && restoreHint ? (
+              <Text
+                style={{
+                  marginTop: 2,
+                  fontSize: 13,
+                  color: tokens.color.subtext,
+                  fontFamily: tokens.font.body,
+                }}
+              >
+                {restoreHint}
+              </Text>
+            ) : null}
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={tokens.color.subtext} />
         </Pressable>
 
         <View style={s.actionDivider} />
