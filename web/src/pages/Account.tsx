@@ -27,7 +27,6 @@ export default function Account() {
     const plan = params.get("plan") ?? "unknown";
     const valueStr = params.get("value");
     const value = valueStr ? Number(valueStr) : 0;
-    const paidIntroVariant = params.get("pv");
     const annualVariant = params.get("av");
 
     trackSubscribe({
@@ -35,7 +34,6 @@ export default function Account() {
       currency: params.get("currency") ?? "USD",
       plan,
       source: "web_checkout_success",
-      ...(paidIntroVariant ? { paid_intro_variant: paidIntroVariant } : {}),
       ...(annualVariant ? { annual_variant: annualVariant } : {}),
     });
 
@@ -58,7 +56,6 @@ export default function Account() {
     next.delete("value");
     next.delete("currency");
     next.delete("sid");
-    next.delete("pv");
     next.delete("av");
     setParams(next, { replace: true });
   }, [params, setParams]);

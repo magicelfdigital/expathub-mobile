@@ -26,23 +26,14 @@ import {
 
 // ── A/B test config ─────────────────────────────────────────────────────
 //
-// Two independent tests, each toggled by an env flag. Per the backlog the
-// two tests must NOT run simultaneously so we can isolate variables — if
-// both flags are set we honour the paid-intro test and force everyone into
-// the annual control bucket.
+// One active pricing test, toggled by an env flag. The retired
+// `paid_intro_test` (monthly $0.99 vs free trial) was removed once both
+// plans were standardised on a 14-day free trial.
 const PRICING_VARIANT_COOKIE = "eh_sid";
-const TEST_PAID_INTRO = "paid_intro_test";
 const TEST_ANNUAL_PRICE = "annual_price_test";
-type PaidIntroVariant = "free_trial" | "paid_intro";
 type AnnualVariant = "annual_89" | "annual_99";
 
-function paidIntroEnabled(): boolean {
-  return process.env.ENABLE_PAID_INTRO_TEST === "1" ||
-    process.env.ENABLE_PAID_INTRO_TEST === "true";
-}
 function annualPriceEnabled(): boolean {
-  // If paid-intro is on, force the annual test off so they don't run together.
-  if (paidIntroEnabled()) return false;
   return process.env.ENABLE_ANNUAL_PRICE_TEST === "1" ||
     process.env.ENABLE_ANNUAL_PRICE_TEST === "true";
 }
@@ -74,10 +65,6 @@ function setSessionCookie(res: Response, sessionId: string): void {
   );
 }
 
-function pickPaidIntroVariant(): PaidIntroVariant {
-  if (!paidIntroEnabled()) return "free_trial"; // control
-  return Math.random() < 0.5 ? "free_trial" : "paid_intro";
-}
 function pickAnnualVariant(): AnnualVariant {
   if (!annualPriceEnabled()) return "annual_89"; // control
   return Math.random() < 0.5 ? "annual_89" : "annual_99";
@@ -157,7 +144,6 @@ async function getOrAssignVariants(
   res: Response,
 ): Promise<{
   sessionId: string;
-  paidIntroVariant: PaidIntroVariant;
   annualVariant: AnnualVariant;
   isNew: boolean;
 }> {
@@ -171,14 +157,12 @@ async function getOrAssignVariants(
   }
 
   // Defaults if no DB; still serve a sensible response.
-  let paidIntroVariant: PaidIntroVariant = "free_trial";
   let annualVariant: AnnualVariant = "annual_89";
 
   const pool = getPool();
   if (!pool) {
     return {
       sessionId,
-      paidIntroVariant: pickPaidIntroVariant(),
       annualVariant: pickAnnualVariant(),
       isNew,
     };
@@ -198,27 +182,10 @@ async function getOrAssignVariants(
 
     // ── Read-time flag enforcement ──────────────────────────────────────
     // A previously-bucketed visitor's stored variant is honoured only when
-    // the test is currently enabled. When a test is disabled (or forced off
-    // because the other test is on), force the visitor into the control arm
-    // even if a treatment variant was previously persisted — this prevents
-    // a stale `paid_intro` or `annual_99` bucket from leaking across into a
+    // the test is currently enabled. When disabled, force the visitor into
+    // the control arm even if a treatment variant was previously persisted —
+    // this prevents a stale `annual_99` bucket from leaking across into a
     // period where we expect everyone in control.
-    if (paidIntroEnabled()) {
-      if (map.has(TEST_PAID_INTRO)) {
-        paidIntroVariant = map.get(TEST_PAID_INTRO) as PaidIntroVariant;
-      } else {
-        paidIntroVariant = pickPaidIntroVariant();
-        await pool.query(
-          `INSERT INTO ab_test_assignments (session_id, test_name, variant)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (session_id, test_name) DO NOTHING`,
-          [sessionId, TEST_PAID_INTRO, paidIntroVariant],
-        );
-      }
-    } else {
-      paidIntroVariant = "free_trial"; // forced control while test is off
-    }
-
     if (annualPriceEnabled()) {
       if (map.has(TEST_ANNUAL_PRICE)) {
         annualVariant = map.get(TEST_ANNUAL_PRICE) as AnnualVariant;
@@ -240,7 +207,7 @@ async function getOrAssignVariants(
     await pool.end();
   }
 
-  return { sessionId, paidIntroVariant, annualVariant, isNew };
+  return { sessionId, annualVariant, isNew };
 }
 
 function timingSafeEqual(a: string, b: string): boolean {
@@ -909,15 +876,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ── A/B test endpoints ─────────────────────────────────────────────────
 
   app.get("/api/ab/me", async (req: Request, res: Response) => {
-    const { sessionId, paidIntroVariant, annualVariant } =
+    const { sessionId, annualVariant } =
       await getOrAssignVariants(req, res);
     res.json({
       sessionId,
       tests: {
-        paid_intro: {
-          enabled: paidIntroEnabled(),
-          variant: paidIntroVariant,
-        },
         annual_price: {
           enabled: annualPriceEnabled(),
           variant: annualVariant,
@@ -945,12 +908,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Only attribute conversions to tests that are currently enabled AND
     // relevant to the plan being purchased. A historical assignment from a
     // prior test period is ignored — otherwise a stale row would falsely
-    // bump the active test's conversion rate. The set of active tests for
-    // each plan is fixed:
-    //   - monthly  → paid_intro_test
+    // bump the active test's conversion rate.
     //   - annual   → annual_price_test
     const activeTests: string[] = [];
-    if (plan === "monthly" && paidIntroEnabled()) activeTests.push(TEST_PAID_INTRO);
     if (plan === "annual" && annualPriceEnabled()) activeTests.push(TEST_ANNUAL_PRICE);
 
     if (activeTests.length === 0) {
@@ -1075,7 +1035,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json({
         flags: {
-          paid_intro_enabled: paidIntroEnabled(),
           annual_price_enabled: annualPriceEnabled(),
         },
         tests,
@@ -1109,38 +1068,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return;
     }
 
-    // Resolve variants for this session — drives both the Stripe price and
-    // the trial structure passed to Checkout.
-    const { sessionId, paidIntroVariant, annualVariant } =
+    // Resolve variants for this session — drives the Stripe price for the
+    // annual A/B test. Monthly has a single SKU since the paid-intro test
+    // was retired.
+    const { sessionId, annualVariant } =
       await getOrAssignVariants(req, res);
 
     // Variant-specific Stripe prices MUST be configured separately —
     // never silently fall back to the control SKU because that would
-    // charge the treatment user the wrong amount on day 0 (e.g. a
-    // paid-intro user expects to pay $0.99 today but the recurring
-    // STRIPE_MONTHLY_PRICE_ID would charge $14.99).
+    // charge the treatment user the wrong amount.
     const monthlyId = process.env.STRIPE_MONTHLY_PRICE_ID;
-    const monthlyPaidIntroId = process.env.STRIPE_MONTHLY_PAID_INTRO_PRICE_ID;
     const annualId = process.env.STRIPE_ANNUAL_PRICE_ID;
     const annual99Id = process.env.STRIPE_ANNUAL_99_PRICE_ID;
 
     let priceId: string | undefined;
-    let trialDays = 14;
-    let dueToday = 0;
+    const trialDays = 14;
+    const dueToday = 0;
     let missingEnv: string | null = null;
 
     if (plan === "monthly") {
-      if (paidIntroVariant === "paid_intro") {
-        priceId = monthlyPaidIntroId;
-        trialDays = 0;
-        dueToday = 0.99;
-        if (!priceId) missingEnv = "STRIPE_MONTHLY_PAID_INTRO_PRICE_ID";
-      } else {
-        priceId = monthlyId;
-        trialDays = 14;
-        dueToday = 0;
-        if (!priceId) missingEnv = "STRIPE_MONTHLY_PRICE_ID";
-      }
+      priceId = monthlyId;
+      if (!priceId) missingEnv = "STRIPE_MONTHLY_PRICE_ID";
     } else {
       // annual — both variants enter a 14-day free trial, so day-0 revenue
       // is $0. The full annual charge ($89 or $99) only lands at trial end
@@ -1153,15 +1101,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         priceId = annualId;
         if (!priceId) missingEnv = "STRIPE_ANNUAL_PRICE_ID";
       }
-      trialDays = 14;
-      dueToday = 0;
     }
 
     if (!priceId || missingEnv) {
       res.status(503).json({
-        error: `Stripe ${plan} price ID is not configured for variant "${
-          plan === "monthly" ? paidIntroVariant : annualVariant
-        }". Set ${missingEnv}.`,
+        error: `Stripe ${plan} price ID is not configured${
+          plan === "annual" ? ` for variant "${annualVariant}"` : ""
+        }. Set ${missingEnv}.`,
       });
       return;
     }
@@ -1175,7 +1121,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         value: String(dueToday),
         currency: "USD",
         sid: sessionId,
-        pv: paidIntroVariant,
         av: annualVariant,
       }).toString();
 
@@ -1186,20 +1131,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cancel_url: `${baseUrl}/pricing?checkout=cancel`,
         metadata: {
           eh_session_id: sessionId,
-          paid_intro_variant: paidIntroVariant,
           annual_variant: annualVariant,
           plan,
         },
       };
-      if (trialDays > 0) {
-        checkoutPayload.subscription_data = { trial_period_days: trialDays };
-      }
+      checkoutPayload.subscription_data = { trial_period_days: trialDays };
 
       const session = await stripe.checkout.sessions.create(checkoutPayload);
 
       res.json({
         url: session.url,
-        variant: { paid_intro: paidIntroVariant, annual: annualVariant },
+        variant: { annual: annualVariant },
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });

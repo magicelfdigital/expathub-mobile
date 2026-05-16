@@ -15,20 +15,11 @@ export default function Pricing() {
   // ── Variant-driven copy & price ──────────────────────────────────────
   // Annual price toggles between the $89 control and the $99 treatment.
   const annualPrice = variants.annual.priceUsd;
-  // Monthly intro toggles between the 14-day free trial control and the
-  // $0.99 paid-intro treatment (no free trial, charge today, $14.99/mo
-  // afterwards).
-  const isPaidIntro = variants.paidIntro.variant === "paid_intro";
-  const monthlyHeroLine = isPaidIntro
-    ? `Try for $0.99 today, then $${MONTHLY_PRICE_USD}/month.`
-    : `14-day free trial, then $${MONTHLY_PRICE_USD}/month.`;
-  const monthlyCta = isPaidIntro
-    ? "Try for $0.99 today"
-    : "Start 14-day free trial";
+  const monthlyHeroLine = `14-day free trial, then $${MONTHLY_PRICE_USD}/month.`;
+  const monthlyCta = "Start 14-day free trial";
   const annualCta = "Start 14-day free trial";
-  const headerSubtitle = isPaidIntro
-    ? "Try Monthly for just $0.99 today, or start the 14-day free trial on Annual. Cancel anytime."
-    : "Two plans, both with a 14-day free trial. Cancel anytime — you won't be charged until the trial ends.";
+  const headerSubtitle =
+    "Two plans, both with a 14-day free trial. Cancel anytime — you won't be charged until the trial ends.";
 
   async function startCheckout(plan: Plan) {
     if (busy) return;
@@ -37,7 +28,6 @@ export default function Pricing() {
 
     try {
       const variantProps = {
-        paid_intro_variant: variants.paidIntro.variant,
         annual_variant: variants.annual.variant,
         session_id: variants.sessionId,
       };
@@ -86,7 +76,6 @@ export default function Pricing() {
   return (
     <section
       data-testid="page-pricing"
-      data-paid-intro-variant={variants.paidIntro.variant}
       data-annual-variant={variants.annual.variant}
       className="container-page py-10 sm:py-16"
     >
@@ -182,9 +171,7 @@ export default function Pricing() {
             {busy === "monthly" ? "Starting…" : monthlyCta}
           </button>
           <p className="mt-2 text-xs text-[var(--color-ink-muted)]">
-            {isPaidIntro
-              ? "Cancel anytime — first month is just $0.99."
-              : "Cancel anytime before day 14 — you won't be charged."}
+            Cancel anytime before day 14 — you won't be charged.
           </p>
         </div>
       </div>

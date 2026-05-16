@@ -1,24 +1,20 @@
 import { useEffect, useState } from "react";
 
-export type PaidIntroVariant = "free_trial" | "paid_intro";
 export type AnnualVariant = "annual_89" | "annual_99";
 
 export type AbVariants = {
   sessionId: string;
-  paidIntro: { variant: PaidIntroVariant; enabled: boolean };
   annual: { variant: AnnualVariant; enabled: boolean; priceUsd: number };
 };
 
 const DEFAULT_VARIANTS: AbVariants = {
   sessionId: "",
-  paidIntro: { variant: "free_trial", enabled: false },
   annual: { variant: "annual_89", enabled: false, priceUsd: 89 },
 };
 
 type ApiResponse = {
   sessionId?: string;
   tests?: {
-    paid_intro?: { enabled?: boolean; variant?: PaidIntroVariant };
     annual_price?: { enabled?: boolean; variant?: AnnualVariant; priceUsd?: number };
   };
 };
@@ -47,10 +43,6 @@ export function useAbVariants(): {
         }
         const next: AbVariants = {
           sessionId: data.sessionId ?? "",
-          paidIntro: {
-            variant: data.tests?.paid_intro?.variant ?? "free_trial",
-            enabled: !!data.tests?.paid_intro?.enabled,
-          },
           annual: {
             variant: data.tests?.annual_price?.variant ?? "annual_89",
             enabled: !!data.tests?.annual_price?.enabled,
