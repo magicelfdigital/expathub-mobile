@@ -50,9 +50,21 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
     queryKey: ["bookmarks"],
     queryFn: async () => {
       if (!user) return [];
-      const res = await fetch(`${getBase()}/api/bookmarks`, { headers });
-      if (!res.ok) return [];
-      return res.json();
+      try {
+        const res = await fetch(`${getBase()}/api/bookmarks`, { headers });
+        if (!res.ok) return [];
+        const json = await res.json();
+        if (!Array.isArray(json)) {
+          console.warn(
+            "[BookmarkContext] /api/bookmarks returned non-array payload; falling back to []",
+          );
+          return [];
+        }
+        return json as Bookmark[];
+      } catch (err) {
+        console.warn("[BookmarkContext] failed to load bookmarks", err);
+        return [];
+      }
     },
     enabled: !!user,
   });
@@ -61,9 +73,21 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
     queryKey: ["notes"],
     queryFn: async () => {
       if (!user) return [];
-      const res = await fetch(`${getBase()}/api/notes`, { headers });
-      if (!res.ok) return [];
-      return res.json();
+      try {
+        const res = await fetch(`${getBase()}/api/notes`, { headers });
+        if (!res.ok) return [];
+        const json = await res.json();
+        if (!Array.isArray(json)) {
+          console.warn(
+            "[BookmarkContext] /api/notes returned non-array payload; falling back to []",
+          );
+          return [];
+        }
+        return json as Note[];
+      } catch (err) {
+        console.warn("[BookmarkContext] failed to load notes", err);
+        return [];
+      }
     },
     enabled: !!user,
   });
