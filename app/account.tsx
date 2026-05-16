@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Linking, Modal, Platform, Pressable, ScrollView, Switch, Text, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/contexts/AuthContext";
@@ -97,6 +97,7 @@ export default function AccountScreen() {
 
   const [deleting, setDeleting] = useState(false);
   const [deletedSuccess, setDeletedSuccess] = useState(false);
+  const [showDeletePrompt, setShowDeletePrompt] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [restoreHint, setRestoreHint] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
@@ -314,22 +315,31 @@ export default function AccountScreen() {
   };
 
   const handleDeleteAccount = async () => {
-    const confirmed = Platform.OS === "web"
-      ? window.confirm("This will permanently delete your account and associated data. This action cannot be undone.")
-      : await new Promise<boolean>((resolve) => {
-          Alert.alert(
-            "Delete Account",
-            "This will permanently delete your account and associated data. This action cannot be undone.",
-            [
-              { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
-              { text: "Confirm Delete", style: "destructive", onPress: () => resolve(true) },
-            ],
-            { cancelable: true, onDismiss: () => resolve(false) }
-          );
-        });
+    if (Platform.OS === "web") {
+      // Use the branded in-app confirmation (mirrors SwitchPlanDialog /
+      // ResetPlanDialog) instead of the native browser `window.confirm`.
+      setShowDeletePrompt(true);
+      return;
+    }
+
+    const confirmed = await new Promise<boolean>((resolve) => {
+      Alert.alert(
+        "Delete Account",
+        "This will permanently delete your account and associated data. This action cannot be undone.",
+        [
+          { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+          { text: "Confirm Delete", style: "destructive", onPress: () => resolve(true) },
+        ],
+        { cancelable: true, onDismiss: () => resolve(false) }
+      );
+    });
 
     if (!confirmed) return;
 
+    await performDeleteAccount();
+  };
+
+  const performDeleteAccount = async () => {
     setDeleting(true);
     try {
       const base = Platform.OS === "web"
@@ -802,9 +812,130 @@ export default function AccountScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {Platform.OS === "web" ? (
+        <Modal
+          visible={showDeletePrompt}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowDeletePrompt(false)}
+        >
+          <Pressable
+            style={deleteDialogStyles.overlay}
+            onPress={() => setShowDeletePrompt(false)}
+            testID="delete-account-overlay"
+          >
+            <Pressable
+              style={deleteDialogStyles.sheet}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <Text style={deleteDialogStyles.title}>Delete account?</Text>
+              <Text style={deleteDialogStyles.body}>
+                This will permanently delete your account and associated data.
+                This action cannot be undone.
+              </Text>
+
+              <View style={deleteDialogStyles.actions}>
+                <Pressable
+                  testID="delete-account-cancel"
+                  onPress={() => setShowDeletePrompt(false)}
+                  style={({ pressed }) => [
+                    deleteDialogStyles.cancelBtn,
+                    pressed && { opacity: 0.85 },
+                  ]}
+                >
+                  <Text style={deleteDialogStyles.cancelBtnText}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  testID="delete-account-confirm"
+                  disabled={deleting}
+                  onPress={() => {
+                    setShowDeletePrompt(false);
+                    void performDeleteAccount();
+                  }}
+                  style={({ pressed }) => [
+                    deleteDialogStyles.confirmBtn,
+                    pressed && { opacity: 0.9 },
+                    deleting && { opacity: 0.6 },
+                  ]}
+                >
+                  <Text style={deleteDialogStyles.confirmBtnText}>
+                    Confirm Delete
+                  </Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
     </ScrollView>
   );
 }
+
+const DELETE_DESTRUCTIVE = "#B3261E";
+
+const deleteDialogStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  sheet: {
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.lg,
+    padding: 28,
+    width: "100%",
+    maxWidth: 420,
+    gap: 16,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "800",
+    fontFamily: tokens.font.display,
+    color: tokens.color.text,
+  },
+  body: {
+    fontSize: 14,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
+    lineHeight: 20,
+  },
+  actions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8,
+  },
+  cancelBtn: {
+    flex: 1,
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.md,
+    paddingVertical: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+  },
+  cancelBtnText: {
+    color: tokens.color.text,
+    fontSize: 15,
+    fontWeight: "700",
+    fontFamily: tokens.font.bodyBold,
+  },
+  confirmBtn: {
+    flex: 1,
+    backgroundColor: DELETE_DESTRUCTIVE,
+    borderRadius: tokens.radius.md,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  confirmBtnText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "700",
+    fontFamily: tokens.font.bodyBold,
+  },
+});
 
 const s = {
   container: {

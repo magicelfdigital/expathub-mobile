@@ -123,7 +123,13 @@ const expoWebPhase = phase("playwright:expo-web", async () => {
     await waitForUrl("http://localhost:8081/", 180, "Expo web bundle", "expo.log");
     await run(
       "npx",
-      ["playwright", "test", "tests/e2e/worksheet-signup-submit.spec.ts", "--reporter=list"],
+      [
+        "playwright",
+        "test",
+        "tests/e2e/worksheet-signup-submit.spec.ts",
+        "tests/e2e/delete-account-dialog.spec.ts",
+        "--reporter=list",
+      ],
       { env: { PLAYWRIGHT_EXPO_BASE_URL: "http://localhost:8081" } },
     );
   } finally {

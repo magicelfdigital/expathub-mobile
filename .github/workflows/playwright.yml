@@ -138,6 +138,7 @@ jobs:
           npx playwright test \
             tests/e2e/worksheet-signup-submit.spec.ts \
             tests/e2e/switch-plan-dialog.spec.ts \
+            tests/e2e/delete-account-dialog.spec.ts \
             --reporter=list
 
       - name: Stop Expo web dev server
