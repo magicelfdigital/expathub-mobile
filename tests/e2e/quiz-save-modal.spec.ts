@@ -126,9 +126,10 @@ test.describe("Quiz save-your-progress modal", () => {
     const lead = quizLeadBodies[0];
     expect(lead.email).toBe(testEmail);
     expect(lead.source).toBe("web_funnel_save");
-    // Tier is required by the endpoint — we send the same blocker tier
-    // the mobile modal uses so the rows are consistent across surfaces.
-    expect(lead.tier).toBe("quiz_save_blockers");
+    // A readiness level is required by the endpoint — we send the same
+    // blocker sentinel the mobile modal uses so the rows are consistent
+    // across surfaces.
+    expect(lead.readinessLevel).toBe("quiz_save_blockers");
 
     // quiz_save_submitted should have fired with the noCount.
     await expect

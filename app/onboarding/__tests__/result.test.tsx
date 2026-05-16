@@ -291,7 +291,7 @@ describe("ResultScreen — funnel analytics", () => {
     const body = JSON.parse(opts.body);
     expect(body).toMatchObject({
       email: "ada@lovelace.io",
-      readiness_level: expect.any(String),
+      readinessLevel: expect.any(String),
       score: expect.any(Number),
     });
     const saved = trackEvent.mock.calls.filter(

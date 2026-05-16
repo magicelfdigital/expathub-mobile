@@ -450,18 +450,19 @@ export default function Start() {
       await identifyByEmail(email).catch(() => {});
 
       const computed = result ?? calculateQuizResult(answers);
-      // Mobile and web both send the 4-value readiness level as `tier` on the
-      // backend payload — the underlying `readiness_leads.tier` /
-      // `quiz_leads.tier` columns are kept under their legacy name for now.
-      // Fresh `getReadinessLabel(...)` always returns a value; the optional
-      // chain is defensive against legacy persisted shapes.
+      // Mobile and web both send the 4-value readiness level as
+      // `readinessLevel` on the backend payload, which the server stores in
+      // both `readiness_level` and the legacy `tier` column during the
+      // rename rollout (task #115). Fresh `getReadinessLabel(...)` always
+      // returns a value; the optional chain is defensive against legacy
+      // persisted shapes.
       const readinessLevel: ReadinessLevel =
         computed.readiness?.level ??
         getReadinessLabel(computed.score, computed.maxScore ?? MAX_SCORE).level;
       await webApiClient.readinessLead({
         email: email.trim(),
         score: computed.score,
-        tier: readinessLevel,
+        readinessLevel,
         risks: computed.risks,
         // Pass a typed-as-string answers map for the readiness_leads jsonb.
         answers: Object.fromEntries(
@@ -475,7 +476,7 @@ export default function Start() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim(),
-          tier: readinessLevel,
+          readinessLevel,
           regionPreference: region,
           score: computed.score,
           risks: computed.risks,

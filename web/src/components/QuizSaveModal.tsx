@@ -48,9 +48,9 @@ export function QuizSaveModal({ visible, noCount, onClose, onContinue }: Props) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: trimmed,
-          // The endpoint validates `tier` is set, so use the same blocker tier
-          // mobile sends for save-prompt leads.
-          tier: "quiz_save_blockers",
+          // The endpoint requires a readiness level, so use the same blocker
+          // sentinel mobile sends for save-prompt leads.
+          readinessLevel: "quiz_save_blockers",
           score: noCount,
           risks: ["soft_save_after_q5"],
           source: "web_funnel_save",

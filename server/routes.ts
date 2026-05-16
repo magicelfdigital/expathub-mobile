@@ -84,6 +84,40 @@ function pickAnnualVariant(): AnnualVariant {
 }
 
 let abTablesEnsured = false;
+// Lazy migration for the readiness-level column rename (task #115). Adds
+// `readiness_level` to both lead tables and backfills it from the legacy
+// `tier` column once. The legacy column stays in place during the rollout
+// so a previous server version can keep reading it; a follow-up task will
+// drop `tier` once every writer has shipped.
+let ensureLeadReadinessLevelPromise: Promise<void> | null = null;
+export function resetLeadReadinessLevelEnsureCache(): void {
+  ensureLeadReadinessLevelPromise = null;
+}
+async function ensureLeadReadinessLevelColumns(pool: pg.Pool): Promise<void> {
+  if (!ensureLeadReadinessLevelPromise) {
+    ensureLeadReadinessLevelPromise = (async () => {
+      await pool.query(
+        `ALTER TABLE readiness_leads ADD COLUMN IF NOT EXISTS readiness_level VARCHAR(50)`,
+      );
+      await pool.query(
+        `UPDATE readiness_leads SET readiness_level = tier
+           WHERE readiness_level IS NULL AND tier IS NOT NULL`,
+      );
+      await pool.query(
+        `ALTER TABLE quiz_leads ADD COLUMN IF NOT EXISTS readiness_level VARCHAR(50)`,
+      );
+      await pool.query(
+        `UPDATE quiz_leads SET readiness_level = tier
+           WHERE readiness_level IS NULL AND tier IS NOT NULL`,
+      );
+    })().catch((err) => {
+      ensureLeadReadinessLevelPromise = null;
+      throw err;
+    });
+  }
+  await ensureLeadReadinessLevelPromise;
+}
+
 async function ensureAbTables(pool: pg.Pool): Promise<void> {
   if (abTablesEnsured) return;
   await pool.query(`
@@ -1276,9 +1310,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/auth/quiz-lead", async (req: Request, res: Response) => {
-    const { email, tier, topRegion, regionPreference, score, risks, source } = req.body as {
+    const { email, tier, readinessLevel, topRegion, regionPreference, score, risks, source } = req.body as {
       email?: string;
       tier?: string;
+      readinessLevel?: string;
       topRegion?: string;
       regionPreference?: string;
       score?: number;
@@ -1286,7 +1321,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       source?: string;
     };
 
-    if (!email || !tier) {
+    // Accept the new `readinessLevel` name, fall back to the legacy `tier`
+    // request field for one release cycle while older clients are still in
+    // the wild (task #115).
+    const level = readinessLevel || tier;
+    if (!email || !level) {
       res.status(200).json({ ok: true });
       return;
     }
@@ -1300,11 +1339,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let pool: pg.Pool | null = null;
     try {
       pool = new pg.Pool({ connectionString: dbUrl });
+      await ensureLeadReadinessLevelColumns(pool);
+      // Dual-write to both `tier` (legacy NOT NULL) and `readiness_level`
+      // (new) while the rename rolls out.
       await pool.query(
-        `INSERT INTO quiz_leads (email, tier, top_region, region_preference, score, risks, source)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO quiz_leads (email, tier, readiness_level, top_region, region_preference, score, risks, source)
+         VALUES ($1, $2, $2, $3, $4, $5, $6, $7)
          ON CONFLICT DO NOTHING`,
-        [email, tier, topRegion || null, regionPreference || null, score || null, JSON.stringify(risks || []), source || "ios_onboarding"]
+        [email, level, topRegion || null, regionPreference || null, score || null, JSON.stringify(risks || []), source || "ios_onboarding"]
       );
     } catch (err: any) {
       console.error("Quiz lead insert error:", err);
@@ -1354,10 +1396,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/readiness-lead", async (req: Request, res: Response) => {
-    const { email, score, tier, risks, answers } = req.body as {
+    const { email, score, tier, readinessLevel, risks, answers } = req.body as {
       email?: string;
       score?: number;
       tier?: string;
+      readinessLevel?: string;
       risks?: string[];
       answers?: Record<string, string>;
     };
@@ -1366,6 +1409,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ error: "A valid email is required" });
       return;
     }
+
+    // Accept the new `readinessLevel` name, fall back to the legacy `tier`
+    // request field for one release cycle while older clients are still in
+    // the wild (task #115).
+    const level = readinessLevel || tier || null;
 
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) {
@@ -1376,10 +1424,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let pool: pg.Pool | null = null;
     try {
       pool = new pg.Pool({ connectionString: dbUrl });
+      await ensureLeadReadinessLevelColumns(pool);
+      // Dual-write to both `tier` (legacy) and `readiness_level` (new)
+      // while the rename rolls out.
       await pool.query(
-        `INSERT INTO readiness_leads (email, score, tier, risks, answers)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [email, score || null, tier || null, JSON.stringify(risks || []), JSON.stringify(answers || {})]
+        `INSERT INTO readiness_leads (email, score, tier, readiness_level, risks, answers)
+         VALUES ($1, $2, $3, $3, $4, $5)`,
+        [email, score || null, level, JSON.stringify(risks || []), JSON.stringify(answers || {})]
       );
     } catch (err: any) {
       console.error("Readiness lead insert error:", err);

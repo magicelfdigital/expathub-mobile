@@ -315,11 +315,9 @@ export default function ResultScreen() {
         body: JSON.stringify({
           email: addr,
           score: result.score,
-          readiness_level: readiness.level,
-          // `tier` is kept for backend compatibility — the readiness_leads
-          // table column is still named `tier`. Server cleanup will drop
-          // this once the column/payload is renamed.
-          tier: readiness.level,
+          // Server stores this in `readiness_level` and dual-writes to the
+          // legacy `tier` column during the rename rollout (task #115).
+          readinessLevel: readiness.level,
           risks: result.risks,
           answers,
         }),

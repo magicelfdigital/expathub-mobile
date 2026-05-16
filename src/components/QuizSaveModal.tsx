@@ -55,7 +55,7 @@ export function QuizSaveModal({ visible, noCount, onClose, onContinue }: Props) 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: trimmed,
-          tier: "quiz_save_blockers",
+          readinessLevel: "quiz_save_blockers",
           score: noCount,
           risks: ["soft_save_after_q5"],
           answers: { source: "quiz_save_blockers", noCount: String(noCount) },

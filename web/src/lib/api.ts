@@ -119,7 +119,7 @@ export const webApiClient = {
     payload: {
       email: string;
       score?: number;
-      tier?: string;
+      readinessLevel?: string;
       risks?: string[];
       answers?: Record<string, string>;
     },

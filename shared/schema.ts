@@ -40,7 +40,11 @@ export const readinessLeads = pgTable("readiness_leads", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull(),
   score: integer("score"),
+  // Legacy column name — kept during the rename rollout (task #115). The
+  // server dual-writes to both `tier` and `readiness_level`; a follow-up
+  // task will drop this column once all writers have shipped.
   tier: varchar("tier", { length: 50 }),
+  readinessLevel: varchar("readiness_level", { length: 50 }),
   risks: jsonb("risks"),
   answers: jsonb("answers"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -56,7 +60,11 @@ export const countryInterest = pgTable("country_interest", {
 export const quizLeads = pgTable("quiz_leads", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull(),
+  // Legacy column name — kept during the rename rollout (task #115). The
+  // server dual-writes to both `tier` and `readiness_level`; a follow-up
+  // task will drop this column once all writers have shipped.
   tier: varchar("tier", { length: 50 }).notNull(),
+  readinessLevel: varchar("readiness_level", { length: 50 }),
   topRegion: varchar("top_region", { length: 100 }),
   regionPreference: varchar("region_preference", { length: 100 }),
   score: integer("score"),
