@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { QuizResult } from "@/src/data/quiz";
+import type { WorksheetDelta } from "@/src/onboarding/worksheetDelta";
 
 const ONBOARDING_KEY = "hasSeenOnboarding";
 const QUIZ_RESULT_KEY = "quizResult";
@@ -27,6 +28,9 @@ interface OnboardingContextValue {
   clearForRetake: () => Promise<void>;
   markAccountCreated: () => Promise<void>;
   shouldShowBanner: boolean;
+  pendingWorksheetDelta: WorksheetDelta | null;
+  setPendingWorksheetDelta: (d: WorksheetDelta | null) => void;
+  clearPendingWorksheetDelta: () => void;
 }
 
 const OnboardingContext = createContext<OnboardingContextValue | undefined>(undefined);
@@ -37,6 +41,8 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const [quizAnswers, setQuizAnswers] = useState<PersistedQuizAnswers | null>(null);
   const [skippedAccount, setSkippedAccount] = useState(false);
   const [skipBannerCount, setSkipBannerCount] = useState(0);
+  const [pendingWorksheetDelta, setPendingWorksheetDeltaState] =
+    useState<WorksheetDelta | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -120,6 +126,13 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   const shouldShowBanner = skippedAccount && skipBannerCount < 3;
 
+  const setPendingWorksheetDelta = useCallback((d: WorksheetDelta | null) => {
+    setPendingWorksheetDeltaState(d);
+  }, []);
+  const clearPendingWorksheetDelta = useCallback(() => {
+    setPendingWorksheetDeltaState(null);
+  }, []);
+
   const value = useMemo<OnboardingContextValue>(
     () => ({
       hasSeenOnboarding,
@@ -134,8 +147,11 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       clearForRetake,
       markAccountCreated,
       shouldShowBanner,
+      pendingWorksheetDelta,
+      setPendingWorksheetDelta,
+      clearPendingWorksheetDelta,
     }),
-    [hasSeenOnboarding, quizResult, quizAnswers, skippedAccount, skipBannerCount, completeOnboarding, skipOnboarding, saveQuizResult, dismissBanner, clearForRetake, markAccountCreated, shouldShowBanner]
+    [hasSeenOnboarding, quizResult, quizAnswers, skippedAccount, skipBannerCount, completeOnboarding, skipOnboarding, saveQuizResult, dismissBanner, clearForRetake, markAccountCreated, shouldShowBanner, pendingWorksheetDelta, setPendingWorksheetDelta, clearPendingWorksheetDelta]
   );
 
   return <OnboardingContext.Provider value={value}>{children}</OnboardingContext.Provider>;

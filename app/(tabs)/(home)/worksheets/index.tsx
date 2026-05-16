@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Platform,
@@ -13,11 +13,14 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useOnboarding } from "@/contexts/OnboardingContext";
 import {
   useWorksheetList,
   useWorksheetResponses,
 } from "@/src/hooks/useWorksheets";
 import { tokens } from "@/theme/tokens";
+import { WorksheetDeltaBanner } from "@/src/components/WorksheetDeltaBanner";
+import type { WorksheetDelta } from "@/src/onboarding/worksheetDelta";
 
 const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
 const WEB_BOTTOM_INSET = Platform.OS === "web" ? 34 : 0;
@@ -28,6 +31,18 @@ export default function WorksheetsListScreen() {
   const { hasFullAccess } = useSubscription();
   const { data: worksheets, isLoading } = useWorksheetList();
   const { data: responses } = useWorksheetResponses();
+  const { pendingWorksheetDelta, clearPendingWorksheetDelta } = useOnboarding();
+
+  // Consume the pending delta once on mount so the banner doesn't re-show
+  // on every revisit. If the user also visits the result screen, whichever
+  // mounts first wins.
+  const [activeDelta, setActiveDelta] = useState<WorksheetDelta | null>(null);
+  useEffect(() => {
+    if (pendingWorksheetDelta) {
+      setActiveDelta(pendingWorksheetDelta);
+      clearPendingWorksheetDelta();
+    }
+  }, [pendingWorksheetDelta, clearPendingWorksheetDelta]);
 
   const responseByQid = useMemo(() => {
     const m = new Map<number, number>();
@@ -61,6 +76,13 @@ export default function WorksheetsListScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
+        {activeDelta ? (
+          <WorksheetDeltaBanner
+            delta={activeDelta}
+            onDismiss={() => setActiveDelta(null)}
+          />
+        ) : null}
+
         <Text style={styles.intro}>
           Each worksheet replaces the score for one quiz dimension with a
           deeper self-check. Complete a few to sharpen your readiness picture.

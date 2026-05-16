@@ -538,8 +538,10 @@ export function pickTopMatch(region: RegionPreference): TopMatch {
  * `WEIGHTED_MAX` was derived from, so `MAX_SCORE` math stays consistent
  * and the result remains directly comparable to a plain quiz result.
  *
- * Risks/blockers are still computed from the original quiz answers — the
- * worksheet replaces the *score*, not the underlying self-report.
+ * A worksheet score of >= 2 (out of 3) is also treated as overriding the
+ * original yes/no self-report for the purpose of risks and blockers — so
+ * a strong worksheet clears the corresponding blocker. A score of 1-2
+ * downgrades the dimension to "somewhat", and 0-1 keeps it as "no".
  */
 export function calculateQuizResultWithWorksheets(
   answers: Record<number, string>,
@@ -547,16 +549,32 @@ export function calculateQuizResultWithWorksheets(
 ): QuizResult {
   let weightedRaw = 0;
   const risks: string[] = [];
+  // Build an effective answer map: a strong worksheet score (>= 2 of 3)
+  // overrides the original self-report, so risks and blockers reflect the
+  // user's deeper self-assessment rather than the original yes/no. This is
+  // what lets cleared-blocker counts on the result screen actually move
+  // after a worksheet is submitted.
+  const effectiveAnswers: Record<number, string> = { ...answers };
 
   for (let i = 1; i <= 8; i++) {
     const answer = (answers[i] ?? "no") as QuizAnswer;
     const wsScore = worksheetScores[i];
-    const contribution =
-      typeof wsScore === "number" && Number.isFinite(wsScore)
-        ? Math.max(0, Math.min(3, wsScore)) * (2 / 3)
-        : basePoints(answer);
+    const hasWs = typeof wsScore === "number" && Number.isFinite(wsScore);
+    const clampedWs = hasWs ? Math.max(0, Math.min(3, wsScore)) : null;
+    const contribution = hasWs
+      ? (clampedWs as number) * (2 / 3)
+      : basePoints(answer);
     weightedRaw += contribution * (Q_WEIGHT[i] ?? 1);
-    if (answer === "no") {
+
+    let effectiveAnswer = answer;
+    if (clampedWs !== null) {
+      if (clampedWs >= 2) effectiveAnswer = "yes";
+      else if (clampedWs >= 1) effectiveAnswer = "somewhat";
+      else effectiveAnswer = "no";
+      effectiveAnswers[i] = effectiveAnswer;
+    }
+
+    if (effectiveAnswer === "no") {
       const q = QUIZ_QUESTIONS.find((q) => q.id === i);
       if (q) risks.push(q.category);
     }
@@ -570,7 +588,7 @@ export function calculateQuizResultWithWorksheets(
   else tier = "ready";
 
   const regionPreference = (answers[9] ?? "southern_europe") as RegionPreference;
-  const blockers = getBlockers(answers);
+  const blockers = getBlockers(effectiveAnswers);
   const readiness = getReadinessLabel(displayScore, MAX_SCORE);
   const topMatch = pickTopMatch(regionPreference);
 

@@ -9,12 +9,16 @@ import { getApiUrl } from "@/lib/query-client";
 import { getBackendBase } from "@/src/billing/backendClient";
 import {
   calculateQuizResultWithWorksheets,
+  getReadinessLabel,
+  MAX_SCORE,
   QUIZ_QUESTIONS,
 } from "@/src/data/quiz";
 import type {
   WorksheetAnswers,
   WorksheetDefinition,
 } from "@/src/data/worksheets";
+import { WORKSHEET_BY_ID } from "@/src/data/worksheets";
+import { countsFromBlockers } from "@/src/onboarding/worksheetDelta";
 
 export type WorksheetListItem = Omit<WorksheetDefinition, "questions">;
 
@@ -115,7 +119,8 @@ export function useWorksheetResponses() {
  */
 export function useSubmitWorksheet() {
   const { user, token } = useAuth();
-  const { quizResult, quizAnswers, saveQuizResult } = useOnboarding();
+  const { quizResult, quizAnswers, saveQuizResult, setPendingWorksheetDelta } =
+    useOnboarding();
   const qc = useQueryClient();
   const headers = useMemo(() => {
     const h: Record<string, string> = { "Content-Type": "application/json" };
@@ -152,6 +157,16 @@ export function useSubmitWorksheet() {
       // Re-derive the persisted QuizResult so the home readiness card and
       // account screen pick up the new score without a refetch.
       if (!quizResult) return;
+
+      // Snapshot the "before" view so the result and worksheets screens
+      // can show a score-change banner with a real delta. Taken from the
+      // currently persisted QuizResult, which the user is about to leave.
+      const previousScore = quizResult.score;
+      const previousMax = quizResult.maxScore ?? MAX_SCORE;
+      const previousReadinessLevel =
+        quizResult.readiness?.level ??
+        getReadinessLabel(previousScore, previousMax).level;
+      const previousCounts = countsFromBlockers(quizResult.blockers ?? []);
 
       const responses = qc.getQueryData<WorksheetResponse[]>(RESPONSES_KEY) ?? [];
       const scoreMap: Record<number, number> = {};
@@ -191,7 +206,29 @@ export function useSubmitWorksheet() {
 
       const updated = calculateQuizResultWithWorksheets(answersForRecompute, scoreMap);
       // Preserve fields the new function doesn't compute (topMatch, etc.).
-      await saveQuizResult({ ...quizResult, ...updated }, quizAnswers ?? undefined);
+      const merged = { ...quizResult, ...updated };
+      await saveQuizResult(merged, quizAnswers ?? undefined);
+
+      // Publish the before/after snapshot for the result and worksheets-list
+      // screens to surface as a score-change banner with animated counters.
+      const nextScore = merged.score;
+      const nextMax = merged.maxScore ?? MAX_SCORE;
+      const nextReadinessLevel =
+        merged.readiness?.level ?? getReadinessLabel(nextScore, nextMax).level;
+      const nextCounts = countsFromBlockers(merged.blockers ?? []);
+      const ws = WORKSHEET_BY_ID[data.worksheetId];
+      setPendingWorksheetDelta({
+        worksheetId: data.worksheetId,
+        dimension: ws?.dimension ?? "",
+        previousScore,
+        previousMax,
+        previousReadinessLevel,
+        previousCounts,
+        nextScore,
+        nextMax,
+        nextReadinessLevel,
+        nextCounts,
+      });
     },
   });
 }

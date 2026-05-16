@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
-import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   calculateQuizResult,
@@ -30,6 +30,8 @@ import {
 } from "@/src/onboarding/resultFlow";
 import { WORKSHEET_BY_QUESTION_ID } from "@/src/data/worksheets";
 import { QuizSaveModal } from "@/src/components/QuizSaveModal";
+import { WorksheetDeltaBanner } from "@/src/components/WorksheetDeltaBanner";
+import type { WorksheetDelta } from "@/src/onboarding/worksheetDelta";
 
 const READINESS_COLORS: Record<ReadinessLevel, string> = {
   just_getting_started: "#9BA8C0",
@@ -97,7 +99,12 @@ export default function ResultScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
   const { answers: answersStr } = useLocalSearchParams<{ answers?: string }>();
-  const { completeOnboarding } = useOnboarding();
+  const {
+    completeOnboarding,
+    quizResult: persistedQuizResult,
+    pendingWorksheetDelta,
+    clearPendingWorksheetDelta,
+  } = useOnboarding();
   const { user } = useAuth();
 
   type AnswersShape = Record<string, unknown> & {
@@ -114,9 +121,18 @@ export default function ResultScreen() {
     }
   }, [answersStr]);
 
-  const result = useMemo(
+  // Prefer the persisted, worksheet-adjusted QuizResult from context when
+  // it exists — so returning to this screen after submitting a worksheet
+  // shows the new readiness numbers, not the original quiz baseline.
+  // Fall back to deriving from the URL `answers` param for the first-run
+  // post-quiz flow (where the context may not yet be populated).
+  const freshResult = useMemo(
     () => calculateQuizResult(answers as unknown as Record<number, string>),
     [answers],
+  );
+  const result = useMemo(
+    () => persistedQuizResult ?? freshResult,
+    [persistedQuizResult, freshResult],
   );
 
   // Q1–Q9 answers in the canonical numeric-keyed shape that
@@ -184,6 +200,73 @@ export default function ResultScreen() {
     () => groupBlockersByLevel(result.blockers),
     [result.blockers],
   );
+
+  const realCounts = useMemo(
+    () => ({
+      critical: grouped.critical.length,
+      moderate: grouped.moderate.length,
+      explore: grouped.explore.length,
+    }),
+    [grouped.critical.length, grouped.moderate.length, grouped.explore.length],
+  );
+
+  // One-shot capture of a pending worksheet delta so animations start from
+  // the "before" state and the banner doesn't re-fire on subsequent renders.
+  const [activeDelta, setActiveDelta] = useState<WorksheetDelta | null>(null);
+  useEffect(() => {
+    if (pendingWorksheetDelta) {
+      setActiveDelta(pendingWorksheetDelta);
+      clearPendingWorksheetDelta();
+    }
+  }, [pendingWorksheetDelta, clearPendingWorksheetDelta]);
+
+  const startFillPct = activeDelta
+    ? getResultFillPercent(activeDelta.previousScore, activeDelta.previousMax)
+    : fillPct;
+  const startCounts = activeDelta?.previousCounts ?? realCounts;
+
+  const transition = useRef(new Animated.Value(activeDelta ? 0 : 1)).current;
+  const [displayFillPct, setDisplayFillPct] = useState<number>(startFillPct);
+  const [displayCounts, setDisplayCounts] = useState(startCounts);
+
+  useEffect(() => {
+    if (!activeDelta) {
+      transition.setValue(1);
+      setDisplayFillPct(fillPct);
+      setDisplayCounts(realCounts);
+      return;
+    }
+    transition.setValue(0);
+    setDisplayFillPct(startFillPct);
+    setDisplayCounts(startCounts);
+    const id = transition.addListener(({ value }) => {
+      setDisplayFillPct(startFillPct + (fillPct - startFillPct) * value);
+      setDisplayCounts({
+        critical: Math.round(
+          startCounts.critical + (realCounts.critical - startCounts.critical) * value,
+        ),
+        moderate: Math.round(
+          startCounts.moderate + (realCounts.moderate - startCounts.moderate) * value,
+        ),
+        explore: Math.round(
+          startCounts.explore + (realCounts.explore - startCounts.explore) * value,
+        ),
+      });
+    });
+    Animated.timing(transition, {
+      toValue: 1,
+      duration: 900,
+      delay: 200,
+      useNativeDriver: false,
+    }).start();
+    return () => transition.removeListener(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDelta]);
+
+  const animatedBarWidth = transition.interpolate({
+    inputRange: [0, 1],
+    outputRange: [`${startFillPct}%`, `${fillPct}%`],
+  });
 
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
@@ -427,12 +510,14 @@ export default function ResultScreen() {
     );
   };
 
-  const counts = {
-    critical: grouped.critical.length,
-    moderate: grouped.moderate.length,
-    explore: grouped.explore.length,
-  };
-  const hasAnyBlockers = counts.critical + counts.moderate + counts.explore > 0;
+  const counts = realCounts;
+  const hasAnyBlockers =
+    counts.critical + counts.moderate + counts.explore > 0 ||
+    (activeDelta &&
+      activeDelta.previousCounts.critical +
+        activeDelta.previousCounts.moderate +
+        activeDelta.previousCounts.explore >
+        0);
   const primaryCtaLabel = user ? "Continue to ExpatHub" : "Create free account to save";
   const handlePrimaryCta = user ? handleContinue : handleCreateAccount;
 
@@ -461,6 +546,12 @@ export default function ResultScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 + bottomPad }]}
         showsVerticalScrollIndicator={false}
       >
+        {activeDelta ? (
+          <WorksheetDeltaBanner
+            delta={activeDelta}
+            onDismiss={() => setActiveDelta(null)}
+          />
+        ) : null}
         {result.topMatch ? (
           <Pressable
             onPress={handleExploreTopMatch}
@@ -491,9 +582,15 @@ export default function ResultScreen() {
               <Text style={styles.restartLinkInline}>Restart</Text>
             </Pressable>
           </View>
+          <View style={styles.readinessPctRow}>
+            <Text style={styles.readinessPctValue} testID="readiness-pct-value">
+              {Math.round(displayFillPct)}%
+            </Text>
+            <Text style={styles.readinessPctOf}>of fully ready</Text>
+          </View>
           <View style={styles.readinessBarTrack} testID="readiness-bar-track">
-            <View
-              style={[styles.readinessBarFill, { width: `${fillPct}%`, backgroundColor: tokens.color.teal }]}
+            <Animated.View
+              style={[styles.readinessBarFill, { width: animatedBarWidth, backgroundColor: tokens.color.teal }]}
               testID="readiness-bar-fill"
             />
           </View>
@@ -505,25 +602,32 @@ export default function ResultScreen() {
             <>
               <View style={styles.countPillRow}>
                 {(["critical", "moderate", "explore"] as const).map((lvl) => {
-                  if (counts[lvl] === 0) return null;
+                  const shown = displayCounts[lvl];
+                  const prev = activeDelta?.previousCounts[lvl] ?? 0;
+                  // Keep the pill visible during a transition from N → 0 so
+                  // the counter can animate down rather than vanish.
+                  if (counts[lvl] === 0 && prev === 0) return null;
                   const revealed = revealedLevels[lvl];
+                  const disabled = counts[lvl] === 0;
                   return (
                     <Pressable
                       key={lvl}
                       onPress={() => scrollToSection(lvl)}
+                      disabled={disabled}
                       style={({ pressed }) => [
                         styles.countPill,
                         { backgroundColor: LEVEL_COLORS[lvl].bg, borderColor: LEVEL_COLORS[lvl].border },
                         revealed && { borderWidth: 2 },
+                        disabled && { opacity: 0.55 },
                         pressed && { opacity: 0.85 },
                       ]}
                       accessibilityRole="button"
-                      accessibilityState={{ expanded: revealed }}
-                      accessibilityLabel={`${revealed ? "Showing" : "Show"} ${counts[lvl]} ${LEVEL_COLORS[lvl].label} items`}
+                      accessibilityState={{ expanded: revealed, disabled }}
+                      accessibilityLabel={`${revealed ? "Showing" : "Show"} ${shown} ${LEVEL_COLORS[lvl].label} items`}
                       testID={`count-pill-${lvl}`}
                     >
                       <View style={[styles.countPillDot, { backgroundColor: LEVEL_COLORS[lvl].chip }]} />
-                      <Text style={styles.countPillText}>{counts[lvl]} {LEVEL_COLORS[lvl].label.toLowerCase()}</Text>
+                      <Text style={styles.countPillText}>{shown} {LEVEL_COLORS[lvl].label.toLowerCase()}</Text>
                       <Ionicons
                         name={revealed ? "checkmark" : "add"}
                         size={14}
@@ -872,6 +976,23 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 1,
     marginBottom: 12,
+  },
+  readinessPctRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
+    marginBottom: 8,
+  },
+  readinessPctValue: {
+    fontSize: 32,
+    fontFamily: tokens.font.display,
+    color: tokens.color.text,
+    lineHeight: 36,
+  },
+  readinessPctOf: {
+    fontSize: 13,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
   },
   readinessBarTrack: {
     height: 10,
