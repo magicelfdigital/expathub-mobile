@@ -189,6 +189,56 @@ describe("renderPlannerAnalyticsHtml — Last 8 weeks table", () => {
     // empty week renders an em-dash placeholder rather than NaN%
     expect(html).not.toMatch(/NaN/);
   });
+
+  it("renders an inline SVG sparkline for each weekly metric", () => {
+    const html = renderPlannerAnalyticsHtml({
+      ...baseResult,
+      weekly: [
+        {
+          weekStart: "2026-04-20",
+          plansStarted: 6,
+          plansCompleted: 2,
+          medianDaysToCompletion: 2.0,
+        },
+        {
+          weekStart: "2026-04-27",
+          plansStarted: 9,
+          plansCompleted: 4,
+          medianDaysToCompletion: 3.5,
+        },
+      ],
+    });
+    const svgCount = (html.match(/<svg[^>]*class="sparkline"/g) || []).length;
+    expect(svgCount).toBe(3);
+    expect(html).toContain("Plans started / week");
+    expect(html).toContain("Reached 100% / week");
+    expect(html).toContain("Median time-to-100% / week");
+    expect(html).toContain("2026-04-27: 9 started");
+    expect(html).toContain("2026-04-27: 4 reached 100%");
+    expect(html).toContain("2026-04-27: 3.5 days");
+  });
+
+  it("does not crash when every weekly median is null", () => {
+    const html = renderPlannerAnalyticsHtml({
+      ...baseResult,
+      weekly: [
+        {
+          weekStart: "2026-04-20",
+          plansStarted: 0,
+          plansCompleted: 0,
+          medianDaysToCompletion: null,
+        },
+        {
+          weekStart: "2026-04-27",
+          plansStarted: 0,
+          plansCompleted: 0,
+          medianDaysToCompletion: null,
+        },
+      ],
+    });
+    expect(html).not.toMatch(/NaN/);
+    expect(html).toContain("Median time-to-100% / week");
+  });
 });
 
 function rowsForUnfilteredFixture(text: string, values: unknown[]): FakeRow[] {

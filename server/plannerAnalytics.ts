@@ -696,6 +696,95 @@ export function renderPlannerAnalyticsHtml(
     )
     .join("");
 
+  // Inline SVG sparkline (bar chart) for one weekly metric. Rendered
+  // server-side so the dashboard stays a single self-contained HTML
+  // page with no client JS or external chart library. Bars share a
+  // single 0..max scale per metric so week-over-week direction is read
+  // honestly; if every value is 0 (or the metric is unavailable for
+  // every week) we render a flat axis instead of dividing by zero.
+  const weeklySparkline = (
+    values: Array<number | null>,
+    opts: { color: string; label: string; formatValue: (n: number) => string },
+  ): string => {
+    const width = 320;
+    const height = 56;
+    const padX = 4;
+    const padY = 4;
+    const slotCount = values.length;
+    const slotWidth = (width - padX * 2) / Math.max(1, slotCount);
+    const barWidth = Math.max(2, slotWidth - 4);
+    const numericValues = values.filter(
+      (v): v is number => typeof v === "number" && Number.isFinite(v),
+    );
+    const max = numericValues.length ? Math.max(...numericValues, 0) : 0;
+    const baseline = height - padY;
+    const bars = values
+      .map((v, i) => {
+        const x = padX + i * slotWidth + (slotWidth - barWidth) / 2;
+        if (v === null || !Number.isFinite(v)) {
+          return `<rect x="${x.toFixed(2)}" y="${(baseline - 1).toFixed(2)}" width="${barWidth.toFixed(2)}" height="1" fill="#d8d8d8" />`;
+        }
+        const h =
+          max > 0 ? ((v as number) / max) * (height - padY * 2) : 0;
+        const y = baseline - h;
+        const title = `${data.weekly[i]?.weekStart ?? ""}: ${opts.formatValue(v as number)}`;
+        return `<rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${barWidth.toFixed(2)}" height="${Math.max(1, h).toFixed(2)}" fill="${opts.color}" rx="1"><title>${escapeHtml(title)}</title></rect>`;
+      })
+      .join("");
+    return `
+    <svg class="sparkline" viewBox="0 0 ${width} ${height}" width="100%" height="${height}" role="img" aria-label="${escapeHtml(opts.label)}" preserveAspectRatio="none">
+      <line x1="${padX}" y1="${baseline.toFixed(2)}" x2="${(width - padX).toFixed(2)}" y2="${baseline.toFixed(2)}" stroke="#e0e0e0" stroke-width="1" />
+      ${bars}
+    </svg>`;
+  };
+
+  const firstWeekStart = data.weekly[0]?.weekStart ?? "";
+  const lastWeekStart = data.weekly[data.weekly.length - 1]?.weekStart ?? "";
+  const sparklineRangeLabel = firstWeekStart && lastWeekStart
+    ? `${firstWeekStart} → ${lastWeekStart}`
+    : "";
+  const startedValues = data.weekly.map((w) => w.plansStarted);
+  const completedValues = data.weekly.map((w) => w.plansCompleted);
+  const medianValues = data.weekly.map((w) => w.medianDaysToCompletion);
+  const latestStarted = startedValues[startedValues.length - 1] ?? 0;
+  const latestCompleted = completedValues[completedValues.length - 1] ?? 0;
+  const latestMedian = medianValues[medianValues.length - 1];
+  const weeklyChartsHtml = `
+  <div class="sparkline-grid">
+    <div class="sparkline-card">
+      <div class="sparkline-label">Plans started / week</div>
+      <div class="sparkline-latest">${latestStarted.toLocaleString()}<span class="sparkline-latest-sub"> latest week</span></div>
+      ${weeklySparkline(startedValues, {
+        color: "#0a66c2",
+        label: "Plans started per week over the last 8 weeks",
+        formatValue: (n) => `${n.toLocaleString()} started`,
+      })}
+    </div>
+    <div class="sparkline-card">
+      <div class="sparkline-label">Reached 100% / week</div>
+      <div class="sparkline-latest">${latestCompleted.toLocaleString()}<span class="sparkline-latest-sub"> latest week</span></div>
+      ${weeklySparkline(completedValues, {
+        color: "#1e8e3e",
+        label: "Plans reaching 100% per week over the last 8 weeks",
+        formatValue: (n) => `${n.toLocaleString()} reached 100%`,
+      })}
+    </div>
+    <div class="sparkline-card">
+      <div class="sparkline-label">Median time-to-100% / week</div>
+      <div class="sparkline-latest">${
+        typeof latestMedian === "number"
+          ? `${latestMedian.toFixed(1)}<span class="sparkline-latest-sub"> days, latest week</span>`
+          : `—<span class="sparkline-latest-sub"> latest week</span>`
+      }</div>
+      ${weeklySparkline(medianValues, {
+        color: "#8a4b00",
+        label: "Median days to reach 100% per week over the last 8 weeks",
+        formatValue: (n) => `${n.toFixed(1)} days`,
+      })}
+    </div>
+  </div>
+  ${sparklineRangeLabel ? `<p class="meta sparkline-range">Range: <code>${escapeHtml(sparklineRangeLabel)}</code></p>` : ""}`;
+
   const weeklyRowsHtml = data.weekly
     .map((w) => {
       const completionPct =
@@ -897,6 +986,28 @@ export function renderPlannerAnalyticsHtml(
       font-variant-numeric: tabular-nums; font-size: 13px; color: #333;
       text-align: right;
     }
+    .sparkline-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px; margin-bottom: 12px;
+    }
+    .sparkline-card {
+      background: #fff; border: 1px solid #e5e5e5; border-radius: 10px;
+      padding: 12px 16px;
+    }
+    .sparkline-label {
+      color: #666; font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .sparkline-latest {
+      font-size: 20px; font-weight: 600; margin: 4px 0 8px;
+      font-variant-numeric: tabular-nums;
+    }
+    .sparkline-latest-sub {
+      font-size: 11px; font-weight: 400; color: #777;
+      text-transform: uppercase; letter-spacing: 0.04em; margin-left: 4px;
+    }
+    .sparkline { display: block; }
+    .sparkline-range { margin: 0 0 16px; }
   </style>
 </head>
 <body>
@@ -944,6 +1055,7 @@ export function renderPlannerAnalyticsHtml(
   </div>
 
   <h2>Last 8 weeks</h2>
+  ${weeklyChartsHtml}
   <table>
     <thead>
       <tr>
