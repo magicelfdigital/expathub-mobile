@@ -1,5 +1,26 @@
+const fs = require("fs");
 const { getDefaultConfig } = require("expo/metro-config");
 const path = require("path");
+
+const IGNORED_WATCH_SEGMENT = `${path.sep}.local${path.sep}`;
+const origWatch = fs.watch;
+fs.watch = function patchedWatch(target, ...args) {
+  if (typeof target === "string" && target.includes(IGNORED_WATCH_SEGMENT)) {
+    return {
+      close() {},
+      ref() { return this; },
+      unref() { return this; },
+      on() { return this; },
+      once() { return this; },
+      off() { return this; },
+      addListener() { return this; },
+      removeListener() { return this; },
+      removeAllListeners() { return this; },
+      emit() { return false; },
+    };
+  }
+  return origWatch.call(this, target, ...args);
+};
 
 const config = getDefaultConfig(__dirname);
 
