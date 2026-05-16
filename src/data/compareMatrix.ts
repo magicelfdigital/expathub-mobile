@@ -127,7 +127,7 @@ const ALL_ROWS: CompareRow[] = [
     values: {
       portugal: "D7: ~€920/mo passive income (2026 min wage). D8: ~€3,680/mo (4x €920 min wage)",
       spain: "NLV: ~€2,520/mo (IPREM-based). DNV: ~€2,849/mo (200% of 2026 SMI annualised over 14 payments)",
-      canada: "Express Entry: proof of settlement funds ~CAD $13,757 (single, 2024)",
+      canada: "Express Entry: proof of settlement funds CAD $15,263 (single, 2026)",
       "costa-rica": "Rentista: $2,500/mo for 2 years or $60K deposit",
       panama: "FNV: $5,000 bank deposit + economic ties. Pensionado: $1,000/mo pension",
       ecuador: "Rentista: ~$1,446/mo (3x 2026 SBU of $482). Jubilado: same $1,446/mo pension threshold",

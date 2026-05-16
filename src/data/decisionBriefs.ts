@@ -381,9 +381,10 @@ const BRIEFS: DecisionBrief[] = [
       "University cities are safe and walkable. Coimbra, Portugal's historic university city, is compact and student-friendly. Lisbon and Porto have excellent public transport for students.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "AIMA — Agência para a Integração, Migrações e Asilo", url: "https://aima.gov.pt/", type: "official" },
+      { label: "DGES — Direção-Geral do Ensino Superior (Portuguese higher-education authority)", url: "https://www.dges.gov.pt/", type: "official" },
     ],
   },
 
@@ -469,9 +470,10 @@ const BRIEFS: DecisionBrief[] = [
       "Spain is very safe by global standards. Violent crime is rare. Petty theft in tourist areas of Barcelona and Madrid is the main concern. Cities are highly walkable with excellent bike infrastructure in Valencia, Seville, and Barcelona.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Ministerio de Asuntos Exteriores — Visados", url: "https://www.exteriores.gob.es/", type: "official" },
+      { label: "Ministerio de Trabajo — SMI 2026 (Real Decreto 126/2026, BOE)", url: "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-126", type: "official" },
     ],
   },
   {
@@ -552,9 +554,10 @@ const BRIEFS: DecisionBrief[] = [
       "Safety is excellent for retirees. Spain's public spaces are lively late into the evening, which means natural surveillance and a sense of community. Walkability is superb in most cities.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Ministerio de Asuntos Exteriores — Visados", url: "https://www.exteriores.gob.es/", type: "official" },
+      { label: "Ministerio del Interior — Extranjería (residencia no lucrativa)", url: "https://www.interior.gob.es/opencms/es/servicios-al-ciudadano/tramites-y-gestiones/extranjeria/", type: "official" },
     ],
   },
   {
@@ -714,7 +717,7 @@ const BRIEFS: DecisionBrief[] = [
       "Bureaucratic culture applies to university administration too. Expect long queues for enrollment, slow responses to emails, and paperwork for everything. Build patience into your timeline — nothing happens quickly in Spanish institutions.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Ministerio de Asuntos Exteriores — Visados", url: "https://www.exteriores.gob.es/", type: "official" },
     ],
@@ -780,9 +783,10 @@ const BRIEFS: DecisionBrief[] = [
       "Netherlands — if you want efficiency and English-friendliness in Western Europe, though the weather is worse",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "France-Visas — Official French visa portal", url: "https://france-visas.gouv.fr/en/", type: "official" },
+      { label: "Administration Numérique pour les Étrangers en France (ANEF, Ministère de l'Intérieur)", url: "https://administration-etrangers-en-france.interieur.gouv.fr/", type: "official" },
     ],
   },
   {
@@ -845,9 +849,10 @@ const BRIEFS: DecisionBrief[] = [
       "Germany Opportunity Card — if you need time to find employment first, Germany lets you search for 1 year with the right qualifications",
     ],
     confidenceLevel: "Medium",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "France-Visas — Official French visa portal", url: "https://france-visas.gouv.fr/en/", type: "official" },
+      { label: "Administration Numérique pour les Étrangers en France (ANEF, Ministère de l'Intérieur)", url: "https://administration-etrangers-en-france.interieur.gouv.fr/", type: "official" },
     ],
   },
   {
@@ -901,9 +906,10 @@ const BRIEFS: DecisionBrief[] = [
       "Expecting easy renewal. The first year is the easy part. Prefecture renewals require patience and extensive documentation.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "France-Visas — Official French visa portal", url: "https://france-visas.gouv.fr/en/", type: "official" },
+      { label: "Service-public.fr — Étranger en France (visiteur)", url: "https://www.service-public.fr/particuliers/vosdroits/N110", type: "official" },
     ],
   },
 
@@ -1032,7 +1038,7 @@ const BRIEFS: DecisionBrief[] = [
       "Italy Digital Nomad Visa — if you have any active remote work income, this is the correct visa. Stop trying to make elective residency work.",
     ],
     confidenceLevel: "Medium",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Italy — Visa portal (Ministero degli Affari Esteri)", url: "https://vistoperitalia.esteri.it/home/en", type: "official" },
     ],
@@ -1095,9 +1101,10 @@ const BRIEFS: DecisionBrief[] = [
       "Italy Elective Residency — if your income is passive, use the established visa type. Do not beta-test a new program unnecessarily.",
     ],
     confidenceLevel: "Conditional",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Italy — Visa portal (Ministero degli Affari Esteri)", url: "https://vistoperitalia.esteri.it/home/en", type: "official" },
+      { label: "Polizia di Stato — Permesso di soggiorno per lavoratori autonomi (nomadi digitali)", url: "https://www.poliziadistato.it/articolo/permesso-di-soggiorno-per-lavoratori-autonomi", type: "official" },
     ],
   },
 
@@ -1162,9 +1169,10 @@ const BRIEFS: DecisionBrief[] = [
       "Mexico Temporary Resident — lower financial thresholds, path to permanent residency, and property ownership is straightforward",
     ],
     confidenceLevel: "Medium",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Thailand Immigration Bureau", url: "https://www.immigration.go.th/en/", type: "official" },
+      { label: "Ministry of Foreign Affairs of Thailand", url: "https://www.mfa.go.th/en", type: "official" },
     ],
   },
   {
@@ -1284,9 +1292,10 @@ const BRIEFS: DecisionBrief[] = [
       "Not getting a re-entry permit before international travel. Leave Thailand without one and your retirement visa is voided. You start the entire process over.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Thailand Immigration Bureau", url: "https://www.immigration.go.th/en/", type: "official" },
+      { label: "Ministry of Foreign Affairs of Thailand — Non-Immigrant O-A long-stay visa", url: "https://www.mfa.go.th/en", type: "official" },
     ],
   },
 
@@ -1370,9 +1379,10 @@ const BRIEFS: DecisionBrief[] = [
       "Costa Rica's biodiversity and outdoor lifestyle are genuinely world-class — surfing, hiking, and wildlife are part of daily life, not just tourism marketing.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Dirección General de Migración y Extranjería (DGME)", url: "https://www.migracion.go.cr/", type: "official" },
+      { label: "Caja Costarricense de Seguro Social (CAJA) — mandatory healthcare enrolment", url: "https://www.ccss.sa.cr/", type: "official" },
     ],
   },
   {
@@ -1455,9 +1465,10 @@ const BRIEFS: DecisionBrief[] = [
       "Healthcare is a dual system: CAJA for routine care and emergencies (mandatory enrollment), plus private insurance ($100–$300/month) for faster specialist access.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Dirección General de Migración y Extranjería (DGME)", url: "https://www.migracion.go.cr/", type: "official" },
+      { label: "Caja Costarricense de Seguro Social (CAJA) — mandatory healthcare enrolment", url: "https://www.ccss.sa.cr/", type: "official" },
     ],
   },
   {
@@ -1532,9 +1543,10 @@ const BRIEFS: DecisionBrief[] = [
       "The rainy season (May–November) affects lifestyle significantly, especially in beach areas. Many retirees prefer the Central Valley's spring-like year-round climate.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Dirección General de Migración y Extranjería (DGME)", url: "https://www.migracion.go.cr/", type: "official" },
+      { label: "Caja Costarricense de Seguro Social (CAJA) — mandatory healthcare enrolment", url: "https://www.ccss.sa.cr/", type: "official" },
     ],
   },
 
@@ -1598,9 +1610,10 @@ const BRIEFS: DecisionBrief[] = [
       "Portugal — if you want EU access and are willing to deal with a different set of bureaucratic challenges",
     ],
     confidenceLevel: "Medium",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Instituto Nacional de Migración (INM)", url: "https://www.gob.mx/inm", type: "official" },
+      { label: "Secretaría de Relaciones Exteriores (SRE) — Trámites consulares para extranjeros", url: "https://www.gob.mx/sre/acciones-y-programas/tramites-y-servicios-consulares-extranjeros", type: "official" },
     ],
   },
   {
@@ -1726,9 +1739,10 @@ const BRIEFS: DecisionBrief[] = [
       "Spending years abroad after obtaining permanent residency. Absences exceeding 5 years can result in revocation. Mexico wants residents who actually reside.",
     ],
     confidenceLevel: "Medium",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Instituto Nacional de Migración (INM)", url: "https://www.gob.mx/inm", type: "official" },
+      { label: "Servicio de Administración Tributaria (SAT) — Residencia fiscal en México", url: "https://www.sat.gob.mx/", type: "official" },
     ],
   },
 
@@ -1759,7 +1773,7 @@ const BRIEFS: DecisionBrief[] = [
       "Police certificates from every country you have lived in for 6+ months in the last 10 years",
     ],
     financialReality: [
-      "Settlement funds: $15,263 CAD single, $19,004 CAD couple, increasing per dependent (2025 numbers, updated annually)",
+      "Settlement funds: $15,263 CAD single, $19,004 CAD couple, increasing per dependent (2026 figures, IRCC updates annually each June)",
       "Application fees: $1,365 CAD for principal applicant (processing + right of permanent residence)",
       "Language tests: $300-400 CAD. You will likely take this more than once to maximize your score.",
       "Educational credential assessment: $200-350 CAD + shipping and processing time of 2-3 months",
@@ -1801,7 +1815,7 @@ const BRIEFS: DecisionBrief[] = [
       "Canadian work culture expects local experience. Many immigrants with 10+ years of international experience find that Canadian employers discount foreign work history. Be prepared to start at a lower level than your experience warrants, especially in the first 1-2 years.",
     ],
     familyAndDependents: [
-      "Settlement funds scale with family size: $15,263 CAD for a single applicant, $19,004 for a couple, $23,362 for a family of three, and approximately $4,000 more per additional dependent (2025 numbers, updated annually). These must be liquid and unencumbered — no loans or borrowed funds.",
+      "Settlement funds scale with family size: $15,263 CAD for a single applicant, $19,004 for a couple, $23,362 for a family of three, and approximately $4,000 more per additional dependent (2026 figures, IRCC updates annually each June). These must be liquid and unencumbered — no loans or borrowed funds.",
       "Canada's public school system is free for all resident children and is generally high quality. French immersion programs are available nationwide. However, school quality varies significantly by neighborhood — research school rankings before choosing where to live.",
       "Provincial health insurance has a 0-3 month waiting period after arrival depending on the province. Ontario: 3 months, BC: 3 months, Alberta: immediate. You need private insurance during the gap — budget $150-400 CAD/month for a family.",
       "Spousal open work permits allow your partner to work for any employer immediately upon arrival — this is a major advantage over many other countries. However, finding employment quickly depends on credential recognition and local experience.",
@@ -1815,9 +1829,10 @@ const BRIEFS: DecisionBrief[] = [
       "Canadian politeness is real but social depth takes time. Making acquaintances is easy; making close friends is hard. Many immigrants report feeling isolated in the first 2-3 years. Joining community organizations, sports leagues, or religious institutions is the most reliable way to build a social network.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Immigration, Refugees and Citizenship Canada (IRCC)", url: "https://www.canada.ca/en/immigration-refugees-citizenship.html", type: "official" },
+      { label: "IRCC — Immigrate to Canada (programme overview)", url: "https://www.canada.ca/en/services/immigration-citizenship.html", type: "official" },
     ],
   },
   {
@@ -1903,9 +1918,10 @@ const BRIEFS: DecisionBrief[] = [
       "Community organizations like settlement agencies (funded by the federal government), cultural associations, and religious institutions are the fastest path to social integration. Every major city has free newcomer services — use them. They offer everything from resume help to social events to mentorship programs.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Immigration, Refugees and Citizenship Canada (IRCC)", url: "https://www.canada.ca/en/immigration-refugees-citizenship.html", type: "official" },
+      { label: "IRCC — Express Entry proof of settlement funds (CAD $15,263 single, 2026)", url: "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/express-entry/documents/proof-funds.html", type: "official" },
     ],
   },
 
@@ -1994,9 +2010,10 @@ const BRIEFS: DecisionBrief[] = [
       "The Canal Zone lifestyle is unique — a blend of international influence, Latin American warmth, and global diversity. Panama City has a cosmopolitan feel that smaller Latin American capitals lack.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Servicio Nacional de Migración de Panamá", url: "https://www.migracion.gob.pa/", type: "official" },
+      { label: "Gaceta Oficial de la República de Panamá", url: "https://www.gacetaoficial.gob.pa/", type: "official" },
     ],
   },
   {
@@ -2089,9 +2106,10 @@ const BRIEFS: DecisionBrief[] = [
       "Cost of living in Panama City rivals major international cities — groceries, dining out, and entertainment are not the bargain many expect. Budget 2,500-4,000 USD/month for a comfortable single lifestyle in a desirable neighborhood.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Servicio Nacional de Migración de Panamá", url: "https://www.migracion.gob.pa/", type: "official" },
+      { label: "Decreto Ejecutivo No. 197 de 7 de mayo de 2021 (reforma Visa Países Amigos) — Gaceta Oficial", url: "https://www.gacetaoficial.gob.pa/", type: "official" },
     ],
   },
   {
@@ -2174,9 +2192,10 @@ const BRIEFS: DecisionBrief[] = [
       "Social life for retirees revolves around expat clubs, volunteer organizations, church groups, and the Boquete/Coronado expat communities. Making Panamanian friends requires Spanish, which most retirees do not learn beyond basics.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Servicio Nacional de Migración de Panamá", url: "https://www.migracion.gob.pa/", type: "official" },
+      { label: "Gaceta Oficial — base legal del programa Pensionado (pensión vitalicia mínima de $1,000)", url: "https://www.gacetaoficial.gob.pa/", type: "official" },
     ],
   },
   {
@@ -2260,9 +2279,10 @@ const BRIEFS: DecisionBrief[] = [
       "The expat community for high-net-worth individuals is smaller but well-connected — chambers of commerce, investment clubs, and country-specific associations provide networking opportunities. The American Chamber of Commerce (AmCham Panama) is particularly active.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Servicio Nacional de Migración de Panamá", url: "https://www.migracion.gob.pa/", type: "official" },
+      { label: "Gaceta Oficial — Permiso por solvencia económica propia (depósito mínimo $300,000)", url: "https://www.gacetaoficial.gob.pa/", type: "official" },
     ],
   },
 
@@ -2350,9 +2370,10 @@ const BRIEFS: DecisionBrief[] = [
       "Ecuador's biodiversity is extraordinary — the Galápagos, Amazon rainforest, Andean highlands, and Pacific coast are all within a few hours, making it unmatched for nature lovers",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Cancillería del Ecuador — Visas de residencia", url: "https://www.cancilleria.gob.ec/", type: "official" },
+      { label: "Ministerio del Trabajo — Acuerdo MDT-2025-195 (SBU 2026 = $482)", url: "https://www.trabajo.gob.ec/", type: "official" },
     ],
   },
   {
@@ -2617,9 +2638,10 @@ const BRIEFS: DecisionBrief[] = [
       "Stunning Baroque architecture, crystal-clear waters, and UNESCO World Heritage sites provide genuine cultural richness despite the island's small size",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Identità — Malta residence and visas", url: "https://identita.gov.mt/", type: "official" },
+      { label: "Residency Malta Agency — official government residency programmes", url: "https://residencymalta.gov.mt/", type: "official" },
     ],
   },
   {
@@ -2704,9 +2726,10 @@ const BRIEFS: DecisionBrief[] = [
       "Small island social dynamics mean your reputation follows you — the expat and digital nomad community is interconnected, which can be both supportive and claustrophobic",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Identità — Malta residence and visas", url: "https://identita.gov.mt/", type: "official" },
+      { label: "Residency Malta Agency — Nomad Residence Permit (€3,500/mo income threshold)", url: "https://nomad.residencymalta.gov.mt/", type: "official" },
     ],
   },
   {
@@ -2794,9 +2817,10 @@ const BRIEFS: DecisionBrief[] = [
       "EU travel access via Schengen membership is a genuine advantage — Malta's airport connects to most European capitals, making it a practical base for frequent EU travelers",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "Identità — Malta residence and visas", url: "https://identita.gov.mt/", type: "official" },
+      { label: "Commissioner for Revenue — Global Residence Programme (15% flat tax rules)", url: "https://cfr.gov.mt/", type: "official" },
     ],
   },
 
@@ -2886,9 +2910,10 @@ const BRIEFS: DecisionBrief[] = [
       "Pub culture is central to British social life and workplace bonding. After-work drinks are where professional relationships are built. If you do not drink alcohol, you can still participate — pubs serve food and soft drinks — but understanding this social ritual matters.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "UK Visas and Immigration (gov.uk)", url: "https://www.gov.uk/government/organisations/uk-visas-and-immigration", type: "official" },
+      { label: "gov.uk — Browse visas and immigration routes", url: "https://www.gov.uk/browse/visas-immigration", type: "official" },
     ],
   },
   {
@@ -2977,9 +3002,10 @@ const BRIEFS: DecisionBrief[] = [
       "Professional integration in the UK workplace values indirect communication, self-deprecation, and understatement. Aggressive self-promotion that works in some cultures can be perceived negatively. Observe local workplace culture before asserting yourself.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "UK Visas and Immigration (gov.uk)", url: "https://www.gov.uk/government/organisations/uk-visas-and-immigration", type: "official" },
+      { label: "gov.uk — Skilled Worker visa (general threshold £41,700 since July 2025)", url: "https://www.gov.uk/skilled-worker-visa", type: "official" },
     ],
   },
   {
@@ -3068,9 +3094,10 @@ const BRIEFS: DecisionBrief[] = [
       "The UK's professional community values expertise and track record. As a Global Talent holder, you carry implicit credibility — employers and clients recognize the endorsement as a mark of exceptional ability.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "UK Visas and Immigration (gov.uk)", url: "https://www.gov.uk/government/organisations/uk-visas-and-immigration", type: "official" },
+      { label: "gov.uk — Global Talent visa (endorsement-led, no salary minimum)", url: "https://www.gov.uk/global-talent", type: "official" },
     ],
   },
   {
@@ -3160,9 +3187,10 @@ const BRIEFS: DecisionBrief[] = [
       "Networking is not optional for Innovator Founders. Your endorsing body connections, co-working space relationships, and industry associations are critical for funding, partnerships, and the social proof needed for your ILR application.",
     ],
     confidenceLevel: "High",
-    lastReviewedAt: "2025-12-01",
+    lastReviewedAt: "2026-05-16",
     sourceLinks: [
       { label: "UK Visas and Immigration (gov.uk)", url: "https://www.gov.uk/government/organisations/uk-visas-and-immigration", type: "official" },
+      { label: "gov.uk — Innovator Founder visa (endorsing-body led)", url: "https://www.gov.uk/innovator-founder-visa", type: "official" },
     ],
   },
   // ─── GERMANY ──────────────────────────────────────────────
