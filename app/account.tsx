@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Linking, Modal, Platform, Pressable, ScrollView, Switch, Text, View, useWindowDimensions } from "react-native";
@@ -668,7 +669,14 @@ export default function AccountScreen() {
       ) : null}
 
       <Pressable onPress={handleVersionTap} style={s.versionLabel}>
-        <Text style={s.versionText}>ExpatHub v1.0.0</Text>
+        <Text style={s.versionText}>
+          ExpatHub v{Constants.expoConfig?.version ?? "1.0.0"}
+          {Platform.OS === "ios" && Constants.expoConfig?.ios?.buildNumber
+            ? ` (build ${Constants.expoConfig.ios.buildNumber})`
+            : Platform.OS === "android" && Constants.expoConfig?.android?.versionCode
+              ? ` (build ${Constants.expoConfig.android.versionCode})`
+              : ""}
+        </Text>
       </Pressable>
 
       <CancellationModal
