@@ -475,6 +475,7 @@ export function calculateQuizResult(
   const regionPreference = (answers[9] ?? "southern_europe") as RegionPreference;
   const blockers = getBlockers(answers);
   const readiness = getReadinessLabel(displayScore, MAX_SCORE);
+  const topMatch = pickTopMatch(regionPreference);
 
   return {
     tier,
@@ -482,9 +483,47 @@ export function calculateQuizResult(
     maxScore: MAX_SCORE,
     readiness,
     regionPreference,
+    topMatch,
     risks,
     blockers,
   };
+}
+
+const REGION_TOP_MATCH: Record<RegionPreference, TopMatch> = {
+  southern_europe: {
+    name: "Portugal",
+    flag: "\u{1F1F5}\u{1F1F9}",
+    description: "Well-established expat infrastructure, the D7 and digital nomad pathways, and a slower, sunnier pace.",
+    slug: "portugal",
+  },
+  northern_europe: {
+    name: "United Kingdom",
+    flag: "\u{1F1EC}\u{1F1E7}",
+    description: "Clear visa pathways, strong English-speaking professional networks, and fast onward travel across Europe.",
+    slug: "united-kingdom",
+  },
+  north_america: {
+    name: "Canada",
+    flag: "\u{1F1E8}\u{1F1E6}",
+    description: "Express Entry and provincial nominee pathways, universal healthcare, and a familiar lifestyle close to the US.",
+    slug: "canada",
+  },
+  latin_america: {
+    name: "Costa Rica",
+    flag: "\u{1F1E8}\u{1F1F7}",
+    description: "Generous rentista and pensionado pathways, stable democracy, and a long-running expat community.",
+    slug: "costa-rica",
+  },
+  other: {
+    name: "Australia",
+    flag: "\u{1F1E6}\u{1F1FA}",
+    description: "Skilled migration and working holiday routes, high quality of life, and a strong English-speaking expat scene.",
+    slug: "australia",
+  },
+};
+
+export function pickTopMatch(region: RegionPreference): TopMatch {
+  return REGION_TOP_MATCH[region] ?? REGION_TOP_MATCH.southern_europe;
 }
 
 /**
@@ -533,6 +572,7 @@ export function calculateQuizResultWithWorksheets(
   const regionPreference = (answers[9] ?? "southern_europe") as RegionPreference;
   const blockers = getBlockers(answers);
   const readiness = getReadinessLabel(displayScore, MAX_SCORE);
+  const topMatch = pickTopMatch(regionPreference);
 
   return {
     tier,
@@ -540,6 +580,7 @@ export function calculateQuizResultWithWorksheets(
     maxScore: MAX_SCORE,
     readiness,
     regionPreference,
+    topMatch,
     risks,
     blockers,
   };

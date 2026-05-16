@@ -263,6 +263,19 @@ export default function ResultScreen() {
     router.replace("/onboarding/quiz");
   };
 
+  const handleExploreTopMatch = async () => {
+    if (!result.topMatch?.slug) return;
+    await completeOnboarding(result, true, numericAnswers);
+    trackEvent("result_top_match_tapped", {
+      country: result.topMatch.slug,
+      readiness_level: readiness.level,
+    });
+    router.push({
+      pathname: "/(tabs)/(home)/country/[slug]",
+      params: { slug: result.topMatch.slug },
+    } as any);
+  };
+
   const renderSaveCard = () => {
     if (emailSent) {
       return (
@@ -411,6 +424,29 @@ export default function ResultScreen() {
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 + bottomPad }]}
         showsVerticalScrollIndicator={false}
       >
+        {result.topMatch ? (
+          <Pressable
+            onPress={handleExploreTopMatch}
+            disabled={!result.topMatch.slug}
+            style={({ pressed }) => [styles.card, styles.topMatchCard, pressed && result.topMatch?.slug ? { opacity: 0.92 } : null]}
+            accessibilityRole={result.topMatch.slug ? "button" : undefined}
+            accessibilityLabel={`Best fit: ${result.topMatch.name}`}
+            testID="result-top-match-card"
+          >
+            <Text style={styles.sectionLabel}>Your best fit</Text>
+            <View style={styles.matchRow}>
+              <Text style={styles.matchFlag}>{result.topMatch.flag}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.matchName}>{result.topMatch.name}</Text>
+                <Text style={styles.matchDesc}>{result.topMatch.description}</Text>
+              </View>
+              {result.topMatch.slug ? (
+                <Ionicons name="chevron-forward" size={20} color={tokens.color.subtext} />
+              ) : null}
+            </View>
+          </Pressable>
+        ) : null}
+
         <View style={styles.card}>
           <View style={styles.readinessHeaderRow}>
             <Text style={styles.readinessLabel}>Relocation readiness</Text>
@@ -898,6 +934,19 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.85)",
     fontSize: 13,
     fontFamily: tokens.font.body,
+  },
+  topMatchCard: {
+    borderWidth: 1,
+    borderColor: "#E5DDD0",
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600",
+    color: tokens.color.subtext,
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 12,
   },
   matchRow: {
     flexDirection: "row",
