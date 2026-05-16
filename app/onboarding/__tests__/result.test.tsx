@@ -150,7 +150,7 @@ describe("ResultScreen — funnel analytics", () => {
     expect(completed).toHaveLength(1);
     expect(completed[0][1]).toMatchObject({ action: "continue" });
     expect(__getRouter().replace).toHaveBeenCalledWith("/(tabs)/(home)");
-    expect(completeOnboarding).toHaveBeenCalledWith(expect.anything(), true);
+    expect(completeOnboarding).toHaveBeenCalledWith(expect.anything(), true, expect.anything());
   });
 
   it("Create Free Account CTA fires quiz_completed with action='create_account' and routes to register", async () => {
@@ -169,7 +169,7 @@ describe("ResultScreen — funnel analytics", () => {
     expect(completed).toHaveLength(1);
     expect(completed[0][1]).toMatchObject({ action: "create_account" });
     expect(__getRouter().replace).toHaveBeenCalledWith("/auth?mode=register");
-    expect(completeOnboarding).toHaveBeenCalledWith(expect.anything(), false);
+    expect(completeOnboarding).toHaveBeenCalledWith(expect.anything(), false, expect.anything());
   });
 
   it("does NOT fire readiness_lead_saved when the email field is empty", async () => {

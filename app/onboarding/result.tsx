@@ -53,21 +53,47 @@ function getBaseUrl(): string {
   return getBackendBase();
 }
 
-function BlockerCard({ blocker }: { blocker: Blocker }) {
+function BlockerCard({
+  blocker,
+  defaultExpanded = true,
+}: {
+  blocker: Blocker;
+  defaultExpanded?: boolean;
+}) {
   const c = LEVEL_COLORS[blocker.level];
+  const [expanded, setExpanded] = useState(defaultExpanded);
   return (
-    <View style={[styles.blockerCard, { borderLeftColor: c.border, backgroundColor: c.bg }]}>
+    <Pressable
+      onPress={() => setExpanded((v) => !v)}
+      style={[styles.blockerCard, { borderLeftColor: c.border, backgroundColor: c.bg }]}
+      testID={`blocker-card-${blocker.questionId}`}
+      accessibilityRole="button"
+      accessibilityState={{ expanded }}
+      accessibilityLabel={`${c.label}: ${blocker.title}`}
+      accessibilityHint={expanded ? "Tap to collapse details" : "Tap to expand details"}
+    >
       <View style={styles.blockerHeader}>
         <View style={[styles.levelChip, { backgroundColor: c.chip }]}>
           <Text style={styles.levelChipText}>{c.label}</Text>
         </View>
+        <View style={{ flex: 1 }} />
+        <Ionicons
+          name={expanded ? "chevron-up" : "chevron-down"}
+          size={18}
+          color={tokens.color.subtext}
+        />
       </View>
-      <Text style={styles.blockerTitle}>{blocker.title}</Text>
-      <Text style={styles.blockerLabel}>What this means</Text>
-      <Text style={styles.blockerBody}>{blocker.whatThisMeans}</Text>
-      <Text style={styles.blockerLabel}>First action</Text>
-      <Text style={styles.blockerBody}>{blocker.firstAction}</Text>
-    </View>
+      <Text style={[styles.blockerTitle, !expanded && { marginBottom: 0 }]}>{blocker.title}</Text>
+      {expanded ? (
+        <>
+          <Text style={styles.blockerBody}>{blocker.whatThisMeans}</Text>
+          <Text style={[styles.blockerBody, { marginTop: 10 }]}>
+            <Text style={styles.blockerLeadIn}>Next: </Text>
+            {blocker.firstAction}
+          </Text>
+        </>
+      ) : null}
+    </Pressable>
   );
 }
 
@@ -298,17 +324,27 @@ export default function ResultScreen() {
   const renderBlockerSection = (level: BlockerLevel) => {
     const items = grouped[level];
     if (items.length === 0) return null;
+    const defaultExpanded = level === "critical";
     return (
       <View style={styles.blockerSection}>
         <Text style={styles.sectionHeading}>{SECTION_TITLES[level]}</Text>
         <View style={{ gap: 12 }}>
           {items.map((b) => (
-            <BlockerCard key={b.questionId} blocker={b} />
+            <BlockerCard key={b.questionId} blocker={b} defaultExpanded={defaultExpanded} />
           ))}
         </View>
       </View>
     );
   };
+
+  const counts = {
+    critical: grouped.critical.length,
+    moderate: grouped.moderate.length,
+    explore: grouped.explore.length,
+  };
+  const hasAnyBlockers = counts.critical + counts.moderate + counts.explore > 0;
+  const primaryCtaLabel = user ? "Continue to ExpatHub" : "Create free account to save";
+  const handlePrimaryCta = user ? handleContinue : handleCreateAccount;
 
   const renderPaywallCta = () => (
     <Pressable
@@ -328,11 +364,16 @@ export default function ResultScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + bottomPad }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 120 + bottomPad }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
-          <Text style={styles.readinessLabel}>Relocation readiness</Text>
+          <View style={styles.readinessHeaderRow}>
+            <Text style={styles.readinessLabel}>Relocation readiness</Text>
+            <Pressable onPress={handleRestart} hitSlop={8} testID="result-restart-link">
+              <Text style={styles.restartLinkInline}>Restart</Text>
+            </Pressable>
+          </View>
           <View style={styles.readinessBarTrack} testID="readiness-bar-track">
             <View
               style={[styles.readinessBarFill, { width: `${fillPct}%`, backgroundColor: tokens.color.teal }]}
@@ -343,6 +384,28 @@ export default function ResultScreen() {
             <Text style={styles.tierBadgeText}>{readiness.label}</Text>
           </View>
           <Text style={styles.tierDescription}>{readiness.description}</Text>
+          {hasAnyBlockers ? (
+            <View style={styles.countPillRow}>
+              {counts.critical > 0 ? (
+                <View style={[styles.countPill, { backgroundColor: LEVEL_COLORS.critical.bg, borderColor: LEVEL_COLORS.critical.border }]}>
+                  <View style={[styles.countPillDot, { backgroundColor: LEVEL_COLORS.critical.chip }]} />
+                  <Text style={styles.countPillText}>{counts.critical} critical</Text>
+                </View>
+              ) : null}
+              {counts.moderate > 0 ? (
+                <View style={[styles.countPill, { backgroundColor: LEVEL_COLORS.moderate.bg, borderColor: LEVEL_COLORS.moderate.border }]}>
+                  <View style={[styles.countPillDot, { backgroundColor: LEVEL_COLORS.moderate.chip }]} />
+                  <Text style={styles.countPillText}>{counts.moderate} moderate</Text>
+                </View>
+              ) : null}
+              {counts.explore > 0 ? (
+                <View style={[styles.countPill, { backgroundColor: LEVEL_COLORS.explore.bg, borderColor: LEVEL_COLORS.explore.border }]}>
+                  <View style={[styles.countPillDot, { backgroundColor: LEVEL_COLORS.explore.chip }]} />
+                  <Text style={styles.countPillText}>{counts.explore} explore</Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
         </View>
 
         {renderBlockerSection("critical")}
@@ -386,18 +449,17 @@ export default function ResultScreen() {
         ) : null}
 
         {renderSaveCard()}
-
-        <Pressable
-          onPress={handleContinue}
-          style={({ pressed }) => [styles.exploreCta, pressed && { opacity: 0.9 }]}
-        >
-          <Text style={styles.exploreCtaText}>Continue to ExpatHub</Text>
-        </Pressable>
-
-        <Pressable onPress={handleRestart} hitSlop={8} style={{ alignSelf: "center", marginTop: 4 }}>
-          <Text style={styles.restartLink}>Restart quiz</Text>
-        </Pressable>
       </ScrollView>
+
+      <View style={[styles.stickyCtaBar, { paddingBottom: Math.max(bottomPad, 16) }]}>
+        <Pressable
+          onPress={handlePrimaryCta}
+          style={({ pressed }) => [styles.stickyCta, pressed && { opacity: 0.9 }]}
+          testID="result-primary-cta"
+        >
+          <Text style={styles.stickyCtaText}>{primaryCtaLabel}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -411,6 +473,72 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.space.xl,
     paddingTop: 24,
     gap: 16,
+  },
+  readinessHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  restartLinkInline: {
+    fontSize: 13,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
+    textDecorationLine: "underline",
+  },
+  countPillRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 14,
+  },
+  countPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  countPillDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  countPillText: {
+    fontSize: 12,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600",
+    color: tokens.color.text,
+  },
+  blockerLeadIn: {
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600",
+    color: tokens.color.text,
+  },
+  stickyCtaBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: tokens.color.bg,
+    paddingHorizontal: tokens.space.xl,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(28,43,94,0.08)",
+  },
+  stickyCta: {
+    backgroundColor: tokens.color.teal,
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: "center",
+  },
+  stickyCtaText: {
+    color: "#fff",
+    fontSize: 17,
+    fontFamily: tokens.font.bodySemiBold,
+    fontWeight: "600",
   },
   card: {
     backgroundColor: "#fff",
