@@ -575,6 +575,76 @@ describe("renderPlannerAnalyticsHtml", () => {
     expect(html).toContain("No countries have at least 3 plans started yet.");
   });
 
+  it("renders a per-country completion bar chart sorted by rate descending", () => {
+    const html = renderPlannerAnalyticsHtml(
+      baseResult({
+        byCountry: [
+          {
+            country: "portugal",
+            plansStarted: 6,
+            plansCompleted: 2,
+            completionRatePct: 33.3,
+            medianDaysToCompletion: 10,
+            medianSampleSize: 2,
+            medianExcludedUnknownStart: 0,
+          },
+          {
+            country: "spain",
+            plansStarted: 8,
+            plansCompleted: 6,
+            completionRatePct: 75,
+            medianDaysToCompletion: 8,
+            medianSampleSize: 6,
+            medianExcludedUnknownStart: 0,
+          },
+          {
+            country: "canada",
+            plansStarted: 4,
+            plansCompleted: 0,
+            completionRatePct: 0,
+            medianDaysToCompletion: null,
+            medianSampleSize: 0,
+            medianExcludedUnknownStart: 0,
+          },
+        ],
+      }),
+    );
+    expect(html).toContain('<div class="chart"');
+    // Spain (75%) renders before Portugal (33.3%) which renders before Canada (0%).
+    const spainIdx = html.indexOf(
+      '<div class="chart-label">Spain</div>',
+    );
+    const portugalIdx = html.indexOf(
+      '<div class="chart-label">Portugal</div>',
+    );
+    const canadaIdx = html.indexOf(
+      '<div class="chart-label">Canada</div>',
+    );
+    expect(spainIdx).toBeGreaterThan(-1);
+    expect(portugalIdx).toBeGreaterThan(spainIdx);
+    expect(canadaIdx).toBeGreaterThan(portugalIdx);
+    // Bars are scaled on a true 0–100% axis: Spain's 75% bar is 75% wide,
+    // Portugal's 33.3% bar is 33.3% wide, Canada's 0% bar is 0% wide.
+    expect(html).toContain(
+      '<div class="chart-bar" style="width: 75%"></div>',
+    );
+    expect(html).toContain(
+      '<div class="chart-bar" style="width: 33.3%"></div>',
+    );
+    expect(html).toContain(
+      '<div class="chart-bar" style="width: 0%"></div>',
+    );
+    expect(html).toContain(
+      '<div class="chart-value">75.0%</div>',
+    );
+    expect(html).toContain(
+      '<div class="chart-value">33.3%</div>',
+    );
+    expect(html).toContain(
+      '<div class="chart-value">0.0%</div>',
+    );
+  });
+
   it("links to the CSV export for the per-country breakdown", () => {
     const html = renderPlannerAnalyticsHtml(baseResult());
     expect(html).toContain('href="/admin/planner-analytics.csv"');
@@ -638,6 +708,8 @@ describe("renderPlannerAnalyticsCsv", () => {
           plansCompleted: 2,
           completionRatePct: 33.3,
           medianDaysToCompletion: 10,
+          medianSampleSize: 2,
+          medianExcludedUnknownStart: 0,
         },
         {
           country: "spain",
@@ -645,6 +717,8 @@ describe("renderPlannerAnalyticsCsv", () => {
           plansCompleted: 0,
           completionRatePct: 0,
           medianDaysToCompletion: null,
+          medianSampleSize: 0,
+          medianExcludedUnknownStart: 0,
         },
       ]),
     );

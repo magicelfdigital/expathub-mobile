@@ -734,6 +734,39 @@ export function renderPlannerAnalyticsHtml(
     : `No countries have at least ${minPlans} plan${
         minPlans === 1 ? "" : "s"
       } started yet.`;
+  // Horizontal bar chart of completion rate per country, sorted high→low.
+  // Uses the same `data.byCountry` array as the breakdown table, so it
+  // naturally respects the active country filter and the minPlans
+  // threshold (no separate query needed). Rendered as plain HTML/CSS so
+  // it works without any client-side JS or external chart library.
+  const byCountryChartRows = [...data.byCountry].sort(
+    (a, b) => b.completionRatePct - a.completionRatePct,
+  );
+  // Bars are scaled on a true 0–100% axis (not relative to the best
+  // country in view) so the absolute level of completion is read
+  // honestly. A relative scale would visually overstate a field where
+  // every country is in single digits.
+  const byCountryChartHtml = byCountryChartRows.length
+    ? `
+  <div class="chart" role="img" aria-label="Completion rate per country, 0 to 100 percent">
+    ${byCountryChartRows
+      .map((row) => {
+        const widthPct =
+          Math.round(Math.min(100, Math.max(0, row.completionRatePct)) * 10) /
+          10;
+        return `
+    <div class="chart-row">
+      <div class="chart-label">${escapeHtml(titleCaseCountry(row.country))}</div>
+      <div class="chart-track">
+        <div class="chart-bar" style="width: ${widthPct}%"></div>
+      </div>
+      <div class="chart-value">${row.completionRatePct.toFixed(1)}%</div>
+    </div>`;
+      })
+      .join("")}
+  </div>`
+    : `<p class="meta empty">${emptyMessage}</p>`;
+
   const byCountryRowsHtml = data.byCountry.length
     ? data.byCountry
         .map((row) => {
@@ -843,6 +876,27 @@ export function renderPlannerAnalyticsHtml(
       background: #e8f0fe; color: #0a66c2; font-size: 12px;
     }
     .badge.muted { background: #f0f0f0; color: #555; }
+    .chart {
+      background: #fff; border: 1px solid #e5e5e5; border-radius: 10px;
+      padding: 16px 20px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .chart-row {
+      display: grid;
+      grid-template-columns: minmax(120px, 160px) 1fr minmax(56px, auto);
+      align-items: center; gap: 12px;
+    }
+    .chart-label { font-size: 13px; color: #111; }
+    .chart-track {
+      background: #f0f0f0; border-radius: 6px; height: 14px; overflow: hidden;
+    }
+    .chart-bar {
+      background: #0a66c2; height: 100%; border-radius: 6px;
+      min-width: 2px;
+    }
+    .chart-value {
+      font-variant-numeric: tabular-nums; font-size: 13px; color: #333;
+      text-align: right;
+    }
   </style>
 </head>
 <body>
@@ -941,7 +995,8 @@ export function renderPlannerAnalyticsHtml(
     }
     <a href="${escapeHtml(csvHref)}">Download CSV</a>
   </p>
-  <table>
+  ${byCountryChartHtml}
+  <table style="margin-top: 16px;">
     <thead>
       <tr>
         <th>Country</th>
