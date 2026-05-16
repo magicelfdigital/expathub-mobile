@@ -34,8 +34,12 @@ jest.mock("@/contexts/OnboardingContext", () => ({
   useOnboarding: () => ({ completeOnboarding }),
 }));
 
+let __authUser: { id: number; email: string } | null = {
+  id: 1,
+  email: "ada@example.com",
+};
 jest.mock("@/contexts/AuthContext", () => ({
-  useAuth: () => ({ user: { id: 1, email: "ada@example.com" }, token: "t" }),
+  useAuth: () => ({ user: __authUser, token: __authUser ? "t" : null }),
   AUTH_API_URL: "http://test/api/auth",
 }));
 
@@ -100,6 +104,7 @@ beforeEach(() => {
   __resetRouter();
   __setSearchParams({ answers: ANSWERS_HIGH_READY });
   (global as any).fetch = jest.fn(async () => ({ ok: true, json: async () => ({}) }));
+  __authUser = { id: 1, email: "ada@example.com" };
 });
 
 describe("ResultScreen — funnel analytics", () => {
@@ -132,6 +137,30 @@ describe("ResultScreen — funnel analytics", () => {
       "CompletedQuiz",
       undefined,
       expect.objectContaining({ readiness_level: expect.any(String) }),
+    );
+  });
+
+  it("Create Account CTA fires quiz_completed with action='create_account' and routes to /auth?mode=register", async () => {
+    __authUser = null;
+    let renderer: any;
+    act(() => {
+      renderer = TestRenderer.create(<ResultScreen />);
+    });
+    const btn = getButton(renderer!.root, "Create free account to save");
+    expect(btn).toBeDefined();
+    await act(async () => {
+      await btn.props.onPress();
+    });
+    const completed = trackEvent.mock.calls.filter(
+      (c) => c[0] === "quiz_completed",
+    );
+    expect(completed).toHaveLength(1);
+    expect(completed[0][1]).toMatchObject({ action: "create_account" });
+    expect(__getRouter().replace).toHaveBeenCalledWith("/auth?mode=register");
+    expect(completeOnboarding).toHaveBeenCalledWith(
+      expect.anything(),
+      false,
+      expect.anything(),
     );
   });
 
