@@ -205,6 +205,12 @@ export type CountryBreakdown = {
   plansCompleted: number;
   completionRatePct: number;
   medianDaysToCompletion: number | null;
+  // Per-country counterparts to totals.medianSampleSize /
+  // totals.medianExcludedUnknownStart. Surfacing them per row lets
+  // admins judge whether a slow-looking country is really slow or
+  // just based on a tiny sample.
+  medianSampleSize: number;
+  medianExcludedUnknownStart: number;
 };
 
 export type PlannerAnalyticsResult = {
@@ -543,6 +549,12 @@ export async function computePlannerAnalytics(
      SELECT target_country,
             COUNT(*)::int                                  AS plans_started,
             COUNT(*) FILTER (WHERE done_steps = $2)::int   AS plans_completed,
+            COUNT(*) FILTER (
+              WHERE done_steps = $2 AND started_at IS NOT NULL
+            )::int                                         AS median_sample_size,
+            COUNT(*) FILTER (
+              WHERE done_steps = $2 AND started_at IS NULL
+            )::int                                         AS median_excluded_unknown_start,
             PERCENTILE_CONT(0.5) WITHIN GROUP (
               ORDER BY EXTRACT(EPOCH FROM (last_completed_at - started_at)) / 86400.0
             ) FILTER (WHERE done_steps = $2 AND started_at IS NOT NULL)
@@ -566,6 +578,9 @@ export async function computePlannerAnalytics(
       completionRatePct:
         started > 0 ? Math.round((completed / started) * 1000) / 10 : 0,
       medianDaysToCompletion: median,
+      medianSampleSize: Number(row.median_sample_size) || 0,
+      medianExcludedUnknownStart:
+        Number(row.median_excluded_unknown_start) || 0,
     };
   });
 
@@ -722,6 +737,11 @@ export function renderPlannerAnalyticsHtml(
   const byCountryRowsHtml = data.byCountry.length
     ? data.byCountry
         .map((row) => {
+          // Render "—" for the median when there's no usable sample so the
+          // table doesn't imply precision we don't have. Sample-size and
+          // excluded counts always show as numbers (including zero) so it's
+          // obvious whether the dash means "no completions" vs. "all
+          // completions had unknown start".
           const medianCell =
             row.medianDaysToCompletion === null
               ? "—"
@@ -741,10 +761,12 @@ export function renderPlannerAnalyticsHtml(
         <td class="num">${row.plansCompleted.toLocaleString()}</td>
         <td class="num">${row.completionRatePct.toFixed(1)}%</td>
         <td class="num">${escapeHtml(medianCell)}</td>
+        <td class="num">${row.medianSampleSize.toLocaleString()}</td>
+        <td class="num">${row.medianExcludedUnknownStart.toLocaleString()}</td>
       </tr>`;
         })
         .join("")
-    : `<tr><td colspan="5" class="empty">${emptyMessage}</td></tr>`;
+    : `<tr><td colspan="7" class="empty">${emptyMessage}</td></tr>`;
 
   const filterBadge = activeCountry
     ? `<span class="badge">Filtered to <strong>${escapeHtml(
@@ -927,6 +949,8 @@ export function renderPlannerAnalyticsHtml(
         <th class="num">Reached 100%</th>
         <th class="num">% reaching 100%</th>
         <th class="num">Median time-to-100%</th>
+        <th class="num">Median sample size</th>
+        <th class="num">Excluded (unknown start)</th>
       </tr>
     </thead>
     <tbody>${byCountryRowsHtml}</tbody>

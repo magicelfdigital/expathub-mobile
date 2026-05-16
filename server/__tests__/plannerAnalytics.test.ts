@@ -228,12 +228,16 @@ function rowsForUnfilteredFixture(text: string, values: unknown[]): FakeRow[] {
         target_country: "portugal",
         plans_started: 6,
         plans_completed: 2,
+        median_sample_size: 2,
+        median_excluded_unknown_start: 0,
         median_days: 10,
       },
       {
         target_country: "spain",
         plans_started: 4,
         plans_completed: 1,
+        median_sample_size: 0,
+        median_excluded_unknown_start: 1,
         median_days: null,
       },
     ];
@@ -289,8 +293,12 @@ describe("computePlannerAnalytics", () => {
         plansCompleted: 2,
         completionRatePct: 33.3,
         medianDaysToCompletion: 10,
+        medianSampleSize: 2,
+        medianExcludedUnknownStart: 0,
       });
       expect(result.byCountry[1].medianDaysToCompletion).toBeNull();
+      expect(result.byCountry[1].medianSampleSize).toBe(0);
+      expect(result.byCountry[1].medianExcludedUnknownStart).toBe(1);
     });
 
     it("populates the countries dropdown list", () => {
@@ -359,6 +367,8 @@ describe("computePlannerAnalytics", () => {
                 target_country: "portugal",
                 plans_started: 6,
                 plans_completed: 2,
+                median_sample_size: 2,
+                median_excluded_unknown_start: 0,
                 median_days: 8,
               },
             ],
@@ -432,6 +442,8 @@ describe("computePlannerAnalytics", () => {
           plansCompleted: 2,
           completionRatePct: 33.3,
           medianDaysToCompletion: 8,
+          medianSampleSize: 2,
+          medianExcludedUnknownStart: 0,
         },
       ]);
     });
@@ -499,6 +511,8 @@ describe("renderPlannerAnalyticsHtml", () => {
           plansCompleted: 2,
           completionRatePct: 33.3,
           medianDaysToCompletion: 10,
+          medianSampleSize: 2,
+          medianExcludedUnknownStart: 0,
         },
       ],
       ...overrides,

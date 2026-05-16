@@ -56,6 +56,7 @@ function makeComputePool(perPlanRow: {
 
 function baseData(
   overrides: Partial<PlannerAnalyticsResult["totals"]> = {},
+  byCountry: PlannerAnalyticsResult["byCountry"] = [],
 ): PlannerAnalyticsResult {
   return {
     generatedAt: "2026-04-28T12:00:00.000Z",
@@ -75,7 +76,7 @@ function baseData(
     stepCompletion: [],
     stageDropOff: [],
     weekly: [],
-    byCountry: [],
+    byCountry,
   };
 }
 
@@ -145,6 +146,46 @@ describe("renderPlannerAnalyticsHtml — median exclusion transparency", () => {
     expect(html).toContain(
       "1,500 completed plans excluded (unknown start, 30.0% of completed)",
     );
+  });
+});
+
+describe("renderPlannerAnalyticsHtml — per-country median transparency", () => {
+  it("adds sample size and excluded-unknown-start columns to the per-country table", () => {
+    const html = renderPlannerAnalyticsHtml(
+      baseData({}, [
+        {
+          country: "portugal",
+          plansStarted: 12,
+          plansCompleted: 5,
+          completionRatePct: 41.7,
+          medianDaysToCompletion: 18.4,
+          medianSampleSize: 4,
+          medianExcludedUnknownStart: 1,
+        },
+        {
+          country: "spain",
+          plansStarted: 6,
+          plansCompleted: 0,
+          completionRatePct: 0,
+          medianDaysToCompletion: null,
+          medianSampleSize: 0,
+          medianExcludedUnknownStart: 0,
+        },
+      ]),
+    );
+    expect(html).toContain("Median sample size");
+    expect(html).toContain("Excluded (unknown start)");
+    // Per-country median values render alongside the per-country counts.
+    expect(html).toContain("18.4 days");
+    // Country with no completions shows an em-dash for median but still
+    // surfaces explicit zeros for sample size and exclusions so the row
+    // isn't ambiguous.
+    expect(html).toMatch(/<td class="num">—<\/td>/);
+  });
+
+  it("expands the empty-state colspan to span all 7 per-country columns", () => {
+    const html = renderPlannerAnalyticsHtml(baseData({}, []));
+    expect(html).toContain('colspan="7"');
   });
 });
 
