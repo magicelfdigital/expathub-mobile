@@ -60,15 +60,19 @@ async function stopChild(child) {
 }
 
 async function phase(name, fn) {
+  const slot = { name, ok: false, ms: 0 };
+  PHASES.push(slot);
   const started = Date.now();
   console.log(`\n=== [run-all-tests] PHASE: ${name} ===`);
   try {
     await fn();
-    PHASES.push({ name, ok: true, ms: Date.now() - started });
-    console.log(`=== [run-all-tests] PHASE OK: ${name} (${Date.now() - started}ms) ===`);
+    slot.ok = true;
+    slot.ms = Date.now() - started;
+    console.log(`=== [run-all-tests] PHASE OK: ${name} (${slot.ms}ms) ===`);
   } catch (err) {
     exitCode = 1;
-    PHASES.push({ name, ok: false, ms: Date.now() - started, error: String(err?.message ?? err) });
+    slot.ms = Date.now() - started;
+    slot.error = String(err?.message ?? err);
     console.error(`=== [run-all-tests] PHASE FAIL: ${name} — ${err?.message ?? err} ===`);
   }
 }
@@ -77,7 +81,7 @@ await phase("jest", async () => {
   await run("npx", ["jest", "--ci"]);
 });
 
-await phase("playwright:web-spa", async () => {
+const webSpaPhase = phase("playwright:web-spa", async () => {
   await run("npx", ["vite", "build", "--config", "web/vite.config.ts"]);
   const server = spawnServer("npx", ["tsx", "server/index.ts"], {
     logFile: "server.log",
@@ -105,7 +109,7 @@ await phase("playwright:web-spa", async () => {
   }
 });
 
-await phase("playwright:expo-web", async () => {
+const expoWebPhase = phase("playwright:expo-web", async () => {
   const expo = spawnServer("npx", ["expo", "start", "--web", "--port", "8081"], {
     logFile: "expo.log",
     env: {
@@ -126,6 +130,8 @@ await phase("playwright:expo-web", async () => {
     await stopChild(expo);
   }
 });
+
+await Promise.all([webSpaPhase, expoWebPhase]);
 
 console.log("\n=== [run-all-tests] SUMMARY ===");
 for (const p of PHASES) {
