@@ -1,4 +1,5 @@
 import {
+  classifyPlacement,
   classifySurface,
   computeQuizSaveAnalytics,
   isQuizSaveEventName,
@@ -71,35 +72,81 @@ describe("isQuizSaveEventName", () => {
   });
 });
 
+describe("classifyPlacement", () => {
+  it("returns 'mid_quiz' / 'result_screen' for the two known placements", () => {
+    expect(
+      classifyPlacement({
+        event: "quiz_save_shown",
+        properties: { placement: "mid_quiz" },
+      }),
+    ).toBe("mid_quiz");
+    expect(
+      classifyPlacement({
+        event: "quiz_save_shown",
+        properties: { placement: "result_screen" },
+      }),
+    ).toBe("result_screen");
+  });
+
+  it("returns 'unknown' for missing / unrecognised placements", () => {
+    expect(classifyPlacement({ event: "quiz_save_shown" })).toBe("unknown");
+    expect(
+      classifyPlacement({
+        event: "quiz_save_shown",
+        properties: { placement: "weird_value" },
+      }),
+    ).toBe("unknown");
+    expect(classifyPlacement(null)).toBe("unknown");
+  });
+});
+
 describe("recordQuizSaveEvent", () => {
-  it("inserts the event with surface + distinct_id and ensures the table once", async () => {
+  it("inserts the event with surface + distinct_id + placement and ensures the table once", async () => {
     const { pool, calls } = makeFakePool(() => ({ rows: [] }));
 
     await recordQuizSaveEvent(pool, {
       event: "quiz_save_submitted",
       distinct_id: "anon_42",
-      properties: { surface: "web" },
+      properties: { surface: "web", placement: "mid_quiz" },
     });
     await recordQuizSaveEvent(pool, {
       event: "quiz_save_dismissed",
       distinct_id: "anon_43",
-      properties: { surface: "web" },
+      properties: { surface: "web", placement: "result_screen" },
     });
 
     const createCalls = calls.filter((c) => /CREATE TABLE/.test(c.text));
+    const alterCalls = calls.filter((c) =>
+      /ALTER TABLE quiz_save_events ADD COLUMN IF NOT EXISTS placement/.test(c.text),
+    );
     const insertCalls = calls.filter((c) => /INSERT INTO quiz_save_events/.test(c.text));
     expect(createCalls).toHaveLength(1);
+    // The ALTER migration also only runs once thanks to the ensure cache.
+    expect(alterCalls).toHaveLength(1);
     expect(insertCalls).toHaveLength(2);
     expect(insertCalls[0].values).toEqual([
       "quiz_save_submitted",
       "web",
       "anon_42",
+      "mid_quiz",
     ]);
     expect(insertCalls[1].values).toEqual([
       "quiz_save_dismissed",
       "web",
       "anon_43",
+      "result_screen",
     ]);
+  });
+
+  it("persists NULL placement when the event has no placement attribute", async () => {
+    const { pool, calls } = makeFakePool(() => ({ rows: [] }));
+    await recordQuizSaveEvent(pool, {
+      event: "quiz_save_shown",
+      distinct_id: "anon_99",
+      properties: { surface: "web" },
+    });
+    const insert = calls.find((c) => /INSERT INTO quiz_save_events/.test(c.text));
+    expect(insert?.values).toEqual(["quiz_save_shown", "web", "anon_99", null]);
   });
 
   it("ignores non-quiz-save events", async () => {
@@ -126,19 +173,30 @@ describe("recordQuizSaveEvent", () => {
       platform: "ios",
     });
     const insert = calls.find((c) => /INSERT INTO quiz_save_events/.test(c.text));
-    expect(insert?.values).toEqual(["quiz_save_shown", "mobile", "device_99"]);
+    expect(insert?.values).toEqual([
+      "quiz_save_shown",
+      "mobile",
+      "device_99",
+      null,
+    ]);
   });
 });
 
 describe("computeQuizSaveAnalytics", () => {
   it("computes recovery rate, surface split, and email-gate cannibalisation", async () => {
     const eventRows = [
-      { event: "quiz_save_shown", surface: "web", n: "100" },
-      { event: "quiz_save_submitted", surface: "web", n: "20" },
-      { event: "quiz_save_dismissed", surface: "web", n: "70" },
-      { event: "quiz_save_shown", surface: "mobile", n: "50" },
-      { event: "quiz_save_submitted", surface: "mobile", n: "5" },
-      { event: "quiz_save_dismissed", surface: "mobile", n: "40" },
+      // Web rows are all mid-quiz (the legacy placement); mobile is split
+      // between the new post-result modal and a few legacy rows that landed
+      // before the placement column was backfilled (placement: null).
+      { event: "quiz_save_shown", surface: "web", placement: "mid_quiz", n: "100" },
+      { event: "quiz_save_submitted", surface: "web", placement: "mid_quiz", n: "20" },
+      { event: "quiz_save_dismissed", surface: "web", placement: "mid_quiz", n: "70" },
+      { event: "quiz_save_shown", surface: "mobile", placement: "result_screen", n: "40" },
+      { event: "quiz_save_submitted", surface: "mobile", placement: "result_screen", n: "4" },
+      { event: "quiz_save_dismissed", surface: "mobile", placement: "result_screen", n: "32" },
+      { event: "quiz_save_shown", surface: "mobile", placement: null, n: "10" },
+      { event: "quiz_save_submitted", surface: "mobile", placement: null, n: "1" },
+      { event: "quiz_save_dismissed", surface: "mobile", placement: null, n: "8" },
     ];
     const leadRows = [
       { source: "web_funnel", n: "60" },
@@ -189,6 +247,27 @@ describe("computeQuizSaveAnalytics", () => {
       dismissed: 40,
       recoveryRate: 0.1,
     });
+    // Placement split: mid_quiz reflects the web rows, result_screen reflects
+    // the new mobile post-result modal, and unknown captures the legacy
+    // mobile rows that landed before the placement column existed.
+    expect(result.byPlacement.mid_quiz).toEqual({
+      shown: 100,
+      submitted: 20,
+      dismissed: 70,
+      recoveryRate: 0.2,
+    });
+    expect(result.byPlacement.result_screen).toEqual({
+      shown: 40,
+      submitted: 4,
+      dismissed: 32,
+      recoveryRate: 0.1,
+    });
+    expect(result.byPlacement.unknown).toEqual({
+      shown: 10,
+      submitted: 1,
+      dismissed: 8,
+      recoveryRate: 0.1,
+    });
     // Direct = web_funnel (60) + null source (5); save = web_funnel_save (20).
     expect(result.emailGate).toEqual({
       directCaptures: 65,
@@ -228,6 +307,9 @@ describe("computeQuizSaveAnalytics", () => {
     expect(result.totals.recoveryRate).toBeNull();
     expect(result.bySurface.web.recoveryRate).toBeNull();
     expect(result.bySurface.mobile.recoveryRate).toBeNull();
+    expect(result.byPlacement.mid_quiz.recoveryRate).toBeNull();
+    expect(result.byPlacement.result_screen.recoveryRate).toBeNull();
+    expect(result.byPlacement.unknown.recoveryRate).toBeNull();
     expect(result.emailGate.saveShareOfCaptures).toBeNull();
     expect(result.emailGate.unavailable).toBe(false);
   });

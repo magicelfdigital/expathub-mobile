@@ -149,7 +149,11 @@ describe("POST /api/analytics — $identify payload inspection", () => {
       .send({
         event: "quiz_save_submitted",
         distinct_id: "anon_xyz",
-        properties: { surface: "web", distinct_id: "anon_xyz" },
+        properties: {
+          surface: "web",
+          distinct_id: "anon_xyz",
+          placement: "mid_quiz",
+        },
       });
 
     expect(res.status).toBe(200);
@@ -164,6 +168,7 @@ describe("POST /api/analytics — $identify payload inspection", () => {
       "quiz_save_submitted",
       "web",
       "anon_xyz",
+      "mid_quiz",
     ]);
   });
 

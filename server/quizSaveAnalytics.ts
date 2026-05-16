@@ -36,6 +36,31 @@ export function isQuizSaveEventName(value: unknown): value is QuizSaveEventName 
 // so the dashboard always shows the two surfaces it cares about.
 export type Surface = "web" | "mobile";
 
+// Placement attribution: events now carry `properties.placement` so we can
+// distinguish the new post-result modal (`result_screen`) from the legacy
+// mid-quiz one (`mid_quiz`). Rows persisted before this column existed have
+// no placement and fall through to `unknown` so legacy data stays visible
+// without being misattributed.
+export const PLACEMENT_BUCKETS = [
+  "mid_quiz",
+  "result_screen",
+  "unknown",
+] as const;
+export type Placement = (typeof PLACEMENT_BUCKETS)[number];
+
+export function classifyPlacement(body: unknown): Placement {
+  if (!body || typeof body !== "object") return "unknown";
+  const props = (body as { properties?: unknown }).properties;
+  const raw =
+    props && typeof props === "object"
+      ? (props as { placement?: unknown }).placement
+      : undefined;
+  if (typeof raw !== "string") return "unknown";
+  const lower = raw.toLowerCase();
+  if (lower === "mid_quiz" || lower === "result_screen") return lower;
+  return "unknown";
+}
+
 export function classifySurface(body: unknown): Surface {
   if (!body || typeof body !== "object") return "mobile";
   const props = (body as { properties?: unknown }).properties;
@@ -61,8 +86,8 @@ export function resetQuizSaveAnalyticsEnsureCache(): void {
 
 export async function ensureQuizSaveEventsTable(pool: pg.Pool): Promise<void> {
   if (!ensureTablePromise) {
-    ensureTablePromise = pool
-      .query(
+    ensureTablePromise = (async () => {
+      await pool.query(
         `CREATE TABLE IF NOT EXISTS quiz_save_events (
            id SERIAL PRIMARY KEY,
            event VARCHAR(40) NOT NULL,
@@ -70,13 +95,18 @@ export async function ensureQuizSaveEventsTable(pool: pg.Pool): Promise<void> {
            distinct_id VARCHAR(255),
            created_at TIMESTAMP NOT NULL DEFAULT NOW()
          )`,
-      )
-      .then(() => undefined)
-      .catch((err) => {
-        // Reset so a transient failure doesn't permanently disable persistence.
-        ensureTablePromise = null;
-        throw err;
-      });
+      );
+      // Migration: add the placement column for tables created before the
+      // post-result modal split. Rows persisted before this migration ran
+      // keep a NULL placement and surface in the dashboard as "unknown".
+      await pool.query(
+        `ALTER TABLE quiz_save_events ADD COLUMN IF NOT EXISTS placement VARCHAR(32)`,
+      );
+    })().catch((err) => {
+      // Reset so a transient failure doesn't permanently disable persistence.
+      ensureTablePromise = null;
+      throw err;
+    });
   }
   await ensureTablePromise;
 }
@@ -89,12 +119,21 @@ export async function recordQuizSaveEvent(
   const event = (body as { event?: unknown }).event;
   if (!isQuizSaveEventName(event)) return;
   const surface = classifySurface(body);
+  const placement = classifyPlacement(body);
   const distinctId = (body as { distinct_id?: unknown }).distinct_id;
   await ensureQuizSaveEventsTable(pool);
+  // Store the placement string verbatim when known; persist NULL for
+  // "unknown" so legacy rows and new-but-untagged rows share the same
+  // bucket when the analytics query coalesces missing values.
   await pool.query(
-    `INSERT INTO quiz_save_events (event, surface, distinct_id)
-     VALUES ($1, $2, $3)`,
-    [event, surface, typeof distinctId === "string" ? distinctId : null],
+    `INSERT INTO quiz_save_events (event, surface, distinct_id, placement)
+     VALUES ($1, $2, $3, $4)`,
+    [
+      event,
+      surface,
+      typeof distinctId === "string" ? distinctId : null,
+      placement === "unknown" ? null : placement,
+    ],
   );
 }
 
@@ -141,6 +180,11 @@ export interface QuizSaveAnalytics {
   windowDays: number;
   totals: SurfaceMetrics;
   bySurface: Record<Surface, SurfaceMetrics>;
+  // Placement split so the new post-result modal's performance can be
+  // compared against the legacy mid-quiz baseline without blending them.
+  // `unknown` covers rows persisted before the placement column existed
+  // (or events that arrived without a placement attribute).
+  byPlacement: Record<Placement, SurfaceMetrics>;
   emailGate: EmailGateMetrics;
   // ISO-week buckets, oldest-first, covering the most recent 8 weeks
   // (inclusive of the current in-progress week). Weeks with no events
@@ -184,12 +228,13 @@ export async function computeQuizSaveAnalytics(
   const eventsResult = await pool.query<{
     event: string;
     surface: string;
+    placement: string | null;
     n: string;
   }>(
-    `SELECT event, surface, COUNT(*)::bigint AS n
+    `SELECT event, surface, placement, COUNT(*)::bigint AS n
        FROM quiz_save_events
       WHERE created_at >= NOW() - $1::interval
-      GROUP BY event, surface`,
+      GROUP BY event, surface, placement`,
     [interval],
   );
 
@@ -198,6 +243,26 @@ export async function computeQuizSaveAnalytics(
   const bySurface: Record<Surface, SurfaceMetrics> = {
     web: metricsRow(eventsResult.rows.filter((r) => r.surface === "web")),
     mobile: metricsRow(eventsResult.rows.filter((r) => r.surface !== "web")),
+  };
+  // Coalesce NULL / unrecognised placements into the `unknown` bucket so
+  // legacy rows (column was nullable, no placement attribute on the event)
+  // still appear in the dashboard rather than vanishing from the split.
+  const normalisePlacement = (raw: string | null): Placement => {
+    if (raw === "mid_quiz" || raw === "result_screen") return raw;
+    return "unknown";
+  };
+  const byPlacement: Record<Placement, SurfaceMetrics> = {
+    mid_quiz: metricsRow(
+      eventsResult.rows.filter((r) => normalisePlacement(r.placement) === "mid_quiz"),
+    ),
+    result_screen: metricsRow(
+      eventsResult.rows.filter(
+        (r) => normalisePlacement(r.placement) === "result_screen",
+      ),
+    ),
+    unknown: metricsRow(
+      eventsResult.rows.filter((r) => normalisePlacement(r.placement) === "unknown"),
+    ),
   };
 
   // Email-gate cannibalisation comparison: count `quiz_leads` rows in the
@@ -298,7 +363,7 @@ export async function computeQuizSaveAnalytics(
     };
   });
 
-  return { windowDays, totals, bySurface, emailGate, weekly };
+  return { windowDays, totals, bySurface, byPlacement, emailGate, weekly };
 }
 
 function escapeHtml(value: string): string {
@@ -463,8 +528,14 @@ function renderWeeklyTable(weeks: WeeklyMetrics[]): string {
   </table>`;
 }
 
+const PLACEMENT_LABELS: Record<Placement, string> = {
+  mid_quiz: "Mid-quiz (legacy)",
+  result_screen: "Result screen (new)",
+  unknown: "Unknown / pre-migration",
+};
+
 export function renderQuizSaveAnalyticsHtml(data: QuizSaveAnalytics): string {
-  const { totals, bySurface, emailGate, windowDays, weekly } = data;
+  const { totals, bySurface, byPlacement, emailGate, windowDays, weekly } = data;
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -508,6 +579,27 @@ export function renderQuizSaveAnalyticsHtml(data: QuizSaveAnalytics): string {
   <p class="desc">Always covers the most recent 8 ISO weeks (Mon–Sun) regardless of the window above, so trends remain comparable as you change the filter. Bars use the left axis (counts); the line uses the right axis (recovery rate).</p>
   ${renderWeeklyChartSvg(weekly)}
   ${renderWeeklyTable(weekly)}
+
+  <h2>Save-prompt funnel by placement</h2>
+  <p class="desc">
+    Mobile fires <code>placement: "result_screen"</code> from the new
+    post-result modal in <code>src/components/QuizSaveModal.tsx</code>; web
+    still fires <code>placement: "mid_quiz"</code> from
+    <code>web/src/components/QuizSaveModal.tsx</code>. Rows persisted before
+    this column existed have a NULL placement and appear under
+    <em>Unknown / pre-migration</em>.
+  </p>
+  <table>
+    <thead>
+      <tr><th>Placement</th><th style="text-align:right">Shown</th><th style="text-align:right">Submitted</th><th style="text-align:right">Dismissed</th><th style="text-align:right">Recovery rate</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>${escapeHtml(PLACEMENT_LABELS.mid_quiz)}</td>${metricsCells(byPlacement.mid_quiz)}</tr>
+      <tr><td>${escapeHtml(PLACEMENT_LABELS.result_screen)}</td>${metricsCells(byPlacement.result_screen)}</tr>
+      <tr><td>${escapeHtml(PLACEMENT_LABELS.unknown)}</td>${metricsCells(byPlacement.unknown)}</tr>
+      <tr><td><strong>Total</strong></td>${metricsCells(totals)}</tr>
+    </tbody>
+  </table>
 
   <h2>Save-prompt funnel by surface</h2>
   <p class="desc">Mobile fires the same event names mid-quiz from <code>app/onboarding/quiz.tsx</code>; web fires them from <code>web/src/components/QuizSaveModal.tsx</code>.</p>

@@ -361,25 +361,32 @@ export function trackResultScreenViewed(params: {
 // Mirrors mobile's mid-quiz "save your progress" modal events from
 // `components/QuizSaveModal.tsx` + `app/onboarding/quiz.tsx`. Same payload
 // shapes so PostHog dashboards line up across surfaces.
+// `placement` is tagged on every save-prompt event so the admin dashboard
+// at /admin/quiz-save-analytics can split the legacy mid-quiz baseline
+// (web, here) from the new post-result modal (mobile). Web stays on
+// "mid_quiz" until/unless the web funnel migrates to the post-result UX.
 export function trackQuizSaveShown(params: {
   questionIndex: number;
   noCount: number;
 }): void {
-  safeTrack("quiz_save_shown", params);
-  postUnifiedAnalytics("quiz_save_shown", params);
+  const payload = { ...params, placement: "mid_quiz" as const };
+  safeTrack("quiz_save_shown", payload);
+  postUnifiedAnalytics("quiz_save_shown", payload);
 }
 
 export function trackQuizSaveSubmitted(params: { noCount: number }): void {
-  safeTrack("quiz_save_submitted", params);
-  postUnifiedAnalytics("quiz_save_submitted", params);
+  const payload = { ...params, placement: "mid_quiz" as const };
+  safeTrack("quiz_save_submitted", payload);
+  postUnifiedAnalytics("quiz_save_submitted", payload);
 }
 
 export function trackQuizSaveDismissed(params: {
   noCount: number;
   submitted: boolean;
 }): void {
-  safeTrack("quiz_save_dismissed", params);
-  postUnifiedAnalytics("quiz_save_dismissed", params);
+  const payload = { ...params, placement: "mid_quiz" as const };
+  safeTrack("quiz_save_dismissed", payload);
+  postUnifiedAnalytics("quiz_save_dismissed", payload);
 }
 
 // Mirrors mobile's `logFbEvent("CompletedQuiz", undefined, { top_country, tier })`.
