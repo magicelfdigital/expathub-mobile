@@ -1,18 +1,20 @@
 # ExpatHub — Architecture Specification
 
-**Version:** 1.0
-**Date:** February 2026
+**Version:** 1.4
+**Date:** May 2026
+**App version:** 1.4.0 (build 88)
 **Company:** Magic Elf Digital
-**Contact:** support@magicelfdigital.com
+**Contact:** support@expathub.website
 
-> ⚠️ **Pricing & entitlement sections are out of date (April 2026).** ExpatHub
-> now ships **two paid tiers only** — Monthly Explorer ($14.99/mo) and Annual
-> Pathfinder ($89/yr) — each with a **14-day free trial**. The legacy
+> ⚠️ **Pricing & entitlement sections below are out of date.** As of v1.4,
+> ExpatHub ships **two paid tiers only** — Monthly Explorer ($14.99/mo, no
+> trial) and Annual Pathfinder ($89/yr, 14-day free trial). The legacy
 > **30-Day Decision Pass** and **Country Lifetime Unlock** products described
-> below have been removed from the codebase. The entitlement gate ignores any
-> `decisionPass` / `countryUnlocks` fields the backend may still return; only
-> `hasFullAccess` (active subscription or sandbox override) grants paid
-> access. For the current source of truth, see:
+> below have been fully removed from the codebase. The entitlement gate
+> ignores any `decisionPass` / `countryUnlocks` fields the backend may still
+> return; only `hasFullAccess` (active subscription, sandbox override, or
+> active 48h reverse trial) grants paid access. Country count is **11**, not
+> 8. For the current source of truth, see:
 >
 > - `src/config/subscription.ts` — product IDs, prices, `TRIAL_DURATION_DAYS`
 > - `src/billing/entitlementGate.ts` + `src/contexts/EntitlementContext.tsx`
@@ -39,16 +41,16 @@
 
 ## 1. System Overview
 
-ExpatHub is a mobile-first application built with Expo and React Native that provides decision-ready intelligence for international relocation. It covers visa pathways, work authorization rules, financial realities, and residency options across 8 launch countries.
+ExpatHub is a mobile-first application built with Expo and React Native that provides decision-ready intelligence for international relocation. It covers visa pathways, work authorization rules, financial realities, and residency options across 11 launch countries.
 
 | Attribute        | Detail                                                        |
 |------------------|---------------------------------------------------------------|
 | Platform targets | iOS, Android, Web                                             |
 | Framework        | Expo SDK 54 / React Native 0.81 / React 19.1                 |
-| Business model   | Freemium with 3-tier monetization                             |
+| Business model   | Freemium with 2-tier subscription (Monthly Explorer / Annual Pathfinder) |
 | Company          | Magic Elf Digital                                             |
-| Launch countries | Portugal, Spain, Canada, Costa Rica, Panama, Ecuador, Malta, United Kingdom |
-| Total countries  | 32 listed (8 decision-ready, 24 coming soon)                  |
+| Launch countries | Portugal, Spain, Canada, Costa Rica, Panama, Ecuador, Malta, United Kingdom, Germany, Ireland, Australia |
+| Total countries  | 16 listed (11 decision-ready, 5 coming soon)                  |
 
 ### Core Value Proposition
 
@@ -635,4 +637,4 @@ Build tools:
 
 ---
 
-*ExpatHub Architecture Specification v1.0 — February 2026 — Magic Elf Digital*
+*ExpatHub Architecture Specification v1.4 — May 2026 — Magic Elf Digital*

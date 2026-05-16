@@ -39,7 +39,8 @@ Preferred communication style: Simple, everyday language.
 - **Move notes:** Per-country freeform notes on the shortlist screen (Pro-only).
 - **Source badge classification:** Resources are tagged as OFFICIAL, AUTHORITATIVE, or COMMUNITY.
 - **Coming Soon + waitlist:** Feature for upcoming countries with backend integration.
-- **Relocation Readiness Assessment:** Onboarding quiz with weighted scoring for country matching, account creation in flow, tailored country results, and country-interest notification.
+- **Relocation Readiness Assessment:** Onboarding quiz with weighted scoring for country matching, account creation in flow, tailored country results, and country-interest notification. Result screen uses tap-to-reveal pills (critical/moderate/explore) and opens individual blockers in a bottom-sheet modal with a direct link to the matching worksheet.
+- **Worksheets (Pro):** 8 self-assessment worksheets (one per quiz dimension) at `/(tabs)/(home)/worksheets`. Submitting a worksheet replaces that dimension's blocker score and recomputes the user's readiness. Public list with completion status; paywall on individual worksheet submission. Backed by `worksheet_definitions` and `user_worksheet_responses` Postgres tables.
 - **Country comparison matrix:** 14 comparison rows, with 4 accessible to free users.
 - **Eligibility snapshot:** Bracket-based, stored locally.
 - **LifetimeOfferBanner:** Shown after 2+ planner steps completed.

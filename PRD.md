@@ -1,9 +1,19 @@
 # ExpatHub - Product Requirements Document & Technical Specification
 
-**Version:** 1.0
-**Date:** February 2026
+**Version:** 1.4
+**Date:** May 2026
+**App version:** 1.4.0 (build 88)
 **Company:** Magic Elf Digital
-**Contact:** support@magicelfdigital.com
+**Contact:** support@expathub.website
+
+> ⚠️ **Sections describing monetization below are out of date.** As of v1.4,
+> ExpatHub ships a **2-tier subscription model only**: Monthly Explorer
+> ($14.99/mo, no trial) and Annual Pathfinder ($89/yr, 14-day free trial).
+> The **30-Day Decision Pass ($29)** and **Country Lifetime Unlock ($69)**
+> products described below have been fully retired and removed from the
+> codebase. Country count is **11**, not 8. The single entitlement is
+> `full_access_subscription`. For the current source of truth, see
+> `replit.md`, `src/config/subscription.ts`, and `CHANGELOG.md`.
 
 ---
 
@@ -1397,4 +1407,4 @@ Changes to these fields automatically trigger a review:
 
 ---
 
-*End of document. This PRD and technical specification covers the complete ExpatHub application as of February 2026. 3-tier monetization model (Decision Pass, Country Lifetime Unlock, Monthly Subscription), JWT authentication, and forgot password flow.*
+*End of document. Original PRD authored February 2026 (v1.0). Header updated for v1.4 (May 2026): 2-tier subscription model (Monthly Explorer $14.99/mo and Annual Pathfinder $89/yr with 14-day trial), 11 decision-ready countries, server-backed planner progress, web frontend at expathub.website, worksheets feature for blocker self-assessment, and onboarding/result UX refactor. See `CHANGELOG.md` and `replit.md` for the canonical current state.*

@@ -6,12 +6,12 @@ Use this document to instruct the agent in the ExpatHub web project. Copy the re
 
 ## Product Overview
 
-ExpatHub is an expat relocation app with 8 decision-ready launch countries: Portugal, Spain, Canada, Costa Rica, Panama, Ecuador, Malta, and United Kingdom. It provides country-specific guides, official resources, vendor directories, community connections, and premium "Decision Briefs" behind a subscription paywall.
+ExpatHub is an expat relocation app with 11 decision-ready launch countries: Portugal, Spain, Canada, Costa Rica, Panama, Ecuador, Malta, United Kingdom, Germany, Ireland, and Australia. It provides country-specific guides, official resources, vendor directories, community connections, and premium "Decision Briefs" behind a subscription paywall.
 
 ### Business Model
 - **Freemium**: Free country overviews, resources, vendors, community links, and basic pathway summaries.
-- **Pro subscription**: $14.99/month or $99/year. Unlocks Decision Briefs (opinionated, detailed relocation advice), premium pathway guides, and comparison matrix pro-only rows.
-- **Payment**: RevenueCat for iOS/Android, Stripe for web.
+- **Pro subscription** (2 tiers): **Monthly Explorer** at $14.99/month (no trial) or **Annual Pathfinder** at $89/year (14-day free trial). Both unlock Decision Briefs, premium pathway guides, the planner, worksheets, and comparison matrix Pro-only rows.
+- **Payment**: RevenueCat for iOS, Stripe for web. (Android billing is not active.)
 
 ### App Descriptions
 
@@ -19,7 +19,7 @@ ExpatHub is an expat relocation app with 8 decision-ready launch countries: Port
 Compare countries, get decision briefs & make your move abroad with clarity.
 
 **Full:**
-ExpatHub helps you cut through the noise of international relocation with decision-ready intelligence for 8 launch countries: Portugal, Spain, Canada, Costa Rica, Panama, Ecuador, Malta, and the UK.
+ExpatHub helps you cut through the noise of international relocation with decision-ready intelligence for 11 launch countries: Portugal, Spain, Canada, Costa Rica, Panama, Ecuador, Malta, the UK, Germany, Ireland, and Australia.
 
 Stop spending months on forums and Facebook groups trying to piece together outdated advice. ExpatHub gives you structured, opinionated guidance so you can actually make a decision.
 

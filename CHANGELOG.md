@@ -9,7 +9,37 @@ release sections are opened when `expo.version` in `app.json` is bumped.
 
 ---
 
-## v1.4 — 2026-04-26 → 2026-05-07
+## v1.4 — 2026-04-26 → 2026-05-16
+
+### Worksheets & onboarding result UX (May 2026)
+- New **Worksheets** feature: 8 self-assessment worksheets (one per quiz
+  dimension) that let paid users replace blocker dimension scores with a
+  richer self-assessment and recompute their readiness score. Public list
+  with completion status at `/(tabs)/(home)/worksheets`; paywall gates
+  individual worksheet submission. Backed by `worksheet_definitions` and
+  `user_worksheet_responses` tables with lazy migration + seed in
+  `server/routes.ts`.
+- Onboarding result screen refactored for clarity:
+  - **Pills reveal-on-tap**: critical / moderate / explore sections are
+    hidden until the matching pill is tapped (icon flips `+` → `✓`,
+    section gets a thicker border, screen scrolls to it). Hint copy:
+    "Tap a label above to see what's affecting that part of your score."
+  - **Blocker bottom sheet**: tapping a blocker opens a Modal sheet with
+    the full "what this means" + next step + "Open worksheet · N
+    questions" CTA. No more inline expand/collapse.
+  - Removed the redundant "Work on your readiness" teaser card — the
+    worksheets feature is reachable from the home readiness card and
+    blocker sheets.
+  - Removed the duplicate "Create Free Account to Save Results" gold
+    button from the save card; the sticky bottom CTA now handles the
+    auth path. Save card primary action is now **"Email me the results"**.
+- New analytics events: `result_pill_opened`,
+  `result_blocker_card_tapped`, `result_blocker_worksheet_tapped`.
+- Account screen footer now reads the version + build number dynamically
+  from `app.json` via `Constants.expoConfig` instead of being hardcoded.
+
+### Original v1.4 freemium relaunch (April 2026)
+
 
 The freemium relaunch: 2-tier subscription, web frontend, planner v2, web
 quiz funnel, conversion lifts, and the analytics + admin-dashboard backbone
