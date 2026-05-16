@@ -1,4 +1,4 @@
-import { hasEntitlement, hasCountryEntitlement } from "../entitlementGate";
+import { hasEntitlement } from "../entitlementGate";
 import type { BackendEntitlements } from "../types";
 
 function makeBase(): BackendEntitlements {
@@ -56,41 +56,5 @@ describe("hasEntitlement (2-tier model)", () => {
         "country_lifetime_spain",
       ),
     ).toBe(true);
-  });
-});
-
-describe("hasCountryEntitlement (2-tier model)", () => {
-  it("returns false for null entitlements", () => {
-    expect(hasCountryEntitlement(null, "portugal")).toBe(false);
-    expect(hasCountryEntitlement(undefined, "portugal")).toBe(false);
-  });
-
-  it("returns true when hasFullAccess regardless of country", () => {
-    expect(
-      hasCountryEntitlement(
-        { ...makeBase(), hasFullAccess: true },
-        "malta",
-      ),
-    ).toBe(true);
-  });
-
-  it("returns true when subscription is active", () => {
-    expect(
-      hasCountryEntitlement(
-        {
-          ...makeBase(),
-          subscription: {
-            status: "active",
-            currentPeriodEnd: "2026-12-31T00:00:00Z",
-            platform: "ios",
-          },
-        },
-        "spain",
-      ),
-    ).toBe(true);
-  });
-
-  it("returns false when no access", () => {
-    expect(hasCountryEntitlement(makeBase(), "ecuador")).toBe(false);
   });
 });

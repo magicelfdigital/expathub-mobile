@@ -16,15 +16,3 @@ export function hasEntitlement(
   if (entitlements.subscription?.status === "active") return true;
   return false;
 }
-
-/**
- * Country-level entitlement check. With the 2-tier model there is no
- * per-country gating any more — country access is granted iff the user has
- * a full subscription (or `hasFullAccess` is set by the backend).
- */
-export function hasCountryEntitlement(
-  entitlements: BackendEntitlements | null | undefined,
-  _countrySlug: string,
-): boolean {
-  return hasEntitlement(entitlements);
-}

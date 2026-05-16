@@ -3,7 +3,7 @@ import { BillingOrchestrator } from "./orchestrator";
 import { createBackendClient } from "./backendClient";
 import type { RevenueCatClient, BackendClient } from "./types";
 
-export { hasEntitlement, hasCountryEntitlement } from "./entitlementGate";
+export { hasEntitlement } from "./entitlementGate";
 export { BillingOrchestrator } from "./orchestrator";
 export { createBackendClient } from "./backendClient";
 export type { BackendEntitlements, OrchestratorResult } from "./types";
