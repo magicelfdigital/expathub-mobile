@@ -8,6 +8,7 @@ export type QuizPersistedStep =
 export type QuizPersistedState = {
   step: QuizPersistedStep;
   answers: Record<number, string>;
+  email?: string;
 };
 
 function getStorage(): Storage | null {
@@ -50,7 +51,9 @@ export function loadQuizState(): QuizPersistedState | null {
       return null;
     }
     if (!answers || typeof answers !== "object") return null;
-    return { step, answers } as QuizPersistedState;
+    const emailRaw = (candidate as { email?: unknown }).email;
+    const email = typeof emailRaw === "string" ? emailRaw : undefined;
+    return { step, answers, email } as QuizPersistedState;
   } catch {
     return null;
   }

@@ -256,7 +256,7 @@ export default function Start() {
   const [answers, setAnswers] = useState<Record<number, string>>(
     () => initialPersisted?.answers ?? {},
   );
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => initialPersisted?.email ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savePromptVisible, setSavePromptVisible] = useState(false);
@@ -326,14 +326,23 @@ export default function Start() {
   // refresh during that brief window resumes at the email gate rather than
   // dropping the just-selected final answer back to the last question.
   useEffect(() => {
+    const trimmedEmail = email.trim();
     if (step.kind === "question") {
-      saveQuizState({ step: { kind: "question", index: step.index }, answers });
+      saveQuizState({
+        step: { kind: "question", index: step.index },
+        answers,
+        email: trimmedEmail || undefined,
+      });
     } else if (step.kind === "email" || step.kind === "calculating") {
-      saveQuizState({ step: { kind: "email" }, answers });
+      saveQuizState({
+        step: { kind: "email" },
+        answers,
+        email: trimmedEmail || undefined,
+      });
     } else if (step.kind === "results") {
       saveQuizState({ step: { kind: "results" }, answers });
     }
-  }, [step, answers]);
+  }, [step, answers, email]);
 
   function restartQuiz(): void {
     clearQuizState();
