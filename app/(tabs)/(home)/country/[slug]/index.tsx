@@ -12,7 +12,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { usePlan } from "@/src/contexts/PlanContext";
 import { useLayout } from "@/src/hooks/useLayout";
 import { useProgressPercent } from "@/src/hooks/useProgress";
-import { getCountry, getPathways, getCountryCoverage, isDecisionReady, isLaunchCountry } from "@/src/data";
+import { getCountry, getPathways, getCountryCoverage, isDecisionReady, isLaunchCountry, getDecisionBriefsForCountry } from "@/src/data";
 import { useContinue } from "@/src/contexts/ContinueContext";
 import { tokens } from "@/theme/tokens";
 import { PAID_TIER_DISPLAY_NAME } from "@/constants/tiers";
@@ -99,6 +99,7 @@ export default function CountryDetailScreen() {
 
   const countryName = getCountry(countrySlug)?.name ?? "Country";
   const pathways = getPathways(countrySlug);
+  const hasBriefs = getDecisionBriefsForCountry(countrySlug).length > 0;
   const coverage = getCountryCoverage(countrySlug);
   const hasCoverage = coverage.ready.length > 0 || coverage.soon.length > 0;
   const isLaunch = isLaunchCountry(countrySlug);
@@ -244,55 +245,66 @@ export default function CountryDetailScreen() {
           </View>
         ) : null}
 
-        <View style={[styles.listGap, isTablet && styles.listGrid]}>
-          <NavCard title="Resources" subtitle="Guides, official links, checklists" icon="document-text-outline" onPress={() => go("resources")} tablet={isTablet} />
-          <NavCard title="Vendors" subtitle="Licensed professionals and services" icon="briefcase-outline" onPress={() => go("vendors")} tablet={isTablet} />
-          <NavCard title="Community" subtitle="Groups, forums, meetups" icon="people-outline" onPress={() => go("community")} tablet={isTablet} />
-          <NavCard title="Saved" subtitle="Your bookmarked resources" icon="bookmark-outline" onPress={() => go("saved")} tablet={isTablet} />
-        </View>
-
-        {pathways.length > 0 ? (
-          <View style={styles.pathwaySection}>
-            <Text style={styles.sectionTitle}>Residency Pathways</Text>
-            <View style={[styles.listGap, isTablet && styles.listGrid]}>
-              {pathways.map((p) => {
-                const ready = isDecisionReady(countrySlug, p.key);
-                const showCoverageBadge = p.premium;
-                return (
-                  <Pressable
-                    key={p.key}
-                    onPress={() => goPathway(p.key)}
-                    style={({ pressed }) => [styles.pathwayCard, isTablet && styles.cardTablet, pressed && styles.cardPressed]}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <View style={styles.pathwayTitleRow}>
-                        <Text style={styles.pathwayTitle}>{p.title}</Text>
-                        {showCoverageBadge ? (
-                          <CoverageBadge status={ready ? "decision-ready" : "coming-soon"} />
-                        ) : null}
+        {(() => {
+          const pathwaysSection = pathways.length > 0 ? (
+            <View style={styles.pathwaySection} key="pathways">
+              <Text style={styles.sectionTitle}>Residency Pathways</Text>
+              <View style={[styles.listGap, isTablet && styles.listGrid]}>
+                {pathways.map((p) => {
+                  const ready = isDecisionReady(countrySlug, p.key);
+                  const showCoverageBadge = p.premium;
+                  return (
+                    <Pressable
+                      key={p.key}
+                      onPress={() => goPathway(p.key)}
+                      style={({ pressed }) => [styles.pathwayCard, isTablet && styles.cardTablet, pressed && styles.cardPressed]}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <View style={styles.pathwayTitleRow}>
+                          <Text style={styles.pathwayTitle}>{p.title}</Text>
+                          {showCoverageBadge ? (
+                            <CoverageBadge status={ready ? "decision-ready" : "coming-soon"} />
+                          ) : null}
+                        </View>
+                        <Text style={styles.pathwaySub} numberOfLines={2}>{p.summary}</Text>
                       </View>
-                      <Text style={styles.pathwaySub} numberOfLines={2}>{p.summary}</Text>
-                    </View>
-                    <View style={styles.pathwayRight}>
-                      {p.premium && !hasAccess ? (
-                        <View style={styles.lockedBadge}>
-                          <Ionicons name="lock-closed" size={10} color={tokens.color.gold} />
-                          <Text style={styles.lockedText}>{PAID_TIER_DISPLAY_NAME}</Text>
-                        </View>
-                      ) : p.premium && hasAccess ? (
-                        <View style={styles.premiumBadge}>
-                          <Ionicons name="checkmark" size={10} color={tokens.color.primary} />
-                          <Text style={styles.premiumText}>{PAID_TIER_DISPLAY_NAME}</Text>
-                        </View>
-                      ) : null}
-                      <Ionicons name="chevron-forward" size={16} color={tokens.color.primary} />
-                    </View>
-                  </Pressable>
-                );
-              })}
+                      <View style={styles.pathwayRight}>
+                        {p.premium && !hasAccess ? (
+                          <View style={styles.lockedBadge}>
+                            <Ionicons name="lock-closed" size={10} color={tokens.color.gold} />
+                            <Text style={styles.lockedText}>{PAID_TIER_DISPLAY_NAME}</Text>
+                          </View>
+                        ) : p.premium && hasAccess ? (
+                          <View style={styles.premiumBadge}>
+                            <Ionicons name="checkmark" size={10} color={tokens.color.primary} />
+                            <Text style={styles.premiumText}>{PAID_TIER_DISPLAY_NAME}</Text>
+                          </View>
+                        ) : null}
+                        <Ionicons name="chevron-forward" size={16} color={tokens.color.primary} />
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
-          </View>
-        ) : null}
+          ) : null;
+
+          const navCardsSection = (
+            <View style={[styles.listGap, isTablet && styles.listGrid]} key="nav-cards">
+              <NavCard title="Resources" subtitle="Guides, official links, checklists" icon="document-text-outline" onPress={() => go("resources")} tablet={isTablet} />
+              <NavCard title="Vendors" subtitle="Licensed professionals and services" icon="briefcase-outline" onPress={() => go("vendors")} tablet={isTablet} />
+              <NavCard title="Community" subtitle="Groups, forums, meetups" icon="people-outline" onPress={() => go("community")} tablet={isTablet} />
+              <NavCard title="Saved" subtitle="Your bookmarked resources" icon="bookmark-outline" onPress={() => go("saved")} tablet={isTablet} />
+            </View>
+          );
+
+          // When a country has Decision Briefs, the pathway cards become the
+          // primary destination (each pathway opens its own brief), so they
+          // outrank Resources / Vendors / Community in the visual hierarchy.
+          return hasBriefs
+            ? <>{pathwaysSection}{navCardsSection}</>
+            : <>{navCardsSection}{pathwaysSection}</>;
+        })()}
 
       </ScrollView>
     </Screen>
