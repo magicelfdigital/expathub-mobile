@@ -19,6 +19,39 @@ const confidenceColors: Record<DisplayConfidenceLevel, { bg: string; border: str
   Conditional: { bg: "#fef2f2", border: "#fecaca", text: "#991b1b" },
 };
 
+const ABBREV_PLACEHOLDER = "\u0001";
+
+function protectAbbreviations(text: string): string {
+  // Protect periods inside common abbreviations and number/decimal patterns
+  // so the sentence splitter does not break on them.
+  return text
+    .replace(/\b(e\.g|i\.e|etc|vs|cf|approx|incl|excl|min|max|no|St|Mr|Mrs|Ms|Dr|Prof|Sr|Jr|U\.S|U\.K|E\.U|a\.m|p\.m)\./gi, (m) =>
+      m.replace(/\./g, ABBREV_PLACEHOLDER),
+    )
+    .replace(/(\d)\.(\d)/g, (_m, a, b) => `${a}${ABBREV_PLACEHOLDER}${b}`);
+}
+
+function restoreAbbreviations(text: string): string {
+  return text.split(ABBREV_PLACEHOLDER).join(".");
+}
+
+function chunkByWords(text: string, target = 300): string[] {
+  const words = text.split(/\s+/);
+  const out: string[] = [];
+  let buf = "";
+  for (const w of words) {
+    const next = buf ? `${buf} ${w}` : w;
+    if (next.length > target && buf) {
+      out.push(buf);
+      buf = w;
+    } else {
+      buf = next;
+    }
+  }
+  if (buf) out.push(buf);
+  return out;
+}
+
 function splitIntoParagraphs(text: string): string[] {
   const explicit = text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean);
   const out: string[] = [];
@@ -27,11 +60,19 @@ function splitIntoParagraphs(text: string): string[] {
       out.push(chunk);
       continue;
     }
-    const sentences = chunk.match(/[^.!?]+(?:[.!?]+["')\]]*|$)/g)?.map((s) => s.trim()).filter(Boolean) ?? [chunk];
+    const protectedChunk = protectAbbreviations(chunk);
+    const sentences = protectedChunk
+      .match(/[^.!?]+(?:[.!?]+["')\]]*|$)/g)
+      ?.map((s) => restoreAbbreviations(s).trim())
+      .filter(Boolean) ?? [];
+
     if (sentences.length <= 1) {
-      out.push(chunk);
+      // No sentence boundaries — fall back to word-based chunking so very
+      // long unpunctuated prose still breaks into readable paragraphs.
+      out.push(...chunkByWords(chunk));
       continue;
     }
+
     let buf = "";
     for (const sent of sentences) {
       const next = buf ? `${buf} ${sent}` : sent;
@@ -60,17 +101,17 @@ function BulletList({
 }) {
   return (
     <View style={s.bulletList}>
-      {items.map((item) => {
+      {items.map((item, itemIdx) => {
         const paragraphs = splitIntoParagraphs(item);
         return (
-          <View key={item} style={s.bulletRow}>
+          <View key={`bullet-${itemIdx}`} style={s.bulletRow}>
             <View style={[s.bulletIcon, { backgroundColor: iconBg }]}>
               <Ionicons name={icon as any} size={12} color={iconColor} />
             </View>
             <View style={s.bulletTextColumn}>
               {paragraphs.map((para, idx) => (
                 <Text
-                  key={`${idx}-${para.slice(0, 24)}`}
+                  key={`bullet-${itemIdx}-p-${idx}`}
                   style={[s.bulletText, idx > 0 && s.bulletParagraphSpacing]}
                 >
                   {para}
