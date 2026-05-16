@@ -213,12 +213,46 @@ export type CountryBreakdown = {
   medianExcludedUnknownStart: number;
 };
 
+export type DateRange = {
+  start: string; // YYYY-MM-DD (inclusive)
+  end: string;   // YYYY-MM-DD (inclusive)
+};
+
+export type RangeMetrics = {
+  start: string;
+  end: string;
+  plansStarted: number;
+  plansCompleted: number;
+  completionRatePct: number;
+  medianDaysToCompletion: number | null;
+  medianSampleSize: number;
+};
+
+export type RangeComparison = {
+  rangeA: RangeMetrics;
+  rangeB: RangeMetrics;
+  // delta = rangeA − rangeB. pct is rangeA vs. rangeB as the baseline.
+  // When the baseline is 0 (or median is null on either side) the pct
+  // field is null so the UI renders "—" instead of dividing by zero.
+  delta: {
+    plansStarted: number;
+    plansStartedPct: number | null;
+    plansCompleted: number;
+    plansCompletedPct: number | null;
+    completionRatePctPoints: number;
+    medianDaysToCompletion: number | null;
+    medianDaysToCompletionPct: number | null;
+  };
+};
+
 export type PlannerAnalyticsResult = {
   generatedAt: string;
   totalSteps: number;
   filter: {
     country: string | null;
     minPlansForCountryBreakdown: number;
+    rangeA: DateRange | null;
+    rangeB: DateRange | null;
   };
   countries: string[];
   totals: {
@@ -262,12 +296,153 @@ export type PlannerAnalyticsResult = {
     medianDaysToCompletion: number | null;
   }>;
   byCountry: CountryBreakdown[];
+  // Populated only when both rangeA and rangeB are supplied via options.
+  // Lets admins say "this 4-week stretch is X% better than the previous
+  // 4-week stretch" without exporting JSON and doing the math by hand.
+  comparison: RangeComparison | null;
 };
 
 export type PlannerAnalyticsOptions = {
   country?: string | null;
   minPlansForCountryBreakdown?: number;
+  rangeA?: DateRange | null;
+  rangeB?: DateRange | null;
 };
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export function parseDateRange(value: string | null | undefined): DateRange | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parts = trimmed.split("..");
+  if (parts.length !== 2) return null;
+  const [start, end] = parts.map((p) => p.trim());
+  if (!DATE_RE.test(start) || !DATE_RE.test(end)) return null;
+  // Validate the calendar dates round-trip — rejects things like
+  // 2026-02-31 which the regex alone would happily accept.
+  const startDate = new Date(`${start}T00:00:00Z`);
+  const endDate = new Date(`${end}T00:00:00Z`);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) return null;
+  if (startDate.getTime() > endDate.getTime()) return null;
+  return { start, end };
+}
+
+// Day after `end`, ISO-formatted, for use as an exclusive upper bound in
+// the SQL filter (`started_at < endExclusive`). Computing this in JS
+// keeps the SQL trivially parameter-driven.
+function endExclusive(end: string): string {
+  const d = new Date(`${end}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+async function computeRangeMetrics(
+  pool: pg.Pool,
+  stepIds: string[],
+  totalSteps: number,
+  country: string | null,
+  range: DateRange,
+): Promise<RangeMetrics> {
+  const params: Array<string | number | string[]> = [
+    stepIds,
+    totalSteps,
+    range.start,
+    endExclusive(range.end),
+  ];
+  let countryClause = "";
+  if (country) {
+    params.push(country);
+    countryClause = ` AND target_country = $${params.length}`;
+  }
+  const result = await pool.query(
+    `WITH per_plan AS (
+       SELECT user_id,
+              target_country,
+              MIN(created_at)                              AS started_at,
+              MAX(completed_at) FILTER (WHERE completed)   AS last_completed_at,
+              COUNT(*) FILTER (WHERE completed)::int       AS done_steps
+         FROM user_progress
+        WHERE step_id = ANY($1::text[])${countryClause}
+        GROUP BY user_id, target_country
+     )
+     SELECT
+       COUNT(*) FILTER (
+         WHERE started_at >= $3::date AND started_at < $4::date
+       )::int AS plans_started,
+       COUNT(*) FILTER (
+         WHERE done_steps = $2
+           AND started_at >= $3::date AND started_at < $4::date
+       )::int AS plans_completed,
+       COUNT(*) FILTER (
+         WHERE done_steps = $2
+           AND started_at IS NOT NULL
+           AND started_at >= $3::date AND started_at < $4::date
+       )::int AS median_sample_size,
+       PERCENTILE_CONT(0.5) WITHIN GROUP (
+         ORDER BY EXTRACT(EPOCH FROM (last_completed_at - started_at)) / 86400.0
+       ) FILTER (
+         WHERE done_steps = $2
+           AND started_at IS NOT NULL
+           AND started_at >= $3::date AND started_at < $4::date
+       ) AS median_days
+     FROM per_plan`,
+    params,
+  );
+  const row = result.rows[0] ?? {};
+  const plansStarted = Number(row.plans_started) || 0;
+  const plansCompleted = Number(row.plans_completed) || 0;
+  const medianSampleSize = Number(row.median_sample_size) || 0;
+  const medianRaw = row.median_days;
+  const medianDays =
+    medianRaw === null || medianRaw === undefined
+      ? null
+      : Math.round(Number(medianRaw) * 10) / 10;
+  return {
+    start: range.start,
+    end: range.end,
+    plansStarted,
+    plansCompleted,
+    completionRatePct:
+      plansStarted > 0
+        ? Math.round((plansCompleted / plansStarted) * 1000) / 10
+        : 0,
+    medianDaysToCompletion: medianDays,
+    medianSampleSize,
+  };
+}
+
+function computeRangeDelta(
+  rangeA: RangeMetrics,
+  rangeB: RangeMetrics,
+): RangeComparison["delta"] {
+  const plansStartedDelta = rangeA.plansStarted - rangeB.plansStarted;
+  const plansCompletedDelta = rangeA.plansCompleted - rangeB.plansCompleted;
+  const completionRateDelta =
+    Math.round((rangeA.completionRatePct - rangeB.completionRatePct) * 10) / 10;
+  const medianDelta =
+    rangeA.medianDaysToCompletion === null ||
+    rangeB.medianDaysToCompletion === null
+      ? null
+      : Math.round(
+          (rangeA.medianDaysToCompletion - rangeB.medianDaysToCompletion) * 10,
+        ) / 10;
+  const pct = (a: number, b: number): number | null =>
+    b === 0 ? null : Math.round(((a - b) / b) * 1000) / 10;
+  return {
+    plansStarted: plansStartedDelta,
+    plansStartedPct: pct(rangeA.plansStarted, rangeB.plansStarted),
+    plansCompleted: plansCompletedDelta,
+    plansCompletedPct: pct(rangeA.plansCompleted, rangeB.plansCompleted),
+    completionRatePctPoints: completionRateDelta,
+    medianDaysToCompletion: medianDelta,
+    medianDaysToCompletionPct:
+      rangeA.medianDaysToCompletion === null ||
+      rangeB.medianDaysToCompletion === null
+        ? null
+        : pct(rangeA.medianDaysToCompletion, rangeB.medianDaysToCompletion),
+  };
+}
 
 function normalizeCountry(value: string | null | undefined): string | null {
   if (typeof value !== "string") return null;
@@ -599,12 +774,29 @@ export async function computePlannerAnalytics(
     .map((row) => String(row.target_country))
     .filter((c) => c.length > 0);
 
+  const rangeA = options.rangeA ?? null;
+  const rangeB = options.rangeB ?? null;
+  let comparison: RangeComparison | null = null;
+  if (rangeA && rangeB) {
+    const [a, b] = await Promise.all([
+      computeRangeMetrics(pool, stepIds, totalSteps, country, rangeA),
+      computeRangeMetrics(pool, stepIds, totalSteps, country, rangeB),
+    ]);
+    comparison = {
+      rangeA: a,
+      rangeB: b,
+      delta: computeRangeDelta(a, b),
+    };
+  }
+
   return {
     generatedAt: new Date().toISOString(),
     totalSteps,
     filter: {
       country,
       minPlansForCountryBreakdown: minPlans,
+      rangeA,
+      rangeB,
     },
     countries,
     totals: {
@@ -623,6 +815,7 @@ export async function computePlannerAnalytics(
     stageDropOff,
     weekly,
     byCountry,
+    comparison,
   };
 }
 
@@ -633,6 +826,188 @@ function escapeHtml(value: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function formatDelta(value: number, unit: string = ""): string {
+  const sign = value > 0 ? "+" : value < 0 ? "−" : "±";
+  const magnitude = Math.abs(value);
+  const formatted =
+    Math.abs(magnitude - Math.round(magnitude)) < 1e-9
+      ? magnitude.toLocaleString()
+      : magnitude.toFixed(1);
+  return `${sign}${formatted}${unit}`;
+}
+
+function formatDeltaPct(value: number | null): string {
+  if (value === null) return "—";
+  const sign = value > 0 ? "+" : value < 0 ? "−" : "±";
+  return `${sign}${Math.abs(value).toFixed(1)}%`;
+}
+
+// Returns "neutral", "up" (rangeA > rangeB), or "down" (rangeA < rangeB).
+// Used for class selection so styling can convey direction at a glance —
+// kept direction-neutral semantically since "up" isn't always good (e.g.
+// median time-to-100% going up is a regression). The dashboard caller
+// chooses which colour to map "up"/"down" to per metric.
+function deltaDirection(value: number | null): "up" | "down" | "neutral" {
+  if (value === null || value === 0) return "neutral";
+  return value > 0 ? "up" : "down";
+}
+
+function renderComparisonSection(data: PlannerAnalyticsResult): string {
+  const { comparison, filter } = data;
+  // When no comparison is active, render a brief instruction so the
+  // feature is discoverable. Admins can either fill in the form below or
+  // hit the JSON endpoint with `?rangeA=...&rangeB=...`.
+  const formRangeA = filter.rangeA
+    ? { start: filter.rangeA.start, end: filter.rangeA.end }
+    : { start: "", end: "" };
+  const formRangeB = filter.rangeB
+    ? { start: filter.rangeB.start, end: filter.rangeB.end }
+    : { start: "", end: "" };
+  const activeCountry = filter.country;
+  const hiddenCountry = activeCountry
+    ? `<input type="hidden" name="country" value="${escapeHtml(activeCountry)}" />`
+    : "";
+  const clearHref = activeCountry
+    ? `/admin/planner-analytics?country=${encodeURIComponent(activeCountry)}`
+    : `/admin/planner-analytics`;
+  const formHtml = `
+  <form class="range-form" method="get" action="/admin/planner-analytics">
+    ${hiddenCountry}
+    <fieldset>
+      <legend>Range A</legend>
+      <label>Start <input type="date" name="rangeAStart" value="${escapeHtml(formRangeA.start)}" required /></label>
+      <label>End <input type="date" name="rangeAEnd" value="${escapeHtml(formRangeA.end)}" required /></label>
+    </fieldset>
+    <fieldset>
+      <legend>Range B (baseline)</legend>
+      <label>Start <input type="date" name="rangeBStart" value="${escapeHtml(formRangeB.start)}" required /></label>
+      <label>End <input type="date" name="rangeBEnd" value="${escapeHtml(formRangeB.end)}" required /></label>
+    </fieldset>
+    <div class="range-form-actions">
+      <button type="submit">Compare</button>
+      ${comparison ? `<a href="${escapeHtml(clearHref)}"><button type="button" class="secondary">Clear</button></a>` : ""}
+    </div>
+    <p class="meta range-form-hint">
+      Plans are bucketed by their start date. Both ranges are inclusive.
+      Delta is Range A − Range B; percentages use Range B as the baseline.
+      Equivalent JSON: <code>?rangeA=YYYY-MM-DD..YYYY-MM-DD&amp;rangeB=YYYY-MM-DD..YYYY-MM-DD</code>.
+    </p>
+  </form>`;
+
+  if (!comparison) {
+    return `
+  <h2>Compare two date ranges</h2>
+  <p class="meta">
+    Pick two date ranges to see plans started, plans reaching 100%, and
+    median time-to-100% side by side with a delta column.
+  </p>
+  ${formHtml}`;
+  }
+
+  const { rangeA, rangeB, delta } = comparison;
+  const labelA = `${rangeA.start} → ${rangeA.end}`;
+  const labelB = `${rangeB.start} → ${rangeB.end}`;
+  const medianACell =
+    rangeA.medianDaysToCompletion === null
+      ? "—"
+      : `${rangeA.medianDaysToCompletion.toFixed(1)} days`;
+  const medianBCell =
+    rangeB.medianDaysToCompletion === null
+      ? "—"
+      : `${rangeB.medianDaysToCompletion.toFixed(1)} days`;
+
+  // For median time-to-100%, a *lower* number is better, so an upward
+  // delta should read as a regression. The other rows treat up as good.
+  // We pass the raw direction here and let the consumer decide what colour
+  // to render via the explicit `goodWhen` flag.
+  function deltaCell(
+    absolute: string,
+    pct: string,
+    direction: "up" | "down" | "neutral",
+    goodWhen: "up" | "down" | "either",
+  ): string {
+    let tone: "good" | "bad" | "neutral" = "neutral";
+    if (direction !== "neutral" && goodWhen !== "either") {
+      tone = direction === goodWhen ? "good" : "bad";
+    }
+    return `<td class="num delta delta-${tone}"><span class="delta-abs">${escapeHtml(absolute)}</span><span class="delta-pct">${escapeHtml(pct)}</span></td>`;
+  }
+
+  const plansStartedDelta = deltaCell(
+    formatDelta(delta.plansStarted),
+    formatDeltaPct(delta.plansStartedPct),
+    deltaDirection(delta.plansStarted),
+    "up",
+  );
+  const plansCompletedDelta = deltaCell(
+    formatDelta(delta.plansCompleted),
+    formatDeltaPct(delta.plansCompletedPct),
+    deltaDirection(delta.plansCompleted),
+    "up",
+  );
+  const completionRateDelta = deltaCell(
+    formatDelta(delta.completionRatePctPoints, " pp"),
+    "",
+    deltaDirection(delta.completionRatePctPoints),
+    "up",
+  );
+  const medianDelta = deltaCell(
+    delta.medianDaysToCompletion === null
+      ? "—"
+      : formatDelta(delta.medianDaysToCompletion, " days"),
+    formatDeltaPct(delta.medianDaysToCompletionPct),
+    deltaDirection(delta.medianDaysToCompletion),
+    "down",
+  );
+
+  return `
+  <h2>Range comparison</h2>
+  <p class="meta">
+    Range A: <strong>${escapeHtml(labelA)}</strong> ·
+    Range B (baseline): <strong>${escapeHtml(labelB)}</strong>.
+    Plans are bucketed by start date; delta is Range A − Range B.
+  </p>
+  <table class="comparison">
+    <thead>
+      <tr>
+        <th>Metric</th>
+        <th class="num">Range A</th>
+        <th class="num">Range B</th>
+        <th class="num">Δ (A − B)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Plans started</td>
+        <td class="num">${rangeA.plansStarted.toLocaleString()}</td>
+        <td class="num">${rangeB.plansStarted.toLocaleString()}</td>
+        ${plansStartedDelta}
+      </tr>
+      <tr>
+        <td>Reached 100%</td>
+        <td class="num">${rangeA.plansCompleted.toLocaleString()}</td>
+        <td class="num">${rangeB.plansCompleted.toLocaleString()}</td>
+        ${plansCompletedDelta}
+      </tr>
+      <tr>
+        <td>% reaching 100%</td>
+        <td class="num">${rangeA.completionRatePct.toFixed(1)}%</td>
+        <td class="num">${rangeB.completionRatePct.toFixed(1)}%</td>
+        ${completionRateDelta}
+      </tr>
+      <tr>
+        <td>Median time-to-100%
+          <div class="meta">Sample: ${rangeA.medianSampleSize.toLocaleString()} vs ${rangeB.medianSampleSize.toLocaleString()} plan${rangeB.medianSampleSize === 1 ? "" : "s"}</div>
+        </td>
+        <td class="num">${escapeHtml(medianACell)}</td>
+        <td class="num">${escapeHtml(medianBCell)}</td>
+        ${medianDelta}
+      </tr>
+    </tbody>
+  </table>
+  ${formHtml}`;
 }
 
 function titleCaseCountry(country: string): string {
@@ -896,9 +1271,25 @@ export function renderPlannerAnalyticsHtml(
       )}</strong> · <a href="/admin/planner-analytics">clear</a></span>`
     : `<span class="badge muted">All countries</span>`;
 
-  const jsonHref = activeCountry
-    ? `/api/admin/planner-analytics?country=${encodeURIComponent(activeCountry)}`
+  const jsonQueryParts: string[] = [];
+  if (activeCountry) {
+    jsonQueryParts.push(`country=${encodeURIComponent(activeCountry)}`);
+  }
+  if (data.filter.rangeA) {
+    jsonQueryParts.push(
+      `rangeA=${encodeURIComponent(`${data.filter.rangeA.start}..${data.filter.rangeA.end}`)}`,
+    );
+  }
+  if (data.filter.rangeB) {
+    jsonQueryParts.push(
+      `rangeB=${encodeURIComponent(`${data.filter.rangeB.start}..${data.filter.rangeB.end}`)}`,
+    );
+  }
+  const jsonHref = jsonQueryParts.length
+    ? `/api/admin/planner-analytics?${jsonQueryParts.join("&")}`
     : `/api/admin/planner-analytics`;
+
+  const comparisonHtml = renderComparisonSection(data);
 
   const csvQueryParts: string[] = [];
   if (activeCountry) {
@@ -1008,6 +1399,42 @@ export function renderPlannerAnalyticsHtml(
     }
     .sparkline { display: block; }
     .sparkline-range { margin: 0 0 16px; }
+    table.comparison .delta { font-variant-numeric: tabular-nums; }
+    table.comparison .delta .delta-abs { display: block; font-weight: 600; }
+    table.comparison .delta .delta-pct {
+      display: block; font-size: 11px; color: #666; margin-top: 2px;
+    }
+    table.comparison .delta-good .delta-abs { color: #137333; }
+    table.comparison .delta-bad .delta-abs { color: #b3261e; }
+    table.comparison .delta-neutral .delta-abs { color: #555; }
+    .range-form {
+      background: #fff; border: 1px solid #e5e5e5; border-radius: 10px;
+      padding: 16px 20px; margin-top: 12px;
+      display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px;
+    }
+    .range-form fieldset {
+      border: 1px solid #e5e5e5; border-radius: 8px;
+      padding: 8px 12px 10px; margin: 0;
+      display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+    }
+    .range-form legend {
+      padding: 0 6px; font-size: 11px; text-transform: uppercase;
+      letter-spacing: 0.05em; color: #555;
+    }
+    .range-form label {
+      font-size: 12px; color: #555; display: flex; gap: 6px; align-items: center;
+    }
+    .range-form input[type="date"] {
+      font: inherit; padding: 4px 8px; border-radius: 6px;
+      border: 1px solid #d0d0d0; background: #fff; color: #111;
+    }
+    .range-form-actions { display: flex; gap: 8px; align-items: center; }
+    .range-form button {
+      font: inherit; padding: 6px 12px; border-radius: 6px;
+      border: 1px solid #0a66c2; background: #0a66c2; color: #fff; cursor: pointer;
+    }
+    .range-form button.secondary { background: #fff; color: #0a66c2; }
+    .range-form-hint { flex-basis: 100%; margin: 0; }
   </style>
 </head>
 <body>
@@ -1030,6 +1457,8 @@ export function renderPlannerAnalyticsHtml(
     </form>
     ${filterBadge}
   </div>
+
+  ${comparisonHtml}
 
   <div class="cards">
     <div class="card">
@@ -1264,10 +1693,38 @@ function readQueryNumber(value: unknown): number | undefined {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
+// Accept either the canonical combined `rangeA=YYYY-MM-DD..YYYY-MM-DD`
+// param (used by the JSON endpoint and the dashboard's CSV/JSON links)
+// or the pair of `rangeAStart` / `rangeAEnd` fields that the HTML date
+// picker form submits. Same for rangeB. The combined form wins if both
+// are supplied.
+function readDateRangeFromQuery(
+  combined: unknown,
+  start: unknown,
+  end: unknown,
+): DateRange | null {
+  const fromCombined = parseDateRange(readQueryString(combined));
+  if (fromCombined) return fromCombined;
+  const s = readQueryString(start);
+  const e = readQueryString(end);
+  if (!s || !e) return null;
+  return parseDateRange(`${s}..${e}`);
+}
+
 function readPlannerAnalyticsOptions(req: Request): PlannerAnalyticsOptions {
   return {
     country: readQueryString(req.query.country),
     minPlansForCountryBreakdown: readQueryNumber(req.query.minPlans),
+    rangeA: readDateRangeFromQuery(
+      req.query.rangeA,
+      req.query.rangeAStart,
+      req.query.rangeAEnd,
+    ),
+    rangeB: readDateRangeFromQuery(
+      req.query.rangeB,
+      req.query.rangeBStart,
+      req.query.rangeBEnd,
+    ),
   };
 }
 

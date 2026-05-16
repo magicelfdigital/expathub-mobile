@@ -1,5 +1,6 @@
 import {
   computePlannerAnalytics,
+  parseDateRange,
   renderPlannerAnalyticsCsv,
   renderPlannerAnalyticsHtml,
   type PlannerAnalyticsResult,
@@ -146,7 +147,7 @@ describe("renderPlannerAnalyticsHtml — Last 8 weeks table", () => {
   const baseResult: PlannerAnalyticsResult = {
     generatedAt: "2026-04-28T00:00:00.000Z",
     totalSteps: 10,
-    filter: { country: null, minPlansForCountryBreakdown: 3 },
+    filter: { country: null, minPlansForCountryBreakdown: 3, rangeA: null, rangeB: null },
     countries: [],
     totals: {
       plansStarted: 0,
@@ -161,6 +162,7 @@ describe("renderPlannerAnalyticsHtml — Last 8 weeks table", () => {
     stageDropOff: [],
     weekly: [],
     byCountry: [],
+    comparison: null,
   };
 
   it("renders one row per weekly bucket with the week-start date", () => {
@@ -540,7 +542,7 @@ describe("renderPlannerAnalyticsHtml", () => {
     return {
       generatedAt: "2026-04-28T00:00:00.000Z",
       totalSteps: 10,
-      filter: { country: null, minPlansForCountryBreakdown: 3 },
+      filter: { country: null, minPlansForCountryBreakdown: 3, rangeA: null, rangeB: null },
       countries: ["portugal", "spain"],
       totals: {
         plansStarted: 10,
@@ -565,6 +567,7 @@ describe("renderPlannerAnalyticsHtml", () => {
           medianExcludedUnknownStart: 0,
         },
       ],
+      comparison: null,
       ...overrides,
     };
   }
@@ -579,7 +582,7 @@ describe("renderPlannerAnalyticsHtml", () => {
   it("marks the active filter option as selected and shows a clear link", () => {
     const html = renderPlannerAnalyticsHtml(
       baseResult({
-        filter: { country: "portugal", minPlansForCountryBreakdown: 3 },
+        filter: { country: "portugal", minPlansForCountryBreakdown: 3, rangeA: null, rangeB: null },
       }),
     );
     expect(html).toContain('<option value="portugal" selected>Portugal</option>');
@@ -599,7 +602,7 @@ describe("renderPlannerAnalyticsHtml", () => {
   it("does not render drill-in links in the breakdown when a filter is already active", () => {
     const html = renderPlannerAnalyticsHtml(
       baseResult({
-        filter: { country: "portugal", minPlansForCountryBreakdown: 3 },
+        filter: { country: "portugal", minPlansForCountryBreakdown: 3, rangeA: null, rangeB: null },
       }),
     );
     // The country cell in the breakdown table should be plain text, not a link.
@@ -612,7 +615,7 @@ describe("renderPlannerAnalyticsHtml", () => {
   it("includes the active country in the JSON link href", () => {
     const html = renderPlannerAnalyticsHtml(
       baseResult({
-        filter: { country: "portugal", minPlansForCountryBreakdown: 3 },
+        filter: { country: "portugal", minPlansForCountryBreakdown: 3, rangeA: null, rangeB: null },
       }),
     );
     expect(html).toContain(
@@ -704,7 +707,7 @@ describe("renderPlannerAnalyticsHtml", () => {
   it("propagates the active country filter into the CSV download link", () => {
     const html = renderPlannerAnalyticsHtml(
       baseResult({
-        filter: { country: "portugal", minPlansForCountryBreakdown: 3 },
+        filter: { country: "portugal", minPlansForCountryBreakdown: 3, rangeA: null, rangeB: null },
       }),
     );
     expect(html).toContain(
@@ -715,7 +718,7 @@ describe("renderPlannerAnalyticsHtml", () => {
   it("propagates a non-default minPlans value into the CSV download link", () => {
     const html = renderPlannerAnalyticsHtml(
       baseResult({
-        filter: { country: null, minPlansForCountryBreakdown: 7 },
+        filter: { country: null, minPlansForCountryBreakdown: 7, rangeA: null, rangeB: null },
       }),
     );
     expect(html).toContain(
@@ -731,7 +734,7 @@ describe("renderPlannerAnalyticsCsv", () => {
     return {
       generatedAt: "2026-04-28T00:00:00.000Z",
       totalSteps: 10,
-      filter: { country: null, minPlansForCountryBreakdown: 3 },
+      filter: { country: null, minPlansForCountryBreakdown: 3, rangeA: null, rangeB: null },
       countries: [],
       totals: {
         plansStarted: 0,
@@ -746,6 +749,7 @@ describe("renderPlannerAnalyticsCsv", () => {
       stageDropOff: [],
       weekly: [],
       byCountry,
+      comparison: null,
     };
   }
 
@@ -784,6 +788,327 @@ describe("renderPlannerAnalyticsCsv", () => {
     const csv = renderPlannerAnalyticsCsv(makeResult([]));
     expect(csv).toBe(
       "country,plans_started,reached_100,pct_reaching_100,median_days_to_completion\r\n",
+    );
+  });
+});
+
+describe("parseDateRange", () => {
+  it("parses a valid YYYY-MM-DD..YYYY-MM-DD pair", () => {
+    expect(parseDateRange("2026-04-01..2026-04-30")).toEqual({
+      start: "2026-04-01",
+      end: "2026-04-30",
+    });
+  });
+
+  it("rejects malformed input", () => {
+    expect(parseDateRange("2026-04-01")).toBeNull();
+    expect(parseDateRange("2026-04-01..bogus")).toBeNull();
+    expect(parseDateRange("2026/04/01..2026/04/30")).toBeNull();
+    expect(parseDateRange("")).toBeNull();
+    expect(parseDateRange(null)).toBeNull();
+    expect(parseDateRange(undefined)).toBeNull();
+  });
+
+  it("rejects ranges where start is after end", () => {
+    expect(parseDateRange("2026-04-30..2026-04-01")).toBeNull();
+  });
+});
+
+describe("computePlannerAnalytics — range comparison", () => {
+  it("returns null comparison when ranges are not supplied", async () => {
+    const pool = makePool(async (text: string) => {
+      if (/ALTER TABLE user_progress/.test(text)) return { rows: [] };
+      if (/SELECT step_id,\s+COUNT/.test(text)) return { rows: [] };
+      if (/generate_series/.test(text)) return { rows: [] };
+      if (/SELECT DISTINCT target_country/.test(text)) return { rows: [] };
+      if (/per_plan AS \(/.test(text) && /plans_started,\s+/.test(text)) {
+        return {
+          rows: [{ plans_started: 0, plans_completed: 0, median_days: null }],
+        };
+      }
+      return { rows: [{ finished: 0 }] };
+    });
+    const result = await computePlannerAnalytics(pool);
+    expect(result.comparison).toBeNull();
+    expect(result.filter.rangeA).toBeNull();
+    expect(result.filter.rangeB).toBeNull();
+  });
+
+  it("computes side-by-side metrics and deltas when both ranges supplied", async () => {
+    const rangeQueryCalls: Array<{ text: string; values: unknown[] }> = [];
+    const pool = makePool(async (text: string, values?: any[]) => {
+      if (/ALTER TABLE user_progress/.test(text)) return { rows: [] };
+      if (/SELECT step_id,\s+COUNT/.test(text)) return { rows: [] };
+      if (/generate_series/.test(text)) return { rows: [] };
+      if (/SELECT DISTINCT target_country/.test(text)) return { rows: [] };
+      // Range-metrics query: per_plan rollup with started_at >= $3
+      if (/started_at >= \$3::date/.test(text)) {
+        rangeQueryCalls.push({ text, values: values ?? [] });
+        // Return rangeA on first call, rangeB on second.
+        if (rangeQueryCalls.length === 1) {
+          return {
+            rows: [
+              {
+                plans_started: 12,
+                plans_completed: 6,
+                median_sample_size: 6,
+                median_days: 8,
+              },
+            ],
+          };
+        }
+        return {
+          rows: [
+            {
+              plans_started: 8,
+              plans_completed: 2,
+              median_sample_size: 2,
+              median_days: 10,
+            },
+          ],
+        };
+      }
+      if (/per_plan AS \(/.test(text) && /plans_started,\s+/.test(text)) {
+        return {
+          rows: [{ plans_started: 0, plans_completed: 0, median_days: null }],
+        };
+      }
+      return { rows: [{ finished: 0 }] };
+    });
+    const result = await computePlannerAnalytics(pool, {
+      rangeA: { start: "2026-04-01", end: "2026-04-30" },
+      rangeB: { start: "2026-03-01", end: "2026-03-31" },
+    });
+    expect(rangeQueryCalls).toHaveLength(2);
+    // End date is exclusive in SQL — `2026-04-30` becomes `2026-05-01`.
+    expect(rangeQueryCalls[0].values[2]).toBe("2026-04-01");
+    expect(rangeQueryCalls[0].values[3]).toBe("2026-05-01");
+    expect(rangeQueryCalls[1].values[2]).toBe("2026-03-01");
+    expect(rangeQueryCalls[1].values[3]).toBe("2026-04-01");
+    expect(result.comparison).not.toBeNull();
+    const c = result.comparison!;
+    expect(c.rangeA).toMatchObject({
+      start: "2026-04-01",
+      end: "2026-04-30",
+      plansStarted: 12,
+      plansCompleted: 6,
+      completionRatePct: 50,
+      medianDaysToCompletion: 8,
+      medianSampleSize: 6,
+    });
+    expect(c.rangeB).toMatchObject({
+      plansStarted: 8,
+      plansCompleted: 2,
+      completionRatePct: 25,
+      medianDaysToCompletion: 10,
+    });
+    // 12 − 8 = +4 plans started, +50% vs baseline of 8
+    expect(c.delta.plansStarted).toBe(4);
+    expect(c.delta.plansStartedPct).toBe(50);
+    // 6 − 2 = +4 plans completed, +200% vs baseline of 2
+    expect(c.delta.plansCompleted).toBe(4);
+    expect(c.delta.plansCompletedPct).toBe(200);
+    // 50% − 25% = +25 pp
+    expect(c.delta.completionRatePctPoints).toBe(25);
+    // Median dropped from 10d to 8d → −2 days, −20%
+    expect(c.delta.medianDaysToCompletion).toBe(-2);
+    expect(c.delta.medianDaysToCompletionPct).toBe(-20);
+  });
+
+  it("returns null pct deltas when the baseline is zero", async () => {
+    const pool = makePool(async (text: string) => {
+      if (/ALTER TABLE user_progress/.test(text)) return { rows: [] };
+      if (/SELECT step_id,\s+COUNT/.test(text)) return { rows: [] };
+      if (/generate_series/.test(text)) return { rows: [] };
+      if (/SELECT DISTINCT target_country/.test(text)) return { rows: [] };
+      if (/started_at >= \$3::date/.test(text)) {
+        // Both call sites get the same shape; the per-range distinction
+        // doesn't matter for the zero-baseline assertion.
+        return {
+          rows: [
+            {
+              plans_started: 5,
+              plans_completed: 1,
+              median_sample_size: 1,
+              median_days: 3,
+            },
+          ],
+        };
+      }
+      if (/per_plan AS \(/.test(text) && /plans_started,\s+/.test(text)) {
+        return {
+          rows: [{ plans_started: 0, plans_completed: 0, median_days: null }],
+        };
+      }
+      return { rows: [{ finished: 0 }] };
+    });
+    // Range B is the baseline — make it return zeros by overriding the
+    // mock for the second call.
+    let callIdx = 0;
+    const pool2 = makePool(async (text: string) => {
+      if (/started_at >= \$3::date/.test(text)) {
+        callIdx += 1;
+        if (callIdx === 2) {
+          return {
+            rows: [
+              {
+                plans_started: 0,
+                plans_completed: 0,
+                median_sample_size: 0,
+                median_days: null,
+              },
+            ],
+          };
+        }
+        return {
+          rows: [
+            {
+              plans_started: 5,
+              plans_completed: 1,
+              median_sample_size: 1,
+              median_days: 3,
+            },
+          ],
+        };
+      }
+      if (/ALTER TABLE user_progress/.test(text)) return { rows: [] };
+      if (/SELECT step_id,\s+COUNT/.test(text)) return { rows: [] };
+      if (/generate_series/.test(text)) return { rows: [] };
+      if (/SELECT DISTINCT target_country/.test(text)) return { rows: [] };
+      if (/per_plan AS \(/.test(text) && /plans_started,\s+/.test(text)) {
+        return {
+          rows: [{ plans_started: 0, plans_completed: 0, median_days: null }],
+        };
+      }
+      return { rows: [{ finished: 0 }] };
+    });
+    const result = await computePlannerAnalytics(pool2, {
+      rangeA: { start: "2026-04-01", end: "2026-04-30" },
+      rangeB: { start: "2026-03-01", end: "2026-03-31" },
+    });
+    expect(pool).toBeDefined();
+    expect(result.comparison!.delta.plansStartedPct).toBeNull();
+    expect(result.comparison!.delta.plansCompletedPct).toBeNull();
+    // Median is null on one side → null pct
+    expect(result.comparison!.delta.medianDaysToCompletionPct).toBeNull();
+    expect(result.comparison!.delta.medianDaysToCompletion).toBeNull();
+  });
+});
+
+describe("renderPlannerAnalyticsHtml — range comparison", () => {
+  function baseResult(
+    overrides: Partial<PlannerAnalyticsResult> = {},
+  ): PlannerAnalyticsResult {
+    return {
+      generatedAt: "2026-04-28T00:00:00.000Z",
+      totalSteps: 10,
+      filter: {
+        country: null,
+        minPlansForCountryBreakdown: 3,
+        rangeA: null,
+        rangeB: null,
+      },
+      countries: [],
+      totals: {
+        plansStarted: 0,
+        plansCompleted: 0,
+        completionRatePct: 0,
+        medianDaysToCompletion: null,
+        medianSampleSize: 0,
+        medianExcludedUnknownStart: 0,
+        medianExcludedUnknownStartPct: 0,
+      },
+      stepCompletion: [],
+      stageDropOff: [],
+      weekly: [],
+      byCountry: [],
+      comparison: null,
+      ...overrides,
+    };
+  }
+
+  it("renders the date-range form even when no comparison is active", () => {
+    const html = renderPlannerAnalyticsHtml(baseResult());
+    expect(html).toContain("Compare two date ranges");
+    expect(html).toContain('name="rangeAStart"');
+    expect(html).toContain('name="rangeBStart"');
+  });
+
+  it("renders side-by-side totals and deltas when comparison is present", () => {
+    const html = renderPlannerAnalyticsHtml(
+      baseResult({
+        filter: {
+          country: null,
+          minPlansForCountryBreakdown: 3,
+          rangeA: { start: "2026-04-01", end: "2026-04-30" },
+          rangeB: { start: "2026-03-01", end: "2026-03-31" },
+        },
+        comparison: {
+          rangeA: {
+            start: "2026-04-01",
+            end: "2026-04-30",
+            plansStarted: 12,
+            plansCompleted: 6,
+            completionRatePct: 50,
+            medianDaysToCompletion: 8,
+            medianSampleSize: 6,
+          },
+          rangeB: {
+            start: "2026-03-01",
+            end: "2026-03-31",
+            plansStarted: 8,
+            plansCompleted: 2,
+            completionRatePct: 25,
+            medianDaysToCompletion: 10,
+            medianSampleSize: 2,
+          },
+          delta: {
+            plansStarted: 4,
+            plansStartedPct: 50,
+            plansCompleted: 4,
+            plansCompletedPct: 200,
+            completionRatePctPoints: 25,
+            medianDaysToCompletion: -2,
+            medianDaysToCompletionPct: -20,
+          },
+        },
+      }),
+    );
+    expect(html).toContain("Range comparison");
+    expect(html).toContain("2026-04-01 → 2026-04-30");
+    expect(html).toContain("2026-03-01 → 2026-03-31");
+    // Range A & B raw totals
+    expect(html).toContain(">12<");
+    expect(html).toContain(">8<");
+    expect(html).toContain("50.0%");
+    expect(html).toContain("25.0%");
+    // Deltas
+    expect(html).toMatch(/\+4/);
+    expect(html).toMatch(/\+50\.0%/);
+    expect(html).toMatch(/\+200\.0%/);
+    expect(html).toMatch(/\+25 pp/);
+    // Median delta: −2 days is a good outcome (faster), should be tagged good
+    expect(html).toContain("delta-good");
+    expect(html).toMatch(/−2 days/);
+    expect(html).toMatch(/−20\.0%/);
+  });
+
+  it("propagates active ranges into the JSON link", () => {
+    const html = renderPlannerAnalyticsHtml(
+      baseResult({
+        filter: {
+          country: null,
+          minPlansForCountryBreakdown: 3,
+          rangeA: { start: "2026-04-01", end: "2026-04-30" },
+          rangeB: { start: "2026-03-01", end: "2026-03-31" },
+        },
+      }),
+    );
+    expect(html).toContain(
+      "rangeA=2026-04-01..2026-04-30",
+    );
+    expect(html).toContain(
+      "rangeB=2026-03-01..2026-03-31",
     );
   });
 });

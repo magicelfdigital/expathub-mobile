@@ -61,7 +61,7 @@ function baseData(
   return {
     generatedAt: "2026-04-28T12:00:00.000Z",
     totalSteps: 10,
-    filter: { country: null, minPlansForCountryBreakdown: 3 },
+    filter: { country: null, minPlansForCountryBreakdown: 3, rangeA: null, rangeB: null },
     countries: [],
     totals: {
       plansStarted: 100,
@@ -77,6 +77,7 @@ function baseData(
     stageDropOff: [],
     weekly: [],
     byCountry,
+    comparison: null,
   };
 }
 
