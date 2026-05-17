@@ -119,7 +119,16 @@ export default function WorksheetDetailScreen() {
     // enforces the same "one free per user" rule as a backstop.
     try {
       await submit.mutateAsync({ worksheetId: worksheet.id, answers });
-      router.back();
+      // Some entry paths (deep link, post-signup redirect, paywall replace)
+      // leave no router history, so router.back() silently no-ops and the
+      // user sees the freshly-saved response render in place — looking like
+      // the screen "refreshed". Fall back to the worksheets list whenever
+      // there's nothing to go back to.
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/(tabs)/(home)/worksheets" as any);
+      }
     } catch (err: any) {
       if (err?.code === "subscription_required") {
         router.push({
