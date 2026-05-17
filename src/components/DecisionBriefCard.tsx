@@ -1,11 +1,65 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useRef, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 import type { DecisionBrief, DisplayConfidenceLevel } from "@/src/data";
 import { trackEvent } from "@/src/lib/analytics";
 import { tokens } from "@/theme/tokens";
 import { FreshnessBanner } from "@/src/components/FreshnessBanner";
+import { DragBottomSheet } from "@/src/components/DragBottomSheet";
+import { GLOSSARY, lookupAbbreviation, type GlossaryEntry } from "@/data/glossary";
+
+const PLAIN_ENGLISH_KEY = "brief_plain_english";
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const ABBREV_REGEX_SOURCE =
+  GLOSSARY.length > 0
+    ? `\\b(${GLOSSARY.map((g) => escapeRegex(g.abbreviation)).join("|")})\\b`
+    : null;
+
+function stripDefinitionalAsides(text: string): string {
+  // Remove parenthetical asides that contain an em-dash — these are the
+  // jargon-definition asides like "(ILR — UK permanent residency...)".
+  // Leaves clean parentheticals like "(US, Canada, Australia)" intact.
+  let out = text;
+  let prev = "";
+  while (prev !== out) {
+    prev = out;
+    out = out.replace(/\s*\(([^()]*—[^()]*)\)/g, "");
+  }
+  return out.replace(/\s{2,}/g, " ").replace(/\s+([,.;:])/g, "$1").trim();
+}
+
+type Segment =
+  | { type: "text"; value: string }
+  | { type: "abbrev"; value: string; entry: GlossaryEntry };
+
+function tokenizeForGlossary(paragraph: string): Segment[] {
+  if (!ABBREV_REGEX_SOURCE) {
+    return [{ type: "text", value: paragraph }];
+  }
+  const segments: Segment[] = [];
+  const pattern = new RegExp(ABBREV_REGEX_SOURCE, "g");
+  let lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = pattern.exec(paragraph)) !== null) {
+    const entry = lookupAbbreviation(m[1]);
+    if (!entry) continue;
+    if (m.index > lastIndex) {
+      segments.push({ type: "text", value: paragraph.slice(lastIndex, m.index) });
+    }
+    segments.push({ type: "abbrev", value: m[1], entry });
+    lastIndex = m.index + m[1].length;
+  }
+  if (lastIndex < paragraph.length) {
+    segments.push({ type: "text", value: paragraph.slice(lastIndex) });
+  }
+  return segments.length > 0 ? segments : [{ type: "text", value: paragraph }];
+}
 
 type DecisionBriefCardProps = {
   brief: DecisionBrief;
@@ -88,21 +142,60 @@ function splitIntoParagraphs(text: string): string[] {
   return out;
 }
 
+function GlossaryAwareText({
+  paragraph,
+  baseStyle,
+  onAbbrevPress,
+  rowKey,
+}: {
+  paragraph: string;
+  baseStyle: object;
+  onAbbrevPress: (entry: GlossaryEntry) => void;
+  rowKey: string;
+}) {
+  const segments = useMemo(() => tokenizeForGlossary(paragraph), [paragraph]);
+  return (
+    <Text style={baseStyle}>
+      {segments.map((seg, i) => {
+        if (seg.type === "text") {
+          return <Text key={`${rowKey}-s-${i}`}>{seg.value}</Text>;
+        }
+        return (
+          <Text
+            key={`${rowKey}-s-${i}`}
+            onPress={() => onAbbrevPress(seg.entry)}
+            style={s.abbrevLink}
+            accessibilityRole="link"
+            accessibilityLabel={`${seg.entry.abbreviation}: ${seg.entry.fullName}`}
+          >
+            {seg.value}
+          </Text>
+        );
+      })}
+    </Text>
+  );
+}
+
 function BulletList({
   items,
   icon,
   iconColor,
   iconBg,
+  plainEnglish,
+  onAbbrevPress,
 }: {
   items: string[];
   icon: string;
   iconColor: string;
   iconBg: string;
+  plainEnglish: boolean;
+  onAbbrevPress: (entry: GlossaryEntry) => void;
 }) {
   return (
     <View style={s.bulletList}>
       {items.map((item, itemIdx) => {
-        const paragraphs = splitIntoParagraphs(item);
+        const transformed = plainEnglish ? stripDefinitionalAsides(item) : item;
+        const paragraphs = splitIntoParagraphs(transformed);
         return (
           <View key={`bullet-${itemIdx}`} style={s.bulletRow}>
             <View style={[s.bulletIcon, { backgroundColor: iconBg }]}>
@@ -110,12 +203,16 @@ function BulletList({
             </View>
             <View style={s.bulletTextColumn}>
               {paragraphs.map((para, idx) => (
-                <Text
+                <GlossaryAwareText
                   key={`bullet-${itemIdx}-p-${idx}`}
-                  style={[s.bulletText, idx > 0 && s.bulletParagraphSpacing]}
-                >
-                  {para}
-                </Text>
+                  paragraph={para}
+                  baseStyle={{
+                    ...s.bulletText,
+                    ...(idx > 0 ? s.bulletParagraphSpacing : null),
+                  }}
+                  onAbbrevPress={onAbbrevPress}
+                  rowKey={`bullet-${itemIdx}-p-${idx}`}
+                />
               ))}
             </View>
           </View>
@@ -135,6 +232,8 @@ function CollapsibleSection({
   onOpen,
   cardStyle,
   titleStyle,
+  plainEnglish,
+  onAbbrevPress,
 }: {
   title: string;
   icon: string;
@@ -145,6 +244,8 @@ function CollapsibleSection({
   onOpen: (id: string) => void;
   cardStyle?: object;
   titleStyle?: object;
+  plainEnglish: boolean;
+  onAbbrevPress: (entry: GlossaryEntry) => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -173,7 +274,7 @@ function CollapsibleSection({
       </View>
       {open && (
         <View style={s.accordionBody}>
-          <BulletList items={items} icon={icon} iconColor={iconColor} iconBg={iconBg} />
+          <BulletList items={items} icon={icon} iconColor={iconColor} iconBg={iconBg} plainEnglish={plainEnglish} onAbbrevPress={onAbbrevPress} />
         </View>
       )}
     </Pressable>
@@ -183,6 +284,44 @@ function CollapsibleSection({
 export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBriefCardProps) {
   const conf = confidenceColors[brief.confidenceLevel];
   const viewedSectionsRef = useRef<Set<string>>(new Set());
+  const [plainEnglish, setPlainEnglish] = useState(false);
+  const [glossaryEntry, setGlossaryEntry] = useState<GlossaryEntry | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    AsyncStorage.getItem(PLAIN_ENGLISH_KEY)
+      .then((v) => {
+        if (mounted && v === "true") setPlainEnglish(true);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const togglePlainEnglish = useCallback(() => {
+    setPlainEnglish((prev) => {
+      const next = !prev;
+      AsyncStorage.setItem(PLAIN_ENGLISH_KEY, next ? "true" : "false").catch(() => {});
+      trackEvent("brief_plain_english_toggled", {
+        countrySlug: countrySlug ?? "unknown",
+        pathwayKey: pathwayKey ?? "none",
+        enabled: next,
+      });
+      return next;
+    });
+  }, [countrySlug, pathwayKey]);
+
+  const onAbbrevPress = useCallback(
+    (entry: GlossaryEntry) => {
+      setGlossaryEntry(entry);
+      trackEvent("brief_glossary_opened", {
+        countrySlug: countrySlug ?? "unknown",
+        abbreviation: entry.abbreviation,
+      });
+    },
+    [countrySlug],
+  );
 
   const trackSection = (sectionId: string) => {
     if (viewedSectionsRef.current.has(sectionId)) return;
@@ -198,15 +337,42 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
     trackSection("overview");
   }, []);
 
+  const summaryText = plainEnglish
+    ? stripDefinitionalAsides(brief.decisionSummary)
+    : brief.decisionSummary;
+
   return (
     <View style={s.container}>
       <View style={s.headerSection}>
-        <View style={s.briefLabel}>
-          <Ionicons name="shield-checkmark" size={14} color={tokens.color.primary} />
-          <Text style={s.briefLabelText}>Decision Brief</Text>
+        <View style={s.briefLabelRow}>
+          <View style={s.briefLabel}>
+            <Ionicons name="shield-checkmark" size={14} color={tokens.color.primary} />
+            <Text style={s.briefLabelText}>Decision Brief</Text>
+          </View>
+          <Pressable
+            onPress={togglePlainEnglish}
+            style={[s.plainToggle, plainEnglish && s.plainToggleActive]}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: plainEnglish }}
+            hitSlop={8}
+          >
+            <Ionicons
+              name={plainEnglish ? "sparkles" : "sparkles-outline"}
+              size={12}
+              color={plainEnglish ? tokens.color.bg : tokens.color.primary}
+            />
+            <Text style={[s.plainToggleText, plainEnglish && s.plainToggleTextActive]}>
+              Plain English
+            </Text>
+          </Pressable>
         </View>
         <Text style={s.headline}>{brief.headline}</Text>
-        <Text style={s.summary}>{brief.decisionSummary}</Text>
+        <GlossaryAwareText
+          paragraph={summaryText}
+          baseStyle={s.summary}
+          onAbbrevPress={onAbbrevPress}
+          rowKey="summary"
+        />
       </View>
 
       <FreshnessBanner lastReviewedAt={brief.lastReviewedAt} />
@@ -226,16 +392,16 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
       <View style={s.twoColumn}>
         <View style={s.columnCard}>
           <Text style={s.columnTitle}>Recommended for</Text>
-          <BulletList items={brief.recommendedFor} icon="checkmark" iconColor={tokens.color.teal} iconBg={tokens.color.tealLight} />
+          <BulletList items={brief.recommendedFor} icon="checkmark" iconColor={tokens.color.teal} iconBg={tokens.color.tealLight} plainEnglish={plainEnglish} onAbbrevPress={onAbbrevPress} />
         </View>
         <View style={[s.columnCard, s.columnCardRed]}>
           <Text style={s.columnTitleRed}>Not recommended for</Text>
-          <BulletList items={brief.notRecommendedFor} icon="close" iconColor="#991b1b" iconBg="#fee2e2" />
+          <BulletList items={brief.notRecommendedFor} icon="close" iconColor="#991b1b" iconBg="#fee2e2" plainEnglish={plainEnglish} onAbbrevPress={onAbbrevPress} />
         </View>
       </View>
 
       <View style={s.divider} />
-      <Text style={s.detailsHint}>Tap any section below to expand</Text>
+      <Text style={s.detailsHint}>Tap any section below to expand. Tap any underlined term to see what it means.</Text>
 
       <CollapsibleSection
         title="What you actually need"
@@ -245,6 +411,8 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
         items={brief.keyRequirements}
         sectionId="requirements"
         onOpen={trackSection}
+        plainEnglish={plainEnglish}
+        onAbbrevPress={onAbbrevPress}
       />
 
       <CollapsibleSection
@@ -255,6 +423,8 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
         items={brief.financialReality}
         sectionId="financial"
         onOpen={trackSection}
+        plainEnglish={plainEnglish}
+        onAbbrevPress={onAbbrevPress}
       />
 
       <CollapsibleSection
@@ -265,6 +435,8 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
         items={brief.timelineReality}
         sectionId="timeline"
         onOpen={trackSection}
+        plainEnglish={plainEnglish}
+        onAbbrevPress={onAbbrevPress}
       />
 
       <CollapsibleSection
@@ -277,6 +449,8 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
         onOpen={trackSection}
         cardStyle={s.riskAccordion}
         titleStyle={s.riskAccordionTitle}
+        plainEnglish={plainEnglish}
+        onAbbrevPress={onAbbrevPress}
       />
 
       <CollapsibleSection
@@ -289,6 +463,8 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
         onOpen={trackSection}
         cardStyle={s.mistakeAccordion}
         titleStyle={s.mistakeAccordionTitle}
+        plainEnglish={plainEnglish}
+        onAbbrevPress={onAbbrevPress}
       />
 
       <CollapsibleSection
@@ -299,6 +475,8 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
         items={brief.workReality ?? []}
         sectionId="work-reality"
         onOpen={trackSection}
+        plainEnglish={plainEnglish}
+        onAbbrevPress={onAbbrevPress}
       />
 
       <CollapsibleSection
@@ -309,6 +487,8 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
         items={brief.familyAndDependents ?? []}
         sectionId="family"
         onOpen={trackSection}
+        plainEnglish={plainEnglish}
+        onAbbrevPress={onAbbrevPress}
       />
 
       <CollapsibleSection
@@ -319,6 +499,8 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
         items={brief.lifestyleAndCulture ?? []}
         sectionId="lifestyle"
         onOpen={trackSection}
+        plainEnglish={plainEnglish}
+        onAbbrevPress={onAbbrevPress}
       />
 
       {brief.betterAlternatives && brief.betterAlternatives.length > 0 ? (
@@ -330,10 +512,42 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
           items={brief.betterAlternatives}
           sectionId="alternatives"
           onOpen={trackSection}
+          plainEnglish={plainEnglish}
+          onAbbrevPress={onAbbrevPress}
         />
       ) : null}
 
       <Text style={s.reviewedAt}>Last reviewed: {brief.lastReviewedAt}</Text>
+
+      <DragBottomSheet
+        visible={glossaryEntry !== null}
+        onClose={() => setGlossaryEntry(null)}
+        maxHeightFraction={0.6}
+        testID="glossary-sheet"
+      >
+        {glossaryEntry ? (
+          <ScrollView contentContainerStyle={s.glossarySheetContent}>
+            <View style={s.glossaryBadge}>
+              <Ionicons name="book-outline" size={12} color={tokens.color.primary} />
+              <Text style={s.glossaryBadgeText}>Glossary</Text>
+            </View>
+            <Text style={s.glossaryAbbrev}>{glossaryEntry.abbreviation}</Text>
+            <Text style={s.glossaryFullName}>{glossaryEntry.fullName}</Text>
+            <View style={s.glossaryCountryRow}>
+              <Ionicons name="location-outline" size={12} color={tokens.color.subtext} />
+              <Text style={s.glossaryCountry}>{glossaryEntry.country}</Text>
+            </View>
+            <Text style={s.glossaryDescription}>{glossaryEntry.description}</Text>
+            <Pressable
+              onPress={() => setGlossaryEntry(null)}
+              style={s.glossaryClose}
+              accessibilityRole="button"
+            >
+              <Text style={s.glossaryCloseText}>Back to brief</Text>
+            </Pressable>
+          </ScrollView>
+        ) : null}
+      </DragBottomSheet>
     </View>
   );
 }
@@ -345,11 +559,115 @@ const s = {
   headerSection: {
     gap: tokens.space.xs,
   },
+  briefLabelRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    marginBottom: 4,
+  },
   briefLabel: {
     flexDirection: "row" as const,
     alignItems: "center" as const,
     gap: 6,
-    marginBottom: 4,
+  },
+  plainToggle: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: tokens.radius.pill ?? 999,
+    borderWidth: 1,
+    borderColor: tokens.color.primary,
+    backgroundColor: tokens.color.bg,
+  },
+  plainToggleActive: {
+    backgroundColor: tokens.color.primary,
+  },
+  plainToggleText: {
+    fontSize: tokens.text.small,
+    fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.primary,
+  },
+  plainToggleTextActive: {
+    color: tokens.color.bg,
+  },
+  abbrevLink: {
+    color: tokens.color.primary,
+    textDecorationLine: "underline" as const,
+    textDecorationStyle: "dotted" as const,
+    fontWeight: tokens.weight.bold,
+  },
+  glossarySheetContent: {
+    padding: tokens.space.lg,
+    gap: tokens.space.sm,
+  },
+  glossaryBadge: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    alignSelf: "flex-start" as const,
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: tokens.radius.sm,
+    backgroundColor: tokens.color.primarySoft,
+  },
+  glossaryBadgeText: {
+    fontSize: tokens.text.small,
+    fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.primary,
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.5,
+  },
+  glossaryAbbrev: {
+    fontSize: tokens.text.h2,
+    fontWeight: tokens.weight.black,
+    fontFamily: tokens.font.display,
+    color: tokens.color.text,
+    marginTop: 4,
+  },
+  glossaryFullName: {
+    fontSize: tokens.text.body,
+    fontFamily: tokens.font.bodyBold,
+    fontWeight: tokens.weight.bold,
+    color: tokens.color.text,
+  },
+  glossaryCountryRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 4,
+    marginTop: 2,
+  },
+  glossaryCountry: {
+    fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
+  },
+  glossaryDescription: {
+    fontSize: tokens.text.body,
+    fontFamily: tokens.font.body,
+    color: tokens.color.text,
+    lineHeight: 22,
+    marginTop: tokens.space.sm,
+  },
+  glossaryClose: {
+    alignSelf: "flex-start" as const,
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 6,
+    marginTop: tokens.space.md,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: tokens.radius.sm,
+    backgroundColor: tokens.color.primarySoft,
+  },
+  glossaryCloseText: {
+    fontSize: tokens.text.small,
+    fontWeight: tokens.weight.bold,
+    fontFamily: tokens.font.bodyBold,
+    color: tokens.color.primary,
   },
   briefLabelText: {
     fontSize: tokens.text.small,

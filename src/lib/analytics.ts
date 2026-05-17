@@ -122,6 +122,8 @@ type AnalyticsEvent =
   | "compare_row_viewed"
   | "decision_brief_opened"
   | "brief_section_viewed"
+  | "brief_plain_english_toggled"
+  | "brief_glossary_opened"
   | "paywall_viewed"
   | "paywall_dismissed"
   | "paywall_value_context"
