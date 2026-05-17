@@ -635,6 +635,8 @@ export default function ResultScreen() {
                       key={lvl}
                       onPress={() => scrollToSection(lvl)}
                       disabled={disabled}
+                      unstable_pressDelay={0}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       style={({ pressed }) => [
                         styles.countPill,
                         { backgroundColor: LEVEL_COLORS[lvl].bg, borderColor: LEVEL_COLORS[lvl].border },
