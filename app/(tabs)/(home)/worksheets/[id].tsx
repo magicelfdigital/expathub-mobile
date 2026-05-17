@@ -154,9 +154,23 @@ export default function WorksheetDetailScreen() {
     } catch (err: any) {
       Alert.alert(
         "[4] mutation threw",
-        `code=${err?.code}\nstatus=${err?.status}\nmessage=${err?.message}\nbody=${(err?.body ?? "").slice(0, 150)}`,
+        `code=${err?.code}\nstatus=${err?.status}\nhasFullAccess=${hasFullAccess}\nmessage=${err?.message}\nbody=${(err?.body ?? "").slice(0, 150)}`,
       );
       if (err?.code === "subscription_required") {
+        // If the client believes the user IS entitled but the server
+        // disagrees, this is an entitlement-sync mismatch (e.g. RevenueCat
+        // hasn't pushed the subscription to the auth backend yet). Pushing
+        // /subscribe here causes a confusing screen-stack loop — the
+        // paywall sees the client entitlement and immediately
+        // router.replace()s back to this screen, producing duplicate
+        // instances on every Save tap. Show a clear error instead.
+        if (hasFullAccess) {
+          Alert.alert(
+            "Could not save",
+            "Your subscription isn't fully synced with our server yet. Please try again in a moment, or restore purchases from the Account screen.",
+          );
+          return;
+        }
         router.push({
           pathname: "/subscribe" as any,
           params: {
