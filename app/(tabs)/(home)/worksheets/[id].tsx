@@ -13,8 +13,12 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { fetch as expoFetch } from "expo/fetch";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { getApiUrl } from "@/lib/query-client";
+import { getBackendBase } from "@/src/billing/backendClient";
 import {
   useSubmitWorksheet,
   useWorksheetResponse,
@@ -26,6 +30,18 @@ import {
 } from "@/src/data/worksheets";
 import { tokens } from "@/theme/tokens";
 
+// Resolve the backend base URL the same way useWorksheets does — prefer the
+// explicit billing backend on native, fall back to the shared API URL on web
+// or when EXPO_PUBLIC_BACKEND_URL is unset (Expo Go dev).
+function resolveBackendBase(): string {
+  if (Platform.OS === "web") return getApiUrl().replace(/\/$/, "");
+  try {
+    return getBackendBase();
+  } catch {
+    return getApiUrl().replace(/\/$/, "");
+  }
+}
+
 const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
 const WEB_BOTTOM_INSET = Platform.OS === "web" ? 34 : 0;
 
@@ -33,7 +49,7 @@ export default function WorksheetDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { hasFullAccess } = useSubscription();
   // Worksheet definitions are statically bundled, so we render them from
   // local data rather than a gated backend fetch. Gating now happens at
@@ -156,21 +172,84 @@ export default function WorksheetDetailScreen() {
         "[4] mutation threw",
         `code=${err?.code}\nstatus=${err?.status}\nhasFullAccess=${hasFullAccess}\nmessage=${err?.message}\nbody=${(err?.body ?? "").slice(0, 150)}`,
       );
-      if (err?.code === "subscription_required") {
-        // If the client believes the user IS entitled but the server
-        // disagrees, this is an entitlement-sync mismatch (e.g. RevenueCat
-        // hasn't pushed the subscription to the auth backend yet). Pushing
-        // /subscribe here causes a confusing screen-stack loop — the
-        // paywall sees the client entitlement and immediately
-        // router.replace()s back to this screen, producing duplicate
-        // instances on every Save tap. Show a clear error instead.
-        if (hasFullAccess) {
+      // Self-heal: when the server returns 402 but the client knows the
+      // user IS entitled, the most likely cause is a RevenueCat → auth
+      // backend sync gap. Force-refresh the upstream entitlement, then
+      // retry the save once. Never bounce the user to the paywall while
+      // hasFullAccess is true — that creates a navigation loop where
+      // /subscribe sees the client entitlement and immediately
+      // router.replace()s back here, stacking duplicate detail screens.
+      if (err?.code === "subscription_required" && hasFullAccess) {
+        // Fail fast if we somehow lost the auth token — calling refresh
+        // without a Bearer header would return 401 upstream and we'd loop.
+        if (!token) {
           Alert.alert(
             "Could not save",
-            "Your subscription isn't fully synced with our server yet. Please try again in a moment, or restore purchases from the Account screen.",
+            "Your subscription could not be verified. Please try again in a moment or contact support@expathub.website",
           );
           return;
         }
+        try {
+          const base = resolveBackendBase();
+          const refreshRes = await expoFetch(`${base}/api/billing/mobile/refresh`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              userId: user?.id,
+              source: "revenuecat",
+            }),
+          });
+          if (refreshRes.ok) {
+            try {
+              const retryResult = await submit.mutateAsync({
+                worksheetId: worksheet.id,
+                answers,
+              });
+              Alert.alert(
+                "Saved",
+                `Synced your subscription and saved your worksheet. Score: ${retryResult?.dimensionScore}.`,
+              );
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace("/(tabs)/(home)/worksheets" as any);
+              }
+              return;
+            } catch (retryErr: any) {
+              if (retryErr?.code === "subscription_required") {
+                Alert.alert(
+                  "Could not save",
+                  "Your subscription could not be verified. Please try again in a moment or contact support@expathub.website",
+                );
+                return;
+              }
+              const retryDetail =
+                retryErr?.message ||
+                (retryErr?.status ? `Server returned ${retryErr.status}.` : "Please try again.");
+              Alert.alert("Could not save", retryDetail);
+              return;
+            }
+          }
+          // Refresh itself failed (non-2xx). Don't navigate — surface
+          // the issue and let the user retry.
+          Alert.alert(
+            "Could not save",
+            "Your subscription could not be verified. Please try again in a moment or contact support@expathub.website",
+          );
+          return;
+        } catch {
+          Alert.alert(
+            "Could not save",
+            "Your subscription could not be verified. Please try again in a moment or contact support@expathub.website",
+          );
+          return;
+        }
+      }
+      if (err?.code === "subscription_required") {
+        // Legitimately unpaid user — show the paywall.
         router.push({
           pathname: "/subscribe" as any,
           params: {
