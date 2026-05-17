@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -47,11 +47,23 @@ export default function WorksheetDetailScreen() {
   const submit = useSubmitWorksheet();
 
   const [answers, setAnswers] = useState<WorksheetAnswers>({});
+  // Once the user has touched the form, never overwrite their local answers
+  // from server cache changes. Previously the hydrate effect would re-run on
+  // any change to existing?.worksheetId — including the cache invalidation
+  // triggered by a successful save — which could clobber the freshly-typed
+  // state if the screen re-rendered before navigation completed.
+  const userEditedRef = useRef(false);
+  const updateAnswer = (qid: string, val: number | string) => {
+    userEditedRef.current = true;
+    setAnswers((a) => ({ ...a, [qid]: val }));
+  };
 
-  // Hydrate from existing response when present.
+  // Hydrate from existing response when present, but only if the user
+  // hasn't started filling in their own answers yet.
   useEffect(() => {
+    if (userEditedRef.current) return;
     if (existing?.answers) setAnswers(existing.answers);
-  }, [existing?.worksheetId]);
+  }, [existing?.worksheetId, existing?.answers]);
 
   // Anonymous deep-link guard. The list screen sends logged-out users
   // to /auth on row tap, but someone may land here directly via a
@@ -117,8 +129,21 @@ export default function WorksheetDetailScreen() {
     // their existing response, or completing their one free worksheet —
     // all of which should go through to the server. The backend still
     // enforces the same "one free per user" rule as a backstop.
+    // Diagnostic block — surfaces in Safari Web Inspector / Expo Go
+    // console so we can see what shape the payload has, what the server
+    // returns, and whether the mutation throws. Cheap to keep in prod.
+    console.warn("[worksheet] save:start", {
+      worksheetId: worksheet.id,
+      answers,
+      answerCount: Object.keys(answers).length,
+      hasExisting: !!existing,
+    });
     try {
-      await submit.mutateAsync({ worksheetId: worksheet.id, answers });
+      const result = await submit.mutateAsync({
+        worksheetId: worksheet.id,
+        answers,
+      });
+      console.warn("[worksheet] save:success", { result });
       // Some entry paths (deep link, post-signup redirect, paywall replace)
       // leave no router history, so router.back() silently no-ops and the
       // user sees the freshly-saved response render in place — looking like
@@ -130,6 +155,12 @@ export default function WorksheetDetailScreen() {
         router.replace("/(tabs)/(home)/worksheets" as any);
       }
     } catch (err: any) {
+      console.warn("[worksheet] save:error", {
+        code: err?.code,
+        status: err?.status,
+        message: err?.message,
+        body: err?.body,
+      });
       if (err?.code === "subscription_required") {
         router.push({
           pathname: "/subscribe" as any,
@@ -141,7 +172,14 @@ export default function WorksheetDetailScreen() {
         });
         return;
       }
-      Alert.alert("Could not save", err?.message ?? "Please try again.");
+      // Surface a concrete message even when the underlying error has no
+      // .message (some native fetch failures throw bare TypeErrors). The
+      // status code and body excerpt from useSubmitWorksheet make it much
+      // easier to triage a "form did nothing" report.
+      const detail =
+        err?.message ||
+        (err?.status ? `Server returned ${err.status}.` : "Please try again.");
+      Alert.alert("Could not save", detail);
     }
   };
 
@@ -200,7 +238,7 @@ export default function WorksheetDetailScreen() {
                     return (
                       <Pressable
                         key={n}
-                        onPress={() => setAnswers((a) => ({ ...a, [q.id]: n }))}
+                        onPress={() => updateAnswer(q.id, n)}
                         style={[styles.scaleBtn, selected && styles.scaleBtnOn]}
                         testID={`scale-${q.id}-${n}`}
                       >
@@ -218,7 +256,7 @@ export default function WorksheetDetailScreen() {
                     return (
                       <Pressable
                         key={opt.value}
-                        onPress={() => setAnswers((a) => ({ ...a, [q.id]: opt.value }))}
+                        onPress={() => updateAnswer(q.id, opt.value)}
                         style={[styles.choice, selected && styles.choiceOn]}
                         testID={`choice-${q.id}-${opt.value}`}
                       >

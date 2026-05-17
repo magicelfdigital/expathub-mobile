@@ -142,9 +142,27 @@ export function useSubmitWorksheet() {
       if (res.status === 402) {
         const err = new Error("A subscription is required to save this worksheet.");
         (err as any).code = "subscription_required";
+        (err as any).status = 402;
         throw err;
       }
-      if (!res.ok) throw new Error(`Submit failed: ${res.status}`);
+      if (!res.ok) {
+        // Pull the response body so the caller can surface a concrete
+        // message instead of just a bare status code. Capped to avoid
+        // dumping huge HTML error pages into the Alert dialog.
+        let body = "";
+        try {
+          body = await res.text();
+        } catch {
+          /* ignore — best-effort diagnostic */
+        }
+        const trimmed = body.slice(0, 200);
+        const err = new Error(
+          `Submit failed: ${res.status}${trimmed ? ` — ${trimmed}` : ""}`,
+        );
+        (err as any).status = res.status;
+        (err as any).body = trimmed;
+        throw err;
+      }
       return res.json() as Promise<{
         ok: true;
         worksheetId: string;
