@@ -115,6 +115,14 @@ export default function WorksheetDetailScreen() {
   }, [worksheet, answers]);
 
   const onSubmit = async () => {
+    // TestFlight diagnostic — production console isn't visible, so each
+    // step in the flow surfaces an Alert. The user can screenshot whichever
+    // alert is the last one shown to identify exactly where the save dies.
+    // Strip these once the bug is identified.
+    Alert.alert(
+      "[1] onSubmit fired",
+      `allAnswered=${allAnswered}\nanswerCount=${Object.keys(answers).length}\nuser=${user ? "yes" : "no"}\nexisting=${existing ? "yes" : "no"}\nhasFullAccess=${hasFullAccess}`,
+    );
     if (!worksheet || !allAnswered) return;
     if (!user) {
       router.push({
@@ -123,27 +131,16 @@ export default function WorksheetDetailScreen() {
       });
       return;
     }
-    // The paywall now fires when the user OPENS a locked worksheet (see
-    // the open-time redirect above), not when they submit it. By the time
-    // they reach this submit handler, they're either entitled, editing
-    // their existing response, or completing their one free worksheet —
-    // all of which should go through to the server. The backend still
-    // enforces the same "one free per user" rule as a backstop.
-    // Diagnostic block — surfaces in Safari Web Inspector / Expo Go
-    // console so we can see what shape the payload has, what the server
-    // returns, and whether the mutation throws. Cheap to keep in prod.
-    console.warn("[worksheet] save:start", {
-      worksheetId: worksheet.id,
-      answers,
-      answerCount: Object.keys(answers).length,
-      hasExisting: !!existing,
-    });
+    Alert.alert("[2] calling mutateAsync", `id=${worksheet.id}`);
     try {
       const result = await submit.mutateAsync({
         worksheetId: worksheet.id,
         answers,
       });
-      console.warn("[worksheet] save:success", { result });
+      Alert.alert(
+        "[3] mutateAsync resolved",
+        `score=${result?.dimensionScore}\ncanGoBack=${router.canGoBack()}`,
+      );
       // Some entry paths (deep link, post-signup redirect, paywall replace)
       // leave no router history, so router.back() silently no-ops and the
       // user sees the freshly-saved response render in place — looking like
@@ -155,12 +152,10 @@ export default function WorksheetDetailScreen() {
         router.replace("/(tabs)/(home)/worksheets" as any);
       }
     } catch (err: any) {
-      console.warn("[worksheet] save:error", {
-        code: err?.code,
-        status: err?.status,
-        message: err?.message,
-        body: err?.body,
-      });
+      Alert.alert(
+        "[4] mutation threw",
+        `code=${err?.code}\nstatus=${err?.status}\nmessage=${err?.message}\nbody=${(err?.body ?? "").slice(0, 150)}`,
+      );
       if (err?.code === "subscription_required") {
         router.push({
           pathname: "/subscribe" as any,
