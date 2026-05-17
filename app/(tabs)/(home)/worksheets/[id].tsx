@@ -131,14 +131,6 @@ export default function WorksheetDetailScreen() {
   }, [worksheet, answers]);
 
   const onSubmit = async () => {
-    // TestFlight diagnostic — production console isn't visible, so each
-    // step in the flow surfaces an Alert. The user can screenshot whichever
-    // alert is the last one shown to identify exactly where the save dies.
-    // Strip these once the bug is identified.
-    Alert.alert(
-      "[1] onSubmit fired",
-      `allAnswered=${allAnswered}\nanswerCount=${Object.keys(answers).length}\nuser=${user ? "yes" : "no"}\nexisting=${existing ? "yes" : "no"}\nhasFullAccess=${hasFullAccess}`,
-    );
     if (!worksheet || !allAnswered) return;
     if (!user) {
       router.push({
@@ -147,16 +139,11 @@ export default function WorksheetDetailScreen() {
       });
       return;
     }
-    Alert.alert("[2] calling mutateAsync", `id=${worksheet.id}`);
     try {
-      const result = await submit.mutateAsync({
+      await submit.mutateAsync({
         worksheetId: worksheet.id,
         answers,
       });
-      Alert.alert(
-        "[3] mutateAsync resolved",
-        `score=${result?.dimensionScore}\ncanGoBack=${router.canGoBack()}`,
-      );
       // Some entry paths (deep link, post-signup redirect, paywall replace)
       // leave no router history, so router.back() silently no-ops and the
       // user sees the freshly-saved response render in place — looking like
@@ -168,10 +155,6 @@ export default function WorksheetDetailScreen() {
         router.replace("/(tabs)/(home)/worksheets" as any);
       }
     } catch (err: any) {
-      Alert.alert(
-        "[4] mutation threw",
-        `code=${err?.code}\nstatus=${err?.status}\nhasFullAccess=${hasFullAccess}\nmessage=${err?.message}\nbody=${(err?.body ?? "").slice(0, 150)}`,
-      );
       // Self-heal: when the server returns 402 but the client knows the
       // user IS entitled, the most likely cause is a RevenueCat → auth
       // backend sync gap. Force-refresh the upstream entitlement, then
@@ -204,14 +187,10 @@ export default function WorksheetDetailScreen() {
           });
           if (refreshRes.ok) {
             try {
-              const retryResult = await submit.mutateAsync({
+              await submit.mutateAsync({
                 worksheetId: worksheet.id,
                 answers,
               });
-              Alert.alert(
-                "Saved",
-                `Synced your subscription and saved your worksheet. Score: ${retryResult?.dimensionScore}.`,
-              );
               if (router.canGoBack()) {
                 router.back();
               } else {
