@@ -349,7 +349,21 @@ export default function ResultScreen() {
         score: result.score,
       }),
     );
-    router.replace("/auth?mode=register");
+    // If the user has urgent blockers, the result screen would normally
+    // surface an "Unlock your full roadmap" CTA — but only to logged-in
+    // users. Without a redirectTo, post-signup the user lands on the
+    // home tab and never sees the paywall. Carry the paywall destination
+    // through signup so the trial offer is presented immediately after.
+    const shouldRouteToPaywall = shouldShowPaywallAfterUrgent(result.blockers);
+    if (shouldRouteToPaywall) {
+      const redirectTo =
+        `/subscribe?entryPoint=result_screen&unlockLabel=${encodeURIComponent("unlock your full readiness roadmap")}`;
+      router.replace(
+        `/auth?mode=register&redirectTo=${encodeURIComponent(redirectTo)}` as any,
+      );
+    } else {
+      router.replace("/auth?mode=register");
+    }
   };
 
   const handleContinue = async () => {
