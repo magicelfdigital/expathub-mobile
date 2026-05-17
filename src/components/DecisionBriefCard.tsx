@@ -815,7 +815,7 @@ const s = {
     lineHeight: 22,
   },
   bulletParagraphSpacing: {
-    marginTop: 10,
+    marginTop: 22,
   },
   reviewedAt: {
     fontSize: tokens.text.small,
