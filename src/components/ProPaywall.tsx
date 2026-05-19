@@ -268,7 +268,7 @@ export function ProPaywall({
   const isLaunch = !resolvedCountrySlug || isLaunchCountry(resolvedCountrySlug);
 
   async function storePendingPurchase(type: string, slug?: string) {
-    const pending = JSON.stringify({ type, countrySlug: slug ?? null });
+    const pending = JSON.stringify({ type, countrySlug: slug ?? null, storedAt: Date.now() });
     await AsyncStorage.setItem("pending_purchase", pending);
     console.log(`[PURCHASE] Stored pending purchase: ${pending}`);
   }
@@ -292,7 +292,14 @@ export function ProPaywall({
       try {
         const raw = await AsyncStorage.getItem("pending_purchase");
         if (!raw || cancelled) return;
-        const pending = JSON.parse(raw) as { type: string; countrySlug: string | null };
+        const pending = JSON.parse(raw) as { type: string; countrySlug: string | null; storedAt?: number };
+        const storedAt = typeof pending.storedAt === "number" ? pending.storedAt : null;
+        if (storedAt === null || Date.now() - storedAt > 30 * 60 * 1000) {
+          console.log(`[PURCHASE] Discarding stale pending purchase: ${raw}`);
+          pendingPurchaseHandled.current = true;
+          await clearPendingPurchase();
+          return;
+        }
         console.log(`[PURCHASE] User returned from auth, resuming pending purchase: ${JSON.stringify(pending)}`);
         pendingPurchaseHandled.current = true;
         await clearPendingPurchase();

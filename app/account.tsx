@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -340,6 +341,7 @@ export default function AccountScreen() {
   };
 
   const performDeleteAccount = async () => {
+    await AsyncStorage.removeItem("pending_purchase");
     setDeleting(true);
     try {
       const base = Platform.OS === "web"
