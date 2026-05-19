@@ -132,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setToken(stored);
           setUser(data.user);
           console.log(`[AUTH] Session restored for user ${data.user.id}, syncing with RevenueCat`);
-          loginUser(data.user.id.toString());
+          loginUser(data.user.id.toString(), data.user.email);
         } else if (mounted) {
           await removeToken();
           setToken(null);
@@ -183,7 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await saveToken(data.token);
     setToken(data.token);
     setUser(data.user);
-    loginUser(data.user.id.toString());
+    loginUser(data.user.id.toString(), data.user.email);
   }, []);
 
   const register = useCallback(async (email: string, password: string) => {
@@ -213,7 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await saveToken(data.token);
     setToken(data.token);
     setUser(data.user);
-    loginUser(data.user.id.toString());
+    loginUser(data.user.id.toString(), data.user.email);
   }, []);
 
   const logout = useCallback(async () => {

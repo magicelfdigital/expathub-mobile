@@ -119,7 +119,7 @@ async function _initRevenueCat(): Promise<boolean> {
   }
 }
 
-export async function loginUser(appUserId: string): Promise<void> {
+export async function loginUser(appUserId: string, email?: string | null): Promise<void> {
   if (!initialized) {
     rcLog(`loginUser called before init, attempting initPurchases first for user ${appUserId}`);
     const ok = await initPurchases();
@@ -138,6 +138,21 @@ export async function loginUser(appUserId: string): Promise<void> {
     rcLog(`Active entitlements after logIn: ${activeKeys.length > 0 ? activeKeys.join(", ") : "none"}`);
   } catch (e) {
     rcLog(`Login error: ${e}`);
+  }
+
+  // Best-effort subscriber attribute sync. Isolated in its own try/catch
+  // so a failure here cannot affect the login result or any downstream
+  // entitlement check. Only set when we have a non-empty string — never
+  // call setEmail with null/undefined/empty (which would wipe the value
+  // server-side).
+  const trimmedEmail = typeof email === "string" ? email.trim() : "";
+  if (trimmedEmail.length > 0) {
+    try {
+      await rc.setEmail(trimmedEmail);
+      rcLog(`Subscriber email attribute set for user: ${appUserId}`);
+    } catch (e) {
+      rcLog(`setEmail error for user ${appUserId}: ${e}`);
+    }
   }
 }
 
