@@ -219,7 +219,13 @@ export default function HomeScreen() {
 
             <View style={styles.planCardWrap}>
               <Pressable
-                onPress={() => router.push("/(tabs)/(home)/worksheets" as any)}
+                onPress={() =>
+                  router.push(
+                    (quizResult
+                      ? "/(tabs)/(home)/worksheets"
+                      : "/onboarding/intro") as any,
+                  )
+                }
                 style={({ pressed }) => [
                   styles.readinessCard,
                   pressed && styles.planCardPressed,
@@ -234,19 +240,7 @@ export default function HomeScreen() {
                     <Text style={styles.planCardTitle}>Relocation readiness</Text>
                     <Text style={styles.planCardSub}>
                       {quizResult
-                        ? `Score ${quizResult.score} / ${quizResult.maxScore ?? MAX_SCORE} — sharpen it with worksheets`
-                        : "Take the quiz, then sharpen each dimension with a worksheet"}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color={tokens.color.teal} />
-                </View>
-                {quizResult ? (
-                  <View style={styles.planCardBarTrack}>
-                    <View
-                      style={[
-                        styles.readinessBarFill,
-                        {
-                          width: `${Math.max(
+                        ? `${Math.max(
                             0,
                             Math.min(
                               100,
@@ -256,11 +250,50 @@ export default function HomeScreen() {
                                   100,
                               ),
                             ),
-                          )}%`,
-                        },
-                      ]}
-                    />
+                          )}% ready — sharpen each dimension with a worksheet`
+                        : "Take the quiz, then sharpen each dimension with a worksheet"}
+                    </Text>
                   </View>
+                  <Ionicons name="chevron-forward" size={18} color={tokens.color.teal} />
+                </View>
+                {quizResult ? (
+                  <>
+                    <View style={styles.readinessBarTrack}>
+                      <View
+                        style={[
+                          styles.readinessBarFill,
+                          {
+                            width: `${Math.max(
+                              0,
+                              Math.min(
+                                100,
+                                Math.round(
+                                  (quizResult.score /
+                                    (quizResult.maxScore ?? MAX_SCORE)) *
+                                    100,
+                                ),
+                              ),
+                            )}%`,
+                          },
+                        ]}
+                      />
+                    </View>
+                    <View style={styles.readinessFooterRow}>
+                      <Text style={styles.readinessScoreText}>
+                        Score {quizResult.score} / {quizResult.maxScore ?? MAX_SCORE}
+                      </Text>
+                      <Pressable
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          router.push("/onboarding/intro" as any);
+                        }}
+                        hitSlop={10}
+                        testID="home-readiness-retake-link"
+                      >
+                        <Text style={styles.readinessRetakeLink}>Retake quiz</Text>
+                      </Pressable>
+                    </View>
+                  </>
                 ) : null}
               </Pressable>
             </View>
@@ -824,9 +857,34 @@ const styles = {
     alignItems: "center" as const,
     justifyContent: "center" as const,
   },
+  readinessBarTrack: {
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: tokens.color.surface,
+    borderWidth: 1,
+    borderColor: "rgba(28,43,94,0.08)",
+    overflow: "hidden" as const,
+  },
   readinessBarFill: {
     height: "100%" as any,
     backgroundColor: tokens.color.teal,
-    borderRadius: 3,
+    borderRadius: 5,
+  },
+  readinessFooterRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    marginTop: 2,
+  },
+  readinessScoreText: {
+    fontSize: 12,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
+  },
+  readinessRetakeLink: {
+    fontSize: 12,
+    fontFamily: tokens.font.body,
+    color: tokens.color.teal,
+    textDecorationLine: "underline" as const,
   },
 } as const;
