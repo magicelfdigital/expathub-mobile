@@ -2,7 +2,7 @@
   "expo": {
     "name": "ExpatHub",
     "slug": "expathub",
-    "version": "1.4.2",
+    "version": "1.4.1",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "expathub",

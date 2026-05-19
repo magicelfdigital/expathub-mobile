@@ -6,7 +6,7 @@ ExpatHub is a mobile-first application helping people plan and execute internati
 
 **Company:** MagicElfDigital LLC
 **Support:** support@expathub.website
-**Current version:** 1.4.2
+**Current version:** 1.4.1.1
 
 ---
 
