@@ -483,12 +483,29 @@ export default function ResultScreen() {
   });
   const [sheetBlocker, setSheetBlocker] = useState<Blocker | null>(null);
   const sheetRef = React.useRef<DragBottomSheetHandle | null>(null);
-  const openBlockerSheet = (blocker: Blocker) => {
-    setSheetBlocker(blocker);
+  const openBlockerSheet = async (blocker: Blocker) => {
+    // Single-tap behavior: skip the bottom-sheet intermediary and go
+    // straight to the matching worksheet. The sheet UI is retained for
+    // any other entry point that still wants it.
     trackEvent("result_blocker_card_tapped", {
       questionId: blocker.questionId,
       level: blocker.level,
     });
+    const ws = WORKSHEET_BY_QUESTION_ID[blocker.questionId];
+    if (!ws) {
+      // Fall back to the sheet if there's no matching worksheet so the
+      // user still sees the blocker context rather than a dead tap.
+      setSheetBlocker(blocker);
+      return;
+    }
+    trackEvent("result_blocker_worksheet_tapped", {
+      questionId: blocker.questionId,
+      level: blocker.level,
+      worksheet_id: ws.id,
+      source: "result_card",
+    });
+    await completeOnboarding(result, true, numericAnswers);
+    router.push(`/(tabs)/(home)/worksheets/${ws.id}` as any);
   };
   const closeSheet = () => setSheetBlocker(null);
   const requestSheetClose = () => {
