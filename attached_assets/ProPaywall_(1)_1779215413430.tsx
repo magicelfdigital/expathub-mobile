@@ -215,35 +215,6 @@ export function ProPaywall({
     return () => { mounted = false; };
   }, []);
 
-  // Tracks whether a purchase / restore orchestrator call is currently
-  // in flight. The purchase handlers manage `busy` themselves via their
-  // own try/finally; this ref lets the entitlement-loading watcher below
-  // distinguish "busy because of an in-flight purchase" (leave alone)
-  // from "busy is stale from a prior flow that the entitlement refresh
-  // just resolved" (safe to clear).
-  const purchaseInFlightRef = useRef(false);
-
-  // Recovers from a stale `busy=true` after account deletion / re-login.
-  // When entitlementLoading transitions from true to false and no
-  // purchase is actively in flight, clear the stuck busy flag so the
-  // CTA buttons (disabled={busy}) become responsive again.
-  const prevEntitlementLoadingRef = useRef(entitlementLoading);
-  useEffect(() => {
-    const wasLoading = prevEntitlementLoadingRef.current;
-    prevEntitlementLoadingRef.current = entitlementLoading;
-    if (wasLoading && !entitlementLoading && busy && !purchaseInFlightRef.current) {
-      setBusy(false);
-    }
-  }, [entitlementLoading, busy]);
-
-  // Unmount cleanup — prevents stale `busy=true` from carrying over if
-  // the paywall is dismissed mid-flow and reopened later.
-  useEffect(() => {
-    return () => {
-      setBusy(false);
-    };
-  }, []);
-
   const offer: ProOffer = getProOffer(resolvedCountrySlug, pathwayKey);
   const mountedAtRef = useRef<number>(Date.now());
 
