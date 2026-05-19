@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 const APP_NAME = "ExpatHub";
-const APP_STORE_URL = "https://apps.apple.com/app/id982107779";
+const APP_STORE_URL = "https://apps.apple.com/app/id6759180198";
 const PLAY_STORE_URL =
   "https://play.google.com/store/apps/details?id=host.exp.exponent";
 const QR_LIB_URL =
