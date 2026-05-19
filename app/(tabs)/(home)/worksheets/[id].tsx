@@ -74,6 +74,13 @@ export default function WorksheetDetailScreen() {
   // throw and the retry, leaving a short window where a fast double-tap
   // could fire onSubmit twice.
   const submittingRef = useRef(false);
+  // Mirror hasFullAccess into a ref so the async catch block can read the
+  // latest value (e.g. after a reverse trial expires mid-flow) without
+  // being pinned to the closure value captured when onSubmit was created.
+  const hasFullAccessRef = useRef(hasFullAccess);
+  useEffect(() => {
+    hasFullAccessRef.current = hasFullAccess;
+  }, [hasFullAccess]);
   const updateAnswer = (qid: string, val: number | string) => {
     userEditedRef.current = true;
     setAnswers((a) => ({ ...a, [qid]: val }));
@@ -206,6 +213,24 @@ export default function WorksheetDetailScreen() {
               return;
             } catch (retryErr: any) {
               if (retryErr?.code === "subscription_required") {
+                // The refresh succeeded but the upstream still says
+                // the user is not entitled. If the client also no
+                // longer believes the user has access, route them to
+                // the paywall. If the client still says hasFullAccess
+                // (verified subscriber whose upstream sync is genuinely
+                // stuck), show the alert instead — pushing /subscribe
+                // would auto-replace back to this screen and stack.
+                if (!hasFullAccessRef.current) {
+                  router.push({
+                    pathname: "/subscribe" as any,
+                    params: {
+                      redirectTo: `/(tabs)/(home)/worksheets/${worksheet.id}`,
+                      entryPoint: "worksheet_submit_402",
+                      unlockLabel: "the remaining 7 worksheets",
+                    },
+                  });
+                  return;
+                }
                 Alert.alert(
                   "Could not save",
                   "Your subscription could not be verified. Please try again in a moment or contact support@expathub.website",
@@ -219,14 +244,39 @@ export default function WorksheetDetailScreen() {
               return;
             }
           }
-          // Refresh itself failed (non-2xx). Don't navigate — surface
-          // the issue and let the user retry.
+          // Refresh itself failed (non-2xx). If the client no longer
+          // believes the user is entitled (e.g. reverse trial expired
+          // mid-flow, RevenueCat dropped the entitlement), route to the
+          // paywall. Only surface the "could not verify" alert when the
+          // user really does still appear to be a verified subscriber.
+          if (!hasFullAccessRef.current) {
+            router.push({
+              pathname: "/subscribe" as any,
+              params: {
+                redirectTo: `/(tabs)/(home)/worksheets/${worksheet.id}`,
+                entryPoint: "worksheet_submit_402",
+                unlockLabel: "the remaining 7 worksheets",
+              },
+            });
+            return;
+          }
           Alert.alert(
             "Could not save",
             "Your subscription could not be verified. Please try again in a moment or contact support@expathub.website",
           );
           return;
         } catch {
+          if (!hasFullAccessRef.current) {
+            router.push({
+              pathname: "/subscribe" as any,
+              params: {
+                redirectTo: `/(tabs)/(home)/worksheets/${worksheet.id}`,
+                entryPoint: "worksheet_submit_402",
+                unlockLabel: "the remaining 7 worksheets",
+              },
+            });
+            return;
+          }
           Alert.alert(
             "Could not save",
             "Your subscription could not be verified. Please try again in a moment or contact support@expathub.website",
