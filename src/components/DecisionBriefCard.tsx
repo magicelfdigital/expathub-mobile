@@ -197,7 +197,10 @@ function BulletList({
         const transformed = plainEnglish ? stripDefinitionalAsides(item) : item;
         const paragraphs = splitIntoParagraphs(transformed);
         return (
-          <View key={`bullet-${itemIdx}`} style={s.bulletRow}>
+          <View
+            key={`bullet-${itemIdx}`}
+            style={[s.bulletRow, itemIdx === 0 ? s.bulletRowFirst : null]}
+          >
             <View style={[s.bulletIcon, { backgroundColor: iconBg }]}>
               <Ionicons name={icon as any} size={12} color={iconColor} />
             </View>
@@ -367,12 +370,17 @@ export function DecisionBriefCard({ brief, countrySlug, pathwayKey }: DecisionBr
           </Pressable>
         </View>
         <Text style={s.headline}>{brief.headline}</Text>
-        <GlossaryAwareText
-          paragraph={summaryText}
-          baseStyle={s.summary}
-          onAbbrevPress={onAbbrevPress}
-          rowKey="summary"
-        />
+        <View style={s.summaryParagraphs}>
+          {splitIntoParagraphs(summaryText).map((para, idx) => (
+            <GlossaryAwareText
+              key={`summary-p-${idx}`}
+              paragraph={para}
+              baseStyle={s.summary}
+              onAbbrevPress={onAbbrevPress}
+              rowKey={`summary-p-${idx}`}
+            />
+          ))}
+        </View>
       </View>
 
       <FreshnessBanner lastReviewedAt={brief.lastReviewedAt} />
@@ -790,12 +798,24 @@ const s = {
     color: tokens.color.gold,
   },
   bulletList: {
-    gap: 8,
+    gap: 16,
   },
   bulletRow: {
     flexDirection: "row" as const,
     alignItems: "flex-start" as const,
-    gap: 8,
+    gap: 10,
+    paddingVertical: 4,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.06)",
+    paddingTop: 14,
+  },
+  bulletRowFirst: {
+    borderTopWidth: 0,
+    paddingTop: 0,
+  },
+  summaryParagraphs: {
+    gap: 12,
+    marginTop: 4,
   },
   bulletIcon: {
     width: 20,
