@@ -176,7 +176,7 @@ export default function WorksheetDetailScreen() {
       // hasFullAccess is true — that creates a navigation loop where
       // /subscribe sees the client entitlement and immediately
       // router.replace()s back here, stacking duplicate detail screens.
-      if (err?.code === "subscription_required" && hasFullAccess) {
+      if (err?.code === "subscription_required" && hasFullAccessRef.current) {
         // Fail fast if we somehow lost the auth token — calling refresh
         // without a Bearer header would return 401 upstream and we'd loop.
         if (!token) {
