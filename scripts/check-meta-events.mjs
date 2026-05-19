@@ -22,11 +22,13 @@ const MOBILE_EVENTS = [
     file: "src/components/ProPaywall.tsx",
     requiredParams: ["plan"],
   },
-  {
-    event: "Subscribe",
-    file: "src/components/ProPaywall.tsx",
-    requiredParams: ["plan"],
-  },
+  // Note: `Subscribe` is intentionally NOT fired from the mobile client.
+  // Both Monthly Explorer and Annual Pathfinder now include a 14-day free
+  // trial, so the paywall fires `StartTrial` at trial activation. The paid
+  // `Subscribe` conversion event is fired server-side from the
+  // RevenueCat/Stripe webhook (upstream expathub.world repo) when the trial
+  // converts to a paid charge. See `logFbPurchaseEvent` in
+  // `src/components/ProPaywall.tsx` and docs/meta-app-promotion-setup.md.
   // Mid-funnel signal for Meta App Promotion optimisation. Fires when the
   // user taps a plan on the paywall, before purchase confirmation.
   {

@@ -44,10 +44,12 @@ Before changing campaigns, verify the funnel events are landing in **Meta Events
 | 1 | Cold-launch the app | _Activate App_ (auto-logged by SDK) | — | `src/lib/analytics.ts` → `initFbSdk()` |
 | 2 | Finish the readiness quiz, land on the result screen | `CompletedQuiz` | `top_country`, `tier` | `app/onboarding/result.tsx` (`logFbEvent("CompletedQuiz", …)`) |
 | 3 | Open the paywall (any entry point) | `ViewedPaywall` | `entry_point`, `top_country` | `src/components/ProPaywall.tsx` (`logFbEvent("ViewedPaywall", …)`) |
-| 4 | Tap the annual / 14-day-trial CTA, confirm in sandbox | `StartTrial` | `plan: "annual"`, `value: 0`, `fb_currency: "USD"` | `src/components/ProPaywall.tsx` → `logFbPurchaseEvent("annual_subscription")` |
-| 5 | After the trial flow, buy the monthly plan in sandbox | `Subscribe` | `plan: "monthly"`, `value` = live RC price (USD), `fb_currency: "USD"` | `src/components/ProPaywall.tsx` → `logFbPurchaseEvent("monthly_subscription")` |
+| 4 | Tap the annual 14-day-trial CTA, confirm in sandbox | `StartTrial` | `plan: "annual"`, `value: 0`, `fb_currency: "USD"` | `src/components/ProPaywall.tsx` → `logFbPurchaseEvent("annual_subscription")` |
+| 5 | Tap the monthly 14-day-trial CTA, confirm in sandbox | `StartTrial` | `plan: "monthly"`, `value: 0`, `fb_currency: "USD"` | `src/components/ProPaywall.tsx` → `logFbPurchaseEvent("monthly_subscription")` |
 | 6 | Tap any plan button on the paywall (before confirming purchase) | `AddToCart` | `plan: "monthly" \| "annual"` | `src/components/ProPaywall.tsx` → `handleMonthlySubscribe` / `handleAnnualSubscribe` |
 | 7 | Submit an email in the "Join waitlist" modal for a Coming Soon country | `Lead` | `source: "country_waitlist"`, `country` | `app/(tabs)/explore/index.tsx` → `WaitlistModal.handleSubmit` |
+
+> **`Subscribe` (paid conversion) is fired server-side, not by the mobile client.** Both tiers now include a 14-day free trial, so the paywall fires `StartTrial` at trial activation. The paid `Subscribe` conversion event is fired from the RevenueCat / Stripe webhook (upstream `expathub.world` repo) when the trial converts to a paid charge. Do not expect a `Subscribe` event to appear in Test Events directly from the iOS app at purchase time.
 
 5. PII guardrail — for **every** event above, confirm Test Events shows **only** the params listed. There must be no `email`, `userId`, `uid`, `firstName`, or `lastName` field. If any of these appear, stop and file a bug; do not proceed.
 
