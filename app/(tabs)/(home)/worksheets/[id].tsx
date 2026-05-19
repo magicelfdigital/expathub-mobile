@@ -69,6 +69,11 @@ export default function WorksheetDetailScreen() {
   // triggered by a successful save — which could clobber the freshly-typed
   // state if the screen re-rendered before navigation completed.
   const userEditedRef = useRef(false);
+  // Re-entrancy guard: blocks a second onSubmit while a refresh+retry is
+  // in flight. submit.isPending is briefly false between the initial 402
+  // throw and the retry, leaving a short window where a fast double-tap
+  // could fire onSubmit twice.
+  const submittingRef = useRef(false);
   const updateAnswer = (qid: string, val: number | string) => {
     userEditedRef.current = true;
     setAnswers((a) => ({ ...a, [qid]: val }));
@@ -131,6 +136,7 @@ export default function WorksheetDetailScreen() {
   }, [worksheet, answers]);
 
   const onSubmit = async () => {
+    if (submittingRef.current) return;
     if (!worksheet || !allAnswered) return;
     if (!user) {
       router.push({
@@ -139,6 +145,7 @@ export default function WorksheetDetailScreen() {
       });
       return;
     }
+    submittingRef.current = true;
     try {
       await submit.mutateAsync({
         worksheetId: worksheet.id,
@@ -247,6 +254,8 @@ export default function WorksheetDetailScreen() {
         err?.message ||
         (err?.status ? `Server returned ${err.status}.` : "Please try again.");
       Alert.alert("Could not save", detail);
+    } finally {
+      submittingRef.current = false;
     }
   };
 
