@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { trackEvent } from "@/src/lib/analytics";
+import { subscribeLogout } from "@/src/lib/logoutBus";
 import { PLAN_STEPS } from "@/src/data/planSteps";
 import { tokens } from "@/theme/tokens";
 
@@ -152,6 +153,15 @@ export function PlanProvider({ children }: { children: React.ReactNode }) {
   const resetPlan = useCallback(() => {
     pendingClear.current = true;
     setState(EMPTY);
+  }, []);
+
+  // Wipe in-memory plan state when the user signs out. AsyncStorage is
+  // cleared separately by AuthContext via clearLocalDataIfSignedOut.
+  useEffect(() => {
+    return subscribeLogout(() => {
+      pendingClear.current = true;
+      setState(EMPTY);
+    });
   }, []);
 
   const requestResetPlan = useCallback((onConfirmed?: () => void) => {

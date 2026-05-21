@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { subscribeLogout } from "@/src/lib/logoutBus";
 import type { QuizResult } from "@/src/data/quiz";
 import type { WorksheetDelta } from "@/src/onboarding/worksheetDelta";
 
@@ -109,6 +110,20 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     await AsyncStorage.setItem(SKIP_BANNER_KEY, String(next));
     setSkipBannerCount(next);
   }, [skipBannerCount]);
+
+  // Reset in-memory onboarding/quiz state when the user signs out.
+  // AsyncStorage for these keys is wiped separately by AuthContext via
+  // clearLocalDataIfSignedOut.
+  useEffect(() => {
+    return subscribeLogout(() => {
+      setHasSeenOnboarding(false);
+      setQuizResult(null);
+      setQuizAnswers(null);
+      setSkippedAccount(false);
+      setSkipBannerCount(0);
+      setPendingWorksheetDeltaState(null);
+    });
+  }, []);
 
   const clearForRetake = useCallback(async () => {
     await AsyncStorage.removeItem(QUIZ_RESULT_KEY);

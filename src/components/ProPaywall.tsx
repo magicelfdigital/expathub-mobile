@@ -48,6 +48,7 @@ import {
   clearRefreshCooldown,
 } from "@/src/billing";
 import { applyReverseTrialOnDismiss } from "@/src/lib/conversionLifts";
+import { getBackendClientInstance } from "@/src/billing";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -247,6 +248,25 @@ export function ProPaywall({
     };
   }, []);
 
+  // Auto-close paywall once entitlement flips to full access after the
+  // user has interacted (e.g. clicked a plan and StoreKit reported they
+  // were already subscribed, then backend caught up). Prevents the paywall
+  // from getting stuck behind a 60s polling spinner after the
+  // "you already have a plan" StoreKit dialog.
+  const purchaseAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (
+      purchaseAttemptedRef.current &&
+      hasFullAccess &&
+      !entitlementLoading &&
+      !busy
+    ) {
+      purchaseAttemptedRef.current = false;
+      if (onClose) onClose();
+      else if (router.canGoBack()) router.back();
+    }
+  }, [hasFullAccess, entitlementLoading, busy, onClose, router]);
+
   const offer: ProOffer = getProOffer(resolvedCountrySlug, pathwayKey);
   const mountedAtRef = useRef<number>(Date.now());
 
@@ -322,6 +342,8 @@ export function ProPaywall({
           const orchestrator = getOrchestrator(() => token);
           setError(null);
           setBusy(true);
+          purchaseAttemptedRef.current = true;
+          purchaseInFlightRef.current = true;
           console.log(`[PURCHASE] Resuming ${pending.type} via orchestrator: productId=${productId}`);
 
           try {
@@ -347,7 +369,11 @@ export function ProPaywall({
             }
             console.log(`[PURCHASE] Resume error: ${purchaseErr?.message}`);
             setError("We couldn't complete your purchase. Please tap the button to try again.");
+            try {
+              await refresh();
+            } catch {}
           } finally {
+            purchaseInFlightRef.current = false;
             setBusy(false);
           }
         } else {
@@ -481,7 +507,33 @@ export function ProPaywall({
 
     setError(null);
     setBusy(true);
+    purchaseAttemptedRef.current = true;
+    purchaseInFlightRef.current = true;
     console.log(`[PURCHASE] ${type} purchase via orchestrator: productId=${productId}`);
+
+    // Pre-flight entitlement check directly against the backend. If the
+    // user already has access (e.g. they just signed in with an existing
+    // subscription on this device), close the paywall before we hit
+    // StoreKit and risk the "you already have a plan" dialog + 60s
+    // polling spinner. We read from the backend synchronously here rather
+    // than relying on React state propagation through useEntitlement.
+    let preflightHasAccess = false;
+    try {
+      const ent = await getBackendClientInstance(() => token).getEntitlements(userId);
+      preflightHasAccess = ent.hasFullAccess;
+    } catch (err) {
+      console.log(`[PURCHASE] ${type}: pre-flight entitlement check failed, proceeding`, err);
+    }
+    // Fire-and-forget context refresh so downstream UI catches up too.
+    refresh().catch(() => {});
+    if (preflightHasAccess) {
+      console.log(`[PURCHASE] ${type}: pre-flight check found existing access, closing paywall`);
+      purchaseInFlightRef.current = false;
+      setBusy(false);
+      if (onClose) onClose();
+      else if (router.canGoBack()) router.back();
+      return;
+    }
 
     const priceUSD = await getActualPriceUSD(productId);
 
@@ -539,7 +591,15 @@ export function ProPaywall({
       console.log(`[PURCHASE] ${type} error: ${msg}`);
       trackEvent("purchase_error", { type, error: msg });
       setError(msg);
+      // After any error, refresh entitlement once. If the user is in fact
+      // already entitled (e.g. StoreKit reported "you already have a plan"
+      // and backend has caught up), the auto-close effect will dismiss the
+      // paywall and the error banner won't trap them in a spinner.
+      try {
+        await refresh();
+      } catch {}
     } finally {
+      purchaseInFlightRef.current = false;
       setBusy(false);
     }
   }

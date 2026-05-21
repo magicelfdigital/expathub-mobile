@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { subscribeLogout } from "@/src/lib/logoutBus";
 
 type ContinueSection = "resources" | "vendors" | "community" | null;
 
@@ -72,6 +73,14 @@ export function ContinueProvider({ children }: { children: React.ReactNode }) {
   const clearContinue = useCallback(() => {
     pendingClear.current = true;
     setState(EMPTY);
+  }, []);
+
+  // Wipe in-memory continue state when the user signs out.
+  useEffect(() => {
+    return subscribeLogout(() => {
+      pendingClear.current = true;
+      setState(EMPTY);
+    });
   }, []);
 
   const value = useMemo<ContinueContextValue>(

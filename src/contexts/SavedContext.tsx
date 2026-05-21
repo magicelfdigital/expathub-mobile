@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { subscribeLogout } from "@/src/lib/logoutBus";
 
 type SavedState = Record<string, string[]>;
 
@@ -70,6 +71,14 @@ export function SavedProvider({ children }: { children: React.ReactNode }) {
   const getSavedResources = useCallback((countrySlug: string): string[] => {
     return state[countrySlug] ?? [];
   }, [state]);
+
+  // Wipe in-memory saved resources when the user signs out.
+  useEffect(() => {
+    return subscribeLogout(() => {
+      setState({});
+      stateRef.current = {};
+    });
+  }, []);
 
   const removeSavedResource = useCallback((countrySlug: string, resourceId: string) => {
     setState((prev) => {

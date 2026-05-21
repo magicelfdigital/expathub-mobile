@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { subscribeLogout } from "@/src/lib/logoutBus";
 
 type CountryContextValue = {
   selectedCountrySlug: string | null;
@@ -59,6 +60,14 @@ export function CountryProvider({ children }: { children: React.ReactNode }) {
   const setSelectedCountrySlug = useCallback((slug: string | null) => {
     _immediateSlug = slug;
     setSelectedCountrySlugState(slug);
+  }, []);
+
+  // Reset in-memory country selection when the user signs out.
+  useEffect(() => {
+    return subscribeLogout(() => {
+      _immediateSlug = null;
+      setSelectedCountrySlugState(null);
+    });
   }, []);
 
   const value = useMemo<CountryContextValue>(

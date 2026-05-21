@@ -9,6 +9,9 @@ import React, {
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { loginUser, logoutUser } from "@/src/subscriptions/revenuecat";
+import { clearLocalDataIfSignedOut } from "@/src/lib/clearDeviceData";
+import { emitLogout } from "@/src/lib/logoutBus";
+import { queryClient } from "@/lib/query-client";
 import { getApiUrl } from "@/lib/query-client";
 
 const AUTH_API_URL = "https://www.expathub.website";
@@ -231,6 +234,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
     setUser(null);
     logoutUser();
+    try {
+      await clearLocalDataIfSignedOut();
+    } catch {}
+    try {
+      queryClient.clear();
+    } catch {}
+    try {
+      emitLogout();
+    } catch {}
   }, [token]);
 
   const getAuthHeaders = useCallback((): Record<string, string> => {
