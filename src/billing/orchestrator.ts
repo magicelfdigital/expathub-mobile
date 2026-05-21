@@ -60,9 +60,23 @@ export class BillingOrchestrator {
       return { entitlements: preCheck, status: "confirmed" };
     }
 
+    // Tri-state: "restored" (RC reported at least one active sub/entitlement),
+    // "none" (RC succeeded but reported nothing), or "unknown" (RC threw —
+    // we cannot tell, so we must fall back to the polling path to avoid
+    // false-negatives during transient SDK/network failures).
+    let rcOutcome: "restored" | "none" | "unknown" = "unknown";
     try {
-      await this.rcClient.restorePurchases();
-    } catch (_err: any) {
+      const rcResult = await this.rcClient.restorePurchases();
+      const activeCount = rcResult?.activeSubscriptions?.length ?? 0;
+      const activeEntCount = rcResult?.entitlements?.active
+        ? Object.keys(rcResult.entitlements.active).length
+        : 0;
+      rcOutcome = activeCount > 0 || activeEntCount > 0 ? "restored" : "none";
+    } catch (err: any) {
+      console.warn(
+        "[BillingOrchestrator] RC restorePurchases failed; falling back to polling",
+        err,
+      );
     }
 
     try {
@@ -76,6 +90,20 @@ export class BillingOrchestrator {
         err?.message ?? "Backend refresh failed after restore",
         err,
       );
+    }
+
+    // If RevenueCat explicitly reported nothing to restore, the user
+    // simply has no purchases on this Apple ID. Do a single entitlement
+    // check instead of polling for 60s — otherwise the UI hangs the full
+    // timeout before showing "No active purchases found". We do NOT skip
+    // polling when rcOutcome === "unknown" (RC threw), because backend
+    // entitlement propagation may still be in flight.
+    if (rcOutcome === "none") {
+      const entitlements = await this.backendClient.getEntitlements(userId);
+      return {
+        entitlements,
+        status: hasEntitlement(entitlements) ? "confirmed" : "pending",
+      };
     }
 
     return this.pollEntitlements(userId);

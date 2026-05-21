@@ -428,6 +428,69 @@ describe("BillingOrchestrator", () => {
     });
   });
 
+  describe("restore() — RC failure falls back to polling", () => {
+    it("polls entitlements when restorePurchases rejects (unknown outcome, not 'none')", async () => {
+      const rc = mockRCClient({
+        restorePurchases: jest.fn().mockRejectedValue(new Error("RC SDK error")),
+      });
+      let callCount = 0;
+      const backend = mockBackendClient({
+        getEntitlements: jest.fn().mockImplementation(async () => {
+          callCount++;
+          // Call 1 = pre-check (inactive). Calls 2-3 simulate delayed
+          // webhook; call 4 reflects active entitlement.
+          if (callCount < 4) return makeInactiveEntitlements();
+          return makeActiveEntitlements();
+        }),
+      });
+
+      const orchestrator = new BillingOrchestrator(rc, backend, {
+        intervalMs: 100,
+        timeoutMs: 10000,
+      });
+
+      const resultPromise = orchestrator.restore("usr_123");
+      jest.runAllTimersAsync();
+      const result = await resultPromise;
+
+      expect(rc.restorePurchases).toHaveBeenCalledTimes(1);
+      expect(backend.refreshMobileBilling).toHaveBeenCalledTimes(1);
+      // 1 pre-check + at least 3 polls (otherwise we'd have returned
+      // pending after the post-refresh single check).
+      expect((backend.getEntitlements as jest.Mock).mock.calls.length).toBeGreaterThanOrEqual(4);
+      expect(result.status).toBe("confirmed");
+      expect(result.entitlements.hasFullAccess).toBe(true);
+    });
+  });
+
+  describe("restore() — nothing to restore", () => {
+    it("returns pending immediately without polling when RC reports no active subs", async () => {
+      const rc = mockRCClient({
+        restorePurchases: jest.fn().mockResolvedValue({
+          entitlements: { active: {} },
+          activeSubscriptions: [],
+        }),
+      });
+      const backend = mockBackendClient({
+        getEntitlements: jest.fn().mockResolvedValue(makeInactiveEntitlements()),
+      });
+
+      const orchestrator = new BillingOrchestrator(rc, backend, {
+        intervalMs: 100,
+        timeoutMs: 60000,
+      });
+
+      const result = await orchestrator.restore("usr_123");
+
+      expect(rc.restorePurchases).toHaveBeenCalledTimes(1);
+      expect(backend.refreshMobileBilling).toHaveBeenCalledTimes(1);
+      // 1 pre-check + 1 post-refresh check. No polling.
+      expect(backend.getEntitlements).toHaveBeenCalledTimes(2);
+      expect(result.status).toBe("pending");
+      expect(result.entitlements.hasFullAccess).toBe(false);
+    });
+  });
+
   describe("syncOnLogin()", () => {
     it("calls RC logIn with userId, backend refresh, fetches entitlements", async () => {
       const rc = mockRCClient();
