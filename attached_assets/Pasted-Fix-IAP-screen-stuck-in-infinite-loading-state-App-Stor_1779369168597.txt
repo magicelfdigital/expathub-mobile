@@ -1,0 +1,36 @@
+Fix: IAP screen stuck in infinite loading state (App Store rejection)
+
+File to fix: src/components/ProPaywall.tsx (and subscribe/index.tsx if it has its own offerings fetch)
+
+## Problem
+Apple rejected the app citing infinite activity on the IAP screen. The root cause is almost certainly that the RevenueCat getOfferings() call hangs without a timeout, leaving the loading state permanently true. This needs to be resolved without touching entitlement logic or billing flow.
+
+## Protected files — do not modify:
+- src/contexts/EntitlementContext.tsx
+- src/contexts/entitlementDerivation.ts
+- src/billing/entitlementGate.ts
+- src/config/subscription.ts
+- src/subscriptions/revenuecat.ts
+- contexts/SubscriptionContext.tsx
+
+## Required changes
+
+1. In ProPaywall.tsx (or wherever getOfferings() is called for the IAP screen):
+
+   a. Wrap the getOfferings() call in a Promise.race() with a timeout of 8000ms. If the timeout fires first, treat it as a fetch failure — set loading to false and set an error state.
+
+   b. Wrap the entire fetch in a try/catch/finally block. The finally block must set loading to false unconditionally — this is the most common cause of infinite spinners.
+
+   c. If offerings come back null or empty (offerings.current === null), set an error state — do not leave the screen in a loading state.
+
+2. Add an error UI state to the IAP screen:
+   - Show a calm message: "Unable to load subscription options. Please check your connection and try again."
+   - Show a "Try again" button that re-triggers the offerings fetch
+   - Show a dismiss/close option so the user is never trapped on the screen
+
+3. Do not change pricing display, product IDs, entitlement logic, or purchase flow. Only the loading/error handling around the initial offerings fetch should change.
+
+4. Tone: no exclamation marks, no urgency language. Error message should be calm and factual.
+
+## After making changes
+Confirm which file(s) were modified and show the updated loading/error handling block only (not the full component).

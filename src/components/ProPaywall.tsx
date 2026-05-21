@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   LayoutAnimation,
@@ -196,6 +196,9 @@ export function ProPaywall({
   const [promoSuccess, setPromoSuccess] = useState(false);
   const [personalAttrs, setPersonalAttrs] = useState<{ topCountry: string | null; firstName: string | null }>({ topCountry: null, firstName: null });
   const [livePrices, setLivePrices] = useState<{ monthly: string | null; annual: string | null }>({ monthly: null, annual: null });
+  const [offeringsLoading, setOfferingsLoading] = useState(false);
+  const [offeringsError, setOfferingsError] = useState<string | null>(null);
+  const [offeringsAttempt, setOfferingsAttempt] = useState(0);
   const showPromoCodeFeature = __DEV__;
   const insets = useSafeAreaInsets();
   const resolvedCountrySlug = countrySlug ?? selectedCountrySlug ?? undefined;
@@ -388,29 +391,83 @@ export function ProPaywall({
     });
   }, [personalAttrs.topCountry, personalAttrs.firstName]);
 
+  const retryOfferings = useCallback(() => {
+    setOfferingsError(null);
+    setOfferingsAttempt((n) => n + 1);
+  }, []);
+
   useEffect(() => {
     if (Platform.OS === "web" || hasActiveSubscription) return;
-    getOfferings()
-      .then((result) => {
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const run = async () => {
+      setOfferingsLoading(true);
+      setOfferingsError(null);
+      try {
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(
+            () => reject(new Error("offerings_timeout")),
+            8000,
+          );
+        });
+        const result = await Promise.race([getOfferings(), timeoutPromise]);
+        if (cancelled) return;
+
         console.log("[PAYWALL-DIAG] Offerings loaded:");
-        console.log("[PAYWALL-DIAG] Current offering identifier:", result.current?.[0] ? "default" : "none");
+        console.log(
+          "[PAYWALL-DIAG] Current offering identifier:",
+          result.current?.[0] ? "default" : "none",
+        );
         console.log("[PAYWALL-DIAG] Package count:", result.current?.length ?? 0);
         result.current?.forEach((pkg) => {
-          console.log(`[PAYWALL-DIAG] Package: id=${pkg.identifier}, productId=${pkg.productId}, type=${pkg.packageType}, price=${pkg.priceString}`);
+          console.log(
+            `[PAYWALL-DIAG] Package: id=${pkg.identifier}, productId=${pkg.productId}, type=${pkg.packageType}, price=${pkg.priceString}`,
+          );
         });
-        console.log("[PAYWALL-DIAG] Monthly package productId:", result.monthlyPackage?.productId ?? "NOT FOUND");
-        if (result.error) {
-          console.log("[PAYWALL-DIAG] Error:", result.error);
+        console.log(
+          "[PAYWALL-DIAG] Monthly package productId:",
+          result.monthlyPackage?.productId ?? "NOT FOUND",
+        );
+
+        const hasAnyPackage = !!(result.current && result.current.length > 0);
+        const hasAnyPrice =
+          !!result.monthlyPackage?.priceString ||
+          !!result.annualPackage?.priceString;
+
+        if (result.error || (!hasAnyPackage && !hasAnyPrice)) {
+          if (result.error) {
+            console.log("[PAYWALL-DIAG] Error:", result.error);
+          }
+          setOfferingsError(
+            "Unable to load subscription options. Please check your connection and try again.",
+          );
+          return;
         }
+
         setLivePrices({
           monthly: result.monthlyPackage?.priceString ?? null,
           annual: result.annualPackage?.priceString ?? null,
         });
-      })
-      .catch((e) => {
+      } catch (e) {
+        if (cancelled) return;
         console.log("[PAYWALL-DIAG] getOfferings failed:", e);
-      });
-  }, [hasActiveSubscription]);
+        setOfferingsError(
+          "Unable to load subscription options. Please check your connection and try again.",
+        );
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (!cancelled) setOfferingsLoading(false);
+      }
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [hasActiveSubscription, offeringsAttempt]);
 
   // Live prices from RC offerings — fall back to the canonical price
   // constants so web, Expo Go, and any RC-init failure path still render a
@@ -739,6 +796,36 @@ export function ProPaywall({
           <View style={s.errorCard}>
             <Ionicons name="information-circle" size={18} color={tokens.color.gold} />
             <Text style={s.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
+        {offeringsError ? (
+          <View style={s.offeringsErrorCard} testID="offerings-error">
+            <Ionicons name="alert-circle-outline" size={18} color={tokens.color.gold} />
+            <Text style={s.errorText}>{offeringsError}</Text>
+            <View style={s.offeringsErrorActions}>
+              <Pressable
+                testID="offerings-error-retry"
+                onPress={retryOfferings}
+                disabled={offeringsLoading}
+                style={[s.offeringsErrorRetry, offeringsLoading && { opacity: 0.6 }]}
+                accessibilityRole="button"
+              >
+                {offeringsLoading ? (
+                  <ActivityIndicator size="small" color={tokens.color.primary} />
+                ) : (
+                  <Text style={s.offeringsErrorRetryText}>Try again</Text>
+                )}
+              </Pressable>
+              <Pressable
+                testID="offerings-error-dismiss"
+                onPress={handleClose}
+                style={s.offeringsErrorDismiss}
+                accessibilityRole="button"
+              >
+                <Text style={s.offeringsErrorDismissText}>Close</Text>
+              </Pressable>
+            </View>
           </View>
         ) : null}
 
@@ -1186,6 +1273,54 @@ const s = {
     fontFamily: tokens.font.body,
     color: tokens.color.gold,
     lineHeight: 16,
+  },
+  offeringsErrorCard: {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    alignItems: "center" as const,
+    gap: 8,
+    padding: tokens.space.md,
+    borderRadius: tokens.radius.lg,
+    backgroundColor: tokens.color.goldLight,
+    borderWidth: 1,
+    borderColor: tokens.color.gold,
+    marginTop: tokens.space.sm,
+  },
+  offeringsErrorActions: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 8,
+    width: "100%" as const,
+    marginTop: 4,
+  },
+  offeringsErrorRetry: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: tokens.radius.sm,
+    backgroundColor: tokens.color.primary,
+    minWidth: 90,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+  },
+  offeringsErrorRetryText: {
+    fontSize: tokens.text.small,
+    fontFamily: tokens.font.bodyBold,
+    fontWeight: tokens.weight.bold,
+    color: tokens.color.bg,
+  },
+  offeringsErrorDismiss: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: tokens.radius.sm,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+    backgroundColor: tokens.color.bg,
+  },
+  offeringsErrorDismissText: {
+    fontSize: tokens.text.small,
+    fontFamily: tokens.font.bodyBold,
+    fontWeight: tokens.weight.bold,
+    color: tokens.color.text,
   },
   pricingSection: {
     gap: tokens.space.md,
