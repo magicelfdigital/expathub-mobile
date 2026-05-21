@@ -363,6 +363,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     isDev: !!__DEV__,
     sandboxOverrideActive: SANDBOX_ENABLED && sandboxOverride,
     promoCodeActive,
+    isAuthenticated: !!token,
     hasFullAccess,
     hasProAccess,
     rawAccessType: accessType,

@@ -10,6 +10,7 @@ const baseFromBackend = (over: Partial<EntitlementInputs> = {}): EntitlementInpu
   isDev: false,
   sandboxOverrideActive: false,
   promoCodeActive: false,
+  isAuthenticated: true,
   hasFullAccess: false,
   hasProAccess: false,
   rawAccessType: "none",
@@ -100,6 +101,21 @@ describe("deriveEntitlement — reverse trial overlay", () => {
     expect(r.accessType).toBe("subscription");
     expect(r.source).toBe("stripe");
     expect(r.expirationDate).toBe("2027-01-01T00:00:00Z");
+  });
+
+  it("does NOT grant access to a signed-out user even when reverseTrialActive is true", () => {
+    const r = deriveEntitlement(
+      baseFromBackend({
+        isAuthenticated: false,
+        reverseTrialActive: true,
+        reverseTrialExpiresAt: RT_EXPIRES,
+      }),
+    );
+    expect(r.hasFullAccess).toBe(false);
+    expect(r.hasProAccess).toBe(false);
+    expect(r.accessType).toBe("none");
+    expect(r.source).toBe("none");
+    expect(r.expirationDate).toBeNull();
   });
 
   it("expired reverse trial (active=false) does not grant any access", () => {
