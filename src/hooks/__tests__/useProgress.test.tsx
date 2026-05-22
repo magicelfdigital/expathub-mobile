@@ -219,6 +219,63 @@ describe("useProgress — setStep mutation", () => {
     ).toHaveLength(0);
   });
 
+  it("preserves optimistic state for a concurrent in-flight mutation (no mid-race refetch clobber)", async () => {
+    // Regression for planner UX bug: when two setStep mutations are in
+    // flight at once (auto-complete + a manual tap, or two rapid taps),
+    // the first to settle must NOT invalidate /api/progress while the
+    // second's POST is still pending — otherwise the refetch returns DB
+    // state that lacks the in-flight write and the optimistic check is
+    // visibly clobbered back to unchecked.
+    let resolveSecondPost: ((r: any) => void) | null = null;
+    const getCalls: number[] = [];
+    (global as any).fetch = jest.fn(async (url: string, opts: any) => {
+      if (opts?.method === "POST") {
+        const body = JSON.parse(opts.body);
+        if (body.stepId === GENERIC_PLAN_STEPS[0].id) {
+          // first POST resolves immediately
+          return { ok: true, status: 200, json: async () => ({ ok: true }) };
+        }
+        // second POST is held open until we release it
+        return new Promise((resolve) => {
+          resolveSecondPost = () =>
+            resolve({ ok: true, status: 200, json: async () => ({ ok: true }) });
+        });
+      }
+      // GET — record each call so we can assert no mid-race refetch happens
+      getCalls.push(Date.now());
+      return { ok: true, status: 200, json: async () => [] };
+    });
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useProgress("portugal"), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const initialGetCount = getCalls.length;
+
+    const stepA = GENERIC_PLAN_STEPS[0].id;
+    const stepB = GENERIC_PLAN_STEPS[1].id;
+
+    // Fire two mutations back-to-back; first settles fast, second is pending
+    await act(async () => {
+      result.current.setStep(stepA, true);
+      result.current.setStep(stepB, true);
+    });
+
+    // First settles → onSettled runs but should SKIP invalidation because
+    // the second mutation is still in flight. Give the loop a tick.
+    await new Promise((r) => setTimeout(r, 30));
+    expect(getCalls.length).toBe(initialGetCount);
+    // Both optimistic checks must still be visible
+    expect(result.current.isStepComplete(stepA)).toBe(true);
+    expect(result.current.isStepComplete(stepB)).toBe(true);
+
+    // Release the second POST → now onSettled IS the last in-flight, and
+    // exactly one refetch should follow.
+    await act(async () => {
+      resolveSecondPost?.({});
+      await new Promise((r) => setTimeout(r, 30));
+    });
+    await waitFor(() => expect(getCalls.length).toBe(initialGetCount + 1));
+  });
+
   it("authorizes the request with the bearer token from useAuth", async () => {
     let captured: any = null;
     (global as any).fetch = jest.fn(async (_url: string, opts: any) => {

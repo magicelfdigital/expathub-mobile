@@ -73,6 +73,14 @@ export function useProgress(countrySlug: string | null | undefined) {
   const totalSteps = GENERIC_PLAN_STEPS.length;
 
   const mutation = useMutation({
+    // Tag every in-flight progress mutation for this country so onSettled
+    // can detect when it is the LAST one and only invalidate then. Without
+    // this guard, two concurrent mutations (e.g. auto-complete + a user
+    // tap, or two rapid taps) cause the first one to settle and invalidate
+    // while the second's POST is still pending; the refetch then returns
+    // DB state that lacks the in-flight write and the optimistic check is
+    // visibly clobbered to unchecked. See PR notes on planner regression.
+    mutationKey: ["progress-mutation", countrySlug ?? ""],
     mutationFn: async (input: { stepId: string; completed: boolean }) => {
       if (!countrySlug) throw new Error("country required");
       const res = await fetch(`${getBase()}/api/progress`, {
@@ -121,7 +129,18 @@ export function useProgress(countrySlug: string | null | undefined) {
       if (ctx?.prev) qc.setQueryData(progressKey(countrySlug), ctx.prev);
     },
     onSettled: () => {
-      qc.invalidateQueries({ queryKey: progressKey(countrySlug) });
+      // Only invalidate when this is the last in-flight progress mutation
+      // for the active country. isMutating() includes the current settling
+      // call (it has not transitioned out of "pending" yet at this hook),
+      // so 1 means "I'm the last one". This preserves optimistic state
+      // for any sibling mutation still in flight instead of refetching
+      // mid-race and clobbering its check back to unchecked.
+      const stillMutating = qc.isMutating({
+        mutationKey: ["progress-mutation", countrySlug ?? ""],
+      });
+      if (stillMutating <= 1) {
+        qc.invalidateQueries({ queryKey: progressKey(countrySlug) });
+      }
     },
   });
 
