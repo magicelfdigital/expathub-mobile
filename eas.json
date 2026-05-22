@@ -10,6 +10,7 @@
     },
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
       "env": {
         "EXPO_PUBLIC_BACKEND_URL": "https://www.expathub.website",
         "EXPO_PUBLIC_DOMAIN": "www.expathub.website"
@@ -17,6 +18,7 @@
     },
     "production": {
       "autoIncrement": true,
+      "channel": "production",
       "ios": {
         "resourceClass": "large"
       },
