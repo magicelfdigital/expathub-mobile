@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   LayoutAnimation,
   Linking,
   Platform,
@@ -767,22 +768,37 @@ export function ProPaywall({
       activeTab,
     });
 
+    const dismissPaywall = () => {
+      if (onClose) onClose();
+      else if (router.canGoBack()) router.back();
+      else router.replace("/(tabs)" as any);
+    };
+
     // Reverse-trial gate: grant 48h preview on first dismiss for non-paying users.
-    // The toast is fired through the global bus so it survives the paywall
-    // unmount that follows immediately after dismissal. Orchestration lives
-    // in `src/lib/conversionLifts.ts` so jest tests exercise the same code
-    // path (no duplicated logic in tests).
-    await applyReverseTrialOnDismiss({
+    // We suppress the toast here (no-op showToast) because we surface the grant
+    // through a native Alert with an OK button so users explicitly acknowledge
+    // that they have temporary access — the toast was too easy to miss.
+    // Orchestration still lives in `src/lib/conversionLifts.ts` so jest tests
+    // exercise the same code path (no duplicated logic in tests).
+    const granted = await applyReverseTrialOnDismiss({
       state: { hasFullAccess, reverseTrialActive, reverseTrialUsed },
       startReverseTrial,
-      showToast,
+      showToast: () => {},
       onError: (e: any) =>
         console.log(`[REVERSE-TRIAL] start failed: ${e?.message ?? e}`),
     });
 
-    if (onClose) onClose();
-    else if (router.canGoBack()) router.back();
-    else router.replace("/(tabs)" as any);
+    if (granted) {
+      Alert.alert(
+        "48 hours of full access unlocked",
+        "Explore all premium content for the next two days. You can subscribe any time from the account screen.",
+        [{ text: "OK", onPress: dismissPaywall }],
+        { cancelable: false, onDismiss: dismissPaywall },
+      );
+      return;
+    }
+
+    dismissPaywall();
   }
 
   if (!isLaunch && resolvedCountrySlug) {
