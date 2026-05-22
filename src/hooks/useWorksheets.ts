@@ -24,14 +24,7 @@ export type WorksheetListItem = Omit<WorksheetDefinition, "questions">;
 
 function getBase(): string {
   if (Platform.OS === "web") return getApiUrl().replace(/\/$/, "");
-  // On native, prefer the explicit billing backend URL, but in dev (Expo Go)
-  // EXPO_PUBLIC_BACKEND_URL is often unset and only EXPO_PUBLIC_DOMAIN is
-  // configured. Fall back to that rather than throwing.
-  try {
-    return getBackendBase();
-  } catch {
-    return getApiUrl().replace(/\/$/, "");
-  }
+  return getBackendBase();
 }
 
 const LIST_KEY = ["/api/worksheets"] as const;

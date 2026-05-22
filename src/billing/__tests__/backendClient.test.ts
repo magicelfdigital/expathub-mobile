@@ -1,4 +1,4 @@
-import { createBackendClient, getBackendBase } from "../backendClient";
+import { createBackendClient, getBackendBase, PROD_BACKEND_URL } from "../backendClient";
 import { Platform } from "react-native";
 import type { BackendClient } from "../types";
 
@@ -30,23 +30,29 @@ afterEach(() => {
   delete process.env.EXPO_PUBLIC_DOMAIN;
 });
 
-describe("getBackendBase — native enforcement", () => {
-  it("throws when EXPO_PUBLIC_BACKEND_URL is missing on native (iOS)", () => {
+describe("getBackendBase — native fallback", () => {
+  it("falls back to PROD_BACKEND_URL when no env var is set on native (iOS)", () => {
     (Platform as any).OS = "ios";
     delete process.env.EXPO_PUBLIC_BACKEND_URL;
+    delete process.env.EXPO_PUBLIC_DOMAIN;
 
-    expect(() => getBackendBase()).toThrow(
-      "Missing EXPO_PUBLIC_BACKEND_URL — mobile builds must explicitly set backend base URL.",
-    );
+    expect(getBackendBase()).toBe(PROD_BACKEND_URL);
   });
 
-  it("throws when EXPO_PUBLIC_BACKEND_URL is missing on native (Android)", () => {
+  it("falls back to PROD_BACKEND_URL when no env var is set on native (Android)", () => {
     (Platform as any).OS = "android";
     delete process.env.EXPO_PUBLIC_BACKEND_URL;
+    delete process.env.EXPO_PUBLIC_DOMAIN;
 
-    expect(() => getBackendBase()).toThrow(
-      "Missing EXPO_PUBLIC_BACKEND_URL — mobile builds must explicitly set backend base URL.",
-    );
+    expect(getBackendBase()).toBe(PROD_BACKEND_URL);
+  });
+
+  it("prefers EXPO_PUBLIC_DOMAIN over PROD_BACKEND_URL when only DOMAIN is set on native", () => {
+    (Platform as any).OS = "ios";
+    delete process.env.EXPO_PUBLIC_BACKEND_URL;
+    process.env.EXPO_PUBLIC_DOMAIN = "myapp.replit.dev:5000";
+
+    expect(getBackendBase()).toBe("https://myapp.replit.dev:5000");
   });
 
   it("returns EXPO_PUBLIC_BACKEND_URL on native when set", () => {

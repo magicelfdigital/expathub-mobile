@@ -19,7 +19,6 @@ import {
 } from "@/src/config/subscription";
 import { trackEvent } from "@/src/lib/analytics";
 import { useAuth } from "@/contexts/AuthContext";
-import { getApiUrl } from "@/lib/query-client";
 import { getBackendBase } from "@/src/billing/backendClient";
 import { getBackendClientInstance } from "@/src/billing";
 import type { BackendEntitlements } from "@/src/billing";
@@ -126,12 +125,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   // when the user isn't signed in or the request fails.
   const syncReverseTrialToServer = useCallback(async () => {
     if (!token) return;
-    let base: string;
-    try {
-      base = getBackendBase();
-    } catch {
-      base = getApiUrl().replace(/\/$/, "");
-    }
+    const base = getBackendBase();
     try {
       await fetch(`${base}/api/reverse-trial/start`, {
         method: "POST",

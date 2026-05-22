@@ -173,9 +173,5 @@ export async function debugForceRefresh(
 }
 
 export function getBackendBaseUrl(): string {
-  try {
-    return getBackendBase();
-  } catch {
-    return "(not configured — would throw on native)";
-  }
+  return getBackendBase();
 }

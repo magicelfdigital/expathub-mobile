@@ -278,9 +278,10 @@ describe("getBackendBaseUrl", () => {
     expect(getBackendBaseUrl()).toBe("https://prod.example.com");
   });
 
-  it("returns descriptive message when native and unconfigured", () => {
+  it("falls back to the production backend URL when native and unconfigured", () => {
     (Platform as any).OS = "ios";
     delete process.env.EXPO_PUBLIC_BACKEND_URL;
-    expect(getBackendBaseUrl()).toContain("not configured");
+    delete process.env.EXPO_PUBLIC_DOMAIN;
+    expect(getBackendBaseUrl()).toBe("https://www.expathub.website");
   });
 });

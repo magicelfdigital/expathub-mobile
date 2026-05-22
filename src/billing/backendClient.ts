@@ -11,20 +11,29 @@ function billingLog(msg: string) {
   console.log(`[BILLING] ${msg}`);
 }
 
+// Production backend host. Used as the final fallback on every platform when
+// no explicit env override is provided. This is a known constant (mirrored in
+// eas.json and PRD.md) and is deliberately hardcoded so that a missing build-
+// time env var can never crash the app or silently point us at the wrong host.
+export const PROD_BACKEND_URL = "https://www.expathub.website";
+
+function stripTrailingSlash(url: string): string {
+  return url.replace(/\/$/, "");
+}
+
 export function getBackendBase(): string {
   const explicit = process.env.EXPO_PUBLIC_BACKEND_URL;
-  if (explicit) return explicit.replace(/\/$/, "");
-
-  if (Platform.OS !== "web") {
-    throw new Error(
-      "Missing EXPO_PUBLIC_BACKEND_URL — mobile builds must explicitly set backend base URL.",
-    );
-  }
+  if (explicit) return stripTrailingSlash(explicit);
 
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
-  if (domain) return `https://${domain}`;
+  if (domain) return stripTrailingSlash(`https://${domain}`);
 
-  return "";
+  // No env override available. Web in production is served from the same
+  // origin as the backend, so an empty string (same-origin relative fetches)
+  // is correct there. Native always needs an absolute URL, so fall back to
+  // the known production host rather than throwing.
+  if (Platform.OS === "web") return "";
+  return PROD_BACKEND_URL;
 }
 
 export function createBackendClient(getToken: () => string | null): BackendClient {
