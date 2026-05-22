@@ -11,7 +11,8 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://www.expathub.website"
+        "EXPO_PUBLIC_BACKEND_URL": "https://www.expathub.website",
+        "EXPO_PUBLIC_DOMAIN": "www.expathub.website"
       }
     },
     "production": {
@@ -20,7 +21,8 @@
         "resourceClass": "large"
       },
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://www.expathub.website"
+        "EXPO_PUBLIC_BACKEND_URL": "https://www.expathub.website",
+        "EXPO_PUBLIC_DOMAIN": "www.expathub.website"
       }
     }
   },

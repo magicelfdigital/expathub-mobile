@@ -8,8 +8,11 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 const PRODUCTION_API_HOST = "www.expathub.website";
 
 export function getApiUrl(): string {
-  const host = process.env.EXPO_PUBLIC_DOMAIN || PRODUCTION_API_HOST;
-  const normalized = host.replace(/^https?:\/\//i, "");
+  const raw =
+    process.env.EXPO_PUBLIC_BACKEND_URL ||
+    process.env.EXPO_PUBLIC_DOMAIN ||
+    PRODUCTION_API_HOST;
+  const normalized = raw.replace(/^https?:\/\//i, "").replace(/\/$/, "");
   return new URL(`https://${normalized}`).href;
 }
 
