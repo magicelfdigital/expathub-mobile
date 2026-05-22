@@ -217,6 +217,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(data.token);
     setUser(data.user);
     loginUser(data.user.id.toString(), data.user.email);
+    // The user has now created an account, so the "skipped account" marker
+    // (and the home-screen banner it drives) is no longer relevant. Clearing
+    // it here means a later logout or account deletion can never resurface
+    // the "Your results are saved on this device" prompt, even if the local
+    // wipe path partially fails.
+    try {
+      await AsyncStorage.removeItem("skippedAccount");
+    } catch {}
   }, []);
 
   const logout = useCallback(async () => {

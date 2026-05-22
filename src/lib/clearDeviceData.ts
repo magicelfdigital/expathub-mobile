@@ -43,18 +43,36 @@ async function readToken(): Promise<string | null> {
   return AsyncStorage.getItem(TOKEN_KEY);
 }
 
+async function wipeAll(): Promise<void> {
+  await AsyncStorage.multiRemove(KEYS_TO_WIPE_WHEN_SIGNED_OUT);
+  // Defensive SecureStore cleanup on native; should already be absent.
+  if (Platform.OS !== "web") {
+    try {
+      const SecureStore = await import("expo-secure-store");
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
+    } catch {}
+  }
+}
+
 export async function clearLocalDataIfSignedOut(): Promise<{ wiped: boolean }> {
   try {
     const token = await readToken();
     if (token) return { wiped: false };
-    await AsyncStorage.multiRemove(KEYS_TO_WIPE_WHEN_SIGNED_OUT);
-    // Defensive SecureStore cleanup on native; should already be absent.
-    if (Platform.OS !== "web") {
-      try {
-        const SecureStore = await import("expo-secure-store");
-        await SecureStore.deleteItemAsync(TOKEN_KEY);
-      } catch {}
-    }
+    await wipeAll();
+    return { wiped: true };
+  } catch {
+    return { wiped: false };
+  }
+}
+
+// Used by the account-deletion flow. Wipes the same keys as
+// clearLocalDataIfSignedOut but without the token-presence gate, so a stale
+// or partially-removed token cannot leave quiz results, planner state, or
+// the "skipped account" banner marker behind after the user has explicitly
+// destroyed their account.
+export async function forceClearLocalData(): Promise<{ wiped: boolean }> {
+  try {
+    await wipeAll();
     return { wiped: true };
   } catch {
     return { wiped: false };

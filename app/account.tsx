@@ -361,13 +361,16 @@ export default function AccountScreen() {
         throw new Error(`Delete failed (${res.status}): ${body}`);
       }
       await logout();
-      // Logout only clears the auth token. Without this, locally cached
-      // quiz results, planner state, saved resources, and personalisation
-      // survive into the next account created on the same device. The
-      // shared helper wipes the same keys as the cold-boot reset path.
+      // Belt-and-suspenders: logout() already wipes local data via
+      // clearLocalDataIfSignedOut, but that helper is gated on the auth
+      // token being absent. If anything left a stale token behind, the
+      // wipe would silently no-op and the next session would see leftover
+      // quiz results / "saved on device" banner. After an account deletion
+      // the user wants nothing saved anywhere, so force the wipe
+      // unconditionally.
       try {
-        const { clearLocalDataIfSignedOut } = await import("@/src/lib/clearDeviceData");
-        await clearLocalDataIfSignedOut();
+        const { forceClearLocalData } = await import("@/src/lib/clearDeviceData");
+        await forceClearLocalData();
       } catch (clearErr) {
         console.log(`[DELETE_ACCOUNT] local data clear failed: ${clearErr}`);
       }

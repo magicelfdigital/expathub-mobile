@@ -21,6 +21,10 @@ const AsyncStorage = {
   async removeItem(key: string): Promise<void> {
     getStore().delete(key);
   },
+  async multiRemove(keys: string[]): Promise<void> {
+    const s = getStore();
+    for (const k of keys) s.delete(k);
+  },
   __reset(): void {
     getStore().clear();
   },
