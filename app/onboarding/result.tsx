@@ -477,7 +477,7 @@ export default function ResultScreen() {
   });
 
   const [revealedLevels, setRevealedLevels] = useState<Record<BlockerLevel, boolean>>({
-    critical: true,
+    critical: false,
     moderate: false,
     explore: false,
   });
