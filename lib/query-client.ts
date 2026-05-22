@@ -5,16 +5,12 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
  * Gets the base URL for the Express API server (e.g., "http://localhost:3000")
  * @returns {string} The API base URL
  */
+const PRODUCTION_API_HOST = "www.expathub.website";
+
 export function getApiUrl(): string {
-  let host = process.env.EXPO_PUBLIC_DOMAIN;
-
-  if (!host) {
-    throw new Error("EXPO_PUBLIC_DOMAIN is not set");
-  }
-
-  let url = new URL(`https://${host}`);
-
-  return url.href;
+  const host = process.env.EXPO_PUBLIC_DOMAIN || PRODUCTION_API_HOST;
+  const normalized = host.replace(/^https?:\/\//i, "");
+  return new URL(`https://${normalized}`).href;
 }
 
 async function throwIfResNotOk(res: Response) {

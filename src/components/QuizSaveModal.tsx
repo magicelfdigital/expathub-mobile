@@ -1,6 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 
 import { getApiUrl } from "@/lib/query-client";
 import { identifyByEmail, trackEvent } from "@/src/lib/analytics";
@@ -92,8 +104,14 @@ export function QuizSaveModal({ visible, noCount, onClose, onContinue }: Props) 
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
-      <View style={s.backdrop}>
-        <View style={s.card}>
+      <KeyboardAvoidingView
+        style={s.flex1}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={s.backdrop}>
+            <TouchableWithoutFeedback onPress={() => {}} accessible={false}>
+              <View style={s.card}>
           <Pressable onPress={handleClose} hitSlop={12} style={s.closeBtn}>
             <Ionicons name="close" size={22} color={tokens.color.subtext} />
           </Pressable>
@@ -136,6 +154,9 @@ export function QuizSaveModal({ visible, noCount, onClose, onContinue }: Props) 
                 autoCapitalize="none"
                 autoComplete="email"
                 keyboardType="email-address"
+                returnKeyType="send"
+                onSubmitEditing={handleSubmit}
+                blurOnSubmit
                 style={s.input}
                 editable={!busy}
               />
@@ -158,13 +179,17 @@ export function QuizSaveModal({ visible, noCount, onClose, onContinue }: Props) 
               </Pressable>
             </>
           )}
-        </View>
-      </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const s = StyleSheet.create({
+  flex1: { flex: 1 },
   backdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",
