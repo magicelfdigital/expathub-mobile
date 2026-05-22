@@ -357,7 +357,7 @@ export default function ResultScreen() {
     const shouldRouteToPaywall = shouldShowPaywallAfterUrgent(result.blockers);
     if (shouldRouteToPaywall) {
       const redirectTo =
-        `/subscribe?entryPoint=result_screen&unlockLabel=${encodeURIComponent("unlock your full readiness roadmap")}`;
+        `/subscribe?entryPoint=result_screen&unlockLabel=${encodeURIComponent("your full readiness roadmap")}`;
       router.replace(
         `/auth?mode=register&redirectTo=${encodeURIComponent(redirectTo)}` as any,
       );
@@ -389,7 +389,7 @@ export default function ResultScreen() {
       pathname: "/subscribe" as any,
       params: {
         entryPoint: "result_screen",
-        unlockLabel: "unlock your full readiness roadmap",
+        unlockLabel: "your full readiness roadmap",
       },
     });
   };
