@@ -612,11 +612,11 @@ export default function ResultScreen() {
             <Text style={styles.readinessLabel}>Relocation readiness</Text>
             <View style={styles.headerLinksRow}>
               <Pressable onPress={handleEditAnswers} hitSlop={8} testID="result-edit-answers-link">
-                <Text style={styles.restartLinkInline}>Edit answers</Text>
+                <Text style={styles.restartLinkInline} numberOfLines={1}>Edit</Text>
               </Pressable>
               <Text style={styles.headerLinkDot}>·</Text>
               <Pressable onPress={handleRestart} hitSlop={8} testID="result-restart-link">
-                <Text style={styles.restartLinkInline}>Restart</Text>
+                <Text style={styles.restartLinkInline} numberOfLines={1}>Restart</Text>
               </Pressable>
             </View>
           </View>
@@ -854,11 +854,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
+    gap: 8,
   },
   headerLinksRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    flexShrink: 0,
   },
   headerLinkDot: {
     fontSize: 13,
@@ -1058,7 +1060,7 @@ const styles = StyleSheet.create({
     color: tokens.color.subtext,
     textTransform: "uppercase",
     letterSpacing: 1,
-    marginBottom: 12,
+    flexShrink: 1,
   },
   readinessBarTrack: {
     height: 10,
