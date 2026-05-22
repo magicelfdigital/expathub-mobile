@@ -683,6 +683,10 @@ export default function ResultScreen() {
           ) : null}
         </View>
 
+        {renderBlockerSection("critical")}
+        {renderBlockerSection("moderate")}
+        {renderBlockerSection("explore")}
+
         {result.topMatch ? (
           <Pressable
             onPress={handleExploreTopMatch}
@@ -709,10 +713,6 @@ export default function ResultScreen() {
           </Pressable>
         ) : null}
 
-        {renderBlockerSection("critical")}
-        {renderBlockerSection("moderate")}
-        {renderBlockerSection("explore")}
-
         {/*
           The paywall CTA used to sit BETWEEN the urgent (critical/moderate)
           blockers and the explore section, which interrupted the list the
@@ -720,6 +720,14 @@ export default function ResultScreen() {
           the END of the blocker list so the upgrade ask is still one tap
           away without breaking up the content. A second sticky CTA at the
           bottom of the screen keeps it visible while scrolling.
+
+          Blocker sections themselves now render directly under the pill
+          row (above the Top Region card) so a tap on a pill reveals
+          content in the user's eyeline rather than appearing off-screen
+          below an intervening card — that off-screen reveal caused a
+          perceived "needs two taps" bug because the first tap's
+          scroll-to-section ran before the section had mounted and its
+          y-offset was 0.
         */}
         {showPaywallAfterUrgent ? renderPaywallCta() : null}
 
