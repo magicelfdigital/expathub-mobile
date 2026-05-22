@@ -38,6 +38,8 @@ export default function AccountScreen() {
     sandboxMode,
     setSandboxOverride,
     refresh,
+    reverseTrialActive,
+    reverseTrialExpiresAt,
   } = useSubscription();
 
   const { quizResult, clearForRetake } = useOnboarding();
@@ -398,9 +400,22 @@ export default function AccountScreen() {
         return PAID_TIER_DISPLAY_NAME;
       case "sandbox":
         return "Sandbox";
+      case "reverse_trial":
+        return "Free Trial";
       default:
         return FREE_TIER_DISPLAY_NAME;
     }
+  })();
+
+  const reverseTrialEndsLabel = (() => {
+    if (!reverseTrialActive || !reverseTrialExpiresAt) return null;
+    const d = new Date(reverseTrialExpiresAt);
+    return d.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
   })();
 
   // Reverse-trial users are entitled to read pro content but have NO underlying
@@ -452,13 +467,17 @@ export default function AccountScreen() {
           <View
             style={[
               s.badge,
-              hasPaidAccess || accessType === "sandbox" ? s.badgePro : s.badgeFree,
+              hasPaidAccess || accessType === "sandbox" || reverseTrialActive
+                ? s.badgePro
+                : s.badgeFree,
             ]}
           >
             <Text
               style={[
                 s.badgeText,
-                hasPaidAccess || accessType === "sandbox" ? s.badgeTextPro : s.badgeTextFree,
+                hasPaidAccess || accessType === "sandbox" || reverseTrialActive
+                  ? s.badgeTextPro
+                  : s.badgeTextFree,
               ]}
             >
               {accessLabel}
@@ -470,6 +489,13 @@ export default function AccountScreen() {
           <View style={s.row}>
             <Text style={s.rowLabel}>Renews</Text>
             <Text style={s.rowValue}>{new Date(expirationDate).toLocaleDateString()}</Text>
+          </View>
+        ) : null}
+
+        {reverseTrialActive && reverseTrialEndsLabel ? (
+          <View style={s.row}>
+            <Text style={s.rowLabel}>Trial ends</Text>
+            <Text style={s.rowValue}>{reverseTrialEndsLabel}</Text>
           </View>
         ) : null}
 

@@ -18,6 +18,8 @@ type SubscriptionContextValue = {
   promoCodeActive: boolean;
   redeemPromoCode: (code: string) => Promise<{ success: boolean; error?: string }>;
   clearPromoCode: () => Promise<void>;
+  reverseTrialActive: boolean;
+  reverseTrialExpiresAt: number | null;
 };
 
 const SubscriptionContext = createContext<SubscriptionContextValue | undefined>(undefined);
@@ -39,6 +41,8 @@ function SubscriptionBridge({ children }: { children: React.ReactNode }) {
     promoCodeActive,
     redeemPromoCode,
     clearPromoCode,
+    reverseTrialActive,
+    reverseTrialExpiresAt,
   } = useEntitlement();
 
   const value = useMemo<SubscriptionContextValue>(
@@ -67,8 +71,10 @@ function SubscriptionBridge({ children }: { children: React.ReactNode }) {
       promoCodeActive,
       redeemPromoCode,
       clearPromoCode,
+      reverseTrialActive,
+      reverseTrialExpiresAt,
     }),
-    [hasProAccess, hasFullAccess, accessType, source, loading, sandboxMode, managementURL, expirationDate, rcConfigured, purchasesError, setSandboxOverride, refresh, promoCodeActive, redeemPromoCode, clearPromoCode]
+    [hasProAccess, hasFullAccess, accessType, source, loading, sandboxMode, managementURL, expirationDate, rcConfigured, purchasesError, setSandboxOverride, refresh, promoCodeActive, redeemPromoCode, clearPromoCode, reverseTrialActive, reverseTrialExpiresAt]
   );
 
   return <SubscriptionContext.Provider value={value}>{children}</SubscriptionContext.Provider>;
