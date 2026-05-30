@@ -6,10 +6,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ActivityIndicator, Alert, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import * as Clipboard from "expo-clipboard";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useOnboarding } from "@/contexts/OnboardingContext";
-import { CancellationModal } from "@/src/components/CancellationModal";
 import { getBackendBase } from "@/src/billing/backendClient";
 import { getApiUrl } from "@/lib/query-client";
 import { tokens } from "@/theme/tokens";
@@ -38,8 +39,7 @@ export default function AccountScreen() {
     sandboxMode,
     setSandboxOverride,
     refresh,
-    reverseTrialActive,
-    reverseTrialExpiresAt,
+    lastRefreshAt,
   } = useSubscription();
 
   const { quizResult, clearForRetake } = useOnboarding();
@@ -104,9 +104,6 @@ export default function AccountScreen() {
   const [restoring, setRestoring] = useState(false);
   const [restoreHint, setRestoreHint] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [exitOfferEligible, setExitOfferEligible] = useState(false);
-  const [exitSubscriptionId, setExitSubscriptionId] = useState<string | null>(null);
   const { width: screenWidth } = useWindowDimensions();
   const isLargeScreen = screenWidth >= 768;
   const WEB_TOP = Platform.OS === "web" ? 67 : 0;
@@ -176,26 +173,6 @@ export default function AccountScreen() {
     ? getApiUrl().replace(/\/$/, "")
     : getBackendBase();
 
-  async function resolveSubscriptionIdForExitOffer(): Promise<string | null> {
-    // The exit-offer endpoint only accepts Stripe subscription IDs. On every
-    // platform we resolve it from the authenticated backend user — never
-    // from RevenueCat's productIdentifier, which is an SKU, not a sub id.
-    try {
-      const meRes = await fetch(`${apiBase}/api/auth/me`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        credentials: "include",
-      });
-      if (!meRes.ok) return null;
-      const me: { user?: { stripeSubscriptionId?: string } } | null = await meRes
-        .json()
-        .catch(() => null);
-      const subId = me?.user?.stripeSubscriptionId;
-      return typeof subId === "string" && subId.length > 0 ? subId : null;
-    } catch {
-      return null;
-    }
-  }
-
   // The Stripe customer id is derived server-side from the auth token
   // (see /api/stripe/portal in server/routes.ts). The client never sends
   // a customerId — that would be an IDOR vector.
@@ -222,69 +199,11 @@ export default function AccountScreen() {
     }
   }
 
-  async function fetchExitOfferEligibility(subscriptionId: string): Promise<boolean> {
-    try {
-      const res = await fetch(
-        `${apiBase}/api/subscription/exit-offer/eligibility?subscriptionId=${encodeURIComponent(subscriptionId)}`,
-        {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-          credentials: "include",
-        },
-      );
-      if (!res.ok) return false;
-      const data = await res.json().catch(() => null);
-      return !!data?.eligible;
-    } catch {
-      return false;
-    }
-  }
-
-  async function postExitOfferAction(
-    subscriptionId: string,
-    action: "accept" | "decline" | "shown",
-  ) {
-    try {
-      await fetch(`${apiBase}/api/subscription/exit-offer`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        credentials: "include",
-        body: JSON.stringify({ subscriptionId, action }),
-      });
-    } catch (e: any) {
-      console.log(`[EXIT_OFFER] ${action} error: ${e?.message ?? e}`);
-    }
-  }
-
-  const handleManageSubscription = async () => {
-    if (!hasPaidAccess) {
-      openSubscriptionManagement();
-      return;
-    }
-    const subId = await resolveSubscriptionIdForExitOffer();
-    setExitSubscriptionId(subId);
-    if (subId) {
-      const eligible = source === "stripe"
-        ? await fetchExitOfferEligibility(subId)
-        : false;
-      setExitOfferEligible(eligible);
-      if (eligible) {
-        await postExitOfferAction(subId, "shown");
-      }
-    } else {
-      setExitOfferEligible(false);
-    }
-    setShowCancelModal(true);
-  };
-
   // Routes the user to the right "manage subscription" surface for their
   // billing source. Stripe subscriptions deep-link into the hosted billing
   // portal (server derives the customer id from the auth token) — RC
   // subs (iOS / Android) go to the relevant store.
-  const openSubscriptionManagement = async () => {
-    setShowCancelModal(false);
+  const handleManageSubscription = async () => {
     if (source === "stripe") {
       const opened = await openStripePortal();
       if (opened) return;
@@ -400,31 +319,39 @@ export default function AccountScreen() {
         return PAID_TIER_DISPLAY_NAME;
       case "sandbox":
         return "Sandbox";
-      case "reverse_trial":
-        return "Free Trial";
       default:
         return FREE_TIER_DISPLAY_NAME;
     }
   })();
 
-  const reverseTrialEndsLabel = (() => {
-    if (!reverseTrialActive || !reverseTrialExpiresAt) return null;
-    const d = new Date(reverseTrialExpiresAt);
-    return d.toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  })();
-
-  // Reverse-trial users are entitled to read pro content but have NO underlying
-  // billing subscription — they must not enter the cancel/manage flow.
   const hasPaidAccess =
     hasActiveSubscription &&
     accessType !== "sandbox" &&
-    accessType !== "none" &&
-    accessType !== "reverse_trial";
+    accessType !== "none";
+
+  const lastRefreshLabel = (() => {
+    if (!lastRefreshAt) return "never";
+    try {
+      return new Date(lastRefreshAt).toLocaleString();
+    } catch {
+      return String(lastRefreshAt);
+    }
+  })();
+
+  const copyDiagnostics = useCallback(async () => {
+    const lines = [
+      `userId: ${user?.id ?? "none"}`,
+      `accessType: ${accessType}`,
+      `source: ${source}`,
+      `lastRefreshAt: ${lastRefreshLabel}`,
+    ].join("\n");
+    try {
+      await Clipboard.setStringAsync(lines);
+      setStatusMsg("Diagnostics copied");
+    } catch {
+      setStatusMsg("Could not copy diagnostics");
+    }
+  }, [user?.id, accessType, source, lastRefreshLabel]);
 
   if (deletedSuccess) {
     return (
@@ -467,7 +394,7 @@ export default function AccountScreen() {
           <View
             style={[
               s.badge,
-              hasPaidAccess || accessType === "sandbox" || reverseTrialActive
+              hasPaidAccess || accessType === "sandbox"
                 ? s.badgePro
                 : s.badgeFree,
             ]}
@@ -475,7 +402,7 @@ export default function AccountScreen() {
             <Text
               style={[
                 s.badgeText,
-                hasPaidAccess || accessType === "sandbox" || reverseTrialActive
+                hasPaidAccess || accessType === "sandbox"
                   ? s.badgeTextPro
                   : s.badgeTextFree,
               ]}
@@ -489,13 +416,6 @@ export default function AccountScreen() {
           <View style={s.row}>
             <Text style={s.rowLabel}>Renews</Text>
             <Text style={s.rowValue}>{new Date(expirationDate).toLocaleDateString()}</Text>
-          </View>
-        ) : null}
-
-        {reverseTrialActive && reverseTrialEndsLabel ? (
-          <View style={s.row}>
-            <Text style={s.rowLabel}>Trial ends</Text>
-            <Text style={s.rowValue}>{reverseTrialEndsLabel}</Text>
           </View>
         ) : null}
 
@@ -746,40 +666,44 @@ export default function AccountScreen() {
         </Text>
       </Pressable>
 
-      <CancellationModal
-        visible={showCancelModal}
-        onClose={() => {
-          setShowCancelModal(false);
-          setExitOfferEligible(false);
+      <View
+        style={{
+          marginTop: 24,
+          marginHorizontal: 16,
+          padding: 12,
+          borderRadius: tokens.radius.md,
+          borderWidth: 1,
+          borderColor: tokens.color.border,
+          backgroundColor: tokens.color.surface,
         }}
-        onProceed={openSubscriptionManagement}
-        exitOffer={
-          exitOfferEligible && exitSubscriptionId
-            ? {
-                eligible: true,
-                subscriptionId: exitSubscriptionId,
-                onAccept: async () => {
-                  // Backend applies the 50%-off-3mo coupon to the subscription
-                  // and records the action. Then we deep-link the user into
-                  // the Stripe billing portal so they can review/manage the
-                  // discounted subscription right away.
-                  await postExitOfferAction(exitSubscriptionId, "accept");
-                  await refresh();
-                  setStatusMsg("50% off applied to your next 3 billing periods.");
-                  await openStripePortal();
-                },
-                onDecline: async () => {
-                  // Decline → record only. CancellationModal advances to its
-                  // existing "before_you_go" confirmation step, where the
-                  // user taps Continue to Cancel → onProceed →
-                  // openSubscriptionManagement() → Stripe portal (or App
-                  // Store / Play, depending on `source`).
-                  await postExitOfferAction(exitSubscriptionId, "decline");
-                },
-              }
-            : undefined
-        }
-      />
+      >
+        <Pressable onPress={copyDiagnostics} testID="account-diagnostics-copy">
+          <Text
+            style={{
+              fontSize: 12,
+              fontFamily: tokens.font.bodySemiBold,
+              color: tokens.color.textSoft,
+              marginBottom: 6,
+              letterSpacing: 0.5,
+            }}
+          >
+            DIAGNOSTICS · TAP TO COPY
+          </Text>
+          <Text
+            style={{
+              fontSize: 12,
+              fontFamily: tokens.font.body,
+              color: tokens.color.subtext,
+              lineHeight: 18,
+            }}
+          >
+            user: {user?.id ?? "none"}
+            {"\n"}access: {accessType}
+            {"\n"}source: {source}
+            {"\n"}last refresh: {lastRefreshLabel}
+          </Text>
+        </Pressable>
+      </View>
 
       <Modal
         visible={showPlanSwitcher}

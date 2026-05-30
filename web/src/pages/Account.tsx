@@ -2,22 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useUser } from "@/hooks/useUser";
 import { trackSubscribe } from "@/lib/pixel";
-import CancellationFlow from "@/components/CancellationFlow";
 
 export default function Account() {
   const { user, isLoading } = useUser();
   const [params, setParams] = useSearchParams();
   const firedRef = useRef(false);
-  const [showCancel, setShowCancel] = useState(false);
-
-  // The Stripe customer id is *not* read on the client anymore — the server
-  // derives it from the authenticated session when opening the billing
-  // portal (see /api/stripe/portal). Only the subscription id is needed
-  // here to look up the exit-offer eligibility.
-  const userAny = user as
-    | (typeof user & { stripeSubscriptionId?: string })
-    | null;
-  const subscriptionId = userAny?.stripeSubscriptionId ?? "";
+  const [opening, setOpening] = useState(false);
+  const [portalError, setPortalError] = useState<string | null>(null);
 
   useEffect(() => {
     if (firedRef.current) return;
@@ -37,9 +28,6 @@ export default function Account() {
       ...(annualVariant ? { annual_variant: annualVariant } : {}),
     });
 
-    // Server-side conversion record for the A/B reporting dashboard. The
-    // server reads the eh_sid cookie + DB assignment to attribute this to
-    // the right variant — we just hand it the plan + revenue.
     void fetch("/api/ab/conversion", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -59,6 +47,27 @@ export default function Account() {
     next.delete("av");
     setParams(next, { replace: true });
   }, [params, setParams]);
+
+  async function openStripePortal() {
+    setOpening(true);
+    setPortalError(null);
+    try {
+      const res = await fetch("/api/stripe/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) throw new Error("portal_request_failed");
+      const data = (await res.json().catch(() => null)) as { url?: string } | null;
+      if (!data?.url) throw new Error("no_portal_url");
+      window.location.href = data.url;
+    } catch {
+      setPortalError("We couldn't open the billing portal. Please try again shortly.");
+    } finally {
+      setOpening(false);
+    }
+  }
 
   return (
     <section
@@ -84,20 +93,20 @@ export default function Account() {
         {user ? (
           <button
             type="button"
-            onClick={() => setShowCancel(true)}
-            className="mt-4 text-sm text-[var(--color-ink-muted)] underline"
+            onClick={openStripePortal}
+            disabled={opening}
+            className="mt-4 text-sm text-[var(--color-ink-muted)] underline disabled:opacity-50"
             data-testid="manage-subscription-btn"
           >
-            Manage or cancel subscription
+            {opening ? "Opening billing portal…" : "Manage or cancel subscription"}
           </button>
         ) : null}
+        {portalError ? (
+          <div className="mt-3 text-sm text-[var(--color-ink-muted)]">
+            {portalError}
+          </div>
+        ) : null}
       </div>
-
-      <CancellationFlow
-        open={showCancel}
-        subscriptionId={subscriptionId || undefined}
-        onClose={() => setShowCancel(false)}
-      />
     </section>
   );
 }

@@ -4,9 +4,9 @@ import { EntitlementProvider, useEntitlement } from "@/src/contexts/EntitlementC
 type SubscriptionContextValue = {
   hasActiveSubscription: boolean;
   hasFullAccess: boolean;
-  accessType: "subscription" | "sandbox" | "none" | "reverse_trial";
+  accessType: "subscription" | "sandbox" | "none";
   setHasActiveSubscription: (value: boolean) => void;
-  source: "revenuecat" | "stripe" | "sandbox" | "none" | "reverse_trial";
+  source: "revenuecat" | "stripe" | "sandbox" | "none";
   loading: boolean;
   sandboxMode: boolean;
   managementURL: string | null;
@@ -18,8 +18,7 @@ type SubscriptionContextValue = {
   promoCodeActive: boolean;
   redeemPromoCode: (code: string) => Promise<{ success: boolean; error?: string }>;
   clearPromoCode: () => Promise<void>;
-  reverseTrialActive: boolean;
-  reverseTrialExpiresAt: number | null;
+  lastRefreshAt: number | null;
 };
 
 const SubscriptionContext = createContext<SubscriptionContextValue | undefined>(undefined);
@@ -41,8 +40,7 @@ function SubscriptionBridge({ children }: { children: React.ReactNode }) {
     promoCodeActive,
     redeemPromoCode,
     clearPromoCode,
-    reverseTrialActive,
-    reverseTrialExpiresAt,
+    lastRefreshAt,
   } = useEntitlement();
 
   const value = useMemo<SubscriptionContextValue>(
@@ -71,10 +69,9 @@ function SubscriptionBridge({ children }: { children: React.ReactNode }) {
       promoCodeActive,
       redeemPromoCode,
       clearPromoCode,
-      reverseTrialActive,
-      reverseTrialExpiresAt,
+      lastRefreshAt,
     }),
-    [hasProAccess, hasFullAccess, accessType, source, loading, sandboxMode, managementURL, expirationDate, rcConfigured, purchasesError, setSandboxOverride, refresh, promoCodeActive, redeemPromoCode, clearPromoCode, reverseTrialActive, reverseTrialExpiresAt]
+    [hasProAccess, hasFullAccess, accessType, source, loading, sandboxMode, managementURL, expirationDate, rcConfigured, purchasesError, setSandboxOverride, refresh, promoCodeActive, redeemPromoCode, clearPromoCode, lastRefreshAt]
   );
 
   return <SubscriptionContext.Provider value={value}>{children}</SubscriptionContext.Provider>;

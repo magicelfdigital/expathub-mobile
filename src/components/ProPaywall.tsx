@@ -21,7 +21,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCountry } from "@/contexts/CountryContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { useEntitlement } from "@/src/contexts/EntitlementContext";
 import { getProOffer, isLaunchCountry } from "@/src/data";
 import type { ProOffer } from "@/src/data";
 import { getOfferings } from "@/src/subscriptions/revenuecat";
@@ -48,8 +47,6 @@ import {
   RevenueCatPurchaseError,
   clearRefreshCooldown,
 } from "@/src/billing";
-import { applyReverseTrialOnDismiss } from "@/src/lib/conversionLifts";
-import { getBackendClientInstance } from "@/src/billing";
 
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -188,8 +185,8 @@ export function ProPaywall({
     redeemPromoCode,
     clearPromoCode,
   } = useSubscription();
-  const { reverseTrialUsed, reverseTrialActive, startReverseTrial } = useEntitlement();
   const [busy, setBusy] = useState(false);
+  const [resumedPlan, setResumedPlan] = useState<"monthly" | "annual" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<PaywallTab>("plans");
   const [showPromoInput, setShowPromoInput] = useState(false);
@@ -307,11 +304,6 @@ export function ProPaywall({
     let cancelled = false;
     const currentUser = user;
 
-    const closePurchaseModal = () => {
-      if (onClose) onClose();
-      else if (router.canGoBack()) router.back();
-    };
-
     (async () => {
       try {
         const raw = await AsyncStorage.getItem("pending_purchase");
@@ -324,66 +316,15 @@ export function ProPaywall({
           await clearPendingPurchase();
           return;
         }
-        console.log(`[PURCHASE] User returned from auth, resuming pending purchase: ${JSON.stringify(pending)}`);
+        console.log(`[PURCHASE] User returned from auth, queued ${pending.type} plan — waiting for explicit Continue tap`);
         pendingPurchaseHandled.current = true;
         await clearPendingPurchase();
 
-        if (Platform.OS !== "web") {
-          const productId =
-            pending.type === "monthly" ? RC_MONTHLY_PRODUCT
-            : pending.type === "annual" ? RC_ANNUAL_PRODUCT
-            : null;
-
-          if (!productId) return;
-
-          await new Promise((r) => setTimeout(r, 500));
-          if (cancelled) return;
-
-          const userId = currentUser.id.toString();
-          const orchestrator = getOrchestrator(() => token);
-          setError(null);
-          setBusy(true);
-          purchaseAttemptedRef.current = true;
-          purchaseInFlightRef.current = true;
-          console.log(`[PURCHASE] Resuming ${pending.type} via orchestrator: productId=${productId}`);
-
-          try {
-            const priceUSD = await getActualPriceUSD(productId);
-            const result = await orchestrator.purchase(productId, userId);
-            if (result.status === "confirmed") {
-              trackEvent("purchase_success", { type: pending.type, platform: Platform.OS, status: "confirmed" });
-              logFbPurchaseEvent(pending.type, { slug: pending.countrySlug ?? undefined, priceUSD });
-              await refresh();
-              closePurchaseModal();
-            } else {
-              setError("Purchase is being processed. Please check back in a moment.");
-            }
-          } catch (purchaseErr: any) {
-            if (purchaseErr instanceof RevenueCatPurchaseError && purchaseErr.userCancelled) {
-              console.log(`[PURCHASE] ${pending.type}: user cancelled resumed purchase`);
-              setError(null);
-              return;
-            }
-            if (purchaseErr instanceof EntitlementPollingTimeoutError) {
-              setError("Purchase received. Access will activate shortly. If not, tap Restore Purchases.");
-              return;
-            }
-            console.log(`[PURCHASE] Resume error: ${purchaseErr?.message}`);
-            setError("We couldn't complete your purchase. Please tap the button to try again.");
-            try {
-              await refresh();
-            } catch {}
-          } finally {
-            purchaseInFlightRef.current = false;
-            setBusy(false);
-          }
-        } else {
-          console.log(`[PURCHASE] Pending ${pending.type} on web — user can tap the button now`);
+        if (pending.type === "monthly" || pending.type === "annual") {
+          if (!cancelled) setResumedPlan(pending.type);
         }
       } catch (e) {
-        console.log(`[PURCHASE] Error resuming pending purchase: ${e}`);
-        setBusy(false);
-        setError("We couldn't start your purchase automatically. Please tap the purchase button to try again.");
+        console.log(`[PURCHASE] Error reading pending purchase: ${e}`);
       }
     })();
 
@@ -512,29 +453,17 @@ export function ProPaywall({
     purchaseInFlightRef.current = true;
     console.log(`[PURCHASE] ${type} purchase via orchestrator: productId=${productId}`);
 
-    // Pre-flight entitlement check directly against the backend. If the
-    // user already has access (e.g. they just signed in with an existing
-    // subscription on this device), close the paywall before we hit
-    // StoreKit and risk the "you already have a plan" dialog + 60s
-    // polling spinner. We read from the backend synchronously here rather
-    // than relying on React state propagation through useEntitlement.
-    let preflightHasAccess = false;
-    try {
-      const ent = await getBackendClientInstance(() => token).getEntitlements(userId);
-      preflightHasAccess = ent.hasFullAccess;
-    } catch (err) {
-      console.log(`[PURCHASE] ${type}: pre-flight entitlement check failed, proceeding`, err);
-    }
-    // Fire-and-forget context refresh so downstream UI catches up too.
+    // No client-side short-circuit here: the backend entitlement
+    // response does not expose which specific product the user is on,
+    // so we cannot reliably tell same-plan from cross-plan. Always
+    // proceed to StoreKit and let Apple's in-group flow handle it:
+    // - tapping the same plan → StoreKit returns "already subscribed"
+    //   and the auto-close effect dismisses the paywall once the
+    //   error path refreshes entitlements.
+    // - tapping the other plan → StoreKit runs its upgrade/downgrade
+    //   dialog and the purchase completes normally.
+    // Fire-and-forget refresh so downstream UI stays current.
     refresh().catch(() => {});
-    if (preflightHasAccess) {
-      console.log(`[PURCHASE] ${type}: pre-flight check found existing access, closing paywall`);
-      purchaseInFlightRef.current = false;
-      setBusy(false);
-      if (onClose) onClose();
-      else if (router.canGoBack()) router.back();
-      return;
-    }
 
     const priceUSD = await getActualPriceUSD(productId);
 
@@ -768,37 +697,9 @@ export function ProPaywall({
       activeTab,
     });
 
-    const dismissPaywall = () => {
-      if (onClose) onClose();
-      else if (router.canGoBack()) router.back();
-      else router.replace("/(tabs)" as any);
-    };
-
-    // Reverse-trial gate: grant 48h preview on first dismiss for non-paying users.
-    // We suppress the toast here (no-op showToast) because we surface the grant
-    // through a native Alert with an OK button so users explicitly acknowledge
-    // that they have temporary access — the toast was too easy to miss.
-    // Orchestration still lives in `src/lib/conversionLifts.ts` so jest tests
-    // exercise the same code path (no duplicated logic in tests).
-    const granted = await applyReverseTrialOnDismiss({
-      state: { hasFullAccess, reverseTrialActive, reverseTrialUsed },
-      startReverseTrial,
-      showToast: () => {},
-      onError: (e: any) =>
-        console.log(`[REVERSE-TRIAL] start failed: ${e?.message ?? e}`),
-    });
-
-    if (granted) {
-      Alert.alert(
-        "48 hours of full access unlocked",
-        "Explore all premium content for the next two days. You can subscribe any time from the account screen.",
-        [{ text: "OK", onPress: dismissPaywall }],
-        { cancelable: false, onDismiss: dismissPaywall },
-      );
-      return;
-    }
-
-    dismissPaywall();
+    if (onClose) onClose();
+    else if (router.canGoBack()) router.back();
+    else router.replace("/(tabs)" as any);
   }
 
   if (!isLaunch && resolvedCountrySlug) {
@@ -1002,8 +903,44 @@ export function ProPaywall({
 
             {activeTab === "plans" ? (
               <>
+                {resumedPlan ? (
+                  <View
+                    style={{
+                      marginHorizontal: 16,
+                      marginBottom: 12,
+                      padding: 12,
+                      borderRadius: tokens.radius.md,
+                      backgroundColor: tokens.color.surface,
+                      borderWidth: 1,
+                      borderColor: tokens.color.primaryBorder,
+                    }}
+                    testID="pro-paywall-resumed-plan-banner"
+                  >
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontFamily: tokens.font.bodySemiBold,
+                        color: tokens.color.text,
+                      }}
+                    >
+                      Tap Continue to start your {resumedPlan === "annual" ? "Annual Pathfinder" : "Monthly Explorer"} trial.
+                    </Text>
+                  </View>
+                ) : null}
                 <View style={s.pricingSection}>
-                  <View style={[s.monthlyCard, { borderColor: tokens.color.gold, borderWidth: 2 }]}>
+                  <View
+                    style={[
+                      s.monthlyCard,
+                      { borderColor: tokens.color.gold, borderWidth: 2 },
+                      resumedPlan === "annual" && {
+                        shadowColor: tokens.color.gold,
+                        shadowOpacity: 0.4,
+                        shadowRadius: 8,
+                        shadowOffset: { width: 0, height: 0 },
+                        elevation: 4,
+                      },
+                    ]}
+                  >
                     <View style={s.bestValueBadge}>
                       <Text style={s.bestValueText}>{TRIAL_DURATION_DAYS}-DAY FREE TRIAL</Text>
                     </View>
@@ -1020,7 +957,7 @@ export function ProPaywall({
                       {busy ? (
                         <ActivityIndicator size="small" color={tokens.color.white} />
                       ) : (
-                        <Text style={s.primaryCtaText}>Start {TRIAL_DURATION_DAYS}-day free trial</Text>
+                        <Text style={s.primaryCtaText}>{resumedPlan === "annual" ? "Continue" : `Start ${TRIAL_DURATION_DAYS}-day free trial`}</Text>
                       )}
                     </Pressable>
                     <Text style={s.trialFinePrint}>
@@ -1028,7 +965,15 @@ export function ProPaywall({
                     </Text>
                   </View>
 
-                  <View style={s.monthlyCard}>
+                  <View
+                    style={[
+                      s.monthlyCard,
+                      resumedPlan === "monthly" && {
+                        borderColor: tokens.color.primary,
+                        borderWidth: 2,
+                      },
+                    ]}
+                  >
                     <View style={s.monthlyHeader}>
                       <Ionicons name="calendar-outline" size={18} color={tokens.color.primary} />
                       <Text style={s.monthlyTitle}>Monthly Explorer</Text>

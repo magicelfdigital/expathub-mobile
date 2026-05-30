@@ -4,6 +4,8 @@ import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import React from "react";
 import { Image, Pressable, Text, View } from "react-native";
 
+import { useEntitlement } from "@/src/contexts/EntitlementContext";
+
 function AppHeaderTitle() {
   return (
     <Image
@@ -86,6 +88,8 @@ function HeaderBackground() {
 }
 
 function PathfinderBadge() {
+  const { hasProAccess } = useEntitlement();
+  if (hasProAccess) return null;
   return (
     <Text
       style={{

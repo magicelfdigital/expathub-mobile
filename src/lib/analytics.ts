@@ -162,12 +162,6 @@ type AnalyticsEvent =
   | "paywall_sticky_cta_tapped"
   | "paywall_locked_section_viewed"
   | "personalized_paywall_viewed"
-  | "reverse_trial_granted"
-  | "reverse_trial_expired"
-  | "reverse_trial_active_unlock"
-  | "exit_offer_shown"
-  | "exit_offer_accepted"
-  | "exit_offer_declined"
   | "planner_step_completed"
   | "planner_completed"
   | "planner_step_expanded"
@@ -229,12 +223,37 @@ export function initAnalytics() {
     return;
   }
 
+  const host = "https://us.i.posthog.com";
   try {
-    posthogClient = new PostHog(apiKey, {
-      host: "https://us.i.posthog.com",
-    });
+    posthogClient = new PostHog(apiKey, { host });
+    console.log(
+      `[PostHog-DIAG] init OK — keyPrefix=${apiKey.slice(0, 8)} host=${host} clientCreated=${!!posthogClient}`,
+    );
   } catch (e) {
-    if (__DEV__) console.log("[Analytics] PostHog init error", e);
+    console.log(
+      `[PostHog-DIAG] init FAILED — keyPrefix=${apiKey.slice(0, 8)} host=${host} error=`,
+      e,
+    );
+  }
+}
+
+// Release-safe diagnostic capture that bypasses the typed AnalyticsEvent
+// union. Used only by the v1.5 PostHog-delivery diagnostics in _layout.tsx
+// — do not use for product analytics.
+export function captureDiagnostic(
+  event: string,
+  properties: Record<string, string | number | boolean> = {},
+) {
+  if (!posthogClient) {
+    console.log(
+      `[PostHog-DIAG] capture skipped (no client) — event=${event}`,
+    );
+    return;
+  }
+  try {
+    posthogClient.capture(event, { ...properties, platform: Platform.OS });
+  } catch (e) {
+    console.log(`[PostHog-DIAG] capture error — event=${event}`, e);
   }
 }
 

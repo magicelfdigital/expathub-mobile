@@ -1,2 +1,1 @@
-- [Backend URL fallback](backend-url-fallback.md) — `getBackendBase()` must never throw; missing env vars fall back to PROD_BACKEND_URL on native, "" on web.
-- [Replit Expo Go port mapping](replit-expo-port-mapping.md) — bare `exp://...replit.dev` defaults to port 80, so Metro must bind to whichever localPort maps to externalPort 80 in `.replit`.
+- [GitHub push rejections in main repl](git-push-rejections.md) — main repl can't fetch/push; origin/main tracking ref goes stale → Git-pane PUSH_REJECTED. Fix via an isolated background task that fetches+merges+pushes.

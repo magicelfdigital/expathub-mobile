@@ -237,7 +237,32 @@ export default function HomeScreen() {
                     <Ionicons name="trending-up" size={16} color={tokens.color.teal} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.planCardTitle}>Relocation readiness</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <Text style={styles.planCardTitle}>Relocation readiness</Text>
+                      {!quizResult ? (
+                        <View
+                          style={{
+                            paddingHorizontal: 6,
+                            paddingVertical: 1,
+                            borderRadius: 4,
+                            backgroundColor: tokens.color.surface,
+                            borderWidth: 1,
+                            borderColor: tokens.color.border,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 10,
+                              fontFamily: tokens.font.bodySemiBold,
+                              color: tokens.color.textSoft,
+                              letterSpacing: 0.4,
+                            }}
+                          >
+                            EXAMPLE
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
                     <Text style={styles.planCardSub}>
                       {quizResult
                         ? `${Math.max(
@@ -251,7 +276,7 @@ export default function HomeScreen() {
                               ),
                             ),
                           )}% ready — sharpen each dimension with a worksheet`
-                        : "Take the quiz, then sharpen each dimension with a worksheet"}
+                        : "Sample preview — take the quiz to see your real readiness"}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={tokens.color.teal} />

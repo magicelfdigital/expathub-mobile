@@ -74,10 +74,6 @@ jest.mock("@/src/subscriptions/stripeWeb", () => ({
   createCustomerPortalSession: jest.fn(),
 }));
 
-jest.mock("@/src/lib/conversionLifts", () => ({
-  applyReverseTrialOnDismiss: jest.fn(),
-}));
-
 jest.mock("@/src/data", () => {
   const offer = {
     headline: "Unlock your relocation plan",
@@ -117,9 +113,11 @@ jest.mock("@/contexts/SubscriptionContext", () => ({
 
 jest.mock("@/src/contexts/EntitlementContext", () => ({
   useEntitlement: () => ({
-    reverseTrialUsed: false,
-    reverseTrialActive: false,
-    startReverseTrial: jest.fn(),
+    hasProAccess: false,
+    hasFullAccess: false,
+    accessType: "none",
+    source: "none",
+    lastRefreshAt: null,
   }),
 }));
 
@@ -256,7 +254,7 @@ describe("ProPaywall resumed-purchase staleness guard", () => {
     });
   });
 
-  it("resumes a fresh pending_purchase (within 30 minutes) end-to-end", async () => {
+  it("a fresh pending_purchase clears storage but does NOT auto-fire StoreKit (user must tap Continue)", async () => {
     const fresh = {
       type: "monthly",
       countrySlug: "portugal",
@@ -269,30 +267,28 @@ describe("ProPaywall resumed-purchase staleness guard", () => {
     await act(async () => {
       renderer = TestRenderer.create(<ProPaywall onClose={onClose} />);
     });
-    // The resume path awaits a 500ms setTimeout before calling the
-    // orchestrator. Wait for the real timer and let microtasks drain.
     await act(async () => {
       await new Promise((r) => setTimeout(r, 800));
     });
     await flush();
     await flush();
 
+    // Storage is consumed so the resume only triggers once.
     expect(await AsyncStorage.getItem("pending_purchase")).toBeNull();
-    // Resume actually happened.
-    expect(orchestratorPurchase).toHaveBeenCalledTimes(1);
-    expect(orchestratorPurchase).toHaveBeenCalledWith(
-      expect.any(String),
-      "42",
-    );
-    // Success path fired the analytics and the modal close hook.
-    expect(trackEventFired("purchase_success")).toBe(true);
-    expect(logFbEvent).toHaveBeenCalledWith(
+    // The orchestrator is NOT invoked — user must tap the highlighted CTA.
+    expect(orchestratorPurchase).not.toHaveBeenCalled();
+    expect(trackEventFired("purchase_success")).toBe(false);
+    expect(logFbEvent).not.toHaveBeenCalledWith(
       "StartTrial",
-      0,
-      expect.objectContaining({ plan: "monthly" }),
+      expect.anything(),
+      expect.anything(),
     );
-    expect(refresh).toHaveBeenCalledTimes(1);
-    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(refresh).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    // CTAs remain interactive.
+    const ctas = findCtaPressables(renderer.root);
+    expect(ctas.length).toBeGreaterThan(0);
+    expect(anyCtaDisabled(renderer.root)).toBe(false);
 
     await act(async () => {
       renderer.unmount();

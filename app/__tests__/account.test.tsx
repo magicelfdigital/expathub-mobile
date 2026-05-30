@@ -58,6 +58,7 @@ jest.mock("@/contexts/SubscriptionContext", () => ({
     sandboxMode: false,
     setSandboxOverride: jest.fn(),
     refresh: jest.fn(async () => {}),
+    lastRefreshAt: null,
   }),
 }));
 
@@ -101,10 +102,9 @@ jest.mock("@/src/billing", () => ({
   clearRefreshCooldown: jest.fn(),
 }));
 
-jest.mock("@/src/components/CancellationModal", () => {
-  const React = require("react");
-  return { CancellationModal: () => React.createElement("CancellationModal") };
-});
+jest.mock("expo-clipboard", () => ({
+  setStringAsync: jest.fn(async () => true),
+}));
 
 jest.mock("@/utils/crashlytics", () => ({
   testCrash: jest.fn(),

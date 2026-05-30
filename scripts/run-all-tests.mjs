@@ -99,7 +99,6 @@ const webSpaPhase = phase("playwright:web-spa", async () => {
         "playwright",
         "test",
         "tests/e2e/locked-section.spec.ts",
-        "tests/e2e/cancellation-exit-offer.spec.ts",
         "--reporter=list",
       ],
       { env: { PLAYWRIGHT_BASE_URL: "http://localhost:5000" } },

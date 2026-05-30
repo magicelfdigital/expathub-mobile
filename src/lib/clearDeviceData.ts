@@ -4,10 +4,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const TOKEN_KEY = "auth_jwt_token";
 
 // Keys wiped from AsyncStorage when the app opens with no logged-in account.
-// Intentionally EXCLUDES billing / entitlement keys (reverse-trial markers,
-// promo code) so a user cannot re-grant themselves trial access by signing
-// out, clearing the app, or reinstalling. Those keys live behind the
-// protected EntitlementContext and are not touched here.
+// Intentionally EXCLUDES billing / entitlement keys (promo code) so a user
+// cannot re-grant themselves access by signing out, clearing the app, or
+// reinstalling. Those keys live behind the protected EntitlementContext
+// and are not touched here.
 const KEYS_TO_WIPE_WHEN_SIGNED_OUT = [
   // Auth
   "auth_jwt_token",

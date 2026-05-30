@@ -18,7 +18,6 @@ import { PlanProvider } from "@/src/contexts/PlanContext";
 import { SavedProvider } from "@/src/contexts/SavedContext";
 import { ContinueProvider } from "@/src/contexts/ContinueContext";
 import { BookmarkProvider } from "@/contexts/BookmarkContext";
-import { ReverseTrialExpiryGate } from "@/src/components/ReverseTrialExpiryGate";
 import { GlobalToast } from "@/src/components/GlobalToast";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
@@ -30,7 +29,7 @@ import {
   DMSans_700Bold,
 } from "@expo-google-fonts/dm-sans";
 import { initCrashlytics } from "@/utils/crashlytics";
-import { initAnalytics, initFbSdk, trackEvent } from "@/src/lib/analytics";
+import { initAnalytics, initFbSdk, trackEvent, captureDiagnostic } from "@/src/lib/analytics";
 import { tokens } from "@/theme/tokens";
 
 SplashScreen.preventAutoHideAsync();
@@ -67,9 +66,6 @@ function RootLayoutNav() {
 
         {__DEV__ && (
           <Stack.Screen name="debug-billing" options={{ headerShown: false, presentation: "modal" }} />
-        )}
-        {__DEV__ && (
-          <Stack.Screen name="debug-cancellation" options={{ headerShown: false, presentation: "modal" }} />
         )}
       </Stack>
     </>
@@ -108,6 +104,9 @@ export default function RootLayout() {
     initAnalytics();
     initFbSdk();
     trackEvent("app_opened");
+    console.log("[PostHog-DIAG] about to capture diagnostic_app_open");
+    captureDiagnostic("diagnostic_app_open", { source: "install_check" });
+    console.log("[PostHog-DIAG] diagnostic_app_open capture call returned");
   }, []);
 
   if (!fontsLoaded && !fontError) {
@@ -132,7 +131,6 @@ export default function RootLayout() {
                         <ContinueProvider>
                           <SavedProvider>
                             <RootLayoutNav />
-                            <ReverseTrialExpiryGate />
                             <GlobalToast />
                           </SavedProvider>
                         </ContinueProvider>

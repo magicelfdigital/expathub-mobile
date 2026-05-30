@@ -22,8 +22,6 @@ const ALL_WIPED_KEYS = [
 ];
 
 const PROTECTED_KEYS = [
-  "reverseTrial_startedAt",
-  "reverseTrial_used",
   "promo_code_redeemed",
 ];
 

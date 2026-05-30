@@ -26,6 +26,10 @@ externalPort = 8081
 localPort = 8082
 externalPort = 80
 
+[[ports]]
+localPort = 8083
+externalPort = 3000
+
 [env]
 PORT = "5000"
 
@@ -95,8 +99,6 @@ args = "EXPO_OFFLINE=1 EXPO_NO_PROMPT=1 EXPO_PACKAGER_PROXY_URL=https://$REPLIT_
 
 [userenv.development]
 EXPO_PUBLIC_SANDBOX_MODE = "true"
-EXPO_PUBLIC_RC_MONTHLY_PRODUCT = "pro_monthly"
-EXPO_PUBLIC_RC_ANNUAL_PRODUCT = "pro_annual"
 
 [userenv.shared]
 

@@ -11,7 +11,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
   initPurchases,
-  loginUser as rcLoginUser,
 } from "@/src/subscriptions/revenuecat";
 import {
   SANDBOX_ENABLED,
@@ -19,20 +18,16 @@ import {
 } from "@/src/config/subscription";
 import { trackEvent } from "@/src/lib/analytics";
 import { useAuth } from "@/contexts/AuthContext";
-import { getBackendBase } from "@/src/billing/backendClient";
 import { getBackendClientInstance } from "@/src/billing";
 import type { BackendEntitlements } from "@/src/billing";
 import { hasEntitlement } from "@/src/billing";
 import { shouldRefresh as cooldownAllows, recordRefresh } from "@/src/billing/refreshCooldown";
 import { deriveEntitlement } from "@/src/contexts/entitlementDerivation";
 
-type EntitlementSource = "revenuecat" | "stripe" | "sandbox" | "none" | "reverse_trial";
-type AccessType = "subscription" | "sandbox" | "none" | "reverse_trial";
+type EntitlementSource = "revenuecat" | "stripe" | "sandbox" | "none";
+type AccessType = "subscription" | "sandbox" | "none";
 
 const PROMO_CODE_KEY = "promo_code_redeemed";
-const REVERSE_TRIAL_STARTED_KEY = "reverseTrial_startedAt";
-const REVERSE_TRIAL_USED_KEY = "reverseTrial_used";
-const REVERSE_TRIAL_DURATION_MS = 48 * 60 * 60 * 1000;
 
 function gateLog(msg: string) {
   console.log(`[GATE] ${msg}`);
@@ -55,11 +50,8 @@ interface EntitlementContextValue {
   redeemPromoCode: (code: string) => Promise<{ success: boolean; error?: string }>;
   clearPromoCode: () => Promise<void>;
   backendEntitlements: BackendEntitlements | null;
-  reverseTrialActive: boolean;
-  reverseTrialUsed: boolean;
-  reverseTrialExpiresAt: number | null;
-  startReverseTrial: () => Promise<{ ok: boolean; expiresAt: number }>;
-  resetReverseTrial: () => Promise<void>;
+  /** Unix ms timestamp of last entitlement refresh completion (success or fail). */
+  lastRefreshAt: number | null;
 }
 
 const EntitlementContext = createContext<EntitlementContextValue | undefined>(undefined);
@@ -78,97 +70,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
   const [purchasesError, setPurchasesError] = useState<string | null>(null);
   const [promoCodeActive, setPromoCodeActive] = useState(false);
   const [backendEntitlements, setBackendEntitlements] = useState<BackendEntitlements | null>(null);
-  const [reverseTrialStartedAt, setReverseTrialStartedAt] = useState<number | null>(null);
-  const [reverseTrialUsed, setReverseTrialUsed] = useState(false);
-  const [, setNowTick] = useState(0);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const [startedRaw, usedRaw] = await Promise.all([
-          AsyncStorage.getItem(REVERSE_TRIAL_STARTED_KEY),
-          AsyncStorage.getItem(REVERSE_TRIAL_USED_KEY),
-        ]);
-        if (!mounted) return;
-        const started = startedRaw ? Number(startedRaw) : null;
-        setReverseTrialStartedAt(Number.isFinite(started ?? NaN) ? started : null);
-        setReverseTrialUsed(usedRaw === "true");
-      } catch {}
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const reverseTrialExpiresAt = reverseTrialStartedAt
-    ? reverseTrialStartedAt + REVERSE_TRIAL_DURATION_MS
-    : null;
-  const reverseTrialActive =
-    !!reverseTrialExpiresAt && reverseTrialExpiresAt > Date.now();
-
-  // Re-render when reverse trial expires so consumers can react.
-  useEffect(() => {
-    if (!reverseTrialExpiresAt) return;
-    const remaining = reverseTrialExpiresAt - Date.now();
-    if (remaining <= 0) return;
-    const t = setTimeout(() => {
-      setNowTick((v) => v + 1);
-      trackEvent?.("reverse_trial_expired", {});
-    }, Math.min(remaining, 2_147_000_000));
-    return () => clearTimeout(t);
-  }, [reverseTrialExpiresAt]);
-
-  // Best-effort sync of the locally-granted reverse trial to the backend
-  // so server-side entitlement checks (e.g. worksheet submit) honor it.
-  // Idempotent on the server; safe to call repeatedly. Silently no-ops
-  // when the user isn't signed in or the request fails.
-  const syncReverseTrialToServer = useCallback(async () => {
-    if (!token) return;
-    const base = getBackendBase();
-    try {
-      await fetch(`${base}/api/reverse-trial/start`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-    } catch {
-      // Non-fatal — local state remains the source of truth for the UI,
-      // and the server call will be retried on the next grant / login.
-    }
-  }, [token]);
-
-  const startReverseTrial = useCallback(async () => {
-    const now = Date.now();
-    await AsyncStorage.setItem(REVERSE_TRIAL_STARTED_KEY, String(now));
-    await AsyncStorage.setItem(REVERSE_TRIAL_USED_KEY, "true");
-    setReverseTrialStartedAt(now);
-    setReverseTrialUsed(true);
-    gateLog(`Reverse trial granted; expires at ${new Date(now + REVERSE_TRIAL_DURATION_MS).toISOString()}`);
-    trackEvent?.("reverse_trial_granted", {
-      expiresAt: now + REVERSE_TRIAL_DURATION_MS,
-    });
-    // Fire and forget — server-side record enables worksheet submit etc.
-    void syncReverseTrialToServer();
-    return { ok: true, expiresAt: now + REVERSE_TRIAL_DURATION_MS };
-  }, [syncReverseTrialToServer]);
-
-  // If the trial was granted before the user signed in, register it the
-  // first time we see them authenticated with an active local trial.
-  useEffect(() => {
-    if (!token || !user) return;
-    if (!reverseTrialActive) return;
-    void syncReverseTrialToServer();
-  }, [token, user, reverseTrialActive, syncReverseTrialToServer]);
-
-  const resetReverseTrial = useCallback(async () => {
-    await AsyncStorage.removeItem(REVERSE_TRIAL_STARTED_KEY);
-    await AsyncStorage.removeItem(REVERSE_TRIAL_USED_KEY);
-    setReverseTrialStartedAt(null);
-    setReverseTrialUsed(false);
-  }, []);
+  const [lastRefreshAt, setLastRefreshAt] = useState<number | null>(null);
 
   const setSandboxOverride = useCallback((value: boolean) => {
     if (!SANDBOX_ENABLED) return;
@@ -317,6 +219,7 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       setSource("none");
       trackEvent?.("entitlement_refresh_error", { source: "none" });
     } finally {
+      setLastRefreshAt(Date.now());
       setLoading(false);
     }
   }, [sandboxOverride, token, user?.id]);
@@ -357,14 +260,11 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
     isDev: !!__DEV__,
     sandboxOverrideActive: SANDBOX_ENABLED && sandboxOverride,
     promoCodeActive,
-    isAuthenticated: !!token,
     hasFullAccess,
     hasProAccess,
     rawAccessType: accessType,
     rawSource: source,
     rawExpirationDate: expirationDate,
-    reverseTrialActive,
-    reverseTrialExpiresAt,
   });
   const effectiveHasFullAccess = derived.hasFullAccess;
   const effectiveHasProAccess = derived.hasProAccess;
@@ -390,13 +290,9 @@ export function EntitlementProvider({ children }: { children: React.ReactNode })
       redeemPromoCode,
       clearPromoCode,
       backendEntitlements,
-      reverseTrialActive,
-      reverseTrialUsed,
-      reverseTrialExpiresAt,
-      startReverseTrial,
-      resetReverseTrial,
+      lastRefreshAt,
     }),
-    [effectiveHasProAccess, effectiveHasFullAccess, effectiveAccessType, effectiveSource, loading, managementURL, effectiveExpirationDate, rcConfigured, purchasesError, setSandboxOverride, refresh, redeemPromoCode, clearPromoCode, backendEntitlements, promoCodeActive, reverseTrialActive, reverseTrialUsed, reverseTrialExpiresAt, startReverseTrial, resetReverseTrial]
+    [effectiveHasProAccess, effectiveHasFullAccess, effectiveAccessType, effectiveSource, loading, managementURL, effectiveExpirationDate, rcConfigured, purchasesError, setSandboxOverride, refresh, redeemPromoCode, clearPromoCode, backendEntitlements, promoCodeActive, lastRefreshAt]
   );
 
   return <EntitlementContext.Provider value={value}>{children}</EntitlementContext.Provider>;

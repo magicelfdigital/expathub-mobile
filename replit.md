@@ -6,7 +6,7 @@ ExpatHub is a mobile-first application helping people plan and execute internati
 
 **Company:** MagicElfDigital LLC
 **Support:** support@expathub.website
-**Current version:** 1.4.3
+**Current version:** 1.5.0
 
 ---
 
@@ -49,8 +49,6 @@ Preferred communication style: Simple, everyday language.
 - **Saved Resources:** Bookmark resources per country.
 - **ProPaywall:** Modal with contextual value propositions, plan options, FAQ tab, and sticky CTA. Pricing from RevenueCat. Personalized with user's top country and name from AsyncStorage.
 - **Web LockedSection blur previews:** Masked preview of Pro content with lock-overlay card and CTA.
-- **48h reverse trial (mobile):** Grants temporary full access on paywall dismissal, managed via `EntitlementContext` and `AsyncStorage`. Expiry triggers a modal. Controlled by `REVERSE_TRIAL_DURATION_MS = 48 * 60 * 60 * 1000` in `EntitlementContext`.
-- **Exit offer (50% off × 3 months):** Backend eligibility check, applied via Stripe. Presented in web and mobile cancellation flows.
 - **A/B testing:** Pricing variants.
 - **Meta tracking:** SDK + Pixel funnel events.
 
@@ -101,10 +99,10 @@ Two paid subscription tiers. Country Lifetime Unlock and Decision Pass have been
 | `full_access_subscription` | `ENTITLEMENT_FULL_ACCESS` | Active subscription (either tier) |
 
 **Access logic (from `EntitlementContext`):**
-- `hasFullAccess` — active subscription OR active 48h reverse trial
+- `hasFullAccess` — active subscription
 - `hasProAccess` — any paid access
-- `accessType` values: `subscription`, `sandbox`, `none`, `reverse_trial`
-- `source` values: `revenuecat`, `stripe`, `sandbox`, `none`, `reverse_trial`
+- `accessType` values: `subscription`, `sandbox`, `none`
+- `source` values: `revenuecat`, `stripe`, `sandbox`, `none`
 
 **Stripe (web):**
 - Monthly: `STRIPE_MONTHLY_PRICE_ID` (env: `EXPO_PUBLIC_STRIPE_MONTHLY_PRICE_ID`)
@@ -289,12 +287,12 @@ When writing or modifying code, always observe these constraints:
 
 ## Automated Testing
 
-- **Mobile (Jest):** `src/billing/__tests__/conversionLifts.test.ts` — exercises pure predicates in `src/lib/conversionLifts.ts` (`shouldGrantReverseTrialOnDismiss`, `getInitialCancellationStep`). Real screen-mount tests for account, planner, quiz, and result screens. `useProgress` hook tests. Full suite: 391 passing tests.
-- **One-command runner:** `npm run test:all` runs the full v1.4 suite end-to-end — Jest first, then the two Playwright phases concurrently: the web SPA phase (boots `npx vite build` + Express on port 5000, runs `locked-section` and `cancellation-exit-offer`, shuts the server down) and the Expo-web worksheet phase (boots `npx expo start --web --port 8081`, runs `worksheet-signup-submit`, shuts it down). Mirrors the `jest.yml` + `playwright.yml` CI jobs. Phase logs land in `server.log` and `expo.log` (kept separate so the parallel phases don't clobber each other); a non-zero exit from either parallel phase fails the overall run.
-- **Web e2e (Playwright):** `tests/e2e/locked-section.spec.ts` and `tests/e2e/cancellation-exit-offer.spec.ts` target the React+Vite SPA at port 5000 — run with `PLAYWRIGHT_BASE_URL=http://localhost:5000 npx playwright test`. `tests/e2e/worksheet-signup-submit.spec.ts` covers the anonymous → register → fill in → submit worksheet flow against the Expo web build at port 8081 — run with `PLAYWRIGHT_EXPO_BASE_URL=http://localhost:8081 npx playwright test tests/e2e/worksheet-signup-submit.spec.ts`. Config in `playwright.config.ts`.
+- **Mobile (Jest):** Real screen-mount tests for account, planner, quiz, and result screens. `useProgress` hook tests. Pure entitlement-derivation tests in `src/contexts/__tests__/entitlementDerivation.test.ts`.
+- **One-command runner:** `npm run test:all` runs the full v1.5 suite end-to-end — Jest first, then the two Playwright phases concurrently: the web SPA phase (boots `npx vite build` + Express on port 5000, runs `locked-section`, shuts the server down) and the Expo-web worksheet phase (boots `npx expo start --web --port 8081`, runs `worksheet-signup-submit`, shuts it down). Mirrors the `jest.yml` + `playwright.yml` CI jobs. Phase logs land in `server.log` and `expo.log` (kept separate so the parallel phases don't clobber each other); a non-zero exit from either parallel phase fails the overall run.
+- **Web e2e (Playwright):** `tests/e2e/locked-section.spec.ts` targets the React+Vite SPA at port 5000 — run with `PLAYWRIGHT_BASE_URL=http://localhost:5000 npx playwright test`. `tests/e2e/worksheet-signup-submit.spec.ts` covers the anonymous → register → fill in → submit worksheet flow against the Expo web build at port 8081 — run with `PLAYWRIGHT_EXPO_BASE_URL=http://localhost:8081 npx playwright test tests/e2e/worksheet-signup-submit.spec.ts`. Config in `playwright.config.ts`.
 - **CI:** Meta Pixel event verification checklist with CI check.
 - **CI gates (GitHub Actions, `.github/workflows/`):**
-  - `jest.yml` — runs `npx jest --ci` on every push and PR. Covers `src/billing/__tests__/conversionLifts.test.ts` and the rest of the Jest suite.
+  - `jest.yml` — runs `npx jest --ci` on every push and PR. Covers the full Jest suite.
   - `playwright.yml` — runs two jobs on every push and PR:
-    - `conversion-lifts` — builds the web SPA, boots the Express server on port 5000, waits for `/` to respond, then runs the v1.4 conversion-lift Playwright specs (`tests/e2e/locked-section.spec.ts`, `tests/e2e/cancellation-exit-offer.spec.ts`). Failures upload `server.log` and `playwright-report` as artifacts.
+    - `conversion-lifts` — builds the web SPA, boots the Express server on port 5000, waits for `/` to respond, then runs the v1.5 conversion-lift Playwright spec (`tests/e2e/locked-section.spec.ts`). Failures upload `server.log` and `playwright-report` as artifacts.
     - `worksheet-signup` — boots the Expo web dev server on port 8081 (`npx expo start --web --port 8081`), waits for the bundle to be ready, then runs `tests/e2e/worksheet-signup-submit.spec.ts` with `PLAYWRIGHT_EXPO_BASE_URL=http://localhost:8081`. Failures upload `expo.log` and `playwright-report-worksheet` as artifacts.
