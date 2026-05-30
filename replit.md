@@ -280,7 +280,7 @@ When writing or modifying code, always observe these constraints:
 | `npm run server:dev` | Start Express backend | 5000 |
 
 **Build pipeline:** EAS Build + EAS Submit
-**Current build:** 88 (v1.4.0)
+**Current build:** 107 (v1.5.0)
 **iOS:** Live in App Store
 
 ---

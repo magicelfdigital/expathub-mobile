@@ -22,7 +22,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "buildNumber": "89",
+      "buildNumber": "107",
       "bundleIdentifier": "com.expathub.app",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
