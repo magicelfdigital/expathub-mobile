@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import express, { type Express, type Request, type Response } from "express";
 import request from "supertest";
 import {
@@ -7,6 +9,9 @@ import {
   registerBriefFreshnessRoutes,
   type FreshnessReport,
 } from "../briefFreshness";
+// The scheduled CI checker re-exports the same shared parser. Import it here
+// so the drift-guard below can compare both re-exports against the real data.
+import { extractBriefs as monitoringExtractBriefs } from "../../scripts/monitoring/freshness-check.mjs";
 
 function buildApp(authOk = true): Express {
   const app = express();
@@ -151,6 +156,37 @@ describe("briefFreshness", () => {
           lastReviewedAt: "2026-02-20",
         },
       ]);
+    });
+  });
+
+  describe("parser parity with the monitoring script", () => {
+    // Both server/briefFreshness.ts and scripts/monitoring/freshness-check.mjs
+    // re-export the same shared parser (src/data/extractBriefs.mjs). This guard
+    // fails loudly if a future edit reverts either side to a private copy and
+    // silently reintroduces mismatched brief counts / dates.
+    it("parses the real decisionBriefs.ts identically through both re-exports", async () => {
+      const briefsPath = resolve(
+        process.cwd(),
+        "src",
+        "data",
+        "decisionBriefs.ts",
+      );
+      const source = await readFile(briefsPath, "utf8");
+
+      const fromDashboard = extractBriefs(source);
+      const fromMonitoring = monitoringExtractBriefs(source);
+
+      expect(fromDashboard.length).toBeGreaterThan(0);
+      // Full structural equality: ids, lastReviewedAt, and metadata must match.
+      expect(fromDashboard).toEqual(fromMonitoring);
+
+      // Compare the id + lastReviewedAt sets explicitly so a mismatch names the
+      // disagreeing briefs rather than just failing a deep-equal.
+      const fingerprint = (briefs: { id: string; lastReviewedAt: string }[]) =>
+        briefs
+          .map((b) => `${b.id}::${b.lastReviewedAt}`)
+          .sort();
+      expect(fingerprint(fromDashboard)).toEqual(fingerprint(fromMonitoring));
     });
   });
 

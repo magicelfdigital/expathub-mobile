@@ -32,9 +32,15 @@ import {
 // `extractBriefs` from this module keep working.
 import { extractBriefs } from "../../src/data/extractBriefs.mjs";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const ROOT = resolve(__dirname, "..", "..");
+// `import.meta` is rewritten to `undefined` when this module is transpiled to
+// CommonJS for the jest runtime (the server jest suite imports the re-exported
+// `extractBriefs` from here to drift-guard it against the admin dashboard's
+// copy). Guard the access so the module stays importable in that context; the
+// file-I/O paths below are only used by the CLI entry points, which jest never
+// invokes.
+const selfUrl = import.meta?.url;
+const __dirname = selfUrl ? dirname(fileURLToPath(selfUrl)) : process.cwd();
+const ROOT = selfUrl ? resolve(__dirname, "..", "..") : process.cwd();
 
 const BRIEFS_PATH = resolve(ROOT, "src", "data", "decisionBriefs.ts");
 const REPORT_PATH = resolve(ROOT, "monitoring", "freshness-report.json");
@@ -262,7 +268,7 @@ export async function runFreshnessCheck({ writeFiles = true } = {}) {
 }
 
 function isMain() {
-  return import.meta.url === `file://${process.argv[1]}`;
+  return import.meta?.url === `file://${process.argv[1]}`;
 }
 
 // Release-blocking gate. Exits non-zero when any brief is older than the
