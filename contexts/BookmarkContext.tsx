@@ -102,7 +102,25 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
       if (!res.ok) throw new Error("Failed to add bookmark");
       return res.json();
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["bookmarks"] }),
+    // Optimistically reflect the new bookmark so the icon flips on the first
+    // tap instead of waiting for the POST + refetch round-trip. Without this,
+    // a tap appears to do nothing until the network settles, which reads as
+    // "the button needs several taps before it responds".
+    onMutate: async (slug: string) => {
+      await qc.cancelQueries({ queryKey: ["bookmarks"] });
+      const prev = qc.getQueryData<Bookmark[]>(["bookmarks"]) ?? [];
+      if (!prev.some((b) => b.countrySlug === slug)) {
+        qc.setQueryData<Bookmark[]>(["bookmarks"], [
+          ...prev,
+          { id: -Date.now(), countrySlug: slug, createdAt: new Date().toISOString() },
+        ]);
+      }
+      return { prev };
+    },
+    onError: (_err, _slug, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["bookmarks"], ctx.prev);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["bookmarks"] }),
   });
 
   const removeMutation = useMutation({
@@ -114,7 +132,19 @@ export function BookmarkProvider({ children }: { children: React.ReactNode }) {
       if (!res.ok) throw new Error("Failed to remove bookmark");
       return res.json();
     },
-    onSuccess: () => {
+    onMutate: async (slug: string) => {
+      await qc.cancelQueries({ queryKey: ["bookmarks"] });
+      const prev = qc.getQueryData<Bookmark[]>(["bookmarks"]) ?? [];
+      qc.setQueryData<Bookmark[]>(
+        ["bookmarks"],
+        prev.filter((b) => b.countrySlug !== slug),
+      );
+      return { prev };
+    },
+    onError: (_err, _slug, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["bookmarks"], ctx.prev);
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["bookmarks"] });
       qc.invalidateQueries({ queryKey: ["notes"] });
     },

@@ -1,255 +1,15 @@
 {
-  "generatedAt": "2026-05-16T19:02:48.861Z",
+  "generatedAt": "2026-06-01T22:06:59.962Z",
   "staleThresholdDays": 90,
   "warnThresholdDays": 60,
   "totalBriefs": 46,
   "staleBriefs": [
     {
-      "id": "portugal-student",
-      "countrySlug": "portugal",
-      "pathwayKey": "student",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "spain-overview",
-      "countrySlug": "spain",
-      "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "spain-nlv",
-      "countrySlug": "spain",
-      "pathwayKey": "nlv",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "spain-student",
-      "countrySlug": "spain",
-      "pathwayKey": "student",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "france-overview",
-      "countrySlug": "france",
-      "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "france-talent-passport",
-      "countrySlug": "france",
-      "pathwayKey": "talent-passport",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "france-visitor",
-      "countrySlug": "france",
-      "pathwayKey": "visitor",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "italy-elective-residency",
-      "countrySlug": "italy",
-      "pathwayKey": "elective-residency",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "italy-digital-nomad",
-      "countrySlug": "italy",
-      "pathwayKey": "digital-nomad",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "thailand-overview",
-      "countrySlug": "thailand",
-      "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "thailand-retirement",
-      "countrySlug": "thailand",
-      "pathwayKey": "retirement",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "costa-rica-overview",
-      "countrySlug": "costa-rica",
-      "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "costa-rica-rentista",
-      "countrySlug": "costa-rica",
-      "pathwayKey": "rentista",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "costa-rica-pensionado",
-      "countrySlug": "costa-rica",
-      "pathwayKey": "pensionado",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "mexico-overview",
-      "countrySlug": "mexico",
-      "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "mexico-permanent-resident",
-      "countrySlug": "mexico",
-      "pathwayKey": "permanent-resident",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "canada-overview",
-      "countrySlug": "canada",
-      "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "canada-express-entry",
-      "countrySlug": "canada",
-      "pathwayKey": "express-entry",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "panama-overview",
-      "countrySlug": "panama",
-      "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "panama-friendly-nations",
-      "countrySlug": "panama",
-      "pathwayKey": "friendly-nations",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "panama-pensionado",
-      "countrySlug": "panama",
-      "pathwayKey": "pensionado",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "panama-self-economic-solvency",
-      "countrySlug": "panama",
-      "pathwayKey": "self-economic-solvency",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "ecuador-overview",
-      "countrySlug": "ecuador",
-      "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "malta-overview",
-      "countrySlug": "malta",
-      "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "malta-digital-nomad",
-      "countrySlug": "malta",
-      "pathwayKey": "digital-nomad",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "malta-grp",
-      "countrySlug": "malta",
-      "pathwayKey": "grp",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "united-kingdom-overview",
-      "countrySlug": "united-kingdom",
-      "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "united-kingdom-skilled-worker",
-      "countrySlug": "united-kingdom",
-      "pathwayKey": "skilled-worker",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "united-kingdom-global-talent",
-      "countrySlug": "united-kingdom",
-      "pathwayKey": "global-talent",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
-      "id": "united-kingdom-innovator-founder",
-      "countrySlug": "united-kingdom",
-      "pathwayKey": "innovator-founder",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
-    },
-    {
       "id": "germany-overview",
       "countrySlug": "germany",
       "pathwayKey": null,
       "lastReviewedAt": "2026-02-01",
-      "ageDays": 104,
+      "ageDays": 120,
       "status": "stale"
     },
     {
@@ -257,7 +17,7 @@
       "countrySlug": "germany",
       "pathwayKey": "eu-blue-card",
       "lastReviewedAt": "2026-02-01",
-      "ageDays": 104,
+      "ageDays": 120,
       "status": "stale"
     },
     {
@@ -265,7 +25,7 @@
       "countrySlug": "germany",
       "pathwayKey": "skilled-worker-residence",
       "lastReviewedAt": "2026-02-01",
-      "ageDays": 104,
+      "ageDays": 120,
       "status": "stale"
     },
     {
@@ -273,7 +33,7 @@
       "countrySlug": "ireland",
       "pathwayKey": null,
       "lastReviewedAt": "2026-02-01",
-      "ageDays": 104,
+      "ageDays": 120,
       "status": "stale"
     },
     {
@@ -281,7 +41,7 @@
       "countrySlug": "ireland",
       "pathwayKey": "critical-skills",
       "lastReviewedAt": "2026-02-01",
-      "ageDays": 104,
+      "ageDays": 120,
       "status": "stale"
     },
     {
@@ -289,7 +49,7 @@
       "countrySlug": "australia",
       "pathwayKey": null,
       "lastReviewedAt": "2026-02-01",
-      "ageDays": 104,
+      "ageDays": 120,
       "status": "stale"
     },
     {
@@ -297,7 +57,7 @@
       "countrySlug": "australia",
       "pathwayKey": "skilled-independent-189",
       "lastReviewedAt": "2026-02-01",
-      "ageDays": 104,
+      "ageDays": 120,
       "status": "stale"
     }
   ],
@@ -309,7 +69,7 @@
       "countrySlug": "portugal",
       "pathwayKey": null,
       "lastReviewedAt": "2026-05-07",
-      "ageDays": 9,
+      "ageDays": 25,
       "status": "fresh"
     },
     {
@@ -317,7 +77,7 @@
       "countrySlug": "portugal",
       "pathwayKey": "d7",
       "lastReviewedAt": "2026-05-07",
-      "ageDays": 9,
+      "ageDays": 25,
       "status": "fresh"
     },
     {
@@ -325,231 +85,231 @@
       "countrySlug": "portugal",
       "pathwayKey": "d8",
       "lastReviewedAt": "2026-05-07",
-      "ageDays": 9,
+      "ageDays": 25,
       "status": "fresh"
     },
     {
       "id": "portugal-student",
       "countrySlug": "portugal",
       "pathwayKey": "student",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "spain-overview",
       "countrySlug": "spain",
       "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "spain-nlv",
       "countrySlug": "spain",
       "pathwayKey": "nlv",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "spain-dnv",
       "countrySlug": "spain",
       "pathwayKey": "dnv",
       "lastReviewedAt": "2026-05-07",
-      "ageDays": 9,
+      "ageDays": 25,
       "status": "fresh"
     },
     {
       "id": "spain-student",
       "countrySlug": "spain",
       "pathwayKey": "student",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "france-overview",
       "countrySlug": "france",
       "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "france-talent-passport",
       "countrySlug": "france",
       "pathwayKey": "talent-passport",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "france-visitor",
       "countrySlug": "france",
       "pathwayKey": "visitor",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "italy-overview",
       "countrySlug": "italy",
       "pathwayKey": null,
       "lastReviewedAt": "2026-05-07",
-      "ageDays": 9,
+      "ageDays": 25,
       "status": "fresh"
     },
     {
       "id": "italy-elective-residency",
       "countrySlug": "italy",
       "pathwayKey": "elective-residency",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "italy-digital-nomad",
       "countrySlug": "italy",
       "pathwayKey": "digital-nomad",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "thailand-overview",
       "countrySlug": "thailand",
       "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "thailand-ltr",
       "countrySlug": "thailand",
       "pathwayKey": "ltr",
       "lastReviewedAt": "2026-05-07",
-      "ageDays": 9,
+      "ageDays": 25,
       "status": "fresh"
     },
     {
       "id": "thailand-retirement",
       "countrySlug": "thailand",
       "pathwayKey": "retirement",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "costa-rica-overview",
       "countrySlug": "costa-rica",
       "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "costa-rica-rentista",
       "countrySlug": "costa-rica",
       "pathwayKey": "rentista",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "costa-rica-pensionado",
       "countrySlug": "costa-rica",
       "pathwayKey": "pensionado",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "mexico-overview",
       "countrySlug": "mexico",
       "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "mexico-temporary-resident",
       "countrySlug": "mexico",
       "pathwayKey": "temporary-resident",
       "lastReviewedAt": "2026-05-07",
-      "ageDays": 9,
+      "ageDays": 25,
       "status": "fresh"
     },
     {
       "id": "mexico-permanent-resident",
       "countrySlug": "mexico",
       "pathwayKey": "permanent-resident",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "canada-overview",
       "countrySlug": "canada",
       "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "canada-express-entry",
       "countrySlug": "canada",
       "pathwayKey": "express-entry",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "panama-overview",
       "countrySlug": "panama",
       "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "panama-friendly-nations",
       "countrySlug": "panama",
       "pathwayKey": "friendly-nations",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "panama-pensionado",
       "countrySlug": "panama",
       "pathwayKey": "pensionado",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "panama-self-economic-solvency",
       "countrySlug": "panama",
       "pathwayKey": "self-economic-solvency",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "ecuador-overview",
       "countrySlug": "ecuador",
       "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "ecuador-rentista",
       "countrySlug": "ecuador",
       "pathwayKey": "rentista",
       "lastReviewedAt": "2026-05-07",
-      "ageDays": 9,
+      "ageDays": 25,
       "status": "fresh"
     },
     {
@@ -557,71 +317,71 @@
       "countrySlug": "ecuador",
       "pathwayKey": "jubilado",
       "lastReviewedAt": "2026-05-07",
-      "ageDays": 9,
+      "ageDays": 25,
       "status": "fresh"
     },
     {
       "id": "malta-overview",
       "countrySlug": "malta",
       "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "malta-digital-nomad",
       "countrySlug": "malta",
       "pathwayKey": "digital-nomad",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "malta-grp",
       "countrySlug": "malta",
       "pathwayKey": "grp",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "united-kingdom-overview",
       "countrySlug": "united-kingdom",
       "pathwayKey": null,
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "united-kingdom-skilled-worker",
       "countrySlug": "united-kingdom",
       "pathwayKey": "skilled-worker",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "united-kingdom-global-talent",
       "countrySlug": "united-kingdom",
       "pathwayKey": "global-talent",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "united-kingdom-innovator-founder",
       "countrySlug": "united-kingdom",
       "pathwayKey": "innovator-founder",
-      "lastReviewedAt": "2025-12-01",
-      "ageDays": 166,
-      "status": "stale"
+      "lastReviewedAt": "2026-05-16",
+      "ageDays": 16,
+      "status": "fresh"
     },
     {
       "id": "germany-overview",
       "countrySlug": "germany",
       "pathwayKey": null,
       "lastReviewedAt": "2026-02-01",
-      "ageDays": 104,
+      "ageDays": 120,
       "status": "stale"
     },
     {
@@ -629,7 +389,7 @@
       "countrySlug": "germany",
       "pathwayKey": "eu-blue-card",
       "lastReviewedAt": "2026-02-01",
-      "ageDays": 104,
+      "ageDays": 120,
       "status": "stale"
     },
     {
@@ -637,7 +397,7 @@
       "countrySlug": "germany",
       "pathwayKey": "skilled-worker-residence",
       "lastReviewedAt": "2026-02-01",
-      "ageDays": 104,
+      "ageDays": 120,
       "status": "stale"
     },
     {
@@ -645,7 +405,7 @@
       "countrySlug": "ireland",
       "pathwayKey": null,
       "lastReviewedAt": "2026-02-01",
-      "ageDays": 104,
+      "ageDays": 120,
       "status": "stale"
     },
     {
@@ -653,7 +413,7 @@
       "countrySlug": "ireland",
       "pathwayKey": "critical-skills",
       "lastReviewedAt": "2026-02-01",
-      "ageDays": 104,
+      "ageDays": 120,
       "status": "stale"
     },
     {
@@ -661,7 +421,7 @@
       "countrySlug": "australia",
       "pathwayKey": null,
       "lastReviewedAt": "2026-02-01",
-      "ageDays": 104,
+      "ageDays": 120,
       "status": "stale"
     },
     {
@@ -669,7 +429,7 @@
       "countrySlug": "australia",
       "pathwayKey": "skilled-independent-189",
       "lastReviewedAt": "2026-02-01",
-      "ageDays": 104,
+      "ageDays": 120,
       "status": "stale"
     }
   ]

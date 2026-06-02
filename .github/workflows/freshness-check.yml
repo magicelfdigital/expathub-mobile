@@ -1,9 +1,23 @@
 name: Decision Brief freshness check
 
+# Weekly advisory report: scans every brief in src/data/decisionBriefs.ts and
+# flags any whose lastReviewedAt has crossed the 90-day stale threshold (with a
+# 60-day "approaching" tier). Runs weekly so a brief that goes stale is caught
+# within days rather than at the next quarter boundary — this keeps the periodic
+# manual re-verification sweeps from being silently missed.
+#
+# This job is advisory only: it never fails CI. The hard release gate that
+# blocks CI when a brief crosses 180 days lives in brief-freshness-gate.yml.
+#
+# When stale briefs are found the job opens (or comments on / updates) a single
+# standing issue labelled `freshness`, listing each stale brief and how many
+# days overdue it is. When nothing is stale, the standing issue auto-closes on
+# the next run.
+
 on:
   schedule:
-    # Quarterly — 1st of Jan, Apr, Jul, Oct at 14:00 UTC.
-    - cron: "0 14 1 1,4,7,10 *"
+    # Weekly — every Monday at 14:00 UTC.
+    - cron: "0 14 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -25,15 +39,50 @@ jobs:
 
       - name: Run freshness check
         id: check
+        env:
+          # Optional: when set, the script posts the stale/approaching summary
+          # to a Slack incoming webhook in addition to the standing issue below.
+          SLACK_WEBHOOK_URL: ${{ secrets.FRESHNESS_SLACK_WEBHOOK_URL }}
         run: node scripts/monitoring/freshness-check.mjs
 
-      - name: Open or update tracking issue
+      - name: Ensure freshness label exists
         if: steps.check.outputs.has_stale == 'true'
-        uses: peter-evans/create-issue-from-file@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Decision Brief freshness review — quarterly check"
-          content-filepath: monitoring/freshness-issue.md
-          labels: |
-            content
-            freshness
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Create the label if it doesn't already exist so `gh issue create`
+          # below never fails on a missing label in a fresh repo.
+          gh label create freshness \
+            --color FBCA04 \
+            --description "Decision Brief freshness review" \
+            >/dev/null 2>&1 || true
+
+      - name: Open or update standing freshness issue
+        if: steps.check.outputs.has_stale == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TITLE="Decision Brief freshness review — stale briefs need re-verification"
+          EXISTING=$(gh issue list --state open --label freshness --search "$TITLE in:title" --json number --jq '.[0].number' || true)
+          if [ -n "${EXISTING:-}" ] && [ "$EXISTING" != "null" ]; then
+            # Refresh the body with the latest table and leave a dated trail.
+            gh issue edit "$EXISTING" --body-file monitoring/freshness-issue.md
+            gh issue comment "$EXISTING" --body "Refreshed $(date -u +%FT%TZ) — ${{ steps.check.outputs.stale_count }} stale (>90d), ${{ steps.check.outputs.warn_count }} approaching (>60d). Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          else
+            gh issue create \
+              --title "$TITLE" \
+              --label freshness \
+              --body-file monitoring/freshness-issue.md
+          fi
+
+      - name: Auto-close standing issue when nothing is stale
+        if: steps.check.outputs.has_stale != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          for n in $(gh issue list --state open --label freshness --json number --jq '.[].number'); do
+            gh issue close "$n" --comment "All Decision Briefs are within the 90-day freshness window as of $(date -u +%FT%TZ). Auto-closing."
+          done

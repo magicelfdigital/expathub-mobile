@@ -40,10 +40,6 @@ export const readinessLeads = pgTable("readiness_leads", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull(),
   score: integer("score"),
-  // Legacy column name — kept during the rename rollout (task #115). The
-  // server dual-writes to both `tier` and `readiness_level`; a follow-up
-  // task will drop this column once all writers have shipped.
-  tier: varchar("tier", { length: 50 }),
   readinessLevel: varchar("readiness_level", { length: 50 }),
   risks: jsonb("risks"),
   answers: jsonb("answers"),
@@ -60,10 +56,6 @@ export const countryInterest = pgTable("country_interest", {
 export const quizLeads = pgTable("quiz_leads", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull(),
-  // Legacy column name — kept during the rename rollout (task #115). The
-  // server dual-writes to both `tier` and `readiness_level`; a follow-up
-  // task will drop this column once all writers have shipped.
-  tier: varchar("tier", { length: 50 }).notNull(),
   readinessLevel: varchar("readiness_level", { length: 50 }),
   topRegion: varchar("top_region", { length: 100 }),
   regionPreference: varchar("region_preference", { length: 100 }),
@@ -160,6 +152,26 @@ export const schemaMigrations = pgTable("schema_migrations", {
 });
 
 export type SchemaMigration = typeof schemaMigrations.$inferSelect;
+
+// Records every `$identify` analytics event that arrived without a
+// `$anon_distinct_id` join key. Persisted (in addition to the in-memory
+// counter in server/routes.ts) so the /api/_internal/analytics-health probe
+// survives server restarts: a slow trickle of broken events on a rarely
+// restarted surface can no longer silently auto-clear the alert on every
+// deploy. One row per offending event so the endpoint can report both an
+// all-time total and a rolling last-24h count.
+export const identifyMissingAnonEvents = pgTable(
+  "identify_missing_anon_events",
+  {
+    id: serial("id").primaryKey(),
+    surface: varchar("surface", { length: 100 }).notNull(),
+    distinctId: varchar("distinct_id", { length: 255 }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+);
+
+export type IdentifyMissingAnonEvent =
+  typeof identifyMissingAnonEvents.$inferSelect;
 
 export const userProgress = pgTable(
   "user_progress",

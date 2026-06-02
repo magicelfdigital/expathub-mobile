@@ -50,10 +50,40 @@ jobs:
           xcrun simctl boot "$DEVICE_ID"
           xcrun simctl bootstatus "$DEVICE_ID" -b
 
+      # Cache the entire prebuilt `ios/` directory. Expo regenerates it
+      # via `prebuild` each run, and it holds the generated Xcode project,
+      # `Pods/`, `Podfile.lock`, and the `ios/build` DerivedData (see the
+      # `-derivedDataPath ios/build` flag below). `ios/` is gitignored, so
+      # there is no committed `Podfile.lock` to hash; instead we key on the
+      # inputs that determine the native project + pods: `package-lock.json`
+      # (native deps come from npm packages) and `app.json` (Expo config /
+      # plugins that shape the generated Podfile). An exact cache hit lets us
+      # skip `prebuild` + `pod install` entirely and run an incremental
+      # `xcodebuild` against the restored DerivedData.
+      - name: Restore prebuilt iOS project (Pods + DerivedData)
+        id: ios-cache
+        uses: actions/cache@v4
+        with:
+          path: ios
+          key: ${{ runner.os }}-ios-prebuilt-${{ hashFiles('package-lock.json', 'app.json') }}
+
+      # Separate, looser cache for CocoaPods' download/spec cache so that
+      # the cold path (or a dependency change that invalidates the `ios/`
+      # cache above) still gets a fast `pod install` from local spec data.
+      - name: Cache CocoaPods downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/CocoaPods
+          key: ${{ runner.os }}-cocoapods-${{ hashFiles('package-lock.json', 'app.json') }}
+          restore-keys: |
+            ${{ runner.os }}-cocoapods-
+
       - name: Expo prebuild (iOS)
+        if: steps.ios-cache.outputs.cache-hit != 'true'
         run: npx expo prebuild --platform ios --no-install --clean
 
       - name: Install CocoaPods
+        if: steps.ios-cache.outputs.cache-hit != 'true'
         working-directory: ios
         run: pod install --repo-update
 

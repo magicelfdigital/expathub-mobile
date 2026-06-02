@@ -1,0 +1,69 @@
+I need to add PostHog event tracking throughout the user funnel. 
+PostHog is already initialized in src/lib/analytics.ts and the 
+client is available via the existing trackEvent function or 
+posthog.capture. Do not change any existing logic, routing, or 
+UI. Add tracking calls only.
+
+1. AUDIT FIRST — before adding anything, find and report:
+   - Where the quiz starts (first question shown)
+   - Where the quiz completes (last question answered, results shown)
+   - Where the paywall is displayed (subscription screen shown to user)
+   - Where a purchase is initiated (user taps subscribe/buy button)
+   - Where a purchase succeeds (RevenueCat confirms entitlement active)
+   - Where a purchase fails (RevenueCat returns error)
+   - Where the free trial starts
+   - Where onboarding completes (first time user reaches main app content)
+
+   Report the exact file and line number for each. Do not add 
+   anything yet.
+
+2. Once you have reported all locations, add these events:
+
+   quiz_started
+   - Fired when user sees the first quiz question
+   - Properties: { source: screen or entry point }
+
+   quiz_completed  
+   - Fired when results are shown
+   - Properties: { result_tier: 'dreaming'|'exploring'|'ready', 
+     score: numeric score }
+
+   paywall_viewed
+   - Fired when subscription screen is displayed
+   - Properties: { source: what triggered it, 
+     user_has_trial_available: boolean }
+
+   purchase_initiated
+   - Fired when user taps subscribe button
+   - Properties: { product_id: the product identifier, 
+     is_annual: boolean }
+
+   purchase_completed
+   - Fired when RevenueCat confirms full_access_subscription 
+     entitlement is active after a transaction
+   - Properties: { product_id: string, is_annual: boolean, 
+     is_trial: boolean }
+
+   purchase_failed
+   - Fired when a purchase attempt returns an error
+   - Properties: { product_id: string, error_message: string }
+
+   trial_started
+   - Fired when a free trial is confirmed active
+   - Properties: { product_id: string }
+
+   onboarding_completed
+   - Fired when user reaches main app content for the first time
+   - Properties: { quiz_result_tier: string if available }
+
+3. For each event use the existing trackEvent function if it 
+   wraps posthog.capture — do not call posthog.capture directly 
+   if a wrapper exists. Match the existing pattern in the codebase.
+
+4. Do not add any events outside this list. Do not modify any 
+   existing events. Do not change any UI or logic.
+
+5. After adding all events, give me a summary:
+   - Each event name
+   - File and line where it was added
+   - Any location you could not find or were uncertain about

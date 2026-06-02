@@ -1,0 +1,6 @@
+{
+  "endpoint": "https://www.expathub.website/api/_internal/quiz-save-prompt-health",
+  "expectedStatus": 200,
+  "timeoutMs": 15000,
+  "description": "Polls the unauthenticated save-progress prompt health probe. The probe returns HTTP 503 once the most recent complete day's `quiz_save_shown` events with `placement: result_screen` drop to zero, or fall below the trailing 7-day median floor (see server/quizSavePromptHealth.ts). A non-200 response means the post-result 'save your progress' modal has likely stopped firing — an analytics misconfiguration, a deploy that broke the result-screen mount, or (more benignly) a sudden collapse in low-readiness traffic. The monitor opens a GitHub issue on failure so the on-call sees it within minutes instead of weeks later in the dashboard. Thresholds are tunable in server/quizSavePromptHealth.ts (QUIZ_SAVE_PROMPT_HEALTH_CONFIG)."
+}

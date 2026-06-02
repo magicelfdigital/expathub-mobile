@@ -1,7 +1,11 @@
+import express, { type Express, type Request, type Response } from "express";
+import request from "supertest";
 import {
   computePlannerAnalytics,
   parseDateRange,
+  registerPlannerAnalyticsRoutes,
   renderPlannerAnalyticsCsv,
+  renderRangeComparisonCsv,
   renderPlannerAnalyticsHtml,
   type PlannerAnalyticsResult,
 } from "../plannerAnalytics";
@@ -857,6 +861,156 @@ describe("renderPlannerAnalyticsCsv", () => {
   });
 });
 
+describe("renderRangeComparisonCsv", () => {
+  function makeResult(
+    overrides: Partial<PlannerAnalyticsResult> = {},
+  ): PlannerAnalyticsResult {
+    return {
+      generatedAt: "2026-04-28T00:00:00.000Z",
+      totalSteps: 10,
+      filter: {
+        country: null,
+        minPlansForCountryBreakdown: 3,
+        rangeA: { start: "2026-04-01", end: "2026-04-30" },
+        rangeB: { start: "2026-03-01", end: "2026-03-31" },
+      },
+      countries: [],
+      totals: {
+        plansStarted: 0,
+        plansCompleted: 0,
+        completionRatePct: 0,
+        medianDaysToCompletion: null,
+        medianSampleSize: 0,
+        medianExcludedUnknownStart: 0,
+        medianExcludedUnknownStartPct: 0,
+      },
+      stepCompletion: [],
+      stageDropOff: [],
+      weekly: [],
+      byCountry: [],
+      comparison: {
+        rangeA: {
+          start: "2026-04-01",
+          end: "2026-04-30",
+          plansStarted: 12,
+          plansCompleted: 6,
+          completionRatePct: 50,
+          medianDaysToCompletion: 8,
+          medianSampleSize: 6,
+        },
+        rangeB: {
+          start: "2026-03-01",
+          end: "2026-03-31",
+          plansStarted: 8,
+          plansCompleted: 2,
+          completionRatePct: 25,
+          medianDaysToCompletion: 10,
+          medianSampleSize: 2,
+        },
+        delta: {
+          plansStarted: 4,
+          plansStartedPct: 50,
+          plansCompleted: 4,
+          plansCompletedPct: 200,
+          completionRatePctPoints: 25,
+          medianDaysToCompletion: -2,
+          medianDaysToCompletionPct: -20,
+        },
+        byCountry: [],
+      },
+      ...overrides,
+    };
+  }
+
+  it("emits one row per metric with range A, range B and delta columns", () => {
+    const csv = renderRangeComparisonCsv(makeResult());
+    const lines = csv.split("\r\n");
+    expect(lines[0]).toBe("# Planner range comparison");
+    expect(lines).toContain("# Range A: 2026-04-01..2026-04-30");
+    expect(lines).toContain("# Range B (baseline): 2026-03-01..2026-03-31");
+    expect(lines).toContain("# Generated: 2026-04-28T00:00:00.000Z");
+    expect(lines).toContain("metric,range_a,range_b,delta,delta_pct");
+    expect(lines).toContain("plans_started,12,8,4,50.0");
+    expect(lines).toContain("reached_100,6,2,4,200.0");
+    // % reaching 100% delta is in percentage points, so delta_pct is blank.
+    expect(lines).toContain("pct_reaching_100,50.0,25.0,25.0,");
+    expect(lines).toContain("median_days_to_completion,8.0,10.0,-2.0,-20.0");
+    expect(csv.endsWith("\r\n")).toBe(true);
+  });
+
+  it("includes the active country filter in the header comment", () => {
+    const csv = renderRangeComparisonCsv(
+      makeResult({
+        filter: {
+          country: "portugal",
+          minPlansForCountryBreakdown: 3,
+          rangeA: { start: "2026-04-01", end: "2026-04-30" },
+          rangeB: { start: "2026-03-01", end: "2026-03-31" },
+        },
+      }),
+    );
+    expect(csv).toContain("# Filter: country=portugal");
+  });
+
+  it("renders blank cells when medians are null", () => {
+    const csv = renderRangeComparisonCsv(
+      makeResult({
+        comparison: {
+          rangeA: {
+            start: "2026-04-01",
+            end: "2026-04-30",
+            plansStarted: 4,
+            plansCompleted: 0,
+            completionRatePct: 0,
+            medianDaysToCompletion: null,
+            medianSampleSize: 0,
+          },
+          rangeB: {
+            start: "2026-03-01",
+            end: "2026-03-31",
+            plansStarted: 0,
+            plansCompleted: 0,
+            completionRatePct: 0,
+            medianDaysToCompletion: null,
+            medianSampleSize: 0,
+          },
+          delta: {
+            plansStarted: 4,
+            plansStartedPct: null,
+            plansCompleted: 0,
+            plansCompletedPct: null,
+            completionRatePctPoints: 0,
+            medianDaysToCompletion: null,
+            medianDaysToCompletionPct: null,
+          },
+          byCountry: [],
+        },
+      }),
+    );
+    const lines = csv.split("\r\n");
+    // Baseline of 0 → percentage deltas blank.
+    expect(lines).toContain("plans_started,4,0,4,");
+    expect(lines).toContain("median_days_to_completion,,,,");
+  });
+
+  it("degrades to a header-only file when no comparison is present", () => {
+    const csv = renderRangeComparisonCsv(
+      makeResult({
+        filter: {
+          country: null,
+          minPlansForCountryBreakdown: 3,
+          rangeA: null,
+          rangeB: null,
+        },
+        comparison: null,
+      }),
+    );
+    expect(csv).toContain("# No comparison: supply both rangeA and rangeB");
+    expect(csv).not.toContain("metric,range_a,range_b,delta,delta_pct");
+    expect(csv.endsWith("\r\n")).toBe(true);
+  });
+});
+
 describe("parseDateRange", () => {
   it("parses a valid YYYY-MM-DD..YYYY-MM-DD pair", () => {
     expect(parseDateRange("2026-04-01..2026-04-30")).toEqual({
@@ -906,6 +1060,11 @@ describe("computePlannerAnalytics — range comparison", () => {
       if (/SELECT step_id,\s+COUNT/.test(text)) return { rows: [] };
       if (/generate_series/.test(text)) return { rows: [] };
       if (/SELECT DISTINCT target_country/.test(text)) return { rows: [] };
+      // Per-country range query — same range filter but grouped by country.
+      // Return empty so the byCountry merge stays empty for this test.
+      if (/started_at >= \$3::date/.test(text) && /GROUP BY target_country/.test(text)) {
+        return { rows: [] };
+      }
       // Range-metrics query: per_plan rollup with started_at >= $3
       if (/started_at >= \$3::date/.test(text)) {
         rangeQueryCalls.push({ text, values: values ?? [] });
@@ -1011,6 +1170,9 @@ describe("computePlannerAnalytics — range comparison", () => {
     // mock for the second call.
     let callIdx = 0;
     const pool2 = makePool(async (text: string) => {
+      if (/started_at >= \$3::date/.test(text) && /GROUP BY target_country/.test(text)) {
+        return { rows: [] };
+      }
       if (/started_at >= \$3::date/.test(text)) {
         callIdx += 1;
         if (callIdx === 2) {
@@ -1057,6 +1219,104 @@ describe("computePlannerAnalytics — range comparison", () => {
     // Median is null on one side → null pct
     expect(result.comparison!.delta.medianDaysToCompletionPct).toBeNull();
     expect(result.comparison!.delta.medianDaysToCompletion).toBeNull();
+  });
+
+  it("builds a per-country comparison, omits inactive countries, and sorts by absolute change in plans started", async () => {
+    // Distinguish range A from range B by the exclusive end bound passed
+    // in $4: rangeA ends 2026-05-01, rangeB ends 2026-04-01.
+    const pool = makePool(async (text: string, values?: any[]) => {
+      if (/ALTER TABLE user_progress/.test(text)) return { rows: [] };
+      if (/SELECT step_id,\s+COUNT/.test(text)) return { rows: [] };
+      if (/generate_series/.test(text)) return { rows: [] };
+      if (/SELECT DISTINCT target_country/.test(text)) return { rows: [] };
+      // Per-country range query (grouped by country).
+      if (
+        /started_at >= \$3::date/.test(text) &&
+        /GROUP BY target_country/.test(text)
+      ) {
+        const isRangeA = values?.[3] === "2026-05-01";
+        if (isRangeA) {
+          return {
+            rows: [
+              { target_country: "portugal", plans_started: 12, plans_completed: 6, median_days: 8 },
+              { target_country: "spain", plans_started: 2, plans_completed: 0, median_days: null },
+              // canada: active in A only.
+              { target_country: "canada", plans_started: 5, plans_completed: 1, median_days: 4 },
+            ],
+          };
+        }
+        return {
+          rows: [
+            { target_country: "portugal", plans_started: 6, plans_completed: 4, median_days: 10 },
+            { target_country: "spain", plans_started: 8, plans_completed: 3, median_days: 5 },
+            // germany: appears in B with zero activity → must be omitted.
+            { target_country: "germany", plans_started: 0, plans_completed: 0, median_days: null },
+          ],
+        };
+      }
+      // Totals range query (not grouped by country).
+      if (/started_at >= \$3::date/.test(text)) {
+        return {
+          rows: [
+            {
+              plans_started: 0,
+              plans_completed: 0,
+              median_sample_size: 0,
+              median_days: null,
+            },
+          ],
+        };
+      }
+      if (/per_plan AS \(/.test(text) && /plans_started,\s+/.test(text)) {
+        return {
+          rows: [{ plans_started: 0, plans_completed: 0, median_days: null }],
+        };
+      }
+      return { rows: [{ finished: 0 }] };
+    });
+
+    const result = await computePlannerAnalytics(pool, {
+      rangeA: { start: "2026-04-01", end: "2026-04-30" },
+      rangeB: { start: "2026-03-01", end: "2026-03-31" },
+    });
+
+    const byCountry = result.comparison!.byCountry;
+    // germany is dropped (zero in both); portugal/canada/spain remain.
+    expect(byCountry.map((c) => c.country)).not.toContain("germany");
+    // Sorted by absolute change in plans started:
+    //   portugal |12−6|=6, canada |5−0|=5, spain |2−8|=6 → portugal then
+    //   spain (tie 6, alpha) then canada.
+    expect(byCountry.map((c) => c.country)).toEqual([
+      "portugal",
+      "spain",
+      "canada",
+    ]);
+
+    const portugal = byCountry[0];
+    expect(portugal.rangeA).toEqual({
+      plansStarted: 12,
+      plansCompleted: 6,
+      medianDaysToCompletion: 8,
+    });
+    expect(portugal.rangeB).toEqual({
+      plansStarted: 6,
+      plansCompleted: 4,
+      medianDaysToCompletion: 10,
+    });
+    expect(portugal.delta.plansStarted).toBe(6);
+    expect(portugal.delta.plansStartedPct).toBe(100);
+    expect(portugal.delta.plansCompleted).toBe(2);
+    expect(portugal.delta.medianDaysToCompletion).toBe(-2);
+
+    // canada is active in A only → zero-filled B side, null pct baseline.
+    const canada = byCountry.find((c) => c.country === "canada")!;
+    expect(canada.rangeB).toEqual({
+      plansStarted: 0,
+      plansCompleted: 0,
+      medianDaysToCompletion: null,
+    });
+    expect(canada.delta.plansStartedPct).toBeNull();
+    expect(canada.delta.medianDaysToCompletion).toBeNull();
   });
 });
 
@@ -1136,6 +1396,7 @@ describe("renderPlannerAnalyticsHtml — range comparison", () => {
             medianDaysToCompletion: -2,
             medianDaysToCompletionPct: -20,
           },
+          byCountry: [],
         },
       }),
     );
@@ -1174,6 +1435,365 @@ describe("renderPlannerAnalyticsHtml — range comparison", () => {
     );
     expect(html).toContain(
       "rangeB=2026-03-01..2026-03-31",
+    );
+  });
+
+  it("renders a per-country comparison table beneath the totals comparison", () => {
+    const html = renderPlannerAnalyticsHtml(
+      baseResult({
+        filter: {
+          country: null,
+          minPlansForCountryBreakdown: 3,
+          rangeA: { start: "2026-04-01", end: "2026-04-30" },
+          rangeB: { start: "2026-03-01", end: "2026-03-31" },
+        },
+        comparison: {
+          rangeA: {
+            start: "2026-04-01",
+            end: "2026-04-30",
+            plansStarted: 14,
+            plansCompleted: 6,
+            completionRatePct: 42.9,
+            medianDaysToCompletion: 8,
+            medianSampleSize: 6,
+          },
+          rangeB: {
+            start: "2026-03-01",
+            end: "2026-03-31",
+            plansStarted: 14,
+            plansCompleted: 7,
+            completionRatePct: 50,
+            medianDaysToCompletion: 10,
+            medianSampleSize: 7,
+          },
+          delta: {
+            plansStarted: 0,
+            plansStartedPct: 0,
+            plansCompleted: -1,
+            plansCompletedPct: -14.3,
+            completionRatePctPoints: -7.1,
+            medianDaysToCompletion: -2,
+            medianDaysToCompletionPct: -20,
+          },
+          byCountry: [
+            {
+              country: "portugal",
+              rangeA: { plansStarted: 12, plansCompleted: 6, medianDaysToCompletion: 8 },
+              rangeB: { plansStarted: 6, plansCompleted: 4, medianDaysToCompletion: 10 },
+              delta: {
+                plansStarted: 6,
+                plansStartedPct: 100,
+                plansCompleted: 2,
+                plansCompletedPct: 50,
+                medianDaysToCompletion: -2,
+              },
+            },
+            {
+              country: "spain",
+              rangeA: { plansStarted: 2, plansCompleted: 0, medianDaysToCompletion: null },
+              rangeB: { plansStarted: 8, plansCompleted: 3, medianDaysToCompletion: 5 },
+              delta: {
+                plansStarted: -6,
+                plansStartedPct: -75,
+                plansCompleted: -3,
+                plansCompletedPct: -100,
+                medianDaysToCompletion: null,
+              },
+            },
+          ],
+        },
+      }),
+    );
+    expect(html).toContain("By country");
+    expect(html).toContain("comparison-country");
+    expect(html).toContain("Portugal");
+    expect(html).toContain("Spain");
+    // Portugal's +6 plans-started delta should read as a good (green) move.
+    expect(html).toMatch(/\+6/);
+    expect(html).toMatch(/\+100\.0%/);
+    // Spain's −6 plans-started delta should be tagged bad.
+    expect(html).toMatch(/−6/);
+    expect(html).toContain("delta-bad");
+  });
+
+  it("shows an empty-state for the per-country comparison when no country qualifies", () => {
+    const html = renderPlannerAnalyticsHtml(
+      baseResult({
+        filter: {
+          country: null,
+          minPlansForCountryBreakdown: 3,
+          rangeA: { start: "2026-04-01", end: "2026-04-30" },
+          rangeB: { start: "2026-03-01", end: "2026-03-31" },
+        },
+        comparison: {
+          rangeA: {
+            start: "2026-04-01",
+            end: "2026-04-30",
+            plansStarted: 0,
+            plansCompleted: 0,
+            completionRatePct: 0,
+            medianDaysToCompletion: null,
+            medianSampleSize: 0,
+          },
+          rangeB: {
+            start: "2026-03-01",
+            end: "2026-03-31",
+            plansStarted: 0,
+            plansCompleted: 0,
+            completionRatePct: 0,
+            medianDaysToCompletion: null,
+            medianSampleSize: 0,
+          },
+          delta: {
+            plansStarted: 0,
+            plansStartedPct: null,
+            plansCompleted: 0,
+            plansCompletedPct: null,
+            completionRatePctPoints: 0,
+            medianDaysToCompletion: null,
+            medianDaysToCompletionPct: null,
+          },
+          byCountry: [],
+        },
+      }),
+    );
+    expect(html).toContain("By country");
+    expect(html).toContain("No country had any plans started in either range.");
+  });
+});
+
+describe("GET /admin/planner-analytics-comparison.csv (route)", () => {
+  // Fake pool that satisfies every query computePlannerAnalytics fires,
+  // returning per-range metrics for the comparison query
+  // (`started_at >= $3::date`). rangeA is the first such call, rangeB the
+  // second — matching computeRangeMetrics' call order.
+  function comparisonPool() {
+    let rangeCall = 0;
+    return {
+      query: jest.fn(async (text: string) => {
+        if (/ALTER TABLE user_progress/.test(text)) return { rows: [] };
+        if (/CREATE TABLE/.test(text)) return { rows: [] };
+        if (/schema_migrations/.test(text)) return { rows: [] };
+        if (/SELECT step_id,\s+COUNT/.test(text)) return { rows: [] };
+        if (/generate_series/.test(text)) return { rows: [] };
+        if (/SELECT DISTINCT target_country/.test(text)) return { rows: [] };
+        if (/started_at >= \$3::date/.test(text)) {
+          rangeCall += 1;
+          return rangeCall === 1
+            ? {
+                rows: [
+                  {
+                    plans_started: 12,
+                    plans_completed: 6,
+                    median_sample_size: 6,
+                    median_days: 8,
+                  },
+                ],
+              }
+            : {
+                rows: [
+                  {
+                    plans_started: 8,
+                    plans_completed: 2,
+                    median_sample_size: 2,
+                    median_days: 10,
+                  },
+                ],
+              };
+        }
+        if (/per_plan AS \(/.test(text) && /plans_started,\s+/.test(text)) {
+          return {
+            rows: [{ plans_started: 0, plans_completed: 0, median_days: null }],
+          };
+        }
+        return { rows: [{ finished: 0 }] };
+      }),
+      end: jest.fn(async () => undefined),
+    };
+  }
+
+  function buildApp(opts: { authOk?: boolean; pool?: any }): Express {
+    const app = express();
+    registerPlannerAnalyticsRoutes(app, {
+      requireAdminBasicAuth: (_req: Request, res: Response) => {
+        if (opts.authOk === false) {
+          res
+            .status(401)
+            .set("WWW-Authenticate", "Basic")
+            .send("Unauthorized");
+          return false;
+        }
+        return true;
+      },
+      getPool: () => (opts.pool === undefined ? null : (opts.pool as any)),
+    });
+    return app;
+  }
+
+  const RANGE_QS =
+    "rangeA=2026-04-01..2026-04-30&rangeB=2026-03-01..2026-03-31";
+
+  it("rejects unauthenticated requests via the admin gate", async () => {
+    const app = buildApp({ authOk: false, pool: null });
+    const res = await request(app).get(
+      `/admin/planner-analytics-comparison.csv?${RANGE_QS}`,
+    );
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 503 plain text when the database is not configured", async () => {
+    const app = buildApp({ authOk: true, pool: null });
+    const res = await request(app).get(
+      `/admin/planner-analytics-comparison.csv?${RANGE_QS}`,
+    );
+    expect(res.status).toBe(503);
+    expect(res.headers["content-type"]).toMatch(/text\/plain/);
+    expect(res.text).toMatch(/not configured/i);
+  });
+
+  it("returns 400 with a helpful message when no ranges are supplied", async () => {
+    const pool = comparisonPool();
+    const app = buildApp({ authOk: true, pool });
+    const res = await request(app).get(
+      "/admin/planner-analytics-comparison.csv",
+    );
+    expect(res.status).toBe(400);
+    expect(res.headers["content-type"]).toMatch(/text\/plain/);
+    expect(res.text).toMatch(/both rangeA and rangeB are required/i);
+    // The pool is still drained even on the 400 path.
+    expect(pool.end).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 400 when only one range is supplied", async () => {
+    const pool = comparisonPool();
+    const app = buildApp({ authOk: true, pool });
+    const res = await request(app).get(
+      "/admin/planner-analytics-comparison.csv?rangeA=2026-04-01..2026-04-30",
+    );
+    expect(res.status).toBe(400);
+    expect(res.text).toMatch(/both rangeA and rangeB are required/i);
+  });
+
+  it("returns 200 text/csv with an attachment filename when both ranges are supplied", async () => {
+    const pool = comparisonPool();
+    const app = buildApp({ authOk: true, pool });
+    const res = await request(app).get(
+      `/admin/planner-analytics-comparison.csv?${RANGE_QS}`,
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toMatch(/text\/csv/);
+    expect(res.headers["content-disposition"]).toMatch(
+      /attachment; filename="planner-analytics-comparison\.csv"/,
+    );
+    expect(res.text).toMatch(/^# Planner range comparison/);
+    expect(res.text).toContain("metric,range_a,range_b,delta,delta_pct");
+    expect(res.text).toContain("plans_started,12,8,4,");
+    expect(pool.end).toHaveBeenCalledTimes(1);
+  });
+
+  it("includes the active country in the attachment filename", async () => {
+    const pool = comparisonPool();
+    const app = buildApp({ authOk: true, pool });
+    const res = await request(app).get(
+      `/admin/planner-analytics-comparison.csv?country=portugal&${RANGE_QS}`,
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers["content-disposition"]).toMatch(
+      /attachment; filename="planner-analytics-comparison-portugal\.csv"/,
+    );
+  });
+});
+
+// Shared helpers for the two non-comparison download routes. The fake pool
+// answers every query computePlannerAnalytics fires for a default (no range)
+// request with benign rows, so the routes can render a real JSON/CSV payload.
+function analyticsPool() {
+  return {
+    query: jest.fn(async (text: string) => ({
+      rows: rowsForUnfilteredFixture(text, []),
+    })),
+    end: jest.fn(async () => undefined),
+  };
+}
+
+function buildAnalyticsApp(opts: { authOk?: boolean; pool?: any }): Express {
+  const app = express();
+  registerPlannerAnalyticsRoutes(app, {
+    requireAdminBasicAuth: (_req: Request, res: Response) => {
+      if (opts.authOk === false) {
+        res.status(401).set("WWW-Authenticate", "Basic").send("Unauthorized");
+        return false;
+      }
+      return true;
+    },
+    getPool: () => (opts.pool === undefined ? null : (opts.pool as any)),
+  });
+  return app;
+}
+
+describe("GET /api/admin/planner-analytics (route)", () => {
+  it("rejects unauthenticated requests via the admin gate", async () => {
+    const app = buildAnalyticsApp({ authOk: false, pool: null });
+    const res = await request(app).get("/api/admin/planner-analytics");
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 503 JSON when the database is not configured", async () => {
+    const app = buildAnalyticsApp({ authOk: true, pool: null });
+    const res = await request(app).get("/api/admin/planner-analytics");
+    expect(res.status).toBe(503);
+    expect(res.headers["content-type"]).toMatch(/application\/json/);
+    expect(res.body).toEqual({ error: "Database not configured" });
+  });
+
+  it("returns 200 application/json when the pool is configured", async () => {
+    const pool = analyticsPool();
+    const app = buildAnalyticsApp({ authOk: true, pool });
+    const res = await request(app).get("/api/admin/planner-analytics");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toMatch(/application\/json/);
+    expect(res.body).toHaveProperty("totals");
+    expect(res.body).toHaveProperty("byCountry");
+    expect(pool.end).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("GET /admin/planner-analytics.csv (route)", () => {
+  it("rejects unauthenticated requests via the admin gate", async () => {
+    const app = buildAnalyticsApp({ authOk: false, pool: null });
+    const res = await request(app).get("/admin/planner-analytics.csv");
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 503 plain text when the database is not configured", async () => {
+    const app = buildAnalyticsApp({ authOk: true, pool: null });
+    const res = await request(app).get("/admin/planner-analytics.csv");
+    expect(res.status).toBe(503);
+    expect(res.headers["content-type"]).toMatch(/text\/plain/);
+    expect(res.text).toMatch(/not configured/i);
+  });
+
+  it("returns 200 text/csv with the by-country attachment filename", async () => {
+    const pool = analyticsPool();
+    const app = buildAnalyticsApp({ authOk: true, pool });
+    const res = await request(app).get("/admin/planner-analytics.csv");
+    expect(res.status).toBe(200);
+    expect(res.headers["content-type"]).toMatch(/text\/csv/);
+    expect(res.headers["content-disposition"]).toMatch(
+      /attachment; filename="planner-analytics-by-country\.csv"/,
+    );
+    expect(pool.end).toHaveBeenCalledTimes(1);
+  });
+
+  it("includes the active country in the attachment filename", async () => {
+    const pool = analyticsPool();
+    const app = buildAnalyticsApp({ authOk: true, pool });
+    const res = await request(app).get(
+      "/admin/planner-analytics.csv?country=portugal",
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers["content-disposition"]).toMatch(
+      /attachment; filename="planner-analytics-by-country-portugal\.csv"/,
     );
   });
 });

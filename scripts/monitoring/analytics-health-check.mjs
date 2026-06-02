@@ -15,7 +15,7 @@
 //     node scripts/monitoring/analytics-health-check.mjs
 
 import { readFile, writeFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,11 +33,28 @@ async function writeState(state) {
   await writeFile(STATE_PATH, JSON.stringify(state, null, 2) + "\n", "utf8");
 }
 
-async function fetchWithTimeout(url, timeoutMs) {
+// Resolves the probe thresholds from a raw config object, applying the same
+// defaults `main()` uses. Kept pure so it can be unit-tested.
+export function resolveThresholds(config = {}) {
+  return {
+    expectedStatus: Number(config.expectedStatus) || 200,
+    timeoutMs: Number(config.timeoutMs) || 15_000,
+  };
+}
+
+// Fetches the health endpoint, capturing the HTTP status, parsed JSON body,
+// and any transport error rather than throwing. Uses the global `fetch` so
+// tests can stub it without touching the network. A body that fails to parse
+// as JSON is recorded as `null` (the probe's HTTP status is what decides the
+// alert, not the body shape).
+export async function probeHealth({ url, timeoutMs }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let status = null;
+  let body = null;
+  let fetchError = null;
   try {
-    return await fetch(url, {
+    const response = await fetch(url, {
       signal: controller.signal,
       headers: {
         "User-Agent":
@@ -45,24 +62,7 @@ async function fetchWithTimeout(url, timeoutMs) {
         Accept: "application/json",
       },
     });
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function main() {
-  const config = await loadConfig();
-  const url = process.env.ANALYTICS_HEALTH_URL || config.endpoint;
-  const expected = Number(config.expectedStatus) || 200;
-  const timeoutMs = Number(config.timeoutMs) || 15_000;
-
-  const runAt = new Date().toISOString();
-  let response;
-  let body = null;
-  let fetchError = null;
-
-  try {
-    response = await fetchWithTimeout(url, timeoutMs);
+    status = response.status;
     try {
       body = await response.json();
     } catch {
@@ -70,10 +70,54 @@ async function main() {
     }
   } catch (err) {
     fetchError = err?.message || String(err);
+  } finally {
+    clearTimeout(timer);
+  }
+  return { status, body, fetchError };
+}
+
+// Pure decision logic: given the probe's HTTP status (or a transport error)
+// and the config, decide whether to page on-call. We alert when EITHER the
+// endpoint was unreachable (a transport error or malformed/non-OK response
+// surfaced as `fetchError`) OR the returned status does not match the expected
+// healthy status. Kept pure so it can be unit-tested.
+export function evaluateAlert({ status, fetchError, config }) {
+  const { expectedStatus } = resolveThresholds(config);
+
+  const reachable = !fetchError;
+  const healthy = reachable && status === expectedStatus;
+  const alerting = !healthy;
+
+  const reasons = [];
+  if (fetchError) {
+    reasons.push(`could not reach probe: ${fetchError}`);
+  } else if (status !== expectedStatus) {
+    reasons.push(`probe returned HTTP ${status} (expected ${expectedStatus})`);
   }
 
-  const status = response?.status ?? null;
-  const healthy = status === expected;
+  return {
+    expectedStatus,
+    status: status ?? null,
+    reachable,
+    healthy,
+    alerting,
+    reasons,
+  };
+}
+
+async function main() {
+  const config = await loadConfig();
+  const url = process.env.ANALYTICS_HEALTH_URL || config.endpoint;
+  const { expectedStatus, timeoutMs } = resolveThresholds(config);
+
+  const runAt = new Date().toISOString();
+  const { status, body, fetchError } = await probeHealth({ url, timeoutMs });
+
+  const { healthy, alerting, reasons } = evaluateAlert({
+    status,
+    fetchError,
+    config,
+  });
 
   const state = {
     lastRunAt: runAt,
@@ -92,9 +136,9 @@ async function main() {
     process.exit(1);
   }
 
-  if (!healthy) {
+  if (alerting) {
     console.error(
-      `[analytics-health] FAIL — ${url} returned HTTP ${status} (expected ${expected})`,
+      `[analytics-health] FAIL — ${url} returned HTTP ${status} (expected ${expectedStatus})`,
     );
     if (body && typeof body === "object") {
       const m = body.identify_missing_anon_id;
@@ -119,7 +163,14 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((err) => {
-  console.error("[analytics-health] runner crashed:", err);
-  process.exit(1);
-});
+// Only run the probe when executed directly
+// (`node analytics-health-check.mjs`), not when imported by tests for the
+// exported pure functions above.
+const invokedDirectly =
+  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (invokedDirectly) {
+  main().catch((err) => {
+    console.error("[analytics-health] runner crashed:", err);
+    process.exit(1);
+  });
+}

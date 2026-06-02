@@ -47,3 +47,4 @@ yarn-error.*
 
 # monitoring runtime artifacts
 monitoring/analytics-health-state.json
+monitoring/billing-precheck-alert-state.json

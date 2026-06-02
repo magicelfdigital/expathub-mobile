@@ -13,8 +13,14 @@ import {
   registerQuizSaveAnalyticsRoutes,
 } from "./quizSaveAnalytics";
 import {
+  computeQuizSavePromptHealth,
+  unavailableQuizSavePromptHealthSnapshot,
+} from "./quizSavePromptHealth";
+import {
   recordAuthPromptEvent,
   registerAuthPromptAnalyticsRoutes,
+  getAuthPromptBackfillFreshness,
+  type BackfillFreshness,
 } from "./authPromptAnalytics";
 import { registerBriefFreshnessRoutes } from "./briefFreshness";
 import {
@@ -71,40 +77,6 @@ function pickAnnualVariant(): AnnualVariant {
 }
 
 let abTablesEnsured = false;
-// Lazy migration for the readiness-level column rename (task #115). Adds
-// `readiness_level` to both lead tables and backfills it from the legacy
-// `tier` column once. The legacy column stays in place during the rollout
-// so a previous server version can keep reading it; a follow-up task will
-// drop `tier` once every writer has shipped.
-let ensureLeadReadinessLevelPromise: Promise<void> | null = null;
-export function resetLeadReadinessLevelEnsureCache(): void {
-  ensureLeadReadinessLevelPromise = null;
-}
-async function ensureLeadReadinessLevelColumns(pool: pg.Pool): Promise<void> {
-  if (!ensureLeadReadinessLevelPromise) {
-    ensureLeadReadinessLevelPromise = (async () => {
-      await pool.query(
-        `ALTER TABLE readiness_leads ADD COLUMN IF NOT EXISTS readiness_level VARCHAR(50)`,
-      );
-      await pool.query(
-        `UPDATE readiness_leads SET readiness_level = tier
-           WHERE readiness_level IS NULL AND tier IS NOT NULL`,
-      );
-      await pool.query(
-        `ALTER TABLE quiz_leads ADD COLUMN IF NOT EXISTS readiness_level VARCHAR(50)`,
-      );
-      await pool.query(
-        `UPDATE quiz_leads SET readiness_level = tier
-           WHERE readiness_level IS NULL AND tier IS NOT NULL`,
-      );
-    })().catch((err) => {
-      ensureLeadReadinessLevelPromise = null;
-      throw err;
-    });
-  }
-  await ensureLeadReadinessLevelPromise;
-}
-
 async function ensureAbTables(pool: pg.Pool): Promise<void> {
   if (abTablesEnsured) return;
   await pool.query(`
@@ -137,6 +109,264 @@ async function ensureAbTables(pool: pg.Pool): Promise<void> {
     )
   `);
   abTablesEnsured = true;
+}
+
+interface AbVariantRow {
+  variant: string;
+  visitors: number;
+  conversions: number;
+  conversion_rate: number;
+  revenue_day_0: number;
+  revenue_day_60: number;
+  arpu_day_60: number;
+}
+
+interface AbResults {
+  flags: { annual_price_enabled: boolean };
+  // null = all-time (no date filter); a positive integer = the trailing
+  // window in days that assignments / conversions were restricted to. Mirrors
+  // the `?days=N` behaviour of the planner / quiz-save / auth-prompt
+  // dashboards so operators can compare a test's recent performance against
+  // its lifetime average.
+  windowDays: number | null;
+  tests: Record<string, AbVariantRow[]>;
+}
+
+// Optional trailing-window filter for the A/B results query. When `windowDays`
+// is undefined the query aggregates over all time (the historical default);
+// when set it restricts both the assignment cohort (by `assigned_at`) and the
+// conversions joined to them (by `created_at`) to the trailing window. The
+// conversion bound lives in the LEFT JOIN's ON clause — not a WHERE — so a
+// windowed assignment with no recent conversion still shows as a visitor with
+// zero conversions rather than dropping out of the cohort entirely.
+async function computeAbResults(
+  pool: pg.Pool,
+  windowDays?: number,
+): Promise<AbResults> {
+  await ensureAbTables(pool);
+  const windowed = typeof windowDays === "number";
+  const result = windowed
+    ? await pool.query(
+        `
+    SELECT
+      a.test_name,
+      a.variant,
+      COUNT(DISTINCT a.session_id)::int AS visitors,
+      COUNT(DISTINCT CASE WHEN c.converted THEN a.session_id END)::int AS conversions,
+      COALESCE(SUM(c.revenue_day_0), 0)::float  AS revenue_day_0,
+      COALESCE(SUM(c.revenue_day_60), 0)::float AS revenue_day_60
+    FROM ab_test_assignments a
+    LEFT JOIN conversions c
+      ON c.session_id = a.session_id
+     AND c.test_name  = a.test_name
+     AND c.created_at >= NOW() - $1::interval
+    WHERE a.assigned_at >= NOW() - $1::interval
+    GROUP BY a.test_name, a.variant
+    ORDER BY a.test_name, a.variant
+  `,
+        [`${windowDays} days`],
+      )
+    : await pool.query(`
+    SELECT
+      a.test_name,
+      a.variant,
+      COUNT(DISTINCT a.session_id)::int AS visitors,
+      COUNT(DISTINCT CASE WHEN c.converted THEN a.session_id END)::int AS conversions,
+      COALESCE(SUM(c.revenue_day_0), 0)::float  AS revenue_day_0,
+      COALESCE(SUM(c.revenue_day_60), 0)::float AS revenue_day_60
+    FROM ab_test_assignments a
+    LEFT JOIN conversions c
+      ON c.session_id = a.session_id
+     AND c.test_name  = a.test_name
+    GROUP BY a.test_name, a.variant
+    ORDER BY a.test_name, a.variant
+  `);
+
+  const tests: Record<string, AbVariantRow[]> = {};
+  for (const row of result.rows) {
+    const visitors = Number(row.visitors) || 0;
+    const conversions = Number(row.conversions) || 0;
+    const r0 = Number(row.revenue_day_0) || 0;
+    const r60 = Number(row.revenue_day_60) || 0;
+    if (!tests[row.test_name]) tests[row.test_name] = [];
+    tests[row.test_name].push({
+      variant: row.variant,
+      visitors,
+      conversions,
+      conversion_rate: visitors > 0 ? conversions / visitors : 0,
+      revenue_day_0: r0,
+      revenue_day_60: r60,
+      arpu_day_60: visitors > 0 ? r60 / visitors : 0,
+    });
+  }
+  return {
+    flags: { annual_price_enabled: annualPriceEnabled() },
+    windowDays: windowed ? windowDays! : null,
+    tests,
+  };
+}
+
+function abCsvEscape(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return "";
+  let str = String(value);
+  // Defuse CSV formula injection on caller-influenced cells (test/variant
+  // names) the same way the analytics dashboards do.
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+  if (/[",\r\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+// Multi-section CSV mirroring the analytics dashboards: a flags block and a
+// per-(test, variant) block, each with its own header separated by a blank
+// line so a spreadsheet importer can map each schema independently.
+export function renderAbResultsCsv(data: AbResults): string {
+  const sections: string[][] = [];
+  // Note the active window in the title row so a downloaded file is
+  // self-describing — "all time" when unfiltered, or "last N days" when the
+  // caller passed ?days=N.
+  const windowNote =
+    data.windowDays === null ? "all time" : `last ${data.windowDays} days`;
+  sections.push([`# A/B test results (${windowNote})`]);
+
+  sections.push([
+    "section,key,value",
+    `flags,annual_price_enabled,${data.flags.annual_price_enabled}`,
+    `window,days,${data.windowDays === null ? "all" : data.windowDays}`,
+  ]);
+
+  const variantLines: string[] = [
+    "section,test,variant,visitors,conversions,conversion_rate,revenue_day_0,revenue_day_60,arpu_day_60",
+  ];
+  for (const testName of Object.keys(data.tests)) {
+    for (const v of data.tests[testName]) {
+      variantLines.push(
+        [
+          "variant",
+          abCsvEscape(testName),
+          abCsvEscape(v.variant),
+          v.visitors,
+          v.conversions,
+          v.conversion_rate.toFixed(4),
+          v.revenue_day_0.toFixed(2),
+          v.revenue_day_60.toFixed(2),
+          v.arpu_day_60.toFixed(2),
+        ].join(","),
+      );
+    }
+  }
+  sections.push(variantLines);
+
+  return sections.map((s) => s.join("\n")).join("\n\n") + "\n";
+}
+
+function abHtmlEscape(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+// Human-readable dashboard mirroring the other admin surfaces (planner,
+// quiz-save, brief-freshness). Self-contained HTML — no client JS or
+// external chart library — rendered server-side from computeAbResults().
+export function renderAbResultsHtml(data: AbResults): string {
+  const testNames = Object.keys(data.tests);
+  const usd = (n: number): string =>
+    `$${n.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+
+  const tablesHtml =
+    testNames.length === 0
+      ? `<p class="empty">No A/B test assignments recorded yet.</p>`
+      : testNames
+          .map((testName) => {
+            const variants = data.tests[testName];
+            const rows = variants
+              .map(
+                (v) => `
+        <tr>
+          <td><code>${abHtmlEscape(v.variant)}</code></td>
+          <td class="num">${v.visitors.toLocaleString()}</td>
+          <td class="num">${v.conversions.toLocaleString()}</td>
+          <td class="num">${(v.conversion_rate * 100).toFixed(2)}%</td>
+          <td class="num">${usd(v.revenue_day_0)}</td>
+          <td class="num">${usd(v.revenue_day_60)}</td>
+          <td class="num">${usd(v.arpu_day_60)}</td>
+        </tr>`,
+              )
+              .join("");
+            return `
+    <section class="card">
+      <h2><code>${abHtmlEscape(testName)}</code></h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Variant</th>
+            <th class="num">Visitors</th>
+            <th class="num">Conversions</th>
+            <th class="num">Conv. rate</th>
+            <th class="num">Revenue (day 0)</th>
+            <th class="num">Revenue (day 60)</th>
+            <th class="num">ARPU (day 60)</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </section>`;
+          })
+          .join("");
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>A/B test results — ExpatHub Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0; padding: 24px; max-width: 960px; color: #111; background: #fafafa;
+    }
+    h1 { margin: 0 0 8px; }
+    a { color: #0a66c2; }
+    .nav { margin: 0 0 16px; color: #555; }
+    .nav a { margin-right: 12px; }
+    .flags { color: #555; margin: 0 0 16px; }
+    .card {
+      background: #fff; border: 1px solid #e5e5e5; border-radius: 10px;
+      padding: 16px; margin-bottom: 16px;
+    }
+    .card h2 { margin: 0 0 12px; font-size: 16px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; }
+    th { color: #444; font-weight: 600; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .empty { color: #666; }
+  </style>
+</head>
+<body>
+  <h1>A/B test results</h1>
+  <p class="nav">
+    <a href="/admin">&larr; Admin index</a>
+    <a href="/admin/ab-results.csv">Download CSV</a>
+    <a href="/api/admin/ab-results">JSON</a>
+  </p>
+  <p class="flags">
+    Flags: <code>annual_price_enabled = ${data.flags.annual_price_enabled}</code>
+  </p>
+  ${tablesHtml}
+</body>
+</html>`;
 }
 
 async function getOrAssignVariants(
@@ -314,6 +544,11 @@ function getBaseUrl(req: Request): string {
 // strictly observational — events are still forwarded upstream so live data
 // is never dropped.
 
+// In-memory counters are retained as a fast fallback for when the database
+// is unreachable, and to keep the existing server-log warning behaviour. The
+// durable source of truth, however, is the `identify_missing_anon_events`
+// Postgres table (see ensureIdentifyMissingAnonTable / recordMissingAnonEvent)
+// so the health probe survives restarts.
 let identifyMissingAnonIdCount = 0;
 let identifyMissingAnonIdLastAt: string | null = null;
 const identifyMissingAnonIdBySurface: Record<string, number> = {};
@@ -331,10 +566,142 @@ export function resetIdentifyMissingAnonIdCount(): void {
   }
 }
 
+// Lazy DDL for the durable missing-anon-id event log. Mirrors the lazy-table
+// pattern used elsewhere in this file (ensureAbTables, quiz_save_events): the
+// cached promise is reset on failure so a transient error doesn't permanently
+// disable persistence.
+let ensureIdentifyMissingAnonPromise: Promise<void> | null = null;
+export function resetIdentifyMissingAnonEnsureCache(): void {
+  ensureIdentifyMissingAnonPromise = null;
+}
+async function ensureIdentifyMissingAnonTable(pool: pg.Pool): Promise<void> {
+  if (!ensureIdentifyMissingAnonPromise) {
+    ensureIdentifyMissingAnonPromise = (async () => {
+      await pool.query(
+        `CREATE TABLE IF NOT EXISTS identify_missing_anon_events (
+           id SERIAL PRIMARY KEY,
+           surface VARCHAR(100) NOT NULL,
+           distinct_id VARCHAR(255),
+           created_at TIMESTAMP NOT NULL DEFAULT NOW()
+         )`,
+      );
+      // The health probe filters on created_at for the rolling 24h window.
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS identify_missing_anon_events_created_at_idx
+           ON identify_missing_anon_events (created_at)`,
+      );
+    })().catch((err) => {
+      ensureIdentifyMissingAnonPromise = null;
+      throw err;
+    });
+  }
+  await ensureIdentifyMissingAnonPromise;
+}
+
+// Shared classifier for a `$identify` event that is missing its
+// `$anon_distinct_id` join key. Returns null for healthy or non-identify
+// payloads so both the in-memory warning path and the DB persistence path
+// agree on what counts as a regression.
+function detectMissingAnonIdentify(
+  body: unknown,
+): { surface: string; distinctId: string | null } | null {
+  if (!body || typeof body !== "object") return null;
+  if ((body as { event?: unknown }).event !== "$identify") return null;
+  const properties = (body as { properties?: unknown }).properties;
+  const anonId =
+    properties && typeof properties === "object"
+      ? (properties as { $anon_distinct_id?: unknown }).$anon_distinct_id
+      : undefined;
+  if (typeof anonId === "string" && anonId.length > 0) return null;
+  const surfaceRaw =
+    properties && typeof properties === "object"
+      ? (properties as { surface?: unknown }).surface
+      : undefined;
+  const surface =
+    typeof surfaceRaw === "string" && surfaceRaw.length > 0
+      ? surfaceRaw
+      : "unknown";
+  const distinctIdRaw = (body as { distinct_id?: unknown }).distinct_id;
+  const distinctId =
+    typeof distinctIdRaw === "string" ? distinctIdRaw : null;
+  return { surface, distinctId };
+}
+
+// Durable persistence of a single missing-anon-id event. Designed to run
+// fire-and-forget from the /api/analytics handler (alongside the quiz_save /
+// auth_prompt writers) so a DB hiccup never blocks forwarding upstream.
+export async function recordMissingAnonEvent(
+  pool: pg.Pool,
+  body: unknown,
+): Promise<void> {
+  const missing = detectMissingAnonIdentify(body);
+  if (!missing) return;
+  await ensureIdentifyMissingAnonTable(pool);
+  await pool.query(
+    `INSERT INTO identify_missing_anon_events (surface, distinct_id)
+     VALUES ($1, $2)`,
+    [missing.surface, missing.distinctId],
+  );
+}
+
+interface MissingAnonTotals {
+  allTime: number;
+  last24h: number;
+  lastSeenAt: string | null;
+  bySurface: Record<string, number>;
+}
+
+async function readMissingAnonTotalsFromDb(
+  pool: pg.Pool,
+): Promise<MissingAnonTotals> {
+  await ensureIdentifyMissingAnonTable(pool);
+  const totals = await pool.query(
+    `SELECT
+       COUNT(*)::int AS all_time,
+       COUNT(*) FILTER (
+         WHERE created_at >= NOW() - INTERVAL '24 hours'
+       )::int AS last_24h,
+       MAX(created_at) AS last_seen
+     FROM identify_missing_anon_events`,
+  );
+  const bySurfaceRows = await pool.query(
+    `SELECT COALESCE(surface, 'unknown') AS surface, COUNT(*)::int AS c
+       FROM identify_missing_anon_events
+      GROUP BY COALESCE(surface, 'unknown')`,
+  );
+  const row = (totals?.rows?.[0] ?? {}) as {
+    all_time?: number | string | null;
+    last_24h?: number | string | null;
+    last_seen?: string | Date | null;
+  };
+  const bySurface: Record<string, number> = {};
+  for (const r of bySurfaceRows?.rows ?? []) {
+    bySurface[(r as { surface: string }).surface] = Number(
+      (r as { c: number | string }).c,
+    );
+  }
+  const lastSeen = row.last_seen
+    ? new Date(row.last_seen).toISOString()
+    : null;
+  return {
+    allTime: Number(row.all_time ?? 0),
+    last24h: Number(row.last_24h ?? 0),
+    lastSeenAt: lastSeen,
+    bySurface,
+  };
+}
+
 export interface AnalyticsHealthSnapshot {
   healthy: boolean;
   identify_missing_anon_id: {
+    // `count` is the all-time total (kept for backward compatibility with
+    // existing scrapers). `all_time_count` is the same value under an
+    // explicit name; `last_24h_count` drives the alert so it fires on recent
+    // regressions and auto-clears after a quiet day, rather than staying red
+    // forever once a single ancient event was logged.
     count: number;
+    all_time_count: number;
+    last_24h_count: number;
     last_seen_at: string | null;
     by_surface: Record<string, number>;
   };
@@ -347,14 +714,38 @@ export interface AnalyticsHealthSnapshot {
   generated_at: string;
 }
 
-export function getAnalyticsHealthSnapshot(): AnalyticsHealthSnapshot {
+// Reads the durable missing-anon totals from Postgres so the probe survives
+// restarts. Falls back to the in-memory counters when no pool is configured
+// or the DB read fails, so the probe degrades gracefully rather than 500ing.
+export async function getAnalyticsHealthSnapshot(
+  pool: pg.Pool | null,
+): Promise<AnalyticsHealthSnapshot> {
+  let allTime = identifyMissingAnonIdCount;
+  let last24h = identifyMissingAnonIdCount;
+  let lastSeenAt = identifyMissingAnonIdLastAt;
+  let bySurface: Record<string, number> = { ...identifyMissingAnonIdBySurface };
+  if (pool) {
+    try {
+      const totals = await readMissingAnonTotalsFromDb(pool);
+      allTime = totals.allTime;
+      last24h = totals.last24h;
+      lastSeenAt = totals.lastSeenAt;
+      bySurface = totals.bySurface;
+    } catch (err: any) {
+      console.warn(
+        "[analytics] failed to read missing-anon totals from DB; falling back to in-memory counters",
+        err?.message ?? err,
+      );
+    }
+  }
   return {
-    healthy:
-      identifyMissingAnonIdCount === 0 && crossDeviceBridgesFailed === 0,
+    healthy: last24h === 0 && crossDeviceBridgesFailed === 0,
     identify_missing_anon_id: {
-      count: identifyMissingAnonIdCount,
-      last_seen_at: identifyMissingAnonIdLastAt,
-      by_surface: { ...identifyMissingAnonIdBySurface },
+      count: allTime,
+      all_time_count: allTime,
+      last_24h_count: last24h,
+      last_seen_at: lastSeenAt,
+      by_surface: bySurface,
     },
     cross_device_bridge: {
       emitted: crossDeviceBridgesEmitted,
@@ -364,6 +755,79 @@ export function getAnalyticsHealthSnapshot(): AnalyticsHealthSnapshot {
     started_at: ANALYTICS_HEALTH_STARTED_AT,
     generated_at: new Date().toISOString(),
   };
+}
+
+// ── Auth-prompt backfill freshness alert (task #127) ──────────────────────
+// The scheduled PostHog → `auth_prompt_events` reconciliation
+// (authPromptBackfillScheduler.ts) can quietly stop running — credentials
+// rotate out, the timer dies after a crash loop, etc. Rather than relying on
+// someone noticing a stale "Last PostHog backfill" timestamp on the
+// dashboard, the analytics health probe polls the newest row in
+// `auth_prompt_backfill_runs` and folds a "stale" verdict into its red/green
+// state. That reuses the *existing* notification channel: the probe returns
+// HTTP 503 (which the uptime monitor pages on) and logs a structured alert.
+//
+// The check is cached for a few minutes so a high-frequency uptime probe does
+// not hammer the database, and the alert log is emitted at most once per
+// cache refresh while stale (not on every probe hit).
+const BACKFILL_FRESHNESS_TTL_MS = 5 * 60 * 1000;
+let backfillFreshnessCache: { at: number; value: BackfillFreshness } | null =
+  null;
+let lastBackfillStaleAlertAt: string | null = null;
+
+export function resetAuthPromptBackfillFreshnessCache(): void {
+  backfillFreshnessCache = null;
+  lastBackfillStaleAlertAt = null;
+}
+
+export function getLastBackfillStaleAlertAt(): string | null {
+  return lastBackfillStaleAlertAt;
+}
+
+async function evaluateAuthPromptBackfillFreshness(): Promise<BackfillFreshness | null> {
+  const nowMs = Date.now();
+  if (
+    backfillFreshnessCache &&
+    nowMs - backfillFreshnessCache.at < BACKFILL_FRESHNESS_TTL_MS
+  ) {
+    return backfillFreshnessCache.value;
+  }
+  const pool = getPool();
+  if (!pool) return null;
+  try {
+    const freshness = await getAuthPromptBackfillFreshness(pool);
+    backfillFreshnessCache = { at: nowMs, value: freshness };
+    if (freshness.stale) {
+      lastBackfillStaleAlertAt = new Date().toISOString();
+      console.error(
+        "[analytics] auth-prompt PostHog backfill is stale — scheduled reconciliation may be broken",
+        {
+          last_ran_at: freshness.lastRanAt,
+          age_days:
+            freshness.ageDays != null
+              ? Number(freshness.ageDays.toFixed(2))
+              : null,
+          threshold_days: freshness.thresholdDays,
+        },
+      );
+    }
+    return freshness;
+  } catch (err: any) {
+    // A DB hiccup must not turn the probe red on its own — degrade to the
+    // last known value (or "unknown") so the staleness check only ever fires
+    // on a genuinely old backfill, not on a transient query failure.
+    console.warn(
+      "[analytics] could not evaluate auth-prompt backfill freshness:",
+      err?.message ?? String(err),
+    );
+    return backfillFreshnessCache?.value ?? null;
+  } finally {
+    try {
+      await pool.end();
+    } catch {
+      // ignore — pool may already be ended
+    }
+  }
 }
 
 // ── Cross-device email → distinct_id reconciliation ───────────────────────
@@ -589,37 +1053,20 @@ function reconcileEmailIdentities(body: unknown): void {
 }
 
 function inspectIdentifyPayload(body: unknown): void {
-  if (!body || typeof body !== "object") return;
-  const event = (body as { event?: unknown }).event;
-  if (event !== "$identify") return;
-  const properties = (body as { properties?: unknown }).properties;
-  const anonId =
-    properties && typeof properties === "object"
-      ? (properties as { $anon_distinct_id?: unknown }).$anon_distinct_id
-      : undefined;
-  if (typeof anonId !== "string" || anonId.length === 0) {
-    identifyMissingAnonIdCount += 1;
-    identifyMissingAnonIdLastAt = new Date().toISOString();
-    const surfaceRaw =
-      properties && typeof properties === "object"
-        ? (properties as { surface?: unknown }).surface
-        : undefined;
-    const surface =
-      typeof surfaceRaw === "string" && surfaceRaw.length > 0
-        ? surfaceRaw
-        : "unknown";
-    identifyMissingAnonIdBySurface[surface] =
-      (identifyMissingAnonIdBySurface[surface] ?? 0) + 1;
-    const distinctId = (body as { distinct_id?: unknown }).distinct_id;
-    console.warn(
-      "[analytics] $identify event missing $anon_distinct_id; PostHog cannot stitch pre-account events",
-      {
-        distinct_id: typeof distinctId === "string" ? distinctId : undefined,
-        surface,
-        missing_count: identifyMissingAnonIdCount,
-      },
-    );
-  }
+  const missing = detectMissingAnonIdentify(body);
+  if (!missing) return;
+  identifyMissingAnonIdCount += 1;
+  identifyMissingAnonIdLastAt = new Date().toISOString();
+  identifyMissingAnonIdBySurface[missing.surface] =
+    (identifyMissingAnonIdBySurface[missing.surface] ?? 0) + 1;
+  console.warn(
+    "[analytics] $identify event missing $anon_distinct_id; PostHog cannot stitch pre-account events",
+    {
+      distinct_id: missing.distinctId ?? undefined,
+      surface: missing.surface,
+      missing_count: identifyMissingAnonIdCount,
+    },
+  );
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -632,19 +1079,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerAuthPromptAnalyticsRoutes(app, { requireAdminBasicAuth, getPool });
   registerBriefFreshnessRoutes(app, { requireAdminBasicAuth });
 
-  // Analytics health probe — exposes the in-process counter of `$identify`
-  // events that arrived without `$anon_distinct_id`. Designed to be scraped
-  // by an external uptime check (UptimeRobot, BetterStack, etc.) so that a
-  // regression on any surface (web, mobile, future entry point) pages us
-  // within minutes instead of being buried in server logs. The endpoint is
-  // unauthenticated by design — uptime probes typically can't carry Basic
-  // Auth — and only exposes counts, no PII. Healthy state returns HTTP 200;
-  // any non-zero count returns HTTP 503 so the uptime check fires an alert
-  // on a status-code rule alone, no log-parsing required.
-  app.get("/api/_internal/analytics-health", (_req, res) => {
-    const snapshot = getAnalyticsHealthSnapshot();
+  // Analytics health probe — exposes the durable count of `$identify`
+  // events that arrived without `$anon_distinct_id`. Counts are read from the
+  // `identify_missing_anon_events` Postgres table so they survive deploys,
+  // crashes, and workflow restarts (a slow trickle on a rarely-restarted
+  // surface used to silently auto-clear this alert on every restart).
+  // Designed to be scraped by an external uptime check (UptimeRobot,
+  // BetterStack, etc.) so that a regression on any surface (web, mobile,
+  // future entry point) pages us within minutes instead of being buried in
+  // server logs. The endpoint is unauthenticated by design — uptime probes
+  // typically can't carry Basic Auth — and only exposes counts, no PII.
+  // Healthy state returns HTTP 200; a non-zero *last-24h* count returns HTTP
+  // 503 so the alert fires on recent regressions (and auto-clears after a
+  // quiet day) rather than staying red forever once a single ancient event
+  // was logged. A stale auth-prompt backfill also turns the probe red even
+  // when the counters are clean, so the same uptime alert fires (task #127).
+  app.get("/api/_internal/analytics-health", async (_req, res) => {
+    const pool = getPool();
+    try {
+      const snapshot = await getAnalyticsHealthSnapshot(pool);
+      const freshness = await evaluateAuthPromptBackfillFreshness();
+      const backfillStale = freshness?.stale === true;
+      res.setHeader("Cache-Control", "no-store");
+      const body = {
+        ...snapshot,
+        // A stale backfill turns the probe red even when the persisted counters
+        // are clean, so the existing uptime alert fires (task #127).
+        healthy: snapshot.healthy && !backfillStale,
+        auth_prompt_backfill: freshness
+          ? {
+              stale: freshness.stale,
+              has_run: freshness.hasRun,
+              last_ran_at: freshness.lastRanAt,
+              age_days: freshness.ageDays,
+              threshold_days: freshness.thresholdDays,
+            }
+          : null,
+      };
+      res.status(body.healthy ? 200 : 503).json(body);
+    } finally {
+      if (pool) await pool.end().catch(() => {});
+    }
+  });
+
+  // Save-progress prompt firing health — guards against the post-result
+  // "save your progress" modal silently going dark (analytics
+  // misconfiguration, a deploy that breaks the result-screen mount, etc).
+  // Reads the locally-persisted `quiz_save_events` table and compares the
+  // most recent complete day's `quiz_save_shown` (placement: result_screen)
+  // count against the trailing 7-day median. Returns HTTP 503 when the prompt
+  // dropped to zero or fell well below that baseline, so the same scheduled
+  // GitHub Action / on-call pattern as the analytics-health probe surfaces it
+  // within minutes. Unauthenticated by design (uptime probes can't carry
+  // Basic Auth) and exposes only counts, no PII. Thresholds live in
+  // `server/quizSavePromptHealth.ts`.
+  app.get("/api/_internal/quiz-save-prompt-health", async (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
-    res.status(snapshot.healthy ? 200 : 503).json(snapshot);
+    const pool = getPool();
+    if (!pool) {
+      // No DB configured — can't evaluate; surface the gap rather than
+      // silently returning healthy.
+      const snapshot = unavailableQuizSavePromptHealthSnapshot();
+      res.status(503).json(snapshot);
+      return;
+    }
+    try {
+      const snapshot = await computeQuizSavePromptHealth(pool);
+      res.status(snapshot.healthy ? 200 : 503).json(snapshot);
+    } catch (err: any) {
+      console.error(
+        "Quiz-save prompt health probe error:",
+        err?.message ?? err,
+      );
+      const snapshot = unavailableQuizSavePromptHealthSnapshot();
+      res.status(503).json(snapshot);
+    } finally {
+      await pool.end();
+    }
   });
 
   app.post("/api/auth/login", async (req: Request, res: Response) => {
@@ -841,9 +1352,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // forwarding upstream is the source of truth for everything else.
     const persistPool = getPool();
     if (persistPool) {
-      // Persist both quiz-save and auth-prompt events from the same pool.
-      // Wait for both to settle before ending the pool so we don't tear
-      // down a connection mid-INSERT for the slower of the two.
+      // Persist quiz-save, auth-prompt, and missing-anon-id events from the
+      // same pool. Wait for all to settle before ending the pool so we don't
+      // tear down a connection mid-INSERT for the slowest of them.
       Promise.allSettled([
         recordQuizSaveEvent(persistPool, req.body).catch((err) => {
           console.warn(
@@ -854,6 +1365,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recordAuthPromptEvent(persistPool, req.body).catch((err) => {
           console.warn(
             "[analytics] failed to persist auth_prompt event:",
+            err?.message ?? err,
+          );
+        }),
+        recordMissingAnonEvent(persistPool, req.body).catch((err) => {
+          console.warn(
+            "[analytics] failed to persist missing-anon event:",
             err?.message ?? err,
           );
         }),
@@ -980,6 +1497,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Optional trailing-window parameter for the A/B results endpoints. Unlike
+  // the planner / quiz-save / auth-prompt dashboards (which default to 30
+  // days), the A/B view defaults to all-time when `?days` is absent — long
+  // running tests are usually read against their lifetime totals, and the
+  // window is opt-in for spot-checking recent performance. When present it is
+  // clamped to 1–365 like the other dashboards.
+  const readAbWindowDays = (req: Request): number | undefined => {
+    const raw = req.query.days;
+    if (typeof raw !== "string") return undefined;
+    const n = Number.parseInt(raw, 10);
+    if (!Number.isFinite(n) || n <= 0) return undefined;
+    return Math.min(365, n);
+  };
+
   app.get("/api/admin/ab-results", async (req: Request, res: Response) => {
     if (!requireAdminBasicAuth(req, res)) return;
     const pool = getPool();
@@ -988,56 +1519,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return;
     }
     try {
-      await ensureAbTables(pool);
-      const result = await pool.query(`
-        SELECT
-          a.test_name,
-          a.variant,
-          COUNT(DISTINCT a.session_id)::int AS visitors,
-          COUNT(DISTINCT CASE WHEN c.converted THEN a.session_id END)::int AS conversions,
-          COALESCE(SUM(c.revenue_day_0), 0)::float  AS revenue_day_0,
-          COALESCE(SUM(c.revenue_day_60), 0)::float AS revenue_day_60
-        FROM ab_test_assignments a
-        LEFT JOIN conversions c
-          ON c.session_id = a.session_id
-         AND c.test_name  = a.test_name
-        GROUP BY a.test_name, a.variant
-        ORDER BY a.test_name, a.variant
-      `);
-
-      const tests: Record<
-        string,
-        Array<{
-          variant: string;
-          visitors: number;
-          conversions: number;
-          conversion_rate: number;
-          revenue_day_0: number;
-          revenue_day_60: number;
-          arpu_day_60: number;
-        }>
-      > = {};
-      for (const row of result.rows) {
-        const visitors = Number(row.visitors) || 0;
-        const conversions = Number(row.conversions) || 0;
-        const r0 = Number(row.revenue_day_0) || 0;
-        const r60 = Number(row.revenue_day_60) || 0;
-        if (!tests[row.test_name]) tests[row.test_name] = [];
-        tests[row.test_name].push({
-          variant: row.variant,
-          visitors,
-          conversions,
-          conversion_rate: visitors > 0 ? conversions / visitors : 0,
-          revenue_day_0: r0,
-          revenue_day_60: r60,
-          arpu_day_60: visitors > 0 ? r60 / visitors : 0,
-        });
-      }
+      const data = await computeAbResults(pool, readAbWindowDays(req));
       res.json({
-        flags: {
-          annual_price_enabled: annualPriceEnabled(),
-        },
-        tests,
+        ...data,
         // Cross-link to other internal tools so anyone who lands on this
         // JSON endpoint can find the full admin index and the planner
         // analytics dashboard without grep-hunting through routes.ts.
@@ -1045,11 +1529,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
           admin_index: "/admin",
           planner_analytics_html: "/admin/planner-analytics",
           planner_analytics_json: "/api/admin/planner-analytics",
+          ab_results_csv: "/admin/ab-results.csv",
         },
       });
     } catch (err: any) {
       console.error("AB results error:", err?.message);
       res.status(500).json({ error: "Failed to compute results" });
+    } finally {
+      await pool.end();
+    }
+  });
+
+  const sendAbResultsCsv = async (req: Request, res: Response) => {
+    if (!requireAdminBasicAuth(req, res)) return;
+    const pool = getPool();
+    if (!pool) {
+      res
+        .status(503)
+        .type("text/plain")
+        .send("Database not configured (set DATABASE_URL).");
+      return;
+    }
+    try {
+      const data = await computeAbResults(pool, readAbWindowDays(req));
+      res
+        .type("text/csv; charset=utf-8")
+        .setHeader(
+          "Content-Disposition",
+          'attachment; filename="ab-results.csv"',
+        )
+        .send(renderAbResultsCsv(data));
+    } catch (err: any) {
+      console.error("AB results CSV error:", err?.message);
+      res
+        .status(500)
+        .type("text/plain")
+        .send(`Failed to compute results: ${err?.message ?? "unknown"}`);
+    } finally {
+      await pool.end();
+    }
+  };
+
+  app.get("/admin/ab-results.csv", sendAbResultsCsv);
+  app.get("/api/admin/ab-results.csv", sendAbResultsCsv);
+
+  app.get("/admin/ab-results", async (req: Request, res: Response) => {
+    if (!requireAdminBasicAuth(req, res)) return;
+    const pool = getPool();
+    if (!pool) {
+      res
+        .status(503)
+        .type("text/html")
+        .send("<h1>A/B test results unavailable</h1><p>Database is not configured (set DATABASE_URL).</p>");
+      return;
+    }
+    try {
+      const data = await computeAbResults(pool);
+      res.type("text/html").send(renderAbResultsHtml(data));
+    } catch (err: any) {
+      console.error("AB results HTML error:", err?.message);
+      res
+        .status(500)
+        .type("text/html")
+        .send("<h1>A/B test results unavailable</h1><p>Failed to compute results.</p>");
     } finally {
       await pool.end();
     }
@@ -1486,9 +2028,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/auth/quiz-lead", async (req: Request, res: Response) => {
-    const { email, tier, readinessLevel, topRegion, regionPreference, score, risks, source } = req.body as {
+    const { email, readinessLevel, topRegion, regionPreference, score, risks, source } = req.body as {
       email?: string;
-      tier?: string;
       readinessLevel?: string;
       topRegion?: string;
       regionPreference?: string;
@@ -1497,10 +2038,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       source?: string;
     };
 
-    // Accept the new `readinessLevel` name, fall back to the legacy `tier`
-    // request field for one release cycle while older clients are still in
-    // the wild (task #115).
-    const level = readinessLevel || tier;
+    const level = readinessLevel;
     if (!email || !level) {
       res.status(200).json({ ok: true });
       return;
@@ -1515,12 +2053,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let pool: pg.Pool | null = null;
     try {
       pool = new pg.Pool({ connectionString: dbUrl });
-      await ensureLeadReadinessLevelColumns(pool);
-      // Dual-write to both `tier` (legacy NOT NULL) and `readiness_level`
-      // (new) while the rename rolls out.
       await pool.query(
-        `INSERT INTO quiz_leads (email, tier, readiness_level, top_region, region_preference, score, risks, source)
-         VALUES ($1, $2, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO quiz_leads (email, readiness_level, top_region, region_preference, score, risks, source)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          ON CONFLICT DO NOTHING`,
         [email, level, topRegion || null, regionPreference || null, score || null, JSON.stringify(risks || []), source || "ios_onboarding"]
       );
@@ -1572,10 +2107,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/readiness-lead", async (req: Request, res: Response) => {
-    const { email, score, tier, readinessLevel, risks, answers } = req.body as {
+    const { email, score, readinessLevel, risks, answers } = req.body as {
       email?: string;
       score?: number;
-      tier?: string;
       readinessLevel?: string;
       risks?: string[];
       answers?: Record<string, string>;
@@ -1586,10 +2120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return;
     }
 
-    // Accept the new `readinessLevel` name, fall back to the legacy `tier`
-    // request field for one release cycle while older clients are still in
-    // the wild (task #115).
-    const level = readinessLevel || tier || null;
+    const level = readinessLevel || null;
 
     const dbUrl = process.env.DATABASE_URL;
     if (!dbUrl) {
@@ -1600,12 +2131,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let pool: pg.Pool | null = null;
     try {
       pool = new pg.Pool({ connectionString: dbUrl });
-      await ensureLeadReadinessLevelColumns(pool);
-      // Dual-write to both `tier` (legacy) and `readiness_level` (new)
-      // while the rename rolls out.
       await pool.query(
-        `INSERT INTO readiness_leads (email, score, tier, readiness_level, risks, answers)
-         VALUES ($1, $2, $3, $3, $4, $5)`,
+        `INSERT INTO readiness_leads (email, score, readiness_level, risks, answers)
+         VALUES ($1, $2, $3, $4, $5)`,
         [email, score || null, level, JSON.stringify(risks || []), JSON.stringify(answers || {})]
       );
     } catch (err: any) {

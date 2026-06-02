@@ -81,8 +81,19 @@ await phase("jest", async () => {
   await run("npx", ["jest", "--ci"]);
 });
 
+await phase("node:test scripts", async () => {
+  await run("npm", ["run", "test:scripts"]);
+});
+
 const webSpaPhase = phase("playwright:web-spa", async () => {
-  await run("npx", ["vite", "build", "--config", "web/vite.config.ts"]);
+  // quiz-save-modal.spec.ts asserts the real Meta Pixel `Lead` fires via
+  // react-facebook-pixel. The pixel module no-ops unless VITE_META_PIXEL_ID
+  // is baked into the build, so set a throwaway id (the spec stubs window.fbq
+  // and never hits connect.facebook.net, so the value is never used for a
+  // real network call).
+  await run("npx", ["vite", "build", "--config", "web/vite.config.ts"], {
+    env: { VITE_META_PIXEL_ID: process.env.VITE_META_PIXEL_ID ?? "0000000000000000" },
+  });
   const server = spawnServer("npx", ["tsx", "server/index.ts"], {
     logFile: "server.log",
     env: {
@@ -99,6 +110,7 @@ const webSpaPhase = phase("playwright:web-spa", async () => {
         "playwright",
         "test",
         "tests/e2e/locked-section.spec.ts",
+        "tests/e2e/quiz-save-modal.spec.ts",
         "--reporter=list",
       ],
       { env: { PLAYWRIGHT_BASE_URL: "http://localhost:5000" } },

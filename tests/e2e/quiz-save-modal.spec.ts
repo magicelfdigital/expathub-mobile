@@ -1,4 +1,5 @@
 import { test, expect } from "playwright/test";
+import type { BrowserContext, Page } from "playwright/test";
 
 /**
  * Web /start save-your-progress recovery modal coverage.
@@ -14,17 +15,68 @@ import { test, expect } from "playwright/test";
  *  2. Submitting the email POSTs `/api/auth/quiz-lead` with
  *     `source: "web_funnel_save"` (so the welcome-email sequence picks
  *     it up) and emits `quiz_save_submitted`.
- *  3. With <3 "no" answers, the modal does NOT render and no
+ *  3. Submitting also fires the Meta Pixel `Lead` event in the real
+ *     browser (via react-facebook-pixel → window.fbq), and never on a
+ *     failed save. The raw email must never appear in the Pixel payload.
+ *  4. With <3 "no" answers, the modal does NOT render and no
  *     `quiz_save_shown` event fires.
- *  4. Closing the modal emits `quiz_save_dismissed` with
+ *  5. Closing the modal emits `quiz_save_dismissed` with
  *     `submitted: false` and the user is advanced to the email gate
  *     instead of being stranded on the last question.
  */
+
+// react-facebook-pixel proxies every Pixel call through `window.fbq`. The
+// unit test (web/src/components/__tests__/QuizSaveModal.test.tsx) mocks the
+// whole `@/lib/pixel` module, so it can't catch a regression where Pixel
+// init breaks or the real fbq path stops firing. Here we install a stub
+// `window.fbq` *before any page script runs* so the genuine
+// trackLead -> ReactPixel.track("Lead") -> fbq("track","Lead",...) chain
+// executes end-to-end and gets recorded — no external connect.facebook.net
+// load required. Because react-facebook-pixel reads `!!window.fbq` at module
+// import time, a pre-existing stub also makes it treat the Pixel as
+// initialised, so calls flow through even though the build uses a fake id.
+async function installPixelRecorder(context: BrowserContext): Promise<void> {
+  await context.addInitScript(() => {
+    const w = window as unknown as {
+      fbq?: unknown;
+      _fbq?: unknown;
+      __pixelCalls?: unknown[][];
+    };
+    if (w.__pixelCalls) return;
+    w.__pixelCalls = [];
+    const fbq = (...args: unknown[]) => {
+      w.__pixelCalls!.push(args);
+    };
+    // Mirror the shape react-facebook-pixel expects of an existing fbq.
+    (fbq as unknown as { queue: unknown[] }).queue = [];
+    (fbq as unknown as { loaded: boolean }).loaded = true;
+    (fbq as unknown as { version: string }).version = "2.0";
+    (fbq as unknown as { push: unknown }).push = fbq;
+    w.fbq = fbq;
+    w._fbq = fbq;
+  });
+}
+
+// Returns the params object of every fbq("track", "Lead", params) call so
+// far. An empty array means the Meta Lead signal never fired.
+async function leadPixelParams(page: Page): Promise<unknown[]> {
+  return page.evaluate(() => {
+    const calls =
+      (window as unknown as { __pixelCalls?: unknown[][] }).__pixelCalls ?? [];
+    return calls
+      .filter((c) => c[0] === "track" && c[1] === "Lead")
+      .map((c) => c[2] ?? null);
+  });
+}
+
 test.describe("Quiz save-your-progress modal", () => {
   test("modal appears after Q5 with 3+ 'no' answers, captures email, advances", async ({
     page,
     context,
   }) => {
+    // Record the real Meta Pixel calls before any page script runs.
+    await installPixelRecorder(context);
+
     // Force-anonymous so we don't depend on whatever session may already
     // be in the dev DB.
     await context.route("**/api/auth/me", (route) =>
@@ -144,6 +196,32 @@ test.describe("Quiz save-your-progress modal", () => {
         { timeout: 5_000, message: "quiz_save_submitted not fired" },
       )
       .toBe(true);
+
+    // The Meta Pixel `Lead` must fire in the real browser after the save —
+    // the signal Meta's App Promotion / Conversions campaigns optimise on.
+    // This is the part the module-mocking unit test cannot prove.
+    await expect
+      .poll(async () => (await leadPixelParams(page)).length, {
+        timeout: 5_000,
+        message: "Meta Pixel Lead never fired after successful save",
+      })
+      .toBe(1);
+
+    const leadParams = (await leadPixelParams(page))[0] as Record<
+      string,
+      unknown
+    >;
+    expect(leadParams.source).toBe("quiz_save");
+    expect(leadParams.noCount).toBe(3);
+
+    // PII guardrail: the raw email must never leave the device via the Pixel.
+    // Stringify the entire recorded fbq call log, not just the Lead params,
+    // so we catch the email leaking into any Pixel call.
+    const allPixelCalls = await page.evaluate(
+      () =>
+        (window as unknown as { __pixelCalls?: unknown[][] }).__pixelCalls ?? [],
+    );
+    expect(JSON.stringify(allPixelCalls)).not.toContain(testEmail);
 
     // "See my match" advances the flow rather than stranding the user.
     await page.getByTestId("quiz-save-continue").click();
@@ -267,5 +345,82 @@ test.describe("Quiz save-your-progress modal", () => {
     await expect(page.getByTestId("quiz-email-gate")).toBeVisible({
       timeout: 4_000,
     });
+  });
+
+  test("a failed save does NOT fire the Meta Pixel Lead (no false ad signal)", async ({
+    page,
+    context,
+  }) => {
+    await installPixelRecorder(context);
+
+    await context.route("**/api/auth/me", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ user: null }),
+      }),
+    );
+
+    const analyticsPayloads: Array<Record<string, unknown>> = [];
+    await context.route("**/api/analytics", async (route) => {
+      try {
+        const body = route.request().postDataJSON() as Record<string, unknown>;
+        analyticsPayloads.push(body);
+      } catch {}
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true }),
+      });
+    });
+
+    // The lead save fails server-side — the modal must surface an error and
+    // the Pixel `Lead` must NOT fire, or Meta would optimise toward a
+    // conversion that never actually happened.
+    await context.route("**/api/auth/quiz-lead", (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "boom" }),
+      }),
+    );
+
+    await page.goto("/start");
+    await expect(page.getByTestId("quiz-intro")).toBeVisible();
+    await page.getByTestId("quiz-start").click();
+
+    // 3 "no" answers reach the threshold and open the modal.
+    await page.getByTestId("quiz-question-1").waitFor();
+    await page.getByTestId("quiz-answer-no").click();
+    await page.getByTestId("quiz-question-2").waitFor();
+    await page.getByTestId("quiz-answer-no").click();
+    await page.getByTestId("quiz-question-3").waitFor();
+    await page.getByTestId("quiz-answer-no").click();
+    await page.getByTestId("quiz-question-5").waitFor();
+    await page.getByTestId("quiz-answer-yes").click();
+    await page.getByTestId("quiz-question-9").waitFor();
+    await page.getByTestId("quiz-answer-southern_europe").click();
+
+    await expect(page.getByTestId("quiz-save-modal")).toBeVisible();
+    await expect(page.getByTestId("quiz-save-form")).toBeVisible();
+
+    const testEmail = `qsmfail+${Date.now()}@example.local`;
+    await page.getByTestId("quiz-save-email").fill(testEmail);
+    await page.getByTestId("quiz-save-submit").click();
+
+    // The failure surfaces as an inline error, and the success state never
+    // appears.
+    await expect(page.getByTestId("quiz-save-error")).toBeVisible();
+    await expect(page.getByTestId("quiz-save-success")).toHaveCount(0);
+
+    // No Meta Lead signal, ever — give any fire-and-forget call a beat to
+    // land so this isn't a false negative.
+    await page.waitForTimeout(500);
+    expect(await leadPixelParams(page)).toEqual([]);
+
+    // The internal submitted event must also stay silent on failure.
+    expect(
+      analyticsPayloads.some((p) => p.event === "quiz_save_submitted"),
+    ).toBe(false);
   });
 });

@@ -2,10 +2,23 @@ import type { Express, Request, Response } from "express";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-// Mirror of the thresholds in scripts/monitoring/freshness-check.mjs so the
-// admin dashboard and the scheduled job stay in agreement.
-const STALE_THRESHOLD_DAYS = 90;
-const WARN_THRESHOLD_DAYS = 60;
+// Shared, RN-graph-free source of truth for the freshness thresholds, also
+// consumed by the CI checker (scripts/monitoring/freshness-check.mjs) and the
+// in-app validator (src/data/briefValidation.ts), so the admin dashboard and
+// the scheduled job can never drift out of agreement.
+import {
+  STALE_THRESHOLD_DAYS,
+  WARN_THRESHOLD_DAYS,
+} from "../src/data/freshnessThresholds.mjs";
+
+// Shared brief parser — single source of truth so this dashboard and the
+// scheduled CI checker (scripts/monitoring/freshness-check.mjs) can never drift
+// apart and mis-count briefs. Previously this file kept its own fragile copy
+// that paired every quoted `id:` with the next `lastReviewedAt:`, which would
+// mis-count if a nested quoted `id:` were ever added inside a brief. Re-exported
+// below so existing importers/tests that pull `extractBriefs` from this module
+// keep working.
+import { extractBriefs } from "../src/data/extractBriefs.mjs";
 
 const BRIEFS_PATH = resolve(process.cwd(), "src", "data", "decisionBriefs.ts");
 
@@ -43,46 +56,12 @@ function classify(days: number | null): FreshnessEntry["status"] {
   return "fresh";
 }
 
-// Parse the static decisionBriefs.ts source the same way the cron script
-// does. Avoids importing the React Native data module from the Express
-// runtime.
-export function extractBriefs(
-  source: string,
-): Array<{ id: string; countrySlug: string | null; pathwayKey: string | null; lastReviewedAt: string }> {
-  const arrayStart = source.indexOf("const BRIEFS");
-  const body = arrayStart >= 0 ? source.slice(arrayStart) : source;
-
-  const idRe = /\bid:\s*"([^"]+)"/g;
-  const ids = [...body.matchAll(idRe)];
-
-  const entries: Array<{
-    id: string;
-    countrySlug: string | null;
-    pathwayKey: string | null;
-    lastReviewedAt: string;
-  }> = [];
-
-  for (let i = 0; i < ids.length; i++) {
-    const idMatch = ids[i];
-    const startIdx = idMatch.index ?? 0;
-    const endIdx = i + 1 < ids.length ? (ids[i + 1].index ?? body.length) : body.length;
-    const block = body.slice(startIdx, endIdx);
-
-    const reviewMatch = /\blastReviewedAt:\s*"([^"]+)"/.exec(block);
-    const countryMatch = /\bcountrySlug:\s*"([^"]+)"/.exec(block);
-    const pathwayMatch = /\bpathwayKey:\s*"([^"]+)"/.exec(block);
-
-    if (!reviewMatch) continue;
-
-    entries.push({
-      id: idMatch[1],
-      countrySlug: countryMatch ? countryMatch[1] : null,
-      pathwayKey: pathwayMatch ? pathwayMatch[1] : null,
-      lastReviewedAt: reviewMatch[1],
-    });
-  }
-  return entries;
-}
+// Re-exported from the shared parser (src/data/extractBriefs.mjs) so this
+// dashboard and the cron script parse the BRIEFS array identically. See that
+// module for the full description of the string/comment-aware, depth-tracking
+// scanner and why nested quoted `id:` fields are ignored. Avoids importing the
+// React Native data module from the Express runtime.
+export { extractBriefs };
 
 export async function buildFreshnessReport(): Promise<FreshnessReport> {
   const source = await readFile(BRIEFS_PATH, "utf8");
@@ -119,6 +98,63 @@ function escapeHtml(s: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function csvEscape(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return "";
+  let str = String(value);
+  // Defuse CSV formula injection: spreadsheet apps treat cells beginning
+  // with =, +, -, @, tab, or CR as formulas. Brief ids / slugs are
+  // content-controlled, but prefix any such leading character defensively.
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+  if (/[",\r\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+// Multi-section CSV mirroring the auth-prompt / quiz-save dashboards: each
+// section is its own header+rows block separated by a blank line so a
+// spreadsheet importer can map each block to its own schema.
+export function renderFreshnessCsv(report: FreshnessReport): string {
+  const sections: string[][] = [];
+  sections.push([`# Decision Brief freshness — generated ${report.generatedAt}`]);
+
+  // Section 1 — summary counts and the thresholds they were classified by.
+  sections.push([
+    "section,metric,value",
+    `summary,total_briefs,${report.totalBriefs}`,
+    `summary,stale_count,${report.staleCount}`,
+    `summary,warn_count,${report.warnCount}`,
+    `summary,stale_threshold_days,${report.staleThresholdDays}`,
+    `summary,warn_threshold_days,${report.warnThresholdDays}`,
+  ]);
+
+  // Section 2 — per-brief rows, oldest first to match the HTML table order.
+  const sorted = [...report.allBriefs].sort(
+    (a, b) => (b.ageDays ?? 0) - (a.ageDays ?? 0),
+  );
+  const briefLines: string[] = [
+    "section,id,country,pathway,last_reviewed,age_days,status",
+  ];
+  for (const b of sorted) {
+    briefLines.push(
+      [
+        "brief",
+        csvEscape(b.id),
+        csvEscape(b.countrySlug ?? ""),
+        csvEscape(b.pathwayKey ?? ""),
+        csvEscape(b.lastReviewedAt),
+        b.ageDays ?? "",
+        csvEscape(b.status),
+      ].join(","),
+    );
+  }
+  sections.push(briefLines);
+
+  return sections.map((s) => s.join("\n")).join("\n\n") + "\n";
 }
 
 function renderRow(b: FreshnessEntry): string {
@@ -181,7 +217,7 @@ export function renderFreshnessHtml(report: FreshnessReport): string {
       ${rows}
     </tbody>
   </table>
-  <div class="meta">Report generated ${escapeHtml(report.generatedAt)}. JSON at <code>/api/admin/brief-freshness</code>.</div>
+  <div class="meta">Report generated ${escapeHtml(report.generatedAt)}. JSON at <code>/api/admin/brief-freshness</code> · <a href="/admin/brief-freshness.csv">Download CSV</a>.</div>
 </body>
 </html>`;
 }
@@ -198,6 +234,26 @@ export function registerBriefFreshnessRoutes(
     } catch (err: any) {
       console.error("Brief freshness JSON error:", err?.message);
       res.status(500).json({ error: "Failed to build freshness report" });
+    }
+  });
+
+  app.get("/admin/brief-freshness.csv", async (req, res) => {
+    if (!deps.requireAdminBasicAuth(req, res)) return;
+    try {
+      const report = await buildFreshnessReport();
+      res
+        .type("text/csv; charset=utf-8")
+        .setHeader(
+          "Content-Disposition",
+          'attachment; filename="brief-freshness.csv"',
+        )
+        .send(renderFreshnessCsv(report));
+    } catch (err: any) {
+      console.error("Brief freshness CSV error:", err?.message);
+      res
+        .status(500)
+        .type("text/plain")
+        .send(`Failed to build freshness report: ${err?.message ?? "unknown"}`);
     }
   });
 

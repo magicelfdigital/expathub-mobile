@@ -33,7 +33,13 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Build web SPA
+        # quiz-save-modal.spec.ts asserts the real Meta Pixel `Lead` fires.
+        # The pixel module no-ops unless VITE_META_PIXEL_ID is baked into the
+        # build; the spec stubs window.fbq, so this throwaway id never reaches
+        # connect.facebook.net.
         run: npx vite build --config web/vite.config.ts
+        env:
+          VITE_META_PIXEL_ID: "0000000000000000"
 
       - name: Start Express server
         run: |
@@ -58,6 +64,7 @@ jobs:
         run: |
           npx playwright test \
             tests/e2e/locked-section.spec.ts \
+            tests/e2e/quiz-save-modal.spec.ts \
             --reporter=list
 
       - name: Stop Express server

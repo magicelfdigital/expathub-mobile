@@ -1,0 +1,123 @@
+name: Monitor Save-Progress Prompt
+
+# Polls the deployed save-progress prompt health probe at
+# `/api/_internal/quiz-save-prompt-health`. The probe returns HTTP 503 once the
+# most recent complete day's `quiz_save_shown` events with
+# `placement: result_screen` drop to zero, or fall below the trailing 7-day
+# median floor — i.e. the post-result "save your progress" modal has likely
+# stopped firing (analytics misconfiguration, a deploy that broke the
+# result-screen mount, etc).
+#
+# Schedule is hourly: the probe evaluates the last *complete* day, so checking
+# more often than the analytics-health probe (every 15 min) adds no signal,
+# while an hourly cadence still pages the team the morning after a regression
+# rather than weeks later in the dashboard. On failure the job opens (or
+# updates) a single standing issue tagged `quiz-save-prompt` and `alert` so the
+# on-call sees one persistent issue per outage. The issue auto-closes on the
+# next successful run.
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run save-progress prompt health probe
+        id: probe
+        run: node scripts/monitoring/quiz-save-prompt-health-check.mjs
+        continue-on-error: true
+
+      - name: Ensure alert labels exist
+        if: steps.probe.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Create labels if they don't already exist so `gh issue create`
+          # below never fails on a missing label in a fresh repo.
+          gh label create quiz-save-prompt \
+            --color B60205 \
+            --description "Save-progress prompt health probe failure" \
+            >/dev/null 2>&1 || true
+          gh label create alert \
+            --color D93F0B \
+            --description "Active alert that needs on-call attention" \
+            >/dev/null 2>&1 || true
+
+      - name: Open or update standing alert issue
+        if: steps.probe.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TITLE="Save-progress prompt may have stopped firing"
+          BODY=$(cat <<'EOF'
+          The scheduled save-progress prompt health probe at
+          `/api/_internal/quiz-save-prompt-health` is returning a non-200
+          status.
+
+          The probe fires when the most recent complete day's
+          `quiz_save_shown` events with `placement: result_screen` drop to
+          zero, or fall below the trailing 7-day median floor. That usually
+          means the post-result "save your progress" modal has stopped firing
+          — an analytics misconfiguration, a deploy that broke the
+          result-screen mount, or (more benignly) a sudden collapse in
+          low-readiness traffic.
+
+          **Triage:**
+          1. Hit the probe directly: `curl -i https://www.expathub.website/api/_internal/quiz-save-prompt-health`
+          2. Note `reason`: `zero_today` (no prompts at all yesterday) vs `below_median_floor` (partial drop) vs `probe_unavailable` (DB/probe error).
+          3. Cross-check the admin dashboard: `/admin/quiz-save-analytics` — confirm `result_screen` impressions really went flat.
+          4. Recently shipped code on the result screen (`app/onboarding/result.tsx`) or the modal (`src/components/QuizSaveModal.tsx`) is the prime suspect, followed by the `/api/analytics` proxy.
+          5. Once fixed and deployed, the next probe run auto-closes this issue when the prompt fires again.
+
+          Thresholds (median floor ratio, trailing window) are tunable in
+          `server/quizSavePromptHealth.ts`. See
+          `scripts/monitoring/README.md` for full background.
+
+          ---
+          _Auto-managed by `.github/workflows/monitor-quiz-save-prompt.yml`._
+          EOF
+          )
+          EXISTING=$(gh issue list --state open --label quiz-save-prompt --search "$TITLE in:title" --json number --jq '.[0].number' || true)
+          if [ -n "${EXISTING:-}" ] && [ "$EXISTING" != "null" ]; then
+            gh issue comment "$EXISTING" --body "Probe still failing as of $(date -u +%FT%TZ). Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          else
+            gh issue create \
+              --title "$TITLE" \
+              --label quiz-save-prompt \
+              --label alert \
+              --body "$BODY"
+          fi
+
+      - name: Auto-close standing alert on recovery
+        if: steps.probe.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          for n in $(gh issue list --state open --label quiz-save-prompt --json number --jq '.[].number'); do
+            gh issue close "$n" --comment "Probe is healthy again as of $(date -u +%FT%TZ). Auto-closing."
+          done
+
+      - name: Fail the job if the probe failed
+        if: steps.probe.outcome == 'failure'
+        run: |
+          echo "Save-progress prompt health probe failed — see logs above."
+          exit 1

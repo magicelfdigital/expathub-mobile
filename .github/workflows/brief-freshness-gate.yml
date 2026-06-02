@@ -1,0 +1,36 @@
+name: Decision Brief freshness gate
+
+# Hard release gate: fails on push/PR when any Decision Brief's lastReviewedAt
+# is older than the configured threshold (default 180 days, "over 6 months").
+# This guarantees no App Store release ships with badly stale visa figures.
+#
+# The soft 90-day / 60-day reporting tiers (see freshness-check.yml) remain
+# non-blocking — only crossing the gate threshold fails CI. Override the
+# threshold by setting BRIEF_FRESHNESS_GATE_DAYS in the job env below.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: Block on stale Decision Briefs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run freshness gate
+        # BRIEF_FRESHNESS_GATE_DAYS overrides the default 180-day threshold.
+        # env:
+        #   BRIEF_FRESHNESS_GATE_DAYS: "180"
+        run: node scripts/monitoring/freshness-check.mjs --gate

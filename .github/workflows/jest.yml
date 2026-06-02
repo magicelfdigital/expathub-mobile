@@ -24,3 +24,6 @@ jobs:
 
       - name: Run Jest
         run: npx jest --ci
+
+      - name: Run monitoring script tests
+        run: npm run test:scripts

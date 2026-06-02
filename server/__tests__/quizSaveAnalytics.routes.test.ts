@@ -178,4 +178,58 @@ describe("GET /admin/quiz-save-analytics (HTML)", () => {
     expect(res.status).toBe(200);
     expect(res.text).toContain('href="/admin/quiz-save-analytics.csv?days=7"');
   });
+
+  it("shows a healthy prompt-health banner when there is no usable baseline", async () => {
+    const pool = fakePool((text) => {
+      if (/CREATE TABLE/.test(text)) return { rows: [] };
+      if (/ALTER TABLE/.test(text)) return { rows: [] };
+      // Prompt-health query returns no days -> insufficient_baseline.
+      return { rows: [] };
+    });
+    const app = buildApp({ authOk: true, pool });
+
+    const res = await request(app).get("/admin/quiz-save-analytics");
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain("Save-prompt health:");
+    expect(res.text).toContain("Insufficient baseline");
+    expect(res.text).toContain("/api/_internal/quiz-save-prompt-health");
+  });
+
+  it("shows a red prompt-health banner with details when the prompt went silent", async () => {
+    const pool = fakePool((text) => {
+      if (/CREATE TABLE/.test(text)) return { rows: [] };
+      if (/ALTER TABLE/.test(text)) return { rows: [] };
+      // The prompt-health series query: oldest-first, last row is the
+      // evaluated (most recent complete) day. Seven trailing days at 10,
+      // then a zero day -> zero_today (unhealthy).
+      if (/WITH days AS/.test(text)) {
+        return {
+          rows: [
+            { date: "2026-04-13", shown: 10 },
+            { date: "2026-04-14", shown: 10 },
+            { date: "2026-04-15", shown: 10 },
+            { date: "2026-04-16", shown: 10 },
+            { date: "2026-04-17", shown: 10 },
+            { date: "2026-04-18", shown: 10 },
+            { date: "2026-04-19", shown: 10 },
+            { date: "2026-04-20", shown: 0 },
+          ],
+        };
+      }
+      return { rows: [] };
+    });
+    const app = buildApp({ authOk: true, pool });
+
+    const res = await request(app).get("/admin/quiz-save-analytics");
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain("Save-prompt health:");
+    expect(res.text).toContain("Prompt silent (zero today)");
+    // Evaluated day, trailing median, and floor are surfaced so an analyst
+    // can see why it's red.
+    expect(res.text).toContain("2026-04-20");
+    expect(res.text).toContain("trailing median");
+    expect(res.text).toContain("floor");
+  });
 });

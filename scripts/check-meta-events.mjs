@@ -43,6 +43,14 @@ const MOBILE_EVENTS = [
     file: "app/(tabs)/explore/index.tsx",
     requiredParams: ["source"],
   },
+  // Mid-funnel signal: visitor submitted an email at the readiness-quiz
+  // result screen email gate. Same surface family as the country waitlist
+  // and web quiz-save modal.
+  {
+    event: "Lead",
+    file: "app/onboarding/result.tsx",
+    requiredParams: ["source"],
+  },
 ];
 
 // The mobile SDK auto-stamps fb_currency: "USD" on any logEvent call that

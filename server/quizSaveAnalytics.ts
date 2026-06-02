@@ -1,5 +1,11 @@
 import type { Express, Request, Response } from "express";
 import pg from "pg";
+// Type-only import: the prompt-health module imports `ensureQuizSaveEventsTable`
+// from this file at runtime, so a value import here would create a circular
+// dependency. `import type` is erased at compile time, leaving no cycle. The
+// compute function itself is pulled in via a lazy `await import(...)` inside
+// the dashboard route, mirroring the scheduler pattern used below.
+import type { QuizSavePromptHealthSnapshot } from "./quizSavePromptHealth";
 
 // ── Quiz "save your progress" prompt analytics ───────────────────────────
 //
@@ -935,10 +941,106 @@ export function renderLastBackfillSummary(
   )})</p>`;
 }
 
+// Format a possibly-fractional number for the health banner. Trailing
+// medians and floors can be non-integers (median of an even-length series,
+// floor = median * floorRatio), so show one decimal when needed but keep
+// whole counts clean.
+function fmtNum(n: number): string {
+  return Number.isInteger(n)
+    ? fmtInt(n)
+    : n.toLocaleString("en-US", { maximumFractionDigits: 1 });
+}
+
+// Per-reason presentation for the prompt-health banner. Colours mirror the
+// other dashboard callouts (green = healthy, grey = neutral/informational,
+// amber = partial regression, red = silent/broken).
+const PROMPT_HEALTH_PRESENTATION: Record<
+  QuizSavePromptHealthSnapshot["reason"],
+  { label: string; bg: string; border: string; fg: string; summary: string }
+> = {
+  ok: {
+    label: "Healthy",
+    bg: "#e7f5ec",
+    border: "#b8dec5",
+    fg: "#1b5e3a",
+    summary: "The result-screen prompt is firing at a normal rate.",
+  },
+  insufficient_baseline: {
+    label: "Insufficient baseline",
+    bg: "#f4f4f5",
+    border: "#d4d4d8",
+    fg: "#52525b",
+    summary:
+      "Not enough trailing history to judge yet — treated as healthy so quiet or fresh environments don't alert.",
+  },
+  zero_today: {
+    label: "Prompt silent (zero today)",
+    bg: "#fdeceb",
+    border: "#f5b5b0",
+    fg: "#a12a21",
+    summary:
+      "The most recent complete day saw zero prompts while the baseline was non-zero — the prompt may have stopped firing.",
+  },
+  below_median_floor: {
+    label: "Below median floor",
+    bg: "#fff7e6",
+    border: "#ffd591",
+    fg: "#a35a00",
+    summary:
+      "The most recent complete day fell well below the trailing median — a partial regression worth investigating.",
+  },
+  probe_unavailable: {
+    label: "Probe unavailable",
+    bg: "#fdeceb",
+    border: "#f5b5b0",
+    fg: "#a12a21",
+    summary:
+      "The health probe could not read the data (no database, or the query failed).",
+  },
+};
+
+// Render the save-progress prompt-health verdict as an in-context banner so
+// analysts looking at the dashboard see the same signal the
+// `/api/_internal/quiz-save-prompt-health` probe pages on, without flipping
+// to GitHub issues. The verdict comes straight from
+// `computeQuizSavePromptHealth` (single source of truth for the thresholds);
+// this function only formats it. Returns "" when no snapshot is available so
+// the dashboard still renders (e.g. if the probe import failed).
+export function renderQuizSavePromptHealthBanner(
+  health: QuizSavePromptHealthSnapshot | null,
+): string {
+  if (!health) return "";
+  const p = PROMPT_HEALTH_PRESENTATION[health.reason];
+  const ev = health.evaluated_day;
+  const t = health.trailing;
+  const detail =
+    `Placement <code>${escapeHtml(health.placement)}</code> · ` +
+    `evaluated day <code>${escapeHtml(ev.date ?? "—")}</code>: ` +
+    `<strong>${fmtInt(ev.shown)}</strong> shown · ` +
+    `trailing median <strong>${fmtNum(t.median)}</strong> over ${fmtInt(
+      t.days,
+    )} day(s) · ` +
+    `floor <strong>${fmtNum(t.floor)}</strong>`;
+  return `
+  <div style="background:${p.bg};border:1px solid ${p.border};color:${p.fg};padding:12px 14px;border-radius:8px;margin:12px 0;">
+    <div style="font-weight:600;">
+      <span aria-hidden="true" style="margin-right:6px;">●</span>Save-prompt health: ${escapeHtml(
+        p.label,
+      )}
+    </div>
+    <div style="font-size:13px;margin-top:4px;">${escapeHtml(p.summary)}</div>
+    <div style="font-size:12px;margin-top:6px;opacity:0.9;">${detail}</div>
+    <div style="font-size:12px;margin-top:6px;opacity:0.8;">
+      Probe: <code>/api/_internal/quiz-save-prompt-health</code>
+    </div>
+  </div>`;
+}
+
 export function renderQuizSaveAnalyticsHtml(
   data: QuizSaveAnalytics,
   banner: QuizSaveBackfillBanner | null = null,
   lastBackfill: QuizSaveLastBackfillRun | null = null,
+  promptHealth: QuizSavePromptHealthSnapshot | null = null,
 ): string {
   const { totals, bySurface, byPlacement, emailGate, windowDays, weekly } = data;
   const bannerHtml = banner
@@ -976,6 +1078,7 @@ export function renderQuizSaveAnalyticsHtml(
   <div class="nav"><a href="/admin">← Admin tools</a></div>
   <h1>Quiz save-prompt analytics</h1>
   ${bannerHtml}
+  ${renderQuizSavePromptHealthBanner(promptHealth)}
   <details style="margin:12px 0 16px;background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:10px 14px;">
     <summary style="cursor:pointer;font-weight:600;">Backfill from PostHog</summary>
     <p style="color:#555;font-size:13px;margin-top:8px">
@@ -1688,9 +1791,28 @@ export function registerQuizSaveAnalyticsRoutes(
           `[quiz-save-analytics] could not read last backfill run: ${err?.message ?? err}`,
         );
       }
+      // Evaluate the same prompt-health verdict the on-call probe pages on,
+      // so the dashboard shows it in context. Reuses
+      // `computeQuizSavePromptHealth` (single source of truth for the
+      // thresholds) via a lazy import to avoid a circular dependency. A
+      // failure here is non-fatal: log it and render the dashboard without
+      // the banner rather than 500-ing the whole page.
+      let promptHealth: QuizSavePromptHealthSnapshot | null = null;
+      try {
+        const { computeQuizSavePromptHealth } = await import(
+          "./quizSavePromptHealth"
+        );
+        promptHealth = await computeQuizSavePromptHealth(pool);
+      } catch (err: any) {
+        console.warn(
+          `[quiz-save-analytics] could not compute prompt health: ${err?.message ?? err}`,
+        );
+      }
       res
         .type("text/html")
-        .send(renderQuizSaveAnalyticsHtml(data, banner, lastBackfill));
+        .send(
+          renderQuizSaveAnalyticsHtml(data, banner, lastBackfill, promptHealth),
+        );
     } catch (err: any) {
       console.error("Quiz save analytics HTML error:", err?.message);
       res

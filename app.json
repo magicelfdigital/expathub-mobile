@@ -2,7 +2,7 @@
   "expo": {
     "name": "ExpatHub",
     "slug": "expathub",
-    "version": "1.5.0",
+    "version": "1.5.1",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "expathub",
@@ -22,7 +22,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "buildNumber": "107",
+      "buildNumber": "108",
       "bundleIdentifier": "com.expathub.app",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {

@@ -1,4 +1,8 @@
 import type { DecisionBrief } from "./decisionBriefs";
+import {
+  STALE_THRESHOLD_DAYS,
+  RELEASE_BLOCK_THRESHOLD_DAYS,
+} from "./freshnessThresholds.mjs";
 
 export type ValidationResult = {
   valid: boolean;
@@ -43,13 +47,13 @@ export function validateBrief(brief: DecisionBrief): ValidationResult {
   }
 
   const reviewDays = daysSince(brief.lastReviewedAt);
-  if (reviewDays > 180) {
+  if (reviewDays > RELEASE_BLOCK_THRESHOLD_DAYS) {
     warnings.push(
       `Last reviewed ${reviewDays} days ago (over 6 months). Content may be stale.`
     );
-  } else if (reviewDays > 90) {
+  } else if (reviewDays > STALE_THRESHOLD_DAYS) {
     warnings.push(
-      `Last reviewed ${reviewDays} days ago (over 90 days). Consider scheduling a review.`
+      `Last reviewed ${reviewDays} days ago (over ${STALE_THRESHOLD_DAYS} days). Consider scheduling a review.`
     );
   }
 

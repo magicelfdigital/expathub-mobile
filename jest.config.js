@@ -43,7 +43,14 @@ module.exports = {
       testEnvironment: "node",
       roots: ["<rootDir>/server"],
       moduleNameMapper: sharedModuleNameMapper,
-      transform: tsJestTransform,
+      // briefFreshness.ts imports the RN-graph-free .mjs helpers
+      // (freshnessThresholds.mjs, extractBriefs.mjs). ts-jest only transforms
+      // .ts files, so .mjs ESM modules need babel-jest to be transpiled to
+      // CommonJS for the jest runtime — otherwise their `export` syntax throws.
+      transform: {
+        ...tsJestTransform,
+        "^.+\\.mjs$": "babel-jest",
+      },
       testMatch: ["**/__tests__/**/*.test.ts"],
     },
     {
@@ -127,6 +134,35 @@ module.exports = {
               paths: {
                 "@/*": ["./*"],
                 "@shared/*": ["./shared/*"],
+              },
+              types: ["jest", "node"],
+            },
+          },
+        ],
+      },
+      testMatch: ["**/__tests__/**/*.test.ts", "**/__tests__/**/*.test.tsx"],
+    },
+    {
+      displayName: "web",
+      preset: "ts-jest",
+      testEnvironment: "jsdom",
+      roots: ["<rootDir>/web/src"],
+      moduleNameMapper: {
+        "^@/(.*)$": "<rootDir>/web/src/$1",
+      },
+      transform: {
+        "^.+\\.tsx?$": [
+          "ts-jest",
+          {
+            tsconfig: {
+              module: "commonjs",
+              target: "es2020",
+              esModuleInterop: true,
+              jsx: "react-jsx",
+              strict: true,
+              baseUrl: ".",
+              paths: {
+                "@/*": ["./web/src/*"],
               },
               types: ["jest", "node"],
             },

@@ -1,1 +1,6 @@
 - [GitHub push rejections in main repl](git-push-rejections.md) — main repl can't fetch/push; origin/main tracking ref goes stale → Git-pane PUSH_REJECTED. Fix via an isolated background task that fetches+merges+pushes.
+- [Expo-web e2e in dev](expo-web-e2e-in-dev.md) — Expo-web Playwright specs (auth flows, 180s timeouts) flake here due to concurrent merges restarting backend; web-SPA specs vs :5000 are reliable. Trust CI.
+- [Running the Jest suite locally](jest-suite-local-runs.md) — full `jest --ci` times out/OOMs; run by area in chunks. Worksheets suites fail to load on `expo/fetch` ESM (pre-existing).
+- [Ops health probe pattern](ops-health-probes.md) — alerts = unauth 503 probe + poller + GitHub Action standing issue. DB probes: evaluate last complete day, only page if baseline non-zero.
+- [iOS empty headerRight circle](ios-empty-headerright-circle.md) — a `headerRight` that returns null still draws a blank white circle on iOS; omit the option (undefined) instead.
+- [Jest cannot load .mjs ESM](jest-mjs-transform.md) — a jest project importing a shared `.mjs` helper needs a `"^.+\\.mjs$": "babel-jest"` transform or the whole suite fails to load; `.mjs` types go in `.d.mts`.

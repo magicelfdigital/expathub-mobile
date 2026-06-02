@@ -14,6 +14,7 @@ import {
 } from "@/src/data/quiz";
 import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEntitlement } from "@/src/contexts/EntitlementContext";
 import { tokens } from "@/theme/tokens";
 import { trackEvent, logFbEvent, identifyByEmail } from "@/src/lib/analytics";
 import { getApiUrl } from "@/lib/query-client";
@@ -107,6 +108,7 @@ export default function ResultScreen() {
     clearPendingWorksheetDelta,
   } = useOnboarding();
   const { user } = useAuth();
+  const { hasProAccess, loading: entitlementLoading } = useEntitlement();
 
   type AnswersShape = Record<string, unknown> & {
     firstName?: string;
@@ -335,6 +337,11 @@ export default function ResultScreen() {
             score: result.score,
           }),
         );
+        // Mid-funnel signal for Meta App Promotion: the readiness-quiz email
+        // gate is another email-capture surface, so emit `Lead` here too —
+        // mirroring the country waitlist and web quiz-save modal. No raw
+        // email is forwarded into the payload (PII guardrail).
+        logFbEvent("Lead", undefined, { source: "readiness_quiz_gate" });
       }
     } catch {} finally { setEmailSending(false); }
   };
@@ -589,7 +596,16 @@ export default function ResultScreen() {
     </Pressable>
   );
 
-  const showPaywallAfterUrgent = shouldShowPaywallAfterUrgent(result.blockers);
+  // Only surface the "Unlock your full roadmap" paywall CTA to users who don't
+  // already have access. An entitled user (e.g. an active subscriber) tapping it
+  // would otherwise land on the paywall's "Manage Subscription" dead-end instead
+  // of their already-unlocked roadmap. They can reach all content via the primary
+  // "Continue to ExpatHub" CTA below. While entitlement is still loading we hold
+  // the CTA back so an entitled user never sees it flash in before resolution.
+  const showPaywallAfterUrgent =
+    shouldShowPaywallAfterUrgent(result.blockers) &&
+    !hasProAccess &&
+    !entitlementLoading;
 
   const handleSavePromptClose = () => setSavePromptVisible(false);
   const handleSavePromptContinue = () => setSavePromptVisible(false);

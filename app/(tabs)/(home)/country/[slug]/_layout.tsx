@@ -103,15 +103,22 @@ function PathfinderBadge() {
   );
 }
 
-const detailScreenOptions = {
-  title: "",
-  headerBackTitle: "",
-  headerLeft: () => <CountryBackButton />,
-  headerRight: () => <PathfinderBadge />,
-  headerRightContainerStyle: { paddingRight: 12, backgroundColor: "transparent" },
-};
-
 export default function CountrySlugLayout() {
+  const { hasProAccess } = useEntitlement();
+
+  // Only attach a headerRight when there is something to show. For subscribers
+  // PathfinderBadge renders nothing, but passing a headerRight that returns null
+  // still makes the native iOS stack allocate an empty header button — which
+  // modern iOS draws as a blank circular background in the top-right corner.
+  // Leaving headerRight undefined avoids that empty white circle.
+  const detailScreenOptions = {
+    title: "",
+    headerBackTitle: "",
+    headerLeft: () => <CountryBackButton />,
+    headerRight: hasProAccess ? undefined : () => <PathfinderBadge />,
+    headerRightContainerStyle: { paddingRight: 12, backgroundColor: "transparent" },
+  };
+
   return (
     <Stack
       screenOptions={{

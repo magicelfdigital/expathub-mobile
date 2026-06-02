@@ -8,6 +8,7 @@ import { createProxyMiddleware } from "http-proxy-middleware";
 import { spawnSync } from "child_process";
 import { startAuthPromptBackfillSchedule } from "./authPromptBackfillScheduler";
 import { startQuizSaveBackfillSchedule } from "./quizSaveBackfillScheduler";
+import { runLeadTierDropMigration } from "./leadMigrations";
 
 const app = express();
 const log = console.log;
@@ -254,6 +255,23 @@ function setupErrorHandler(app: express.Application) {
   configureExpoManifest(app);
 
   const server = await registerRoutes(app);
+
+  // One-time, deterministic schema migration: drop the legacy `tier` column
+  // from the lead tables (task #131). Runs at boot, outside any request
+  // handler, so the schema change is guaranteed and DDL never runs on a hot
+  // request path. Skipped in tests and when no database is configured.
+  if (process.env.NODE_ENV !== "test" && process.env.DATABASE_URL) {
+    const migrationPool = new pg.Pool({
+      connectionString: process.env.DATABASE_URL,
+    });
+    runLeadTierDropMigration(migrationPool)
+      .catch((err) => {
+        console.error("[lead-tier-drop] migration failed:", err);
+      })
+      .finally(() => {
+        migrationPool.end().catch(() => {});
+      });
+  }
 
   if (process.env.NODE_ENV === "production") {
     configureWebStatic(app);

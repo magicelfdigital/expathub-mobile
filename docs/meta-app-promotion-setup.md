@@ -48,6 +48,7 @@ Before changing campaigns, verify the funnel events are landing in **Meta Events
 | 5 | Tap the monthly 14-day-trial CTA, confirm in sandbox | `StartTrial` | `plan: "monthly"`, `value: 0`, `fb_currency: "USD"` | `src/components/ProPaywall.tsx` → `logFbPurchaseEvent("monthly_subscription")` |
 | 6 | Tap any plan button on the paywall (before confirming purchase) | `AddToCart` | `plan: "monthly" \| "annual"` | `src/components/ProPaywall.tsx` → `handleMonthlySubscribe` / `handleAnnualSubscribe` |
 | 7 | Submit an email in the "Join waitlist" modal for a Coming Soon country | `Lead` | `source: "country_waitlist"`, `country` | `app/(tabs)/explore/index.tsx` → `WaitlistModal.handleSubmit` |
+| 8 | Submit an email at the readiness-quiz result screen email gate | `Lead` | `source: "readiness_quiz_gate"` | `app/onboarding/result.tsx` → `handleEmailResults` |
 
 > **`Subscribe` (paid conversion) is fired server-side, not by the mobile client.** Both tiers now include a 14-day free trial, so the paywall fires `StartTrial` at trial activation. The paid `Subscribe` conversion event is fired from the RevenueCat / Stripe webhook (upstream `expathub.world` repo) when the trial converts to a paid charge. Do not expect a `Subscribe` event to appear in Test Events directly from the iOS app at purchase time.
 

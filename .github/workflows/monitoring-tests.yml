@@ -1,0 +1,28 @@
+name: Monitoring script tests
+
+# Unit tests for the monitoring runners under scripts/monitoring/. These guard
+# the alert decision logic (e.g. the restore pre-check paging thresholds) so a
+# future tweak to a threshold or to PostHog response parsing can't silently
+# stop paging on-call. The tests mock the network, so no PostHog credentials
+# are required and the job runs on every push / PR.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Run monitoring unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run monitoring tests
+        run: node --test scripts/monitoring/__tests__/*.test.mjs

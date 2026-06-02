@@ -64,7 +64,14 @@ function BookmarkCard({
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         {showCompare ? (
-          <Pressable onPress={onToggleSelect} hitSlop={8} style={styles.selectBtn}>
+          <Pressable
+            onPress={onToggleSelect}
+            hitSlop={8}
+            style={styles.selectBtn}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: selected }}
+            accessibilityLabel={`Select ${getCountryName(countrySlug)} to compare`}
+          >
             <Ionicons
               name={selected ? "checkbox" : "square-outline"}
               size={22}
@@ -247,6 +254,11 @@ export default function ShortlistScreen() {
             <Text style={styles.subtitle}>
               {bookmarks.length} {bookmarks.length === 1 ? "country" : "countries"} saved
             </Text>
+            {bookmarks.length >= 2 ? (
+              <Text style={styles.hint}>
+                Tick the checkbox on 2 or 3 countries to compare them side by side.
+              </Text>
+            ) : null}
           </View>
         }
         renderItem={({ item }) => (
@@ -306,6 +318,13 @@ const styles = StyleSheet.create({
     fontFamily: tokens.font.body,
     color: tokens.color.subtext,
     marginTop: 4,
+  },
+  hint: {
+    fontSize: tokens.text.small,
+    fontFamily: tokens.font.body,
+    color: tokens.color.subtext,
+    marginTop: 8,
+    lineHeight: 18,
   },
 
   card: {

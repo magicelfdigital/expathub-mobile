@@ -43,6 +43,15 @@ jest.mock("@/contexts/AuthContext", () => ({
   AUTH_API_URL: "http://test/api/auth",
 }));
 
+let __hasProAccess = false;
+let __entitlementLoading = false;
+jest.mock("@/src/contexts/EntitlementContext", () => ({
+  useEntitlement: () => ({
+    hasProAccess: __hasProAccess,
+    loading: __entitlementLoading,
+  }),
+}));
+
 jest.mock("@/src/subscriptions/revenuecat", () => ({
   setUserAttributes: jest.fn(async () => {}),
 }));
@@ -304,6 +313,78 @@ describe("ResultScreen — funnel analytics", () => {
     });
   });
 
+  it("fires logFbEvent('Lead', source='readiness_quiz_gate') after a successful /api/readiness-lead save", async () => {
+    let renderer: any;
+    act(() => {
+      renderer = TestRenderer.create(<ResultScreen />);
+    });
+    const input = getTextInput(renderer!.root);
+    act(() => {
+      input.props.onChangeText("ada@lovelace.io");
+    });
+    const btn = getButton(renderer!.root, "Email me the results");
+    await act(async () => {
+      await btn.props.onPress();
+    });
+    const leads = logFbEvent.mock.calls.filter((c) => c[0] === "Lead");
+    expect(leads).toHaveLength(1);
+    expect(leads[0]).toEqual([
+      "Lead",
+      undefined,
+      { source: "readiness_quiz_gate" },
+    ]);
+    // PII guardrail: the raw email must never appear in the Meta payload.
+    expect(JSON.stringify(leads[0])).not.toContain("ada@lovelace.io");
+  });
+
+  it("does NOT fire logFbEvent('Lead') when the API returns a 5xx (no false-positive ad signal)", async () => {
+    (global as any).fetch = jest.fn(async () => ({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: "boom" }),
+    }));
+    let renderer: any;
+    act(() => {
+      renderer = TestRenderer.create(<ResultScreen />);
+    });
+    const input = getTextInput(renderer!.root);
+    act(() => {
+      input.props.onChangeText("ada@lovelace.io");
+    });
+    const btn = getButton(renderer!.root, "Email me the results");
+    await act(async () => {
+      await btn.props.onPress();
+    });
+    expect((global as any).fetch).toHaveBeenCalledTimes(1);
+    expect(
+      logFbEvent.mock.calls.filter((c) => c[0] === "Lead"),
+    ).toHaveLength(0);
+  });
+
+  it("does NOT fire logFbEvent('Lead') when the API returns a 4xx", async () => {
+    (global as any).fetch = jest.fn(async () => ({
+      ok: false,
+      status: 400,
+      json: async () => ({ error: "bad request" }),
+    }));
+    let renderer: any;
+    act(() => {
+      renderer = TestRenderer.create(<ResultScreen />);
+    });
+    const input = getTextInput(renderer!.root);
+    act(() => {
+      input.props.onChangeText("ada@lovelace.io");
+    });
+    const btn = getButton(renderer!.root, "Email me the results");
+    await act(async () => {
+      await btn.props.onPress();
+    });
+    expect((global as any).fetch).toHaveBeenCalledTimes(1);
+    expect(
+      logFbEvent.mock.calls.filter((c) => c[0] === "Lead"),
+    ).toHaveLength(0);
+  });
+
   it("Edit answers link fires result_edit_answers_tapped and router.replace with prefill + edit=1", async () => {
     let renderer: any;
     act(() => {
@@ -373,6 +454,33 @@ describe("ResultScreen — funnel analytics", () => {
         params: expect.objectContaining({ entryPoint: "result_screen" }),
       }),
     );
+  });
+
+  it("does NOT render the Unlock Roadmap CTA when the user already has access (no paywall dead-end)", async () => {
+    // Same urgent-blocker answer set that surfaces the CTA for non-entitled users.
+    __setSearchParams({
+      answers: JSON.stringify({
+        1: "no",
+        2: "no",
+        3: "no",
+        4: "no",
+        5: "no",
+        6: "no",
+        7: "no",
+        8: "twelve_plus",
+      }),
+    });
+    __hasProAccess = true;
+    try {
+      let renderer: any;
+      act(() => {
+        renderer = TestRenderer.create(<ResultScreen />);
+      });
+      const btn = getButton(renderer!.root, "Unlock your full roadmap");
+      expect(btn).toBeFalsy();
+    } finally {
+      __hasProAccess = false;
+    }
   });
 });
 

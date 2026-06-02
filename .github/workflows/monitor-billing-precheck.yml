@@ -1,0 +1,122 @@
+name: Monitor Billing Pre-Check Failures
+
+# Queries PostHog for the production rate of `billing_pre_check_failed`
+# events. That event fires from `BillingOrchestrator.restore()` when BOTH
+# backend entitlement pre-check attempts throw — a sustained rise means the
+# backend entitlements endpoint is failing and every restore is silently
+# falling through to the slow path.
+#
+# Schedule is every 15 minutes so a regression pages the team within minutes
+# instead of being buried in PostHog. On failure the job opens (or updates) a
+# single standing issue tagged `billing-precheck` and `alert` so the on-call
+# sees one persistent issue per incident rather than a noisy stream. The
+# issue auto-closes on the next healthy run.
+#
+# Thresholds live in `monitoring/billing-precheck-alert.json`. The probe
+# requires the POSTHOG_PROJECT_ID and POSTHOG_PERSONAL_API_KEY repository
+# secrets; if they are absent the probe SKIPS (passes) instead of failing.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run billing pre-check failure probe
+        id: probe
+        env:
+          POSTHOG_HOST: ${{ secrets.POSTHOG_HOST }}
+          POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
+          POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+        run: node scripts/monitoring/billing-precheck-check.mjs
+        continue-on-error: true
+
+      - name: Ensure alert labels exist
+        if: steps.probe.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Create labels if they don't already exist so `gh issue create`
+          # below never fails on a missing label in a fresh repo.
+          gh label create billing-precheck \
+            --color B60205 \
+            --description "Restore pre-check failure rate alert" \
+            >/dev/null 2>&1 || true
+          gh label create alert \
+            --color D93F0B \
+            --description "Active alert that needs on-call attention" \
+            >/dev/null 2>&1 || true
+
+      - name: Open or update standing alert issue
+        if: steps.probe.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TITLE="Restore pre-check failures are spiking in production"
+          BODY=$(cat <<'EOF'
+          The scheduled billing pre-check probe is reporting an elevated rate
+          of `billing_pre_check_failed` events in production.
+
+          That event fires from `BillingOrchestrator.restore()`
+          (`src/billing/orchestrator.ts`) when BOTH backend entitlement
+          pre-check attempts throw. A sustained rise means the backend
+          entitlements endpoint is failing and every restore is silently
+          falling through to the slower RevenueCat path.
+
+          **Triage:**
+          1. Check the most recent run logs for the exact counts and which threshold tripped (absolute count vs. failure ratio).
+          2. Look at backend health for the entitlements endpoint (`getEntitlements`) — recent deploys or a downstream (DB / RevenueCat / Stripe) outage are the prime suspects.
+          3. In PostHog, inspect the `error` and `attempts` properties on recent `billing_pre_check_failed` events for the failure mode.
+          4. Once the backend recovers, the next probe run will auto-close this issue.
+
+          Thresholds live in `monitoring/billing-precheck-alert.json`. See
+          `scripts/monitoring/README.md` for full background.
+
+          ---
+          _Auto-managed by `.github/workflows/monitor-billing-precheck.yml`._
+          EOF
+          )
+          EXISTING=$(gh issue list --state open --label billing-precheck --search "$TITLE in:title" --json number --jq '.[0].number' || true)
+          if [ -n "${EXISTING:-}" ] && [ "$EXISTING" != "null" ]; then
+            gh issue comment "$EXISTING" --body "Still alerting as of $(date -u +%FT%TZ). Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          else
+            gh issue create \
+              --title "$TITLE" \
+              --label billing-precheck \
+              --label alert \
+              --body "$BODY"
+          fi
+
+      - name: Auto-close standing alert on recovery
+        if: steps.probe.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          for n in $(gh issue list --state open --label billing-precheck --json number --jq '.[].number'); do
+            gh issue close "$n" --comment "Pre-check failure rate is back within thresholds as of $(date -u +%FT%TZ). Auto-closing."
+          done
+
+      - name: Fail the job if the probe failed
+        if: steps.probe.outcome == 'failure'
+        run: |
+          echo "Billing pre-check probe tripped an alert — see logs above."
+          exit 1

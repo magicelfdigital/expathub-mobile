@@ -243,6 +243,34 @@ export type RangeComparison = {
     medianDaysToCompletion: number | null;
     medianDaysToCompletionPct: number | null;
   };
+  // Per-country split of the same A-vs-B comparison. Lets admins see which
+  // countries drove the headline change instead of only the aggregate.
+  // Countries with no activity in either range are omitted; the array is
+  // sorted by absolute change in plans started (largest movers first).
+  byCountry: CountryRangeComparison[];
+};
+
+// One country's metrics within a single date range. Mirrors the subset of
+// RangeMetrics that makes sense to split per country.
+export type CountryRangeBucket = {
+  plansStarted: number;
+  plansCompleted: number;
+  medianDaysToCompletion: number | null;
+};
+
+export type CountryRangeComparison = {
+  country: string;
+  rangeA: CountryRangeBucket;
+  rangeB: CountryRangeBucket;
+  // delta = rangeA − rangeB. pct uses rangeB as the baseline and is null
+  // when the baseline is 0 (or median is null on either side).
+  delta: {
+    plansStarted: number;
+    plansStartedPct: number | null;
+    plansCompleted: number;
+    plansCompletedPct: number | null;
+    medianDaysToCompletion: number | null;
+  };
 };
 
 export type PlannerAnalyticsResult = {
@@ -442,6 +470,132 @@ function computeRangeDelta(
         ? null
         : pct(rangeA.medianDaysToCompletion, rangeB.medianDaysToCompletion),
   };
+}
+
+// Per-country counterpart to computeRangeMetrics: returns a map of
+// country -> {plansStarted, plansCompleted, medianDaysToCompletion} for a
+// single date range. Plans are bucketed by their start date (same as the
+// totals query). When a country filter is active the WHERE clause narrows
+// to that single country.
+async function computeRangeMetricsByCountry(
+  pool: pg.Pool,
+  stepIds: string[],
+  totalSteps: number,
+  country: string | null,
+  range: DateRange,
+): Promise<Map<string, CountryRangeBucket>> {
+  const params: Array<string | number | string[]> = [
+    stepIds,
+    totalSteps,
+    range.start,
+    endExclusive(range.end),
+  ];
+  let countryClause = "";
+  if (country) {
+    params.push(country);
+    countryClause = ` AND target_country = $${params.length}`;
+  }
+  const result = await pool.query(
+    `WITH per_plan AS (
+       SELECT user_id,
+              target_country,
+              MIN(created_at)                              AS started_at,
+              MAX(completed_at) FILTER (WHERE completed)   AS last_completed_at,
+              COUNT(*) FILTER (WHERE completed)::int       AS done_steps
+         FROM user_progress
+        WHERE step_id = ANY($1::text[])
+          AND target_country IS NOT NULL${countryClause}
+        GROUP BY user_id, target_country
+     )
+     SELECT target_country,
+       COUNT(*) FILTER (
+         WHERE started_at >= $3::date AND started_at < $4::date
+       )::int AS plans_started,
+       COUNT(*) FILTER (
+         WHERE done_steps = $2
+           AND started_at >= $3::date AND started_at < $4::date
+       )::int AS plans_completed,
+       PERCENTILE_CONT(0.5) WITHIN GROUP (
+         ORDER BY EXTRACT(EPOCH FROM (last_completed_at - started_at)) / 86400.0
+       ) FILTER (
+         WHERE done_steps = $2
+           AND started_at IS NOT NULL
+           AND started_at >= $3::date AND started_at < $4::date
+       ) AS median_days
+     FROM per_plan
+     GROUP BY target_country`,
+    params,
+  );
+  const map = new Map<string, CountryRangeBucket>();
+  for (const row of result.rows) {
+    const median =
+      row.median_days === null || row.median_days === undefined
+        ? null
+        : Math.round(Number(row.median_days) * 10) / 10;
+    map.set(String(row.target_country), {
+      plansStarted: Number(row.plans_started) || 0,
+      plansCompleted: Number(row.plans_completed) || 0,
+      medianDaysToCompletion: median,
+    });
+  }
+  return map;
+}
+
+// Merge the per-country buckets from range A and range B into the
+// comparison rows. Countries present in only one range get a zero-filled
+// bucket on the other side. Countries with no activity in either range are
+// dropped to keep the table readable, and the result is sorted by absolute
+// change in plans started (largest movers first, country name as tiebreak).
+function mergeCountryRangeComparison(
+  aRows: Map<string, CountryRangeBucket>,
+  bRows: Map<string, CountryRangeBucket>,
+): CountryRangeComparison[] {
+  const pct = (a: number, b: number): number | null =>
+    b === 0 ? null : Math.round(((a - b) / b) * 1000) / 10;
+  const emptyBucket = (): CountryRangeBucket => ({
+    plansStarted: 0,
+    plansCompleted: 0,
+    medianDaysToCompletion: null,
+  });
+  const countries = new Set<string>([...aRows.keys(), ...bRows.keys()]);
+  const out: CountryRangeComparison[] = [];
+  for (const country of countries) {
+    const a = aRows.get(country) ?? emptyBucket();
+    const b = bRows.get(country) ?? emptyBucket();
+    if (
+      a.plansStarted === 0 &&
+      a.plansCompleted === 0 &&
+      b.plansStarted === 0 &&
+      b.plansCompleted === 0
+    ) {
+      continue;
+    }
+    const medianDelta =
+      a.medianDaysToCompletion === null || b.medianDaysToCompletion === null
+        ? null
+        : Math.round(
+            (a.medianDaysToCompletion - b.medianDaysToCompletion) * 10,
+          ) / 10;
+    out.push({
+      country,
+      rangeA: a,
+      rangeB: b,
+      delta: {
+        plansStarted: a.plansStarted - b.plansStarted,
+        plansStartedPct: pct(a.plansStarted, b.plansStarted),
+        plansCompleted: a.plansCompleted - b.plansCompleted,
+        plansCompletedPct: pct(a.plansCompleted, b.plansCompleted),
+        medianDaysToCompletion: medianDelta,
+      },
+    });
+  }
+  out.sort((x, y) => {
+    const diff =
+      Math.abs(y.delta.plansStarted) - Math.abs(x.delta.plansStarted);
+    if (diff !== 0) return diff;
+    return x.country.localeCompare(y.country);
+  });
+  return out;
 }
 
 function normalizeCountry(value: string | null | undefined): string | null {
@@ -778,14 +932,17 @@ export async function computePlannerAnalytics(
   const rangeB = options.rangeB ?? null;
   let comparison: RangeComparison | null = null;
   if (rangeA && rangeB) {
-    const [a, b] = await Promise.all([
+    const [a, b, aByCountry, bByCountry] = await Promise.all([
       computeRangeMetrics(pool, stepIds, totalSteps, country, rangeA),
       computeRangeMetrics(pool, stepIds, totalSteps, country, rangeB),
+      computeRangeMetricsByCountry(pool, stepIds, totalSteps, country, rangeA),
+      computeRangeMetricsByCountry(pool, stepIds, totalSteps, country, rangeB),
     ]);
     comparison = {
       rangeA: a,
       rangeB: b,
       delta: computeRangeDelta(a, b),
+      byCountry: mergeCountryRangeComparison(aByCountry, bByCountry),
     };
   }
 
@@ -962,12 +1119,107 @@ function renderComparisonSection(data: PlannerAnalyticsResult): string {
     "down",
   );
 
+  const comparisonCsvParts: string[] = [];
+  if (activeCountry) {
+    comparisonCsvParts.push(`country=${encodeURIComponent(activeCountry)}`);
+  }
+  comparisonCsvParts.push(
+    `rangeA=${encodeURIComponent(`${rangeA.start}..${rangeA.end}`)}`,
+  );
+  comparisonCsvParts.push(
+    `rangeB=${encodeURIComponent(`${rangeB.start}..${rangeB.end}`)}`,
+  );
+  const comparisonCsvHref = `/admin/planner-analytics-comparison.csv?${comparisonCsvParts.join("&")}`;
+
+  // Per-country breakdown of the same A-vs-B comparison. Sorted by the
+  // absolute change in plans started (handled upstream in
+  // mergeCountryRangeComparison) so the biggest movers surface first.
+  const countryRowsHtml = comparison.byCountry
+    .map((row) => {
+      const medianACell =
+        row.rangeA.medianDaysToCompletion === null
+          ? "—"
+          : `${row.rangeA.medianDaysToCompletion.toFixed(1)}`;
+      const medianBCell =
+        row.rangeB.medianDaysToCompletion === null
+          ? "—"
+          : `${row.rangeB.medianDaysToCompletion.toFixed(1)}`;
+      const startedDeltaCell = deltaCell(
+        formatDelta(row.delta.plansStarted),
+        formatDeltaPct(row.delta.plansStartedPct),
+        deltaDirection(row.delta.plansStarted),
+        "up",
+      );
+      const completedDeltaCell = deltaCell(
+        formatDelta(row.delta.plansCompleted),
+        formatDeltaPct(row.delta.plansCompletedPct),
+        deltaDirection(row.delta.plansCompleted),
+        "up",
+      );
+      const medianDeltaCell = deltaCell(
+        row.delta.medianDaysToCompletion === null
+          ? "—"
+          : formatDelta(row.delta.medianDaysToCompletion, " days"),
+        "",
+        deltaDirection(row.delta.medianDaysToCompletion),
+        "down",
+      );
+      return `
+      <tr>
+        <td>${escapeHtml(titleCaseCountry(row.country))}</td>
+        <td class="num">${row.rangeA.plansStarted.toLocaleString()}</td>
+        <td class="num">${row.rangeB.plansStarted.toLocaleString()}</td>
+        ${startedDeltaCell}
+        <td class="num">${row.rangeA.plansCompleted.toLocaleString()}</td>
+        <td class="num">${row.rangeB.plansCompleted.toLocaleString()}</td>
+        ${completedDeltaCell}
+        <td class="num">${escapeHtml(medianACell)}</td>
+        <td class="num">${escapeHtml(medianBCell)}</td>
+        ${medianDeltaCell}
+      </tr>`;
+    })
+    .join("");
+
+  const byCountryComparisonHtml = comparison.byCountry.length
+    ? `
+  <h3 class="comparison-country-heading">By country</h3>
+  <p class="meta">
+    Which countries drove the change. Sorted by absolute change in plans
+    started; countries with no activity in either range are omitted.
+  </p>
+  <table class="comparison comparison-country">
+    <thead>
+      <tr>
+        <th rowspan="2">Country</th>
+        <th class="num" colspan="3">Plans started</th>
+        <th class="num" colspan="3">Reached 100%</th>
+        <th class="num" colspan="3">Median time-to-100%</th>
+      </tr>
+      <tr>
+        <th class="num sub">A</th>
+        <th class="num sub">B</th>
+        <th class="num sub">Δ</th>
+        <th class="num sub">A</th>
+        <th class="num sub">B</th>
+        <th class="num sub">Δ</th>
+        <th class="num sub">A</th>
+        <th class="num sub">B</th>
+        <th class="num sub">Δ</th>
+      </tr>
+    </thead>
+    <tbody>${countryRowsHtml}</tbody>
+  </table>`
+    : `
+  <h3 class="comparison-country-heading">By country</h3>
+  <p class="meta empty">No country had any plans started in either range.</p>`;
+
   return `
   <h2>Range comparison</h2>
   <p class="meta">
     Range A: <strong>${escapeHtml(labelA)}</strong> ·
     Range B (baseline): <strong>${escapeHtml(labelB)}</strong>.
     Plans are bucketed by start date; delta is Range A − Range B.
+    <a href="${escapeHtml(comparisonCsvHref)}">Download CSV</a>
   </p>
   <table class="comparison">
     <thead>
@@ -1007,6 +1259,7 @@ function renderComparisonSection(data: PlannerAnalyticsResult): string {
       </tr>
     </tbody>
   </table>
+  ${byCountryComparisonHtml}
   ${formHtml}`;
 }
 
@@ -1407,6 +1660,11 @@ export function renderPlannerAnalyticsHtml(
     table.comparison .delta-good .delta-abs { color: #137333; }
     table.comparison .delta-bad .delta-abs { color: #b3261e; }
     table.comparison .delta-neutral .delta-abs { color: #555; }
+    .comparison-country-heading { margin: 24px 0 8px; font-size: 13px; }
+    table.comparison-country th.sub {
+      font-weight: 500; font-size: 11px; color: #777;
+    }
+    table.comparison-country .delta .delta-abs { font-size: 13px; }
     .range-form {
       background: #fff; border: 1px solid #e5e5e5; border-radius: 10px;
       padding: 16px 20px; margin-top: 12px;
@@ -1696,6 +1954,84 @@ export function renderPlannerAnalyticsCsv(data: PlannerAnalyticsResult): string 
   return sections.map((s) => s.join("\r\n")).join("\r\n\r\n") + "\r\n";
 }
 
+// Comparison-only CSV mirroring the on-page "Range comparison" table: one
+// row per metric (plans started, reached 100%, % reaching 100%, median
+// time-to-100%) with Range A, Range B, the absolute delta (A − B) and the
+// percentage delta (vs. Range B as the baseline). Lets admins paste the
+// side-by-side numbers straight into a deck or spreadsheet without doing
+// the math by hand. Only meaningful when both ranges are supplied; the
+// route guards against a null comparison, but we degrade gracefully here
+// by emitting a header-only file with a note.
+export function renderRangeComparisonCsv(data: PlannerAnalyticsResult): string {
+  const { comparison, filter } = data;
+
+  const headerLines: string[] = ["# Planner range comparison"];
+  if (comparison) {
+    headerLines.push(
+      `# Range A: ${comparison.rangeA.start}..${comparison.rangeA.end}`,
+    );
+    headerLines.push(
+      `# Range B (baseline): ${comparison.rangeB.start}..${comparison.rangeB.end}`,
+    );
+  }
+  if (filter.country) {
+    headerLines.push(`# Filter: country=${filter.country}`);
+  }
+  headerLines.push(`# Generated: ${data.generatedAt}`);
+
+  if (!comparison) {
+    headerLines.push("# No comparison: supply both rangeA and rangeB");
+    return headerLines.join("\r\n") + "\r\n";
+  }
+
+  const { rangeA, rangeB, delta } = comparison;
+  // delta_pct uses Range B as the baseline. For % reaching 100% the delta
+  // is already expressed in percentage points, so the delta_pct cell is
+  // intentionally left blank (matching the HTML table, which shows no
+  // percentage there).
+  const rows: string[] = ["metric,range_a,range_b,delta,delta_pct"];
+  rows.push(
+    [
+      "plans_started",
+      rangeA.plansStarted,
+      rangeB.plansStarted,
+      delta.plansStarted,
+      fmtCsvNumber(delta.plansStartedPct),
+    ].join(","),
+  );
+  rows.push(
+    [
+      "reached_100",
+      rangeA.plansCompleted,
+      rangeB.plansCompleted,
+      delta.plansCompleted,
+      fmtCsvNumber(delta.plansCompletedPct),
+    ].join(","),
+  );
+  rows.push(
+    [
+      "pct_reaching_100",
+      fmtCsvNumber(rangeA.completionRatePct),
+      fmtCsvNumber(rangeB.completionRatePct),
+      fmtCsvNumber(delta.completionRatePctPoints),
+      "",
+    ].join(","),
+  );
+  rows.push(
+    [
+      "median_days_to_completion",
+      fmtCsvNumber(rangeA.medianDaysToCompletion),
+      fmtCsvNumber(rangeB.medianDaysToCompletion),
+      fmtCsvNumber(delta.medianDaysToCompletion),
+      fmtCsvNumber(delta.medianDaysToCompletionPct),
+    ].join(","),
+  );
+
+  return (
+    [headerLines.join("\r\n"), rows.join("\r\n")].join("\r\n\r\n") + "\r\n"
+  );
+}
+
 export function renderAdminIndexHtml(): string {
   return `<!doctype html>
 <html lang="en">
@@ -1760,16 +2096,19 @@ export function renderAdminIndexHtml(): string {
         Per-brief <code>lastReviewedAt</code> age, with stale (&gt;90 days)
         and approaching-stale (&gt;60 days) badges so the team can refresh
         figures before the next App Store release. Mirrors the scheduled
-        quarterly GitHub Action in
+        weekly GitHub Action in
         <code>.github/workflows/freshness-check.yml</code>. JSON at
-        <code>/api/admin/brief-freshness</code>.
+        <code>/api/admin/brief-freshness</code> ·
+        <a href="/admin/brief-freshness.csv">Download CSV</a>.
       </div>
     </li>
     <li>
-      <a href="/api/admin/ab-results">A/B test results (JSON)</a>
+      <a href="/admin/ab-results">A/B test results</a>
       <div class="desc">
-        Variant-level visitors, conversions, day-0 / day-60 revenue and ARPU
-        for the paid-intro and annual-price tests.
+        Per-test table of variant-level visitors, conversions, conversion
+        rate, day-0 / day-60 revenue and ARPU for the annual-price test.
+        JSON at <code>/api/admin/ab-results</code> ·
+        <a href="/admin/ab-results.csv">Download CSV</a>.
       </div>
     </li>
     <li>
@@ -1889,6 +2228,49 @@ export function registerPlannerAnalyticsRoutes(
     } catch (err: any) {
       console.error("Planner analytics CSV error:", err?.message);
       res.status(500).type("text/plain").send("Failed to compute planner analytics");
+    } finally {
+      await pool.end();
+    }
+  });
+
+  app.get("/admin/planner-analytics-comparison.csv", async (req, res) => {
+    if (!deps.requireAdminBasicAuth(req, res)) return;
+    const pool = deps.getPool();
+    if (!pool) {
+      res.status(503).type("text/plain").send("Database not configured");
+      return;
+    }
+    try {
+      const data = await computePlannerAnalytics(
+        pool,
+        readPlannerAnalyticsOptions(req),
+      );
+      if (!data.comparison) {
+        res
+          .status(400)
+          .type("text/plain")
+          .send(
+            "Both rangeA and rangeB are required for the comparison CSV " +
+              "(e.g. ?rangeA=YYYY-MM-DD..YYYY-MM-DD&rangeB=YYYY-MM-DD..YYYY-MM-DD)",
+          );
+        return;
+      }
+      const csv = renderRangeComparisonCsv(data);
+      const filenameSuffix = data.filter.country
+        ? `-${data.filter.country.replace(/[^a-z0-9-]+/gi, "-")}`
+        : "";
+      res.type("text/csv; charset=utf-8");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="planner-analytics-comparison${filenameSuffix}.csv"`,
+      );
+      res.send(csv);
+    } catch (err: any) {
+      console.error("Planner comparison CSV error:", err?.message);
+      res
+        .status(500)
+        .type("text/plain")
+        .send("Failed to compute planner analytics");
     } finally {
       await pool.end();
     }

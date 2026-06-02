@@ -466,6 +466,7 @@ export function renderAuthPromptAnalyticsHtml(
   data: AuthPromptAnalytics,
   banner: BackfillBanner | null = null,
   backfillRuns: BackfillRunRecord[] = [],
+  freshness: BackfillFreshness | null = null,
 ): string {
   const { totals, byEntryPoint, windowDays, weekly } = data;
   const entryPointRows = byEntryPoint.length
@@ -516,7 +517,8 @@ export function renderAuthPromptAnalyticsHtml(
   <div class="nav"><a href="/admin">← Admin tools</a></div>
   <h1>Auth-prompt (signup nudge) analytics</h1>
   ${bannerHtml}
-  ${renderBackfillHistory(backfillRuns)}
+  ${renderBackfillStaleWarning(freshness)}
+  ${renderBackfillHistory(backfillRuns, freshness)}
   <details style="margin:12px 0 16px;background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:10px 14px;">
     <summary style="cursor:pointer;font-weight:600;">Backfill from PostHog</summary>
     <p style="color:#555;font-size:13px;margin-top:8px">
@@ -895,7 +897,107 @@ export async function getRecentAuthPromptBackfillRuns(
   });
 }
 
-function renderBackfillHistory(runs: BackfillRunRecord[]): string {
+// ── Backfill freshness (task #127) ────────────────────────────────────────
+//
+// Task #106 surfaced *when* the auth-prompt table was last reconciled. This
+// adds an active staleness signal: if the newest run in
+// `auth_prompt_backfill_runs` is older than a configurable threshold (default
+// 14 days) the scheduled self-heal is probably broken and someone should look.
+// The analytics health probe folds `stale` into its red/green state so the
+// existing uptime alert fires, and the dashboard panel shows a warning.
+
+export const DEFAULT_AUTH_PROMPT_BACKFILL_STALE_AFTER_DAYS = 14;
+
+export function getAuthPromptBackfillStaleThresholdDays(): number {
+  const raw = process.env.AUTH_PROMPT_BACKFILL_STALE_AFTER_DAYS;
+  if (raw == null || raw.trim() === "") {
+    return DEFAULT_AUTH_PROMPT_BACKFILL_STALE_AFTER_DAYS;
+  }
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) {
+    return DEFAULT_AUTH_PROMPT_BACKFILL_STALE_AFTER_DAYS;
+  }
+  return n;
+}
+
+export interface BackfillFreshness {
+  // false when the table has no rows yet (never reconciled). A fresh deploy
+  // starts here until the scheduler's first run lands ~60s after boot, so we
+  // deliberately do NOT treat the empty state as stale to avoid paging on
+  // every deploy/restart.
+  hasRun: boolean;
+  lastRanAt: string | null;
+  ageMs: number | null;
+  ageDays: number | null;
+  thresholdDays: number;
+  // true only when there is a run AND it is older than the threshold.
+  stale: boolean;
+}
+
+export function computeBackfillFreshness(
+  latestRanAt: string | null,
+  now: Date,
+  thresholdDays: number,
+): BackfillFreshness {
+  const threshold =
+    thresholdDays > 0
+      ? thresholdDays
+      : DEFAULT_AUTH_PROMPT_BACKFILL_STALE_AFTER_DAYS;
+  const ranMs = latestRanAt ? new Date(latestRanAt).getTime() : NaN;
+  if (!latestRanAt || !Number.isFinite(ranMs)) {
+    return {
+      hasRun: false,
+      lastRanAt: null,
+      ageMs: null,
+      ageDays: null,
+      thresholdDays: threshold,
+      stale: false,
+    };
+  }
+  const ageMs = Math.max(0, now.getTime() - ranMs);
+  const ageDays = ageMs / (24 * 60 * 60 * 1000);
+  return {
+    hasRun: true,
+    lastRanAt: latestRanAt,
+    ageMs,
+    ageDays,
+    thresholdDays: threshold,
+    stale: ageDays > threshold,
+  };
+}
+
+export async function getAuthPromptBackfillFreshness(
+  pool: pg.Pool,
+  opts: { now?: () => Date; thresholdDays?: number } = {},
+): Promise<BackfillFreshness> {
+  const now = opts.now ?? (() => new Date());
+  const thresholdDays =
+    opts.thresholdDays ?? getAuthPromptBackfillStaleThresholdDays();
+  const runs = await getRecentAuthPromptBackfillRuns(pool, 1);
+  const latest = runs.length > 0 ? runs[0].ranAt : null;
+  return computeBackfillFreshness(latest, now(), thresholdDays);
+}
+
+function renderBackfillStaleWarning(
+  freshness: BackfillFreshness | null,
+): string {
+  if (!freshness || !freshness.stale) return "";
+  const age =
+    freshness.ageDays != null ? freshness.ageDays.toFixed(1) : "unknown";
+  return `
+  <div style="background:#fdecea;border:1px solid #f5c2bd;color:#8a1c10;border-radius:10px;padding:12px 14px;margin:12px 0;font-size:13px;">
+    <strong>Backfill is stale.</strong> The last PostHog reconciliation ran
+    <strong>${escapeHtml(age)}</strong> days ago, beyond the
+    <strong>${escapeHtml(String(freshness.thresholdDays))}</strong>-day
+    threshold. The scheduled self-heal may be broken — check the workflow log
+    and PostHog credentials.
+  </div>`;
+}
+
+function renderBackfillHistory(
+  runs: BackfillRunRecord[],
+  freshness: BackfillFreshness | null = null,
+): string {
   if (runs.length === 0) {
     return `
   <div style="background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:12px 14px;margin:12px 0;color:#555;font-size:13px;">
@@ -1099,8 +1201,14 @@ export function registerAuthPromptAnalyticsRoutes(
       // A failure here should not break the dashboard — degrade to an
       // empty list so the rest of the page still renders.
       let recentRuns: BackfillRunRecord[] = [];
+      let freshness: BackfillFreshness | null = null;
       try {
         recentRuns = await getRecentAuthPromptBackfillRuns(pool, 5);
+        freshness = computeBackfillFreshness(
+          recentRuns.length > 0 ? recentRuns[0].ranAt : null,
+          new Date(),
+          getAuthPromptBackfillStaleThresholdDays(),
+        );
       } catch (runsErr: any) {
         console.error(
           "Failed to load auth-prompt backfill run history:",
@@ -1109,7 +1217,7 @@ export function registerAuthPromptAnalyticsRoutes(
       }
       res
         .type("text/html")
-        .send(renderAuthPromptAnalyticsHtml(data, banner, recentRuns));
+        .send(renderAuthPromptAnalyticsHtml(data, banner, recentRuns, freshness));
     } catch (err: any) {
       console.error("Auth-prompt analytics HTML error:", err?.message);
       res

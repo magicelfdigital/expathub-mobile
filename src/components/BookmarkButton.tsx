@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { Component, useCallback, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Platform, Pressable, View } from "react-native";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useBookmarks } from "@/contexts/BookmarkContext";
@@ -56,8 +56,17 @@ function BookmarkButtonInner({ countrySlug, size = 22 }: Props) {
     }
   }, [user, canBookmark, bookmarkCount, countrySlug, toggleBookmark, router]);
 
+  // On web, claim the responder so a click on the bookmark does not bubble up
+  // to a parent row Pressable (which would navigate away). On native this hijack
+  // is unnecessary — the inner Pressable already becomes the touch responder, so
+  // the parent does not fire — and it actively interferes with the touch system
+  // when this button is nested inside a row Pressable, causing dropped taps and a
+  // wedged "no taps register" state after repeated navigation.
+  const claimResponder =
+    Platform.OS === "web" ? (() => true) : undefined;
+
   return (
-    <View onStartShouldSetResponder={() => true}>
+    <View onStartShouldSetResponder={claimResponder}>
       <Pressable
         onPress={handlePress}
         hitSlop={10}

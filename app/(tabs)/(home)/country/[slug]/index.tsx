@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import React, { useEffect } from "react";
 import { Platform, Pressable, ScrollView, Text, View } from "react-native";
 
@@ -83,13 +83,21 @@ function CoverageRow({ label, status }: { label: string; status: "decision-ready
 
 export default function CountryDetailScreen() {
   const router = useRouter();
+  const { slug } = useLocalSearchParams<{ slug?: string }>();
   const { selectedCountrySlug } = useCountry();
-  const { hasActiveSubscription, hasFullAccess, accessType } = useSubscription();
+  const { hasActiveSubscription, hasFullAccess } = useSubscription();
   const { activeCountrySlug: planCountrySlug, startPlan } = usePlan();
   const { recordView } = useContinue();
   const { isTablet } = useLayout();
 
-  const countrySlug = selectedCountrySlug ?? "";
+  // Prefer the route's [slug] param (the country the user actually tapped) and
+  // fall back to the persisted context selection. Reading the param keeps this
+  // screen consistent with its sub-screens and works even when an entry point
+  // (e.g. the result screen's top-match card) navigates without first setting
+  // the CountryContext — otherwise a launch country like Canada would render as
+  // "Coming Soon" because the slug was stale or empty.
+  const urlSlug = typeof slug === "string" ? slug : undefined;
+  const countrySlug = urlSlug || selectedCountrySlug || "";
 
   useEffect(() => {
     if (countrySlug) {
@@ -152,14 +160,7 @@ export default function CountryDetailScreen() {
           <WorksheetDeltaBanner delta={activeDelta} onDismiss={dismissDelta} />
         ) : null}
 
-        {hasAccess && accessType === "subscription" ? (
-          <View style={styles.accessBanner}>
-            <Ionicons name="checkmark-circle" size={16} color={tokens.color.primary} />
-            <Text style={styles.accessBannerText}>
-              Subscription active — full access to all countries
-            </Text>
-          </View>
-        ) : !hasAccess && isLaunch ? (
+        {!hasAccess && isLaunch ? (
           <Pressable
             style={({ pressed }) => [styles.unlockBanner, pressed && styles.cardPressed]}
             onPress={() => router.push({ pathname: "/subscribe" as any, params: { country: countrySlug } })}
@@ -351,24 +352,6 @@ const styles = {
     lineHeight: 15,
   },
 
-  accessBanner: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 8,
-    paddingHorizontal: tokens.space.lg,
-    paddingVertical: tokens.space.md,
-    borderRadius: tokens.radius.lg,
-    backgroundColor: tokens.color.primarySoft,
-    borderWidth: 1,
-    borderColor: tokens.color.primaryBorder,
-  },
-
-  accessBannerText: {
-    fontSize: tokens.text.small,
-    fontWeight: tokens.weight.bold,
-    fontFamily: tokens.font.bodyBold,
-    color: tokens.color.primary,
-  },
 
   unlockBanner: {
     flexDirection: "row" as const,

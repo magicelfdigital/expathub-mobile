@@ -15,6 +15,7 @@
     "lint": "npx expo lint",
     "lint:fix": "npx expo lint --fix",
     "test": "jest",
+    "test:scripts": "node --test scripts/monitoring/__tests__/*.test.mjs",
     "test:all": "node scripts/run-all-tests.mjs",
     "typecheck": "tsc --noEmit",
     "typecheck:tests": "tsc -p tsconfig.tests.json --noEmit"

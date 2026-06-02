@@ -1,0 +1,10 @@
+{
+  "windowMinutes": 15,
+  "absoluteThreshold": 10,
+  "ratioThreshold": 0.02,
+  "ratioMinAttempts": 20,
+  "timeoutMs": 20000,
+  "failedEvent": "billing_pre_check_failed",
+  "attemptEvent": "restore_tapped",
+  "description": "Thresholds for the production restore pre-check alert. The monitor queries PostHog (HogQL) for the count of `billing_pre_check_failed` events in the trailing windowMinutes and the count of `restore_tapped` events (restore attempts) over the same window. It alerts when EITHER the failure count exceeds absoluteThreshold OR the failure-to-attempt ratio exceeds ratioThreshold (the ratio check is only evaluated once at least ratioMinAttempts restore attempts have occurred, so a single failure during a quiet window does not page anyone). `billing_pre_check_failed` fires from BillingOrchestrator.restore() when both backend entitlement pre-check attempts throw, which means a sustained backend outage is silently slowing every restore. See scripts/monitoring/README.md."
+}

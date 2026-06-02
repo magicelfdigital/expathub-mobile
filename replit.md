@@ -6,7 +6,7 @@ ExpatHub is a mobile-first application helping people plan and execute internati
 
 **Company:** MagicElfDigital LLC
 **Support:** support@expathub.website
-**Current version:** 1.5.0
+**Current version:** 1.5.1
 
 ---
 
@@ -64,6 +64,9 @@ Preferred communication style: Simple, everyday language.
   - `/admin/quiz-save-analytics` (HTML) and `/api/admin/quiz-save-analytics` (JSON) — impressions / submissions / dismissals / recovery rate for the save-your-progress modal, split by surface (web vs mobile), with 8-week chart. Configurable via `?days=N` (default 30, clamped 1–365).
   - `/admin/brief-freshness` (HTML) and `/api/admin/brief-freshness` (JSON) — per-brief `lastReviewedAt` age with stale (>90 days) and approaching-stale (>60 days) badges. Backed by `server/briefFreshness.ts`, which parses `src/data/decisionBriefs.ts` statically.
   - `/api/admin/ab-results` (JSON) — A/B test variant performance
+- **Ops health probes:** Unauthenticated `/api/_internal/*-health` endpoints (200 healthy / 503 unhealthy) polled by scheduled GitHub Actions that open a single standing GitHub issue per outage:
+  - `/api/_internal/analytics-health` — in-process counter of `$identify` events missing `$anon_distinct_id` (PostHog stitching). Polled every 15 min.
+  - `/api/_internal/quiz-save-prompt-health` — guards the post-result "save your progress" modal. DB-backed: compares the most recent complete day's `quiz_save_shown` (placement `result_screen`) count in `quiz_save_events` against the trailing 7-day median, returning 503 when it drops to zero or below the median floor. Polled hourly. Logic + tunable thresholds (`QUIZ_SAVE_PROMPT_HEALTH_CONFIG`) live in `server/quizSavePromptHealth.ts`.
 
 ### Web Frontend (`web/`)
 
@@ -280,7 +283,7 @@ When writing or modifying code, always observe these constraints:
 | `npm run server:dev` | Start Express backend | 5000 |
 
 **Build pipeline:** EAS Build + EAS Submit
-**Current build:** 107 (v1.5.0)
+**Current build:** 108 (v1.5.1)
 **iOS:** Live in App Store
 
 ---
@@ -292,7 +295,8 @@ When writing or modifying code, always observe these constraints:
 - **Web e2e (Playwright):** `tests/e2e/locked-section.spec.ts` targets the React+Vite SPA at port 5000 — run with `PLAYWRIGHT_BASE_URL=http://localhost:5000 npx playwright test`. `tests/e2e/worksheet-signup-submit.spec.ts` covers the anonymous → register → fill in → submit worksheet flow against the Expo web build at port 8081 — run with `PLAYWRIGHT_EXPO_BASE_URL=http://localhost:8081 npx playwright test tests/e2e/worksheet-signup-submit.spec.ts`. Config in `playwright.config.ts`.
 - **CI:** Meta Pixel event verification checklist with CI check.
 - **CI gates (GitHub Actions, `.github/workflows/`):**
-  - `jest.yml` — runs `npx jest --ci` on every push and PR. Covers the full Jest suite.
+  - `jest.yml` — runs `npx jest --ci` on every push and PR (covers the full Jest suite), then `npm run test:scripts` which runs the `node:test` suite for the `.mjs` monitoring scripts (`scripts/monitoring/__tests__/*.test.mjs`). The script tests cover the release-gate helpers (`getGateThresholdDays`, `findReleaseBlockingBriefs`) in `scripts/monitoring/freshness-check.mjs`. The same `test:scripts` step also runs as a phase in the `npm run test:all` one-command runner.
+  - `brief-freshness-gate.yml` — runs `node scripts/monitoring/freshness-check.mjs --gate` on every push and PR. Hard-fails CI when any Decision Brief's `lastReviewedAt` is older than the release threshold (default 180 days, "over 6 months"). The threshold is configurable via the `BRIEF_FRESHNESS_GATE_DAYS` env var (set it in the workflow's job `env` block). The soft 60-day / 90-day tiers (reported by `freshness-check.yml`'s weekly standing issue) remain non-blocking — only crossing the gate threshold fails CI.
   - `playwright.yml` — runs two jobs on every push and PR:
     - `conversion-lifts` — builds the web SPA, boots the Express server on port 5000, waits for `/` to respond, then runs the v1.5 conversion-lift Playwright spec (`tests/e2e/locked-section.spec.ts`). Failures upload `server.log` and `playwright-report` as artifacts.
     - `worksheet-signup` — boots the Expo web dev server on port 8081 (`npx expo start --web --port 8081`), waits for the bundle to be ready, then runs `tests/e2e/worksheet-signup-submit.spec.ts` with `PLAYWRIGHT_EXPO_BASE_URL=http://localhost:8081`. Failures upload `expo.log` and `playwright-report-worksheet` as artifacts.
