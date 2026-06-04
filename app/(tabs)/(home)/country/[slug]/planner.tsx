@@ -8,6 +8,7 @@ import React, {
   useState,
 } from "react";
 import {
+  ActivityIndicator,
   type DimensionValue,
   LayoutChangeEvent,
   Platform,
@@ -344,8 +345,18 @@ export default function PlannerScreen() {
   const router = useRouter();
   const { slug } = useLocalSearchParams<{ slug?: string }>();
   const { selectedCountrySlug } = useCountry();
-  const { hasActiveSubscription, hasFullAccess } = useSubscription();
-  const { activeCountrySlug: planCountrySlug, activePathwayId, startPlan } = usePlan();
+  const {
+    hasActiveSubscription,
+    hasFullAccess,
+    loading: subscriptionLoading,
+    lastRefreshAt,
+  } = useSubscription();
+  const {
+    activeCountrySlug: planCountrySlug,
+    activePathwayId,
+    startPlan,
+    isLoaded: planLoaded,
+  } = usePlan();
   const { quizResult } = useOnboarding();
   const { bookmarkCount } = useBookmarks();
 
@@ -498,6 +509,30 @@ export default function PlannerScreen() {
     });
   }, [router, countrySlug]);
 
+  // Hold a calm neutral state until the async sources that decide which body
+  // to render have settled. Without this gate the screen visibly flashes
+  // through up to three different layouts on entry: while the entitlement
+  // check is still loading isPaidUser is false (free/locked preview), then it
+  // resolves to true (start-a-plan focus card), then the saved plan finishes
+  // hydrating from AsyncStorage (planCountrySlug) and the real tracker
+  // appears. We also wait for the first progress fetch when a plan exists so
+  // the step count does not jump from 0% to its real value.
+  const entitlementResolved = !subscriptionLoading || lastRefreshAt != null;
+  const screenReady =
+    entitlementResolved &&
+    planLoaded &&
+    (!hasPlanForThisCountry || !progressLoading);
+
+  if (!screenReady) {
+    return (
+      <Screen>
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator color={tokens.color.primary} />
+        </View>
+      </Screen>
+    );
+  }
+
   return (
     <Screen>
       <View style={{ flex: 1 }} onLayout={onLayout}>
@@ -649,6 +684,12 @@ export default function PlannerScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.color.bg },
+  loadingWrap: {
+    flex: 1,
+    backgroundColor: tokens.color.bg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   content: {
     padding: tokens.space.xl,
     paddingBottom: tokens.space.xxl,

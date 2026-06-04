@@ -88,8 +88,6 @@ function HeaderBackground() {
 }
 
 function PathfinderBadge() {
-  const { hasProAccess } = useEntitlement();
-  if (hasProAccess) return null;
   return (
     <Text
       style={{
@@ -104,18 +102,26 @@ function PathfinderBadge() {
 }
 
 export default function CountrySlugLayout() {
-  const { hasProAccess } = useEntitlement();
+  const { hasProAccess, loading } = useEntitlement();
 
-  // Only attach a headerRight when there is something to show. For subscribers
-  // PathfinderBadge renders nothing, but passing a headerRight that returns null
-  // still makes the native iOS stack allocate an empty header button — which
-  // modern iOS draws as a blank circular background in the top-right corner.
-  // Leaving headerRight undefined avoids that empty white circle.
+  // A native-stack headerRight that resolves to null still makes modern iOS
+  // allocate an empty header button, which renders as a blank circular
+  // background in the top-right corner. Entitlement loads asynchronously and
+  // starts as "not pro", so gating headerRight on hasProAccess alone mounts the
+  // badge on the first render and then tries to clear it to undefined once
+  // access resolves. Native-stack does not reliably drop a headerRight that
+  // flips back to undefined, so the empty circle lingers for subscribers.
+  //
+  // Instead, only attach headerRight once entitlement has resolved AND the user
+  // is not a subscriber. Subscribers never get a headerRight (so never a
+  // circle), and when the badge is shown it always renders visible text, never
+  // null.
+  const showPathfinderBadge = !loading && !hasProAccess;
   const detailScreenOptions = {
     title: "",
     headerBackTitle: "",
     headerLeft: () => <CountryBackButton />,
-    headerRight: hasProAccess ? undefined : () => <PathfinderBadge />,
+    headerRight: showPathfinderBadge ? () => <PathfinderBadge /> : undefined,
     headerRightContainerStyle: { paddingRight: 12, backgroundColor: "transparent" },
   };
 
