@@ -53,9 +53,8 @@ function jsonResponse(body: unknown, status = 200): Response {
  * Each request to a worksheet endpoint triggers two upstream calls:
  *   1. /api/auth/me           → resolves the user id from the bearer token
  *   2. /api/entitlements      → checked by hasActiveEntitlement
- * We return 401 for entitlements so the route falls through to the
- * reverse-trial check, which finds no row and reports the user as
- * non-entitled.
+ * We return 401 for entitlements so hasActiveEntitlement reports the
+ * user as non-entitled.
  */
 function stubFreeUser(userId: string) {
   fetchMock.mockImplementation(async (url: string) => {
@@ -71,16 +70,13 @@ function stubFreeUser(userId: string) {
 
 /**
  * Default pool.query handler. Returns []/{} for ensure-table and seed
- * statements, an empty reverse-trial lookup, and delegates the
- * user_worksheet_responses SELECT to the per-test override.
+ * statements and delegates the user_worksheet_responses SELECT to the
+ * per-test override.
  */
 function setPoolQueryHandler(priorWorksheetIds: string[]) {
   queryMock.mockImplementation(async (text: string) => {
     if (/SELECT worksheet_id FROM user_worksheet_responses/i.test(text)) {
       return { rows: priorWorksheetIds.map((id) => ({ worksheet_id: id })) };
-    }
-    if (/SELECT started_at FROM user_reverse_trials/i.test(text)) {
-      return { rows: [] };
     }
     // CREATE TABLE / CREATE INDEX / INSERT seed → noop.
     return { rows: [] };

@@ -79,12 +79,8 @@ to measure all of it.
 ### Conversion lifts
 - **Web LockedSection blur previews** — masked Pro content with a lock
   overlay and CTA.
-- **48h reverse trial (mobile)** — temporary full access on dismiss,
-  managed via `EntitlementContext` + AsyncStorage; expiry triggers a modal.
 - **Personalized paywall** — pulls prices from RevenueCat + the user's top
   country and name from AsyncStorage.
-- **Exit offer (50% off × 3 months)** — backend eligibility check, applied
-  via Stripe; surfaced in both the web and mobile cancellation flows.
 
 ### Planner layer
 - 10-step generic relocation planner per launch country, paid-tier only.
@@ -133,8 +129,8 @@ to measure all of it.
   `plannerCompletion`, `quiz` readiness labels, analytics listener.
 - Server-side tests for planner analytics, quiz-save analytics,
   analytics route persistence.
-- Web e2e Playwright specs for LockedSection, cancellation exit offer,
-  quiz save modal, visitor-id join.
+- Web e2e Playwright specs for LockedSection, quiz save modal,
+  visitor-id join.
 - Total: **391 tests / 33 suites** green.
 
 ### Infra

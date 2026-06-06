@@ -3132,10 +3132,11 @@ function renderAdminIndexHtml() {
       </div>
     </li>
     <li>
-      <a href="/api/admin/ab-results">A/B test results (JSON)</a>
+      <a href="/admin/ab-results">A/B test results</a>
       <div class="desc">
-        Variant-level visitors, conversions, day-0 / day-60 revenue and ARPU
-        for the paid-intro and annual-price tests.
+        Per-test table of variant-level visitors, conversions, conversion
+        rate, day-0 / day-60 revenue and ARPU for the annual-price test.
+        JSON at <code>/api/admin/ab-results</code> \xB7
         <a href="/admin/ab-results.csv">Download CSV</a>.
       </div>
     </li>
@@ -4135,6 +4136,106 @@ import { resolve } from "node:path";
 var WARN_THRESHOLD_DAYS = 60;
 var STALE_THRESHOLD_DAYS = 90;
 
+// src/data/extractBriefs.mjs
+function extractBriefs(source) {
+  const arrayStart = source.indexOf("const BRIEFS");
+  if (arrayStart < 0) return [];
+  const eqIdx = source.indexOf("=", arrayStart);
+  if (eqIdx < 0) return [];
+  const openBracket = source.indexOf("[", eqIdx);
+  if (openBracket < 0) return [];
+  const fieldRe = /([A-Za-z_$][\w$]*)\s*:\s*"((?:[^"\\]|\\.)*)"/y;
+  const briefs = [];
+  let depth = 0;
+  let current = null;
+  let inString = false;
+  let stringChar = "";
+  let escaped = false;
+  let inLineComment = false;
+  let inBlockComment = false;
+  for (let i = openBracket; i < source.length; i++) {
+    const c = source[i];
+    const next = source[i + 1];
+    if (inLineComment) {
+      if (c === "\n") inLineComment = false;
+      continue;
+    }
+    if (inBlockComment) {
+      if (c === "*" && next === "/") {
+        inBlockComment = false;
+        i++;
+      }
+      continue;
+    }
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (c === "\\") {
+        escaped = true;
+      } else if (c === stringChar) {
+        inString = false;
+      }
+      continue;
+    }
+    if (c === "/" && next === "/") {
+      inLineComment = true;
+      i++;
+      continue;
+    }
+    if (c === "/" && next === "*") {
+      inBlockComment = true;
+      i++;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`") {
+      inString = true;
+      stringChar = c;
+      continue;
+    }
+    if (c === "{" || c === "[" || c === "(") {
+      depth++;
+      if (depth === 2 && c === "{") {
+        current = {
+          id: null,
+          countrySlug: null,
+          pathwayKey: null,
+          lastReviewedAt: null
+        };
+      }
+      continue;
+    }
+    if (c === "}" || c === "]" || c === ")") {
+      if (depth === 2 && c === "}") {
+        if (current && current.id !== null && current.lastReviewedAt !== null) {
+          briefs.push(current);
+        }
+        current = null;
+      }
+      depth--;
+      if (depth === 0) break;
+      continue;
+    }
+    if (depth === 2 && current) {
+      fieldRe.lastIndex = i;
+      const m = fieldRe.exec(source);
+      if (m) {
+        const key = m[1];
+        const value = m[2];
+        if (key === "id" && current.id === null) current.id = value;
+        else if (key === "countrySlug" && current.countrySlug === null)
+          current.countrySlug = value;
+        else if (key === "pathwayKey" && current.pathwayKey === null)
+          current.pathwayKey = value;
+        else if (key === "lastReviewedAt" && current.lastReviewedAt === null)
+          current.lastReviewedAt = value;
+        i = fieldRe.lastIndex - 1;
+        continue;
+      }
+    }
+  }
+  return briefs;
+}
+
 // server/briefFreshness.ts
 var BRIEFS_PATH = resolve(process.cwd(), "src", "data", "decisionBriefs.ts");
 function daysSince(iso) {
@@ -4147,30 +4248,6 @@ function classify(days) {
   if (days > STALE_THRESHOLD_DAYS) return "stale";
   if (days > WARN_THRESHOLD_DAYS) return "warn";
   return "fresh";
-}
-function extractBriefs(source) {
-  const arrayStart = source.indexOf("const BRIEFS");
-  const body = arrayStart >= 0 ? source.slice(arrayStart) : source;
-  const idRe = /\bid:\s*"([^"]+)"/g;
-  const ids = [...body.matchAll(idRe)];
-  const entries = [];
-  for (let i = 0; i < ids.length; i++) {
-    const idMatch = ids[i];
-    const startIdx = idMatch.index ?? 0;
-    const endIdx = i + 1 < ids.length ? ids[i + 1].index ?? body.length : body.length;
-    const block = body.slice(startIdx, endIdx);
-    const reviewMatch = /\blastReviewedAt:\s*"([^"]+)"/.exec(block);
-    const countryMatch = /\bcountrySlug:\s*"([^"]+)"/.exec(block);
-    const pathwayMatch = /\bpathwayKey:\s*"([^"]+)"/.exec(block);
-    if (!reviewMatch) continue;
-    entries.push({
-      id: idMatch[1],
-      countrySlug: countryMatch ? countryMatch[1] : null,
-      pathwayKey: pathwayMatch ? pathwayMatch[1] : null,
-      lastReviewedAt: reviewMatch[1]
-    });
-  }
-  return entries;
 }
 async function buildFreshnessReport() {
   const source = await readFile(BRIEFS_PATH, "utf8");
@@ -4707,9 +4784,29 @@ async function ensureAbTables(pool) {
   `);
   abTablesEnsured = true;
 }
-async function computeAbResults(pool) {
+async function computeAbResults(pool, windowDays) {
   await ensureAbTables(pool);
-  const result = await pool.query(`
+  const windowed = typeof windowDays === "number";
+  const result = windowed ? await pool.query(
+    `
+    SELECT
+      a.test_name,
+      a.variant,
+      COUNT(DISTINCT a.session_id)::int AS visitors,
+      COUNT(DISTINCT CASE WHEN c.converted THEN a.session_id END)::int AS conversions,
+      COALESCE(SUM(c.revenue_day_0), 0)::float  AS revenue_day_0,
+      COALESCE(SUM(c.revenue_day_60), 0)::float AS revenue_day_60
+    FROM ab_test_assignments a
+    LEFT JOIN conversions c
+      ON c.session_id = a.session_id
+     AND c.test_name  = a.test_name
+     AND c.created_at >= NOW() - $1::interval
+    WHERE a.assigned_at >= NOW() - $1::interval
+    GROUP BY a.test_name, a.variant
+    ORDER BY a.test_name, a.variant
+  `,
+    [`${windowDays} days`]
+  ) : await pool.query(`
     SELECT
       a.test_name,
       a.variant,
@@ -4741,7 +4838,11 @@ async function computeAbResults(pool) {
       arpu_day_60: visitors > 0 ? r60 / visitors : 0
     });
   }
-  return { flags: { annual_price_enabled: annualPriceEnabled() }, tests };
+  return {
+    flags: { annual_price_enabled: annualPriceEnabled() },
+    windowDays: windowed ? windowDays : null,
+    tests
+  };
 }
 function abCsvEscape(value) {
   if (value === null || value === void 0) return "";
@@ -4756,10 +4857,12 @@ function abCsvEscape(value) {
 }
 function renderAbResultsCsv(data) {
   const sections = [];
-  sections.push(["# A/B test results"]);
+  const windowNote = data.windowDays === null ? "all time" : `last ${data.windowDays} days`;
+  sections.push([`# A/B test results (${windowNote})`]);
   sections.push([
     "section,key,value",
-    `flags,annual_price_enabled,${data.flags.annual_price_enabled}`
+    `flags,annual_price_enabled,${data.flags.annual_price_enabled}`,
+    `window,days,${data.windowDays === null ? "all" : data.windowDays}`
   ]);
   const variantLines = [
     "section,test,variant,visitors,conversions,conversion_rate,revenue_day_0,revenue_day_60,arpu_day_60"
@@ -4783,6 +4886,92 @@ function renderAbResultsCsv(data) {
   }
   sections.push(variantLines);
   return sections.map((s) => s.join("\n")).join("\n\n") + "\n";
+}
+function abHtmlEscape(value) {
+  if (value === null || value === void 0) return "";
+  return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+function renderAbResultsHtml(data) {
+  const testNames = Object.keys(data.tests);
+  const usd = (n) => `$${n.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}`;
+  const tablesHtml = testNames.length === 0 ? `<p class="empty">No A/B test assignments recorded yet.</p>` : testNames.map((testName) => {
+    const variants = data.tests[testName];
+    const rows = variants.map(
+      (v) => `
+        <tr>
+          <td><code>${abHtmlEscape(v.variant)}</code></td>
+          <td class="num">${v.visitors.toLocaleString()}</td>
+          <td class="num">${v.conversions.toLocaleString()}</td>
+          <td class="num">${(v.conversion_rate * 100).toFixed(2)}%</td>
+          <td class="num">${usd(v.revenue_day_0)}</td>
+          <td class="num">${usd(v.revenue_day_60)}</td>
+          <td class="num">${usd(v.arpu_day_60)}</td>
+        </tr>`
+    ).join("");
+    return `
+    <section class="card">
+      <h2><code>${abHtmlEscape(testName)}</code></h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Variant</th>
+            <th class="num">Visitors</th>
+            <th class="num">Conversions</th>
+            <th class="num">Conv. rate</th>
+            <th class="num">Revenue (day 0)</th>
+            <th class="num">Revenue (day 60)</th>
+            <th class="num">ARPU (day 60)</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </section>`;
+  }).join("");
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>A/B test results \u2014 ExpatHub Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0; padding: 24px; max-width: 960px; color: #111; background: #fafafa;
+    }
+    h1 { margin: 0 0 8px; }
+    a { color: #0a66c2; }
+    .nav { margin: 0 0 16px; color: #555; }
+    .nav a { margin-right: 12px; }
+    .flags { color: #555; margin: 0 0 16px; }
+    .card {
+      background: #fff; border: 1px solid #e5e5e5; border-radius: 10px;
+      padding: 16px; margin-bottom: 16px;
+    }
+    .card h2 { margin: 0 0 12px; font-size: 16px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eee; }
+    th { color: #444; font-weight: 600; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .empty { color: #666; }
+  </style>
+</head>
+<body>
+  <h1>A/B test results</h1>
+  <p class="nav">
+    <a href="/admin">&larr; Admin index</a>
+    <a href="/admin/ab-results.csv">Download CSV</a>
+    <a href="/api/admin/ab-results">JSON</a>
+  </p>
+  <p class="flags">
+    Flags: <code>annual_price_enabled = ${data.flags.annual_price_enabled}</code>
+  </p>
+  ${tablesHtml}
+</body>
+</html>`;
 }
 async function getOrAssignVariants(req, res) {
   const cookies = parseCookies(req);
@@ -4916,13 +5105,109 @@ var identifyMissingAnonIdCount = 0;
 var identifyMissingAnonIdLastAt = null;
 var identifyMissingAnonIdBySurface = {};
 var ANALYTICS_HEALTH_STARTED_AT = (/* @__PURE__ */ new Date()).toISOString();
-function getAnalyticsHealthSnapshot() {
+var ensureIdentifyMissingAnonPromise = null;
+async function ensureIdentifyMissingAnonTable(pool) {
+  if (!ensureIdentifyMissingAnonPromise) {
+    ensureIdentifyMissingAnonPromise = (async () => {
+      await pool.query(
+        `CREATE TABLE IF NOT EXISTS identify_missing_anon_events (
+           id SERIAL PRIMARY KEY,
+           surface VARCHAR(100) NOT NULL,
+           distinct_id VARCHAR(255),
+           created_at TIMESTAMP NOT NULL DEFAULT NOW()
+         )`
+      );
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS identify_missing_anon_events_created_at_idx
+           ON identify_missing_anon_events (created_at)`
+      );
+    })().catch((err) => {
+      ensureIdentifyMissingAnonPromise = null;
+      throw err;
+    });
+  }
+  await ensureIdentifyMissingAnonPromise;
+}
+function detectMissingAnonIdentify(body) {
+  if (!body || typeof body !== "object") return null;
+  if (body.event !== "$identify") return null;
+  const properties = body.properties;
+  const anonId = properties && typeof properties === "object" ? properties.$anon_distinct_id : void 0;
+  if (typeof anonId === "string" && anonId.length > 0) return null;
+  const surfaceRaw = properties && typeof properties === "object" ? properties.surface : void 0;
+  const surface = typeof surfaceRaw === "string" && surfaceRaw.length > 0 ? surfaceRaw : "unknown";
+  const distinctIdRaw = body.distinct_id;
+  const distinctId = typeof distinctIdRaw === "string" ? distinctIdRaw : null;
+  return { surface, distinctId };
+}
+async function recordMissingAnonEvent(pool, body) {
+  const missing = detectMissingAnonIdentify(body);
+  if (!missing) return;
+  await ensureIdentifyMissingAnonTable(pool);
+  await pool.query(
+    `INSERT INTO identify_missing_anon_events (surface, distinct_id)
+     VALUES ($1, $2)`,
+    [missing.surface, missing.distinctId]
+  );
+}
+async function readMissingAnonTotalsFromDb(pool) {
+  await ensureIdentifyMissingAnonTable(pool);
+  const totals = await pool.query(
+    `SELECT
+       COUNT(*)::int AS all_time,
+       COUNT(*) FILTER (
+         WHERE created_at >= NOW() - INTERVAL '24 hours'
+       )::int AS last_24h,
+       MAX(created_at) AS last_seen
+     FROM identify_missing_anon_events`
+  );
+  const bySurfaceRows = await pool.query(
+    `SELECT COALESCE(surface, 'unknown') AS surface, COUNT(*)::int AS c
+       FROM identify_missing_anon_events
+      GROUP BY COALESCE(surface, 'unknown')`
+  );
+  const row = totals?.rows?.[0] ?? {};
+  const bySurface = {};
+  for (const r of bySurfaceRows?.rows ?? []) {
+    bySurface[r.surface] = Number(
+      r.c
+    );
+  }
+  const lastSeen = row.last_seen ? new Date(row.last_seen).toISOString() : null;
   return {
-    healthy: identifyMissingAnonIdCount === 0 && crossDeviceBridgesFailed === 0,
+    allTime: Number(row.all_time ?? 0),
+    last24h: Number(row.last_24h ?? 0),
+    lastSeenAt: lastSeen,
+    bySurface
+  };
+}
+async function getAnalyticsHealthSnapshot(pool) {
+  let allTime = identifyMissingAnonIdCount;
+  let last24h = identifyMissingAnonIdCount;
+  let lastSeenAt = identifyMissingAnonIdLastAt;
+  let bySurface = { ...identifyMissingAnonIdBySurface };
+  if (pool) {
+    try {
+      const totals = await readMissingAnonTotalsFromDb(pool);
+      allTime = totals.allTime;
+      last24h = totals.last24h;
+      lastSeenAt = totals.lastSeenAt;
+      bySurface = totals.bySurface;
+    } catch (err) {
+      console.warn(
+        "[analytics] failed to read missing-anon totals from DB; falling back to in-memory counters",
+        err?.message ?? err
+      );
+    }
+  }
+  return {
+    healthy: last24h === 0 && crossDeviceBridgesFailed === 0,
     identify_missing_anon_id: {
-      count: identifyMissingAnonIdCount,
-      last_seen_at: identifyMissingAnonIdLastAt,
-      by_surface: { ...identifyMissingAnonIdBySurface }
+      count: allTime,
+      all_time_count: allTime,
+      last_24h_count: last24h,
+      last_seen_at: lastSeenAt,
+      by_surface: bySurface
     },
     cross_device_bridge: {
       emitted: crossDeviceBridgesEmitted,
@@ -5093,27 +5378,19 @@ function reconcileEmailIdentities(body) {
   }
 }
 function inspectIdentifyPayload(body) {
-  if (!body || typeof body !== "object") return;
-  const event = body.event;
-  if (event !== "$identify") return;
-  const properties = body.properties;
-  const anonId = properties && typeof properties === "object" ? properties.$anon_distinct_id : void 0;
-  if (typeof anonId !== "string" || anonId.length === 0) {
-    identifyMissingAnonIdCount += 1;
-    identifyMissingAnonIdLastAt = (/* @__PURE__ */ new Date()).toISOString();
-    const surfaceRaw = properties && typeof properties === "object" ? properties.surface : void 0;
-    const surface = typeof surfaceRaw === "string" && surfaceRaw.length > 0 ? surfaceRaw : "unknown";
-    identifyMissingAnonIdBySurface[surface] = (identifyMissingAnonIdBySurface[surface] ?? 0) + 1;
-    const distinctId = body.distinct_id;
-    console.warn(
-      "[analytics] $identify event missing $anon_distinct_id; PostHog cannot stitch pre-account events",
-      {
-        distinct_id: typeof distinctId === "string" ? distinctId : void 0,
-        surface,
-        missing_count: identifyMissingAnonIdCount
-      }
-    );
-  }
+  const missing = detectMissingAnonIdentify(body);
+  if (!missing) return;
+  identifyMissingAnonIdCount += 1;
+  identifyMissingAnonIdLastAt = (/* @__PURE__ */ new Date()).toISOString();
+  identifyMissingAnonIdBySurface[missing.surface] = (identifyMissingAnonIdBySurface[missing.surface] ?? 0) + 1;
+  console.warn(
+    "[analytics] $identify event missing $anon_distinct_id; PostHog cannot stitch pre-account events",
+    {
+      distinct_id: missing.distinctId ?? void 0,
+      surface: missing.surface,
+      missing_count: identifyMissingAnonIdCount
+    }
+  );
 }
 async function registerRoutes(app2) {
   registerPlannerAnalyticsRoutes(app2, { requireAdminBasicAuth, getPool });
@@ -5121,24 +5398,30 @@ async function registerRoutes(app2) {
   registerAuthPromptAnalyticsRoutes(app2, { requireAdminBasicAuth, getPool });
   registerBriefFreshnessRoutes(app2, { requireAdminBasicAuth });
   app2.get("/api/_internal/analytics-health", async (_req, res) => {
-    const snapshot = getAnalyticsHealthSnapshot();
-    const freshness = await evaluateAuthPromptBackfillFreshness();
-    const backfillStale = freshness?.stale === true;
-    res.setHeader("Cache-Control", "no-store");
-    const body = {
-      ...snapshot,
-      // A stale backfill turns the probe red even when the in-memory counters
-      // are clean, so the existing uptime alert fires (task #127).
-      healthy: snapshot.healthy && !backfillStale,
-      auth_prompt_backfill: freshness ? {
-        stale: freshness.stale,
-        has_run: freshness.hasRun,
-        last_ran_at: freshness.lastRanAt,
-        age_days: freshness.ageDays,
-        threshold_days: freshness.thresholdDays
-      } : null
-    };
-    res.status(body.healthy ? 200 : 503).json(body);
+    const pool = getPool();
+    try {
+      const snapshot = await getAnalyticsHealthSnapshot(pool);
+      const freshness = await evaluateAuthPromptBackfillFreshness();
+      const backfillStale = freshness?.stale === true;
+      res.setHeader("Cache-Control", "no-store");
+      const body = {
+        ...snapshot,
+        // A stale backfill turns the probe red even when the persisted counters
+        // are clean, so the existing uptime alert fires (task #127).
+        healthy: snapshot.healthy && !backfillStale,
+        auth_prompt_backfill: freshness ? {
+          stale: freshness.stale,
+          has_run: freshness.hasRun,
+          last_ran_at: freshness.lastRanAt,
+          age_days: freshness.ageDays,
+          threshold_days: freshness.thresholdDays
+        } : null
+      };
+      res.status(body.healthy ? 200 : 503).json(body);
+    } finally {
+      if (pool) await pool.end().catch(() => {
+      });
+    }
   });
   app2.get("/api/_internal/quiz-save-prompt-health", async (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
@@ -5351,6 +5634,12 @@ async function registerRoutes(app2) {
             "[analytics] failed to persist auth_prompt event:",
             err?.message ?? err
           );
+        }),
+        recordMissingAnonEvent(persistPool, req.body).catch((err) => {
+          console.warn(
+            "[analytics] failed to persist missing-anon event:",
+            err?.message ?? err
+          );
         })
       ]).finally(() => {
         persistPool.end().catch(() => {
@@ -5448,6 +5737,13 @@ async function registerRoutes(app2) {
       await pool.end();
     }
   });
+  const readAbWindowDays = (req) => {
+    const raw = req.query.days;
+    if (typeof raw !== "string") return void 0;
+    const n = Number.parseInt(raw, 10);
+    if (!Number.isFinite(n) || n <= 0) return void 0;
+    return Math.min(365, n);
+  };
   app2.get("/api/admin/ab-results", async (req, res) => {
     if (!requireAdminBasicAuth(req, res)) return;
     const pool = getPool();
@@ -5456,7 +5752,7 @@ async function registerRoutes(app2) {
       return;
     }
     try {
-      const data = await computeAbResults(pool);
+      const data = await computeAbResults(pool, readAbWindowDays(req));
       res.json({
         ...data,
         // Cross-link to other internal tools so anyone who lands on this
@@ -5484,7 +5780,7 @@ async function registerRoutes(app2) {
       return;
     }
     try {
-      const data = await computeAbResults(pool);
+      const data = await computeAbResults(pool, readAbWindowDays(req));
       res.type("text/csv; charset=utf-8").setHeader(
         "Content-Disposition",
         'attachment; filename="ab-results.csv"'
@@ -5498,6 +5794,23 @@ async function registerRoutes(app2) {
   };
   app2.get("/admin/ab-results.csv", sendAbResultsCsv);
   app2.get("/api/admin/ab-results.csv", sendAbResultsCsv);
+  app2.get("/admin/ab-results", async (req, res) => {
+    if (!requireAdminBasicAuth(req, res)) return;
+    const pool = getPool();
+    if (!pool) {
+      res.status(503).type("text/html").send("<h1>A/B test results unavailable</h1><p>Database is not configured (set DATABASE_URL).</p>");
+      return;
+    }
+    try {
+      const data = await computeAbResults(pool);
+      res.type("text/html").send(renderAbResultsHtml(data));
+    } catch (err) {
+      console.error("AB results HTML error:", err?.message);
+      res.status(500).type("text/html").send("<h1>A/B test results unavailable</h1><p>Failed to compute results.</p>");
+    } finally {
+      await pool.end();
+    }
+  });
   app2.post("/api/stripe/checkout", async (req, res) => {
     const stripe = getStripe();
     if (!stripe) {
@@ -5595,236 +5908,6 @@ async function registerRoutes(app2) {
   });
   app2.get("/api/stripe/status", async (_req, res) => {
     res.json({ hasProAccess: false });
-  });
-  const EXIT_OFFER_COUPON_LOOKUP = "expathub_exit_50off_3mo";
-  let cachedExitCouponId = null;
-  async function ensureExitCoupon(stripe) {
-    if (cachedExitCouponId) return cachedExitCouponId;
-    try {
-      const list = await stripe.coupons.list({ limit: 100 });
-      const found = list.data.find(
-        (c) => c.metadata?.lookup_key === EXIT_OFFER_COUPON_LOOKUP
-      );
-      if (found) {
-        cachedExitCouponId = found.id;
-        return found.id;
-      }
-    } catch {
-    }
-    const created = await stripe.coupons.create({
-      percent_off: 50,
-      duration: "repeating",
-      duration_in_months: 3,
-      name: "ExpatHub \u2014 50% off for 3 months",
-      metadata: { lookup_key: EXIT_OFFER_COUPON_LOOKUP }
-    });
-    cachedExitCouponId = created.id;
-    return created.id;
-  }
-  let exitOffersTableEnsured = false;
-  async function ensureExitOffersTable(pool) {
-    if (exitOffersTableEnsured) return;
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS exit_offers (
-        id SERIAL PRIMARY KEY,
-        user_id VARCHAR(255) NOT NULL,
-        subscription_id VARCHAR(255) NOT NULL,
-        coupon_id VARCHAR(100),
-        shown_at TIMESTAMP DEFAULT NOW(),
-        accepted_at TIMESTAMP,
-        declined_at TIMESTAMP
-      )
-    `);
-    await pool.query(
-      `ALTER TABLE exit_offers ADD COLUMN IF NOT EXISTS period_start TIMESTAMP`
-    );
-    await pool.query(`
-      DO $$ BEGIN
-        IF EXISTS (
-          SELECT 1 FROM pg_constraint
-          WHERE conname = 'exit_offers_user_id_subscription_id_key'
-        ) THEN
-          ALTER TABLE exit_offers
-            DROP CONSTRAINT exit_offers_user_id_subscription_id_key;
-        END IF;
-      END $$;
-    `);
-    await pool.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS exit_offers_user_sub_period_idx
-        ON exit_offers (user_id, subscription_id, period_start)
-    `);
-    exitOffersTableEnsured = true;
-  }
-  async function getStripeSubscriptionPeriod(stripe, subscriptionId) {
-    if (!stripe) return { periodStart: null, customerId: null };
-    try {
-      const sub = await stripe.subscriptions.retrieve(subscriptionId);
-      const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer?.id ?? null;
-      const item = sub.items?.data?.[0];
-      const legacyStart = sub.current_period_start;
-      const startSec = item?.current_period_start ?? legacyStart ?? null;
-      const periodStart = typeof startSec === "number" ? new Date(startSec * 1e3) : null;
-      return { periodStart, customerId };
-    } catch (err) {
-      console.error(
-        "Stripe subscription retrieve failed:",
-        err?.message ?? err
-      );
-      return { periodStart: null, customerId: null };
-    }
-  }
-  app2.get("/api/subscription/exit-offer/eligibility", async (req, res) => {
-    const user = await getUserFromToken(req);
-    if (!user?.id) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    const userId = user.id.toString();
-    const { subscriptionId } = req.query;
-    if (!subscriptionId) {
-      res.status(400).json({ error: "subscriptionId is required" });
-      return;
-    }
-    if (!user.stripeSubscriptionId || user.stripeSubscriptionId !== subscriptionId) {
-      res.status(403).json({ error: "Subscription does not belong to this user" });
-      return;
-    }
-    const stripe = getStripe();
-    const { periodStart, customerId } = await getStripeSubscriptionPeriod(
-      stripe,
-      subscriptionId
-    );
-    if (!periodStart) {
-      res.json({ eligible: false, alreadyShown: false, reason: "no_period" });
-      return;
-    }
-    if (user.stripeCustomerId && customerId && customerId !== user.stripeCustomerId) {
-      res.status(403).json({ error: "Subscription customer mismatch" });
-      return;
-    }
-    const pool = getPool();
-    if (!pool) {
-      res.json({
-        eligible: true,
-        alreadyShown: false,
-        periodStart: periodStart.toISOString()
-      });
-      return;
-    }
-    try {
-      await ensureExitOffersTable(pool);
-      const result = await pool.query(
-        `SELECT id, accepted_at, declined_at FROM exit_offers
-         WHERE user_id = $1 AND subscription_id = $2 AND period_start = $3
-         LIMIT 1`,
-        [userId, subscriptionId, periodStart]
-      );
-      const row = result.rows[0];
-      if (!row) {
-        res.json({
-          eligible: true,
-          alreadyShown: false,
-          periodStart: periodStart.toISOString()
-        });
-        return;
-      }
-      res.json({
-        eligible: false,
-        alreadyShown: true,
-        accepted: !!row.accepted_at,
-        declined: !!row.declined_at,
-        periodStart: periodStart.toISOString()
-      });
-    } catch (err) {
-      console.error("Exit offer eligibility error:", err);
-      res.json({ eligible: false, alreadyShown: false });
-    } finally {
-      await pool.end();
-    }
-  });
-  app2.post("/api/subscription/exit-offer", async (req, res) => {
-    const user = await getUserFromToken(req);
-    if (!user?.id) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    const userId = user.id.toString();
-    const { subscriptionId, action } = req.body;
-    if (!subscriptionId || !action) {
-      res.status(400).json({ error: "subscriptionId and action are required" });
-      return;
-    }
-    if (!user.stripeSubscriptionId || user.stripeSubscriptionId !== subscriptionId) {
-      res.status(403).json({ error: "Subscription does not belong to this user" });
-      return;
-    }
-    const stripe = getStripe();
-    const pool = getPool();
-    const { periodStart, customerId } = await getStripeSubscriptionPeriod(
-      stripe,
-      subscriptionId
-    );
-    if (!periodStart) {
-      res.status(503).json({ error: "Could not resolve subscription period from Stripe" });
-      return;
-    }
-    if (user.stripeCustomerId && customerId && customerId !== user.stripeCustomerId) {
-      res.status(403).json({ error: "Subscription customer mismatch" });
-      return;
-    }
-    let couponId = null;
-    if (action === "accept") {
-      if (!stripe) {
-        res.status(503).json({ error: "Stripe is not configured." });
-        return;
-      }
-      try {
-        couponId = await ensureExitCoupon(stripe);
-        await stripe.subscriptions.update(subscriptionId, {
-          discounts: [{ coupon: couponId }]
-        });
-      } catch (err) {
-        console.error("Stripe exit-offer apply failed:", err?.message);
-        res.status(500).json({ error: err?.message ?? "Failed to apply offer" });
-        return;
-      }
-    }
-    if (pool) {
-      try {
-        await ensureExitOffersTable(pool);
-        const now = /* @__PURE__ */ new Date();
-        const acceptedAt = action === "accept" ? now : null;
-        const declinedAt = action === "decline" ? now : null;
-        await pool.query(
-          `INSERT INTO exit_offers
-             (user_id, subscription_id, period_start, coupon_id,
-              shown_at, accepted_at, declined_at)
-           VALUES ($1, $2, $3, $4, NOW(), $5, $6)
-           ON CONFLICT (user_id, subscription_id, period_start) DO UPDATE SET
-             coupon_id   = COALESCE(EXCLUDED.coupon_id,   exit_offers.coupon_id),
-             accepted_at = COALESCE(EXCLUDED.accepted_at, exit_offers.accepted_at),
-             declined_at = COALESCE(EXCLUDED.declined_at, exit_offers.declined_at)`,
-          [
-            userId,
-            subscriptionId,
-            periodStart,
-            couponId,
-            acceptedAt,
-            declinedAt
-          ]
-        );
-      } catch (err) {
-        console.error("Exit offer insert error:", err?.message);
-      } finally {
-        await pool.end();
-      }
-    }
-    res.json({
-      ok: true,
-      action,
-      couponId,
-      periodStart: periodStart.toISOString()
-    });
   });
   app2.post("/api/auth/quiz-lead", async (req, res) => {
     const { email, readinessLevel, topRegion, regionPreference, score, risks, source } = req.body;
@@ -6252,86 +6335,6 @@ async function registerRoutes(app2) {
     }
   });
   await registerWorksheetRoutes(app2);
-  app2.post("/api/reverse-trial/start", async (req, res) => {
-    const userId = await getUserIdFromToken(req);
-    if (!userId) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    const pool = getPool();
-    if (!pool) {
-      res.status(500).json({ error: "Database unavailable" });
-      return;
-    }
-    try {
-      await ensureReverseTrialTable(pool);
-      const r = await pool.query(
-        `INSERT INTO user_reverse_trials (user_id)
-         VALUES ($1)
-         ON CONFLICT (user_id) DO NOTHING
-         RETURNING started_at`,
-        [userId]
-      );
-      let startedAt;
-      if (r.rows[0]) {
-        startedAt = r.rows[0].started_at;
-      } else {
-        const existing = await pool.query(
-          `SELECT started_at FROM user_reverse_trials WHERE user_id = $1`,
-          [userId]
-        );
-        startedAt = existing.rows[0].started_at;
-      }
-      const startedMs = new Date(startedAt).getTime();
-      const expiresAt = startedMs + REVERSE_TRIAL_DURATION_MS;
-      res.json({
-        startedAt: new Date(startedMs).toISOString(),
-        expiresAt: new Date(expiresAt).toISOString(),
-        active: expiresAt > Date.now()
-      });
-    } catch (err) {
-      console.error("[reverse-trial] start failed", err);
-      res.status(500).json({ error: "Failed to record trial" });
-    } finally {
-      await pool.end().catch(() => {
-      });
-    }
-  });
-  app2.get("/api/reverse-trial", async (req, res) => {
-    const userId = await getUserIdFromToken(req);
-    if (!userId) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-    const pool = getPool();
-    if (!pool) {
-      res.json({ active: false });
-      return;
-    }
-    try {
-      await ensureReverseTrialTable(pool);
-      const r = await pool.query(
-        `SELECT started_at FROM user_reverse_trials WHERE user_id = $1`,
-        [userId]
-      );
-      if (!r.rows[0]) {
-        res.json({ active: false });
-        return;
-      }
-      const startedMs = new Date(r.rows[0].started_at).getTime();
-      const expiresAt = startedMs + REVERSE_TRIAL_DURATION_MS;
-      res.json({
-        startedAt: new Date(startedMs).toISOString(),
-        expiresAt: new Date(expiresAt).toISOString(),
-        active: expiresAt > Date.now()
-      });
-    } catch {
-      res.json({ active: false });
-    } finally {
-      await pool.end().catch(() => {
-      });
-    }
-  });
   const httpServer = createServer(app2);
   return httpServer;
 }
@@ -6387,38 +6390,6 @@ async function ensureWorksheetTables(pool) {
   }
   worksheetTablesEnsured = true;
 }
-var REVERSE_TRIAL_DURATION_MS = 48 * 60 * 60 * 1e3;
-var reverseTrialTableEnsured = false;
-async function ensureReverseTrialTable(pool) {
-  if (reverseTrialTableEnsured) return;
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS user_reverse_trials (
-      user_id VARCHAR(255) PRIMARY KEY,
-      started_at TIMESTAMP NOT NULL DEFAULT NOW()
-    )
-  `);
-  reverseTrialTableEnsured = true;
-}
-async function hasActiveReverseTrial(userId) {
-  const pool = getPool();
-  if (!pool) return false;
-  try {
-    await ensureReverseTrialTable(pool);
-    const r = await pool.query(
-      `SELECT started_at FROM user_reverse_trials WHERE user_id = $1`,
-      [userId]
-    );
-    const row = r.rows[0];
-    if (!row) return false;
-    const startedMs = new Date(row.started_at).getTime();
-    return startedMs + REVERSE_TRIAL_DURATION_MS > Date.now();
-  } catch {
-    return false;
-  } finally {
-    await pool.end().catch(() => {
-    });
-  }
-}
 async function hasActiveEntitlement(req) {
   const authHeader = req.headers.authorization;
   if (!authHeader) return false;
@@ -6442,13 +6413,7 @@ async function hasActiveEntitlement(req) {
     }
   } catch {
   }
-  try {
-    const userId = await getUserIdFromToken(req);
-    if (!userId) return false;
-    return await hasActiveReverseTrial(userId);
-  } catch {
-    return false;
-  }
+  return false;
 }
 async function registerWorksheetRoutes(app2) {
   app2.get("/api/worksheets", async (_req, res) => {

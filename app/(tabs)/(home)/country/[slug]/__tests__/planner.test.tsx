@@ -598,11 +598,12 @@ describe("PlannerScreen — render gate (flicker guard)", () => {
       )
       .join(" | ");
 
-  it("holds the neutral state for a signed-in user whose only entitlement result predates auth settling (prevents the free/locked flash)", () => {
-    // The pre-token entitlement refresh stamped lastRefreshAt BEFORE auth
-    // hydrated. With a token present the gate must NOT trust it, so no country
-    // content is painted until a post-auth refresh lands.
-    authState = { loading: false, token: "tok-123" };
+  it("holds the neutral state during cold start when the only entitlement result predates auth settling (prevents the free/locked flash)", () => {
+    // Cold start: the planner mounts while auth is still hydrating. The
+    // pre-token entitlement refresh stamped lastRefreshAt BEFORE auth settled,
+    // so once the token hydrates the gate must NOT trust that stale result —
+    // no country content is painted until a post-auth refresh lands.
+    authState = { loading: true, token: null };
     subscriptionState = {
       hasActiveSubscription: false,
       hasFullAccess: false,
@@ -613,7 +614,65 @@ describe("PlannerScreen — render gate (flicker guard)", () => {
     act(() => {
       renderer = TestRenderer.create(<PlannerScreen />);
     });
+    // Auth settles (token hydrates) but only the stale pre-token entitlement
+    // result exists so far; authReadyAt is now > lastRefreshAt, gate stays shut.
+    authState = { loading: false, token: "tok-123" };
+    act(() => {
+      renderer.update(<PlannerScreen />);
+    });
     expect(allRenderedText(renderer)).not.toMatch(/Portugal/i);
+  });
+
+  it("opens during cold start once a post-auth entitlement refresh lands", () => {
+    // Full cold-start transition: spinner held while only the stale pre-token
+    // result exists, then a legitimate post-auth refresh (lastRefreshAt now in
+    // the future relative to authReadyAt) lands and the screen renders.
+    authState = { loading: true, token: null };
+    subscriptionState = {
+      hasActiveSubscription: false,
+      hasFullAccess: false,
+      loading: false,
+      lastRefreshAt: Date.now() - 60_000,
+    };
+    let renderer: any;
+    act(() => {
+      renderer = TestRenderer.create(<PlannerScreen />);
+    });
+    authState = { loading: false, token: "tok-123" };
+    act(() => {
+      renderer.update(<PlannerScreen />);
+    });
+    expect(allRenderedText(renderer)).not.toMatch(/Portugal/i);
+    // Post-auth refresh completes with access granted.
+    subscriptionState = {
+      hasActiveSubscription: true,
+      hasFullAccess: true,
+      loading: false,
+      lastRefreshAt: Date.now() + 60_000,
+    };
+    act(() => {
+      renderer.update(<PlannerScreen />);
+    });
+    expect(allRenderedText(renderer)).toMatch(/Portugal/i);
+  });
+
+  it("renders on warm navigation when auth already settled before mount, even though lastRefreshAt predates it (no deadlock)", () => {
+    // Regression for "plan doesn't load at all": a signed-in subscriber opens
+    // the planner AFTER cold start. Auth settled and the correct entitlement
+    // refresh already happened earlier, so lastRefreshAt predates this screen's
+    // mount and no new refresh is triggered. The gate must still open.
+    authState = { loading: false, token: "tok-123" };
+    subscriptionState = {
+      hasActiveSubscription: true,
+      hasFullAccess: true,
+      loading: false,
+      lastRefreshAt: Date.now() - 120_000,
+    };
+    let renderer: any;
+    act(() => {
+      renderer = TestRenderer.create(<PlannerScreen />);
+    });
+    expect(allRenderedText(renderer)).toMatch(/Portugal/i);
   });
 
   it("renders for a signed-in user once the entitlement is refreshed after auth settles", () => {

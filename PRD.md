@@ -476,7 +476,7 @@ Root Layout
 **Route:** `/account`
 
 - User email display
-- Access level indicator: Monthly Explorer / Annual Pathfinder / Reverse Trial / Free
+- Access level indicator: Monthly Explorer / Annual Pathfinder / Free
 - Active plan, renewal/expiry date, and trial status when relevant
 - Manage subscription link (App Store on iOS, Stripe Customer Portal on web)
 - Logout button
@@ -591,11 +591,11 @@ changeLog[]?              — Record of content changes with severity
 
 ```
 Active subscription (full_access_subscription)
-    > Sandbox / promo / 48h reverse-trial override
+    > Sandbox / promo override
         > None (free tier)
 ```
 
-- `hasFullAccess` = `true` when the user has an active Monthly Explorer or Annual Pathfinder subscription, OR an active sandbox/promo override, OR an active 48-hour reverse trial.
+- `hasFullAccess` = `true` when the user has an active Monthly Explorer or Annual Pathfinder subscription, OR an active sandbox/promo override.
 - `hasProAccess` is currently equivalent to `hasFullAccess`.
 - Content gating checks `hasFullAccess` only.
 
@@ -615,9 +615,7 @@ App Launch
             └── Returns { hasProAccess: boolean }
 ```
 
-The entitlement context also layers in sandbox/promo overrides and the 48h
-reverse trial granted on paywall dismissal (`REVERSE_TRIAL_DURATION_MS` in
-`EntitlementContext`).
+The entitlement context also layers in sandbox/promo overrides.
 
 ### Content Gating Rules
 
@@ -633,12 +631,12 @@ reverse trial granted on paywall dismissal (`REVERSE_TRIAL_DURATION_MS` in
 | Vendors | Visible | Visible |
 | Community | Visible | Visible |
 
-An active reverse trial or sandbox override grants the same access as a
+An active sandbox override grants the same access as a
 paid subscriber for its duration.
 
 ### ProGate Component Behavior
 
-1. Check `hasFullAccess` from EntitlementContext (subscription, sandbox, or reverse trial).
+1. Check `hasFullAccess` from EntitlementContext (subscription or sandbox).
 2. If full access: render children (premium content).
 3. If loading: show spinner.
 4. If no access: render ProPaywall with context props.
@@ -1368,7 +1366,7 @@ Changes to these fields automatically trigger a review:
 - [ ] Configure `STRIPE_MONTHLY_PRICE_ID` and `STRIPE_ANNUAL_PRICE_ID` (annual trial set in code via `subscription_data.trial_period_days: 14`)
 - [ ] Test full purchase flow on iOS and web (both plans, including the 14-day annual trial)
 - [ ] Test forgot password flow end-to-end (native and web)
-- [ ] Run Playwright e2e suite (`tests/e2e/locked-section.spec.ts`, `tests/e2e/cancellation-exit-offer.spec.ts`, and `tests/e2e/worksheet-signup-submit.spec.ts` — anonymous worksheet tap → register → fill in → submit flow against Expo web at port 8081)
+- [ ] Run Playwright e2e suite (`tests/e2e/locked-section.spec.ts` and `tests/e2e/worksheet-signup-submit.spec.ts` — anonymous worksheet tap → register → fill in → submit flow against Expo web at port 8081)
 
 ### App Store Submission
 - [ ] Apple App Review — currently in review process

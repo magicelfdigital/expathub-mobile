@@ -2,7 +2,7 @@
  * Tiny global toast bus.
  *
  * Components like ProPaywall need to show a confirmation toast _while
- * unmounting themselves_ (e.g. on dismiss → grant reverse trial → close).
+ * unmounting themselves_ (e.g. on dismiss → close).
  * If the Toast lives inside the unmounting component the user never sees
  * it. This bus lets any component fire a toast that is rendered by the
  * top-level `<GlobalToast />` mounted in `app/_layout.tsx`, so the toast

@@ -515,19 +515,31 @@ export default function PlannerScreen() {
   // decides which body to render has settled, then latch "ready" so later
   // background refreshes never flash the screen back to a spinner.
   //
-  // The cold-start trap: the entitlement check runs once *before* the auth
-  // token has hydrated from secure store. That first pass has no token, so it
-  // returns "not subscribed" yet still stamps lastRefreshAt — which would open
-  // a naive gate on a transient free/locked layout. The token then hydrates, a
-  // second check runs, isPaidUser flips true, and the real tracker replaces the
-  // preview. To the user that reads as a flicker. We therefore only trust an
-  // entitlement result recorded *after* auth settled: for a signed-in session
-  // we require lastRefreshAt >= authReadyAt; signed-out users have no post-auth
-  // refresh, so the first settled result is already correct. We also wait for
-  // the first progress fetch when a plan exists so the step count does not jump
-  // from 0% to its real value.
+  // The cold-start trap: when the planner mounts *during* app launch, the
+  // entitlement check runs once before the auth token has hydrated from secure
+  // store. That first pass has no token, so it returns "not subscribed" yet
+  // still stamps lastRefreshAt — which would open a naive gate on a transient
+  // free/locked layout. The token then hydrates, a second check runs,
+  // isPaidUser flips true, and the real tracker replaces the preview. To the
+  // user that reads as a flicker. So during a cold start (we observed auth
+  // still loading while mounted) we only trust an entitlement result recorded
+  // *after* auth settled: lastRefreshAt >= authReadyAt.
+  //
+  // The warm-navigation case is the opposite and must NOT be gated the same
+  // way: when the user opens the planner after launch, auth has long since
+  // settled and the correct post-token entitlement refresh already happened —
+  // but its lastRefreshAt predates this screen's mount, and no further refresh
+  // is triggered (the entitlement effect only re-runs when token/user change).
+  // Requiring lastRefreshAt >= authReadyAt there would spin forever ("plan
+  // doesn't load at all"). We detect this by noting we never saw auth loading
+  // while mounted, and accept the already-settled entitlement immediately.
+  //
+  // We also wait for the first progress fetch when a plan exists so the step
+  // count does not jump from 0% to its real value.
   const authReadyAtRef = useRef<number | null>(null);
+  const sawAuthLoadingRef = useRef(false);
   const screenReadyRef = useRef(false);
+  if (authLoading) sawAuthLoadingRef.current = true;
   if (!screenReadyRef.current && !authLoading) {
     if (authReadyAtRef.current == null) authReadyAtRef.current = Date.now();
     const hasSession = !!token;
@@ -537,12 +549,17 @@ export default function PlannerScreen() {
     //    false but never stamps lastRefreshAt) — treat as settled and fail
     //    closed rather than spin on a spinner forever.
     //  - signed-out: the first settled (token-less) result is already correct.
-    //  - signed-in: trust only an entitlement recorded AFTER auth settled, so
-    //    the pre-token false-negative refresh is ignored.
+    //  - warm navigation: auth was already settled before this screen mounted,
+    //    so the current entitlement already reflects the hydrated token. Accept
+    //    it; otherwise the gate deadlocks (lastRefreshAt predates mount and no
+    //    new refresh comes).
+    //  - signed-in cold start: trust only an entitlement recorded AFTER auth
+    //    settled, so the pre-token false-negative refresh is ignored.
     const entitlementSettled =
       !subscriptionLoading &&
       (lastRefreshAt == null ||
         !hasSession ||
+        !sawAuthLoadingRef.current ||
         lastRefreshAt >= authReadyAtRef.current);
     const progressSettled = !hasPlanForThisCountry || !progressLoading;
     // Latch once every driver has settled, so a later background entitlement

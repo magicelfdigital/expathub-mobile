@@ -103,7 +103,7 @@ Both plans grant the single `full_access_subscription` entitlement.
 Check access in this order (first match wins):
 
 1. **Active Monthly Explorer or Annual Pathfinder subscription** → full access.
-2. **Sandbox / promo override or active 48h reverse trial** → full access.
+2. **Sandbox / promo override** → full access.
 3. **None** → free content only, show paywall for premium content.
 
 ### 2.2 Launch Countries
@@ -196,7 +196,7 @@ On web, after the user logs in:
 When determining access on web:
 1. Check RevenueCat entitlements (covers mobile-originated subscriptions).
 2. Check Stripe subscription status via `/api/stripe/status` (covers web-originated subscriptions).
-3. Apply any sandbox/promo override or active 48h reverse trial.
+3. Apply any sandbox/promo override.
 4. If none → no access, show paywall.
 
 ### 4.4 RevenueCat Entitlement IDs
@@ -218,7 +218,7 @@ if (hasFullAccess) → show content
 else → show ProPaywall
 ```
 
-- `hasFullAccess` = true when the user has an active Monthly Explorer or Annual Pathfinder subscription, OR an active sandbox/promo override, OR an active 48h reverse trial.
+- `hasFullAccess` = true when the user has an active Monthly Explorer or Annual Pathfinder subscription, OR an active sandbox/promo override.
 
 ### 5.2 Paywall Display
 
@@ -264,7 +264,7 @@ In development (`__DEV__` or `EXPO_PUBLIC_SANDBOX_MODE=true`), show a toggle to 
 The account screen (accessible via profile icon in header) shows:
 
 - **User email**
-- **Current access level**: Free, Monthly Explorer, Annual Pathfinder (with trial countdown if applicable), or Reverse Trial (with countdown)
+- **Current access level**: Free, Monthly Explorer, or Annual Pathfinder (with trial countdown if applicable)
 - **Manage subscription** button → opens Stripe Customer Portal (web) or App Store (mobile)
 - **Upgrade CTA** if user is on the free tier
 - **Logout** button
@@ -351,7 +351,7 @@ User taps a plan on paywall
 ### Entitlements
 - [ ] RevenueCat web SDK initialization
 - [ ] RevenueCat user login sync (`logIn(userId)`) at all 3 auth points
-- [ ] Cross-platform entitlement checking (RC + Stripe), with sandbox / 48h reverse-trial overrides applied locally
+- [ ] Cross-platform entitlement checking (RC + Stripe), with sandbox overrides applied locally
 
 ### UI
 - [ ] Content gating with ProGate/ProPaywall components

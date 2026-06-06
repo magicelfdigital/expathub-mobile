@@ -6,7 +6,7 @@ on:
 
 jobs:
   conversion-lifts:
-    name: Conversion-lift e2e (locked-section, exit-offer)
+    name: Conversion-lift e2e (locked-section, quiz-save)
     runs-on: ubuntu-latest
     timeout-minutes: 20
 

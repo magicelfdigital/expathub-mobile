@@ -127,21 +127,6 @@ export const conversions = pgTable("conversions", {
 });
 export type Conversion = typeof conversions.$inferSelect;
 
-export const exitOffers = pgTable("exit_offers", {
-  id: serial("id").primaryKey(),
-  userId: varchar("user_id", { length: 255 }).notNull(),
-  subscriptionId: varchar("subscription_id", { length: 255 }).notNull(),
-  // Stripe subscription's current_period_start at the time of the offer.
-  // Used to enforce "show once per subscription period".
-  periodStart: timestamp("period_start"),
-  couponId: varchar("coupon_id", { length: 100 }),
-  shownAt: timestamp("shown_at").defaultNow(),
-  acceptedAt: timestamp("accepted_at"),
-  declinedAt: timestamp("declined_at"),
-});
-
-export type ExitOffer = typeof exitOffers.$inferSelect;
-
 // Records every lazy DDL migration applied at runtime by the server. The
 // `applied_at` value is the exact timestamp captured at the moment the
 // migration ran, so downstream backfills can identify pre-migration rows

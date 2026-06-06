@@ -295,33 +295,6 @@ export function trackLockedSectionViewed(
   postUnifiedAnalytics("paywall_locked_section_viewed", { ...params });
 }
 
-type ExitOfferParams = { subscriptionId?: string } & PixelEventParams;
-
-export function trackExitOfferShown(params: ExitOfferParams = {}): void {
-  // Pixel: high-intent signal Meta can optimize against.
-  safeTrack("Lead", { source: "exit_offer", ...params });
-  // Canonical analytics event so the funnel matches the mobile app.
-  postUnifiedAnalytics("exit_offer_shown", { ...params });
-}
-
-export function trackExitOfferAccepted(params: ExitOfferParams = {}): void {
-  safeTrack("CompleteRegistration", {
-    status: "exit_offer_accepted",
-    value: 0,
-    currency: "USD",
-    ...params,
-  });
-  postUnifiedAnalytics("exit_offer_accepted", { ...params });
-}
-
-export function trackExitOfferDeclined(params: ExitOfferParams = {}): void {
-  safeTrack("Lead", {
-    status: "exit_offer_declined",
-    ...params,
-  });
-  postUnifiedAnalytics("exit_offer_declined", { ...params });
-}
-
 // ── Quiz funnel events ────────────────────────────────────────────────────
 // Mirror the mobile event names + payload shapes from src/lib/analytics.ts
 // (see app/onboarding/quiz.tsx and app/onboarding/result.tsx) so the existing

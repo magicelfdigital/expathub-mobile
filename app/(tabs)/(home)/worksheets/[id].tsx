@@ -75,7 +75,7 @@ export default function WorksheetDetailScreen() {
   // could fire onSubmit twice.
   const submittingRef = useRef(false);
   // Mirror hasFullAccess into a ref so the async catch block can read the
-  // latest value (e.g. after a reverse trial expires mid-flow) without
+  // latest value (e.g. if the entitlement drops mid-flow) without
   // being pinned to the closure value captured when onSubmit was created.
   const hasFullAccessRef = useRef(hasFullAccess);
   useEffect(() => {
@@ -245,8 +245,8 @@ export default function WorksheetDetailScreen() {
             }
           }
           // Refresh itself failed (non-2xx). If the client no longer
-          // believes the user is entitled (e.g. reverse trial expired
-          // mid-flow, RevenueCat dropped the entitlement), route to the
+          // believes the user is entitled (e.g. RevenueCat dropped the
+          // entitlement mid-flow), route to the
           // paywall. Only surface the "could not verify" alert when the
           // user really does still appear to be a verified subscriber.
           if (!hasFullAccessRef.current) {

@@ -24,8 +24,8 @@ import { test, expect } from "playwright/test";
  * Why a separate baseURL: the React+Vite SPA at port 5000 doesn't
  * include the worksheets pages — those live in the Expo Router app
  * (`app/(tabs)/(home)/worksheets/*`), which on web is served by the
- * Expo dev server on port 8081. The locked-section / cancellation /
- * identity-join specs all target the SPA at 5000; this one targets
+ * Expo dev server on port 8081. The locked-section / identity-join
+ * specs all target the SPA at 5000; this one targets
  * the Expo web bundle. Override with `PLAYWRIGHT_EXPO_BASE_URL` if
  * the Expo dev server is bound to a different host.
  */

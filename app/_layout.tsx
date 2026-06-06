@@ -88,8 +88,8 @@ export default function RootLayout() {
   useEffect(() => {
     // Runs once per cold start: if no JWT is on the device, wipe non-billing
     // local data so the next session starts clean. Billing/entitlement keys
-    // (reverse-trial markers, promo code) are intentionally preserved by
-    // clearLocalDataIfSignedOut to prevent trial-grant abuse on reinstall.
+    // (promo code markers) are intentionally preserved by
+    // clearLocalDataIfSignedOut to prevent grant abuse on reinstall.
     clearLocalDataIfSignedOut().finally(() => setBootCleanupDone(true));
   }, []);
 

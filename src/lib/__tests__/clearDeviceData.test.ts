@@ -90,7 +90,7 @@ describe("forceClearLocalData (account deletion)", () => {
     }
   });
 
-  it("preserves entitlement/abuse-guard keys (reverse trial markers, redeemed promo) so account deletion cannot re-grant a free trial", async () => {
+  it("preserves entitlement/abuse-guard keys (redeemed promo) so account deletion cannot re-grant access", async () => {
     await seedEverything();
 
     await forceClearLocalData();

@@ -77,3 +77,15 @@ id = "OHdYK8IauPs1YMj6nF1L2"
 uri = "file://.local/test-scenarios/expathub-user-test-scenarios.md"
 type = "text"
 title = "ExpatHub User Test Scenarios"
+
+[[outputs]]
+id = "f1sp7G3ez2WOnB6aTYQnC"
+uri = "file://.local/handoff/web-save-service-spec.md"
+type = "text"
+title = "Web project — save service handoff spec"
+
+[[outputs]]
+id = "jUPWpEyYRmOHXcy5Am22W"
+uri = "file://.local/handoff/web-feature-parity-gaps.md"
+type = "text"
+title = "Web ↔ Mobile Feature Parity — Gap Analysis"

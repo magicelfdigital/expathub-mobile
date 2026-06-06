@@ -9,8 +9,8 @@
 > Pricing & entitlement sections below describe the **2-tier model**
 > (as of v1.4): Monthly Explorer ($14.99/mo, no trial) and Annual Pathfinder
 > ($89/yr, 14-day free trial). The entitlement gate grants paid access via
-> `hasFullAccess` only — active subscription, sandbox override, or active
-> 48h reverse trial. Country count is **11**. For the current source of
+> `hasFullAccess` only — active subscription or sandbox override.
+> Country count is **11**. For the current source of
 > truth, see:
 >
 > - `src/config/subscription.ts` — product IDs, prices, `TRIAL_DURATION_DAYS`
@@ -182,7 +182,7 @@ Provider nesting order (outermost → innermost):
 The `SubscriptionProvider` internally wraps `EntitlementProvider` (`src/contexts/EntitlementContext.tsx`) which manages RevenueCat entitlements, Stripe status, and subscription state with a customer info listener for real-time updates.
 
 Exposed access functions:
-- `hasFullAccess` — active subscription, sandbox override, or active 48h reverse trial
+- `hasFullAccess` — active subscription or sandbox override
 - `hasProAccess` — any paid access (currently equivalent to `hasFullAccess`)
 
 ### 3.4 Component Library
@@ -372,13 +372,13 @@ Both plans grant the single `full_access_subscription` entitlement.
 
 ```
 Active subscription (full_access_subscription)
-    > Sandbox / promo / 48h reverse-trial override
+    > Sandbox / promo override
         > None (free tier)
 ```
 
 | Function          | Returns true when                                                                       |
 |-------------------|-----------------------------------------------------------------------------------------|
-| `hasFullAccess`   | Active subscription, sandbox/promo override, or active 48h reverse trial                |
+| `hasFullAccess`   | Active subscription or sandbox/promo override                                            |
 | `hasProAccess`    | Any paid access (currently equivalent to `hasFullAccess` — no per-country tier remains) |
 
 ### 7.3 RevenueCat (iOS)
@@ -422,16 +422,12 @@ EntitlementContext state:
 | Field             | Type     | Purpose                                                                       |
 |-------------------|----------|-------------------------------------------------------------------------------|
 | `hasProAccess`    | boolean  | Any paid access                                                               |
-| `hasFullAccess`   | boolean  | Subscription, sandbox, or reverse trial                                       |
-| `accessType`      | string   | `subscription`, `sandbox`, `reverse_trial`, `none`                            |
-| `source`          | string   | `revenuecat`, `stripe`, `sandbox`, `reverse_trial`, `none`                    |
+| `hasFullAccess`   | boolean  | Subscription or sandbox                                                       |
+| `accessType`      | string   | `subscription`, `sandbox`, `none`                                             |
+| `source`          | string   | `revenuecat`, `stripe`, `sandbox`, `none`                                     |
 | `loading`         | boolean  | Entitlement check in progress                                                 |
 | `managementURL`   | string   | Platform subscription management URL                                          |
 | `expirationDate`  | string   | Subscription expiration (ISO date)                                            |
-
-The 48h reverse trial granted on paywall dismissal is tracked in
-AsyncStorage and gated by `REVERSE_TRIAL_DURATION_MS` in
-`EntitlementContext`.
 
 ### 7.6 Content Gating
 
@@ -621,7 +617,6 @@ Build tools:
 
 | Suite                                                | Purpose                                                                                 |
 |------------------------------------------------------|-----------------------------------------------------------------------------------------|
-| `src/billing/__tests__/conversionLifts.test.ts`      | Pure predicates in `src/lib/conversionLifts.ts` (`shouldGrantReverseTrialOnDismiss`, `getInitialCancellationStep`) |
 | Screen-mount tests                                   | Account, planner, quiz, and result screens                                              |
 | Hook tests                                           | `useProgress`                                                                           |
 
@@ -632,7 +627,6 @@ Full suite: 391 passing tests.
 | Spec                                              | Target           | Flow Covered                                                                                                                  |
 |---------------------------------------------------|------------------|-------------------------------------------------------------------------------------------------------------------------------|
 | `tests/e2e/locked-section.spec.ts`                | React+Vite SPA (port 5000) | LockedSection blur previews and CTA on the marketing site                                                            |
-| `tests/e2e/cancellation-exit-offer.spec.ts`       | React+Vite SPA (port 5000) | Cancellation flow with the 50% × 3 months exit offer                                                                 |
 | `tests/e2e/worksheet-signup-submit.spec.ts`       | Expo web (port 8081) | Anonymous user taps a worksheet row → registers a fresh account → lands on the worksheet detail → fills in → submits → response is captured |
 
 Config: `playwright.config.ts`.
@@ -642,7 +636,7 @@ Run commands:
 ```bash
 # SPA specs
 PLAYWRIGHT_BASE_URL=http://localhost:5000 npx playwright test \
-  tests/e2e/locked-section.spec.ts tests/e2e/cancellation-exit-offer.spec.ts
+  tests/e2e/locked-section.spec.ts
 
 # Expo web worksheet spec
 PLAYWRIGHT_EXPO_BASE_URL=http://localhost:8081 npx playwright test \

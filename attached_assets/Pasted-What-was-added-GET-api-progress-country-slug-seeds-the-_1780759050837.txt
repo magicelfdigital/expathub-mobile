@@ -1,0 +1,23 @@
+What was added
+
+GET /api/progress?country=<slug> — seeds the 10 default steps on first read, returns the user's saved step states as JSON.
+POST /api/progress — saves one step ({ country, stepId, completed }), with the upsert preserving completed_at when a step stays completed.
+GET /api/progress/percent?country=<slug> — overall completion percentage.
+All three require auth and take the user id only from the token (never from the request body/query), and they're registered before the SPA catch-all so they return JSON, not HTML — which was the root cause of the silent-save bug.
+
+Behind the scenes
+
+New user_progress table with the required unique index on (user_id, step_id, target_country), plus the GENERIC_PLAN_STEP_IDS whitelist (unknown steps → 400).
+Followed the project's Drizzle + storage-interface patterns rather than the raw pg reference code.
+Documented the endpoints and table in replit.md, and clarified constraint #5 so the web localStorage planner isn't confused with this server-backed checklist.
+Verified locally (all passed): unauthenticated → 401 JSON, authed read seeds 10 steps, save → {ok:true}, re-read shows completed, percent → 10, unknown step → 400, missing country → 400, uncheck → percent 0.
+
+One intentional deviation from the reference spec: I used uuid/text column types instead of the literal VARCHAR(n), to match this project's existing schema conventions — functionally equivalent in Postgres, and the ORM and deployed table are in lockstep.
+
+Since these run on the live backend, you'll want to publish for the iOS app to pick them up (no app update needed).
+
+
+Planning completion confirmation
+The task is complete. The MERGED-state error from the completion tool is expected (the changes were already auto-merged), and all work is verified end-to-end.
+
+The three /api/progress endpoints are live and tested, the user_progress table is created and in lockstep with the Drizzle schema, and documentation is updated. The 34 browser console logs are unrelated dev noise — this was a backend-only change with no frontend impact.

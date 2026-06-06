@@ -47,6 +47,27 @@ throws before `refresh()` — `refresh`'s `finally` is what stamps it). Treat
 `lastRefreshAt == null && !loading` as settled (fail closed) so the gate cannot
 hang on a permanent spinner.
 
+**The warm-navigation deadlock (the `lastRefreshAt >= authReadyAt` rule's own
+trap):** `authReadyAt` is captured at the FIRST render where `!authLoading`,
+which is the *screen mount* — not the moment auth actually settled app-wide. On
+warm navigation (user opens the planner AFTER cold start), auth settled long ago
+and the correct post-token entitlement refresh already completed, but its
+`lastRefreshAt` predates the mount, so `lastRefreshAt >= authReadyAt` is false
+forever. The entitlement effect only re-refreshes on token/user.id change, so no
+new refresh comes → permanent spinner = "plan doesn't load at all" (hit most
+subscribed TestFlight users; a flicker fix over-corrected into a hard hang).
+
+**Rule:** only apply the `lastRefreshAt >= authReadyAt` cold-start guard when you
+actually observed auth loading while this screen was mounted. Track it with a ref
+(`sawAuthLoadingRef`, set true on any render where `authLoading`). If it was
+never true (auth already settled before mount = warm nav), the current
+entitlement already reflects the hydrated token — accept the first settled result
+immediately (`!subscriptionLoading`). Otherwise (cold start) keep the timestamp
+guard. **Why:** the timestamp comparison conflates "auth settled" with "screen
+mounted"; the `sawAuthLoading` ref restores the distinction. Mind the order: set
+the ref before the gate block, and remember refs reset per mount, so each
+navigation re-evaluates cold vs warm correctly.
+
 **How to apply:**
 - Treat "still loading" as its own state, distinct from the resolved values.
 - Gate only when `!authLoading`; capture the auth-ready timestamp once.

@@ -96,25 +96,6 @@ export const webApiClient = {
         json: {},
       }),
   },
-  subscription: {
-    exitOfferEligibility: (subscriptionId: string) =>
-      request<{
-        eligible: boolean;
-        alreadyShown: boolean;
-        accepted?: boolean;
-        declined?: boolean;
-      }>(
-        `/api/subscription/exit-offer/eligibility?subscriptionId=${encodeURIComponent(subscriptionId)}`,
-      ),
-    exitOffer: (
-      subscriptionId: string,
-      action: "accept" | "decline" | "shown",
-    ) =>
-      request<{ ok: boolean; couponId?: string }>("/api/subscription/exit-offer", {
-        method: "POST",
-        json: { subscriptionId, action },
-      }),
-  },
   readinessLead: (
     payload: {
       email: string;
