@@ -45,6 +45,7 @@ jest.mock("@/src/contexts/PlanContext", () => ({
     activePathwayId,
     startPlan,
     resetPlan,
+    isLoaded: true,
   }),
 }));
 
@@ -59,12 +60,26 @@ jest.mock("@/contexts/OnboardingContext", () => ({
   useOnboarding: () => ({ quizResult: null, completeOnboarding: jest.fn() }),
 }));
 
-let subscriptionState: { hasActiveSubscription: boolean; hasFullAccess: boolean } = {
+let subscriptionState: {
+  hasActiveSubscription: boolean;
+  hasFullAccess: boolean;
+  loading: boolean;
+  lastRefreshAt: number | null;
+} = {
   hasActiveSubscription: true,
   hasFullAccess: true,
+  loading: false,
+  lastRefreshAt: Date.now(),
 };
 jest.mock("@/contexts/SubscriptionContext", () => ({
   useSubscription: () => subscriptionState,
+}));
+let authState: { loading: boolean; token: string | null } = {
+  loading: false,
+  token: null,
+};
+jest.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => authState,
 }));
 
 let progressState: any = {
@@ -157,7 +172,13 @@ beforeEach(() => {
   __setSearchParams({ slug: "portugal" });
   activeCountrySlug = null;
   activePathwayId = null;
-  subscriptionState = { hasActiveSubscription: true, hasFullAccess: true };
+  subscriptionState = {
+    hasActiveSubscription: true,
+    hasFullAccess: true,
+    loading: false,
+    lastRefreshAt: Date.now(),
+  };
+  authState = { loading: false, token: null };
   progressState = {
     isStepComplete: () => false,
     setStep: jest.fn(),
@@ -249,7 +270,12 @@ describe("PlannerScreen — functional", () => {
   it("does NOT fire planner_completed at 100% if the user is not on a paid tier (Pro-only feature)", () => {
     activeCountrySlug = "portugal";
     activePathwayId = "skilled-migrant";
-    subscriptionState = { hasActiveSubscription: false, hasFullAccess: false };
+    subscriptionState = {
+      hasActiveSubscription: false,
+      hasFullAccess: false,
+      loading: false,
+      lastRefreshAt: Date.now(),
+    };
     progressState = { ...progressState, percent: 100, completedCount: 10 };
     act(() => {
       TestRenderer.create(<PlannerScreen />);
@@ -558,5 +584,67 @@ describe("PlannerScreen — functional", () => {
     expect(collapsed[0][1]).toMatchObject({
       stepId: GENERIC_PLAN_STEPS[0].id,
     });
+  });
+});
+
+describe("PlannerScreen — render gate (flicker guard)", () => {
+  const allRenderedText = (renderer: any) =>
+    renderer.root
+      .findAllByType("Text")
+      .map((t: any) =>
+        Array.isArray(t.props.children)
+          ? t.props.children.join("")
+          : String(t.props.children ?? ""),
+      )
+      .join(" | ");
+
+  it("holds the neutral state for a signed-in user whose only entitlement result predates auth settling (prevents the free/locked flash)", () => {
+    // The pre-token entitlement refresh stamped lastRefreshAt BEFORE auth
+    // hydrated. With a token present the gate must NOT trust it, so no country
+    // content is painted until a post-auth refresh lands.
+    authState = { loading: false, token: "tok-123" };
+    subscriptionState = {
+      hasActiveSubscription: false,
+      hasFullAccess: false,
+      loading: false,
+      lastRefreshAt: Date.now() - 60_000,
+    };
+    let renderer: any;
+    act(() => {
+      renderer = TestRenderer.create(<PlannerScreen />);
+    });
+    expect(allRenderedText(renderer)).not.toMatch(/Portugal/i);
+  });
+
+  it("renders for a signed-in user once the entitlement is refreshed after auth settles", () => {
+    // A far-future refresh timestamp guarantees lastRefreshAt >= authReadyAt
+    // (captured at render time), i.e. a legitimate post-auth result.
+    authState = { loading: false, token: "tok-123" };
+    subscriptionState = {
+      hasActiveSubscription: true,
+      hasFullAccess: true,
+      loading: false,
+      lastRefreshAt: Date.now() + 60_000,
+    };
+    let renderer: any;
+    act(() => {
+      renderer = TestRenderer.create(<PlannerScreen />);
+    });
+    expect(allRenderedText(renderer)).toMatch(/Portugal/i);
+  });
+
+  it("does not spin forever when entitlement settles without ever recording a refresh (lastRefreshAt null, e.g. RC init error)", () => {
+    authState = { loading: false, token: "tok-123" };
+    subscriptionState = {
+      hasActiveSubscription: false,
+      hasFullAccess: false,
+      loading: false,
+      lastRefreshAt: null,
+    };
+    let renderer: any;
+    act(() => {
+      renderer = TestRenderer.create(<PlannerScreen />);
+    });
+    expect(allRenderedText(renderer)).toMatch(/Portugal/i);
   });
 });

@@ -20,6 +20,7 @@ import {
 } from "react-native";
 
 import { Screen } from "@/components/Screen";
+import { useAuth } from "@/contexts/AuthContext";
 import { useBookmarks } from "@/contexts/BookmarkContext";
 import { useCountry } from "@/contexts/CountryContext";
 import { useOnboarding } from "@/contexts/OnboardingContext";
@@ -351,6 +352,7 @@ export default function PlannerScreen() {
     loading: subscriptionLoading,
     lastRefreshAt,
   } = useSubscription();
+  const { loading: authLoading, token } = useAuth();
   const {
     activeCountrySlug: planCountrySlug,
     activePathwayId,
@@ -509,19 +511,48 @@ export default function PlannerScreen() {
     });
   }, [router, countrySlug]);
 
-  // Hold a calm neutral state until the async sources that decide which body
-  // to render have settled. Without this gate the screen visibly flashes
-  // through up to three different layouts on entry: while the entitlement
-  // check is still loading isPaidUser is false (free/locked preview), then it
-  // resolves to true (start-a-plan focus card), then the saved plan finishes
-  // hydrating from AsyncStorage (planCountrySlug) and the real tracker
-  // appears. We also wait for the first progress fetch when a plan exists so
-  // the step count does not jump from 0% to its real value.
-  const entitlementResolved = !subscriptionLoading || lastRefreshAt != null;
-  const screenReady =
-    entitlementResolved &&
-    planLoaded &&
-    (!hasPlanForThisCountry || !progressLoading);
+  // Render gate. Hold a calm neutral state until every async source that
+  // decides which body to render has settled, then latch "ready" so later
+  // background refreshes never flash the screen back to a spinner.
+  //
+  // The cold-start trap: the entitlement check runs once *before* the auth
+  // token has hydrated from secure store. That first pass has no token, so it
+  // returns "not subscribed" yet still stamps lastRefreshAt — which would open
+  // a naive gate on a transient free/locked layout. The token then hydrates, a
+  // second check runs, isPaidUser flips true, and the real tracker replaces the
+  // preview. To the user that reads as a flicker. We therefore only trust an
+  // entitlement result recorded *after* auth settled: for a signed-in session
+  // we require lastRefreshAt >= authReadyAt; signed-out users have no post-auth
+  // refresh, so the first settled result is already correct. We also wait for
+  // the first progress fetch when a plan exists so the step count does not jump
+  // from 0% to its real value.
+  const authReadyAtRef = useRef<number | null>(null);
+  const screenReadyRef = useRef(false);
+  if (!screenReadyRef.current && !authLoading) {
+    if (authReadyAtRef.current == null) authReadyAtRef.current = Date.now();
+    const hasSession = !!token;
+    // Entitlement is settled when no refresh is in flight AND one of:
+    //  - lastRefreshAt is null: entitlement reached a terminal state without
+    //    ever recording a refresh (e.g. the RC init error path sets loading
+    //    false but never stamps lastRefreshAt) — treat as settled and fail
+    //    closed rather than spin on a spinner forever.
+    //  - signed-out: the first settled (token-less) result is already correct.
+    //  - signed-in: trust only an entitlement recorded AFTER auth settled, so
+    //    the pre-token false-negative refresh is ignored.
+    const entitlementSettled =
+      !subscriptionLoading &&
+      (lastRefreshAt == null ||
+        !hasSession ||
+        lastRefreshAt >= authReadyAtRef.current);
+    const progressSettled = !hasPlanForThisCountry || !progressLoading;
+    // Latch once every driver has settled, so a later background entitlement
+    // or progress refresh (which briefly flips its loading flag) never sends
+    // the screen back to a spinner.
+    if (entitlementSettled && planLoaded && progressSettled) {
+      screenReadyRef.current = true;
+    }
+  }
+  const screenReady = screenReadyRef.current;
 
   if (!screenReady) {
     return (

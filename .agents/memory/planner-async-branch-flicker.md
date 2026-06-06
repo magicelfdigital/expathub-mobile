@@ -25,11 +25,36 @@ states. Put the gate AFTER all hooks so hook order is preserved.
 **Why:** each driver resolving on its own schedule produces a distinct fully
 rendered layout, and the user sees the swaps as flashing.
 
+**The subtler driver — entitlement resolves BEFORE auth, giving a false negative:**
+EntitlementContext's first `refresh()` can run before the auth token has
+hydrated from secure-store. With no token it returns "not subscribed" yet still
+stamps its first-resolution marker (`lastRefreshAt`) and clears `loading`. A
+naive gate (`!loading || lastRefreshAt != null`) opens on that transient
+not-paid state and paints the free/locked layout; the token then hydrates, a
+second refresh flips paid true, and the real body replaces it = flicker. So
+`lastRefreshAt != null` alone is NOT a sufficient "entitlement settled" signal.
+
+**Rule for token-dependent entitlement:** also consume auth, and for a
+signed-in session only trust an entitlement result recorded AFTER auth settled.
+Capture `authReadyAt = Date.now()` the first time `authLoading` flips false, and
+require `lastRefreshAt >= authReadyAt`. Signed-out users (no token) have no
+post-auth refresh, so for them the first settled token-less result is already
+correct — skip the timestamp check or they spin forever.
+
+**Avoid the deadlock:** some terminal paths clear `loading` without ever
+stamping `lastRefreshAt` (e.g. the RC init `catch` runs when `initPurchases()`
+throws before `refresh()` — `refresh`'s `finally` is what stamps it). Treat
+`lastRefreshAt == null && !loading` as settled (fail closed) so the gate cannot
+hang on a permanent spinner.
+
 **How to apply:**
 - Treat "still loading" as its own state, distinct from the resolved values.
-- For entitlement, "resolved" means first determination is done — use a
-  first-resolution marker (e.g. `lastRefreshAt != null`) rather than the raw
-  `loading` flag, so background re-refreshes do not re-trigger the spinner.
+- Gate only when `!authLoading`; capture the auth-ready timestamp once.
+- Latch "ready" once (a ref/state flag) so later background refreshes that
+  briefly re-toggle a `loading` flag never send the screen back to a spinner. A
+  synchronous render-time ref latch (idempotent set to true) works and renders
+  on the same pass; a `useEffect` latch needs a second render and breaks
+  synchronous test renderers.
 - For AsyncStorage-backed contexts, expose and wait on an `isLoaded` flag.
-- Verify the gate cannot get stuck: the underlying loads must always settle
-  (success or failure) so the placeholder is never permanent.
+- Verify the gate cannot get stuck: every driver must always settle (success or
+  failure) so the placeholder is never permanent.
