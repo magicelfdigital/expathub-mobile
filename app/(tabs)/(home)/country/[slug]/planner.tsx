@@ -50,6 +50,16 @@ import { PATHWAYS } from "@/data/pathways";
 
 const WEB_TOP_INSET = Platform.OS === "web" ? 67 : 0;
 
+// Fail-safe: the render gate below waits for every async driver (entitlement,
+// plan, progress) to settle before painting, to avoid a free/locked flicker.
+// But a driver that never settles — e.g. an on-device entitlement or progress
+// fetch that hangs with no timeout — would leave the screen on a spinner
+// forever ("planner doesn't load at all"). After this ceiling we render with
+// the best-known state regardless; a one-time flicker is far better than a
+// permanently dead screen. Normal loads settle well under 1s, so this only
+// fires on the pathological hang path.
+const PLANNER_GATE_MAX_WAIT_MS = 5000;
+
 type StepWithDone = GenericPlanStep & { done: boolean };
 
 function StageGroup({
@@ -539,6 +549,16 @@ export default function PlannerScreen() {
   const authReadyAtRef = useRef<number | null>(null);
   const sawAuthLoadingRef = useRef(false);
   const screenReadyRef = useRef(false);
+  // Fail-safe: if the drivers above never settle (a hung on-device fetch with
+  // no timeout), force the screen to render after a ceiling rather than spin
+  // forever. See PLANNER_GATE_MAX_WAIT_MS.
+  const [gateTimedOut, setGateTimedOut] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (!screenReadyRef.current) setGateTimedOut(true);
+    }, PLANNER_GATE_MAX_WAIT_MS);
+    return () => clearTimeout(t);
+  }, []);
   if (authLoading) sawAuthLoadingRef.current = true;
   if (!screenReadyRef.current && !authLoading) {
     if (authReadyAtRef.current == null) authReadyAtRef.current = Date.now();
@@ -569,7 +589,7 @@ export default function PlannerScreen() {
       screenReadyRef.current = true;
     }
   }
-  const screenReady = screenReadyRef.current;
+  const screenReady = screenReadyRef.current || gateTimedOut;
 
   if (!screenReady) {
     return (

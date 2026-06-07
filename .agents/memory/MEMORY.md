@@ -8,3 +8,4 @@
 - [iOS empty headerRight circle](ios-empty-headerright-circle.md) — a `headerRight` that renders null draws a blank white circle on iOS; keep it `undefined`, and beware async flags: flipping function→undefined on resolve doesn't drop the button (gate on `!loading && !hasAccess`).
 - [Jest cannot load .mjs ESM](jest-mjs-transform.md) — a jest project importing a shared `.mjs` helper needs a `"^.+\\.mjs$": "babel-jest"` transform or the whole suite fails to load; `.mjs` types go in `.d.mts`.
 - [Async-hydrating branch flicker](planner-async-branch-flicker.md) — screens that pick a layout from >1 async-settling source (entitlement loading + AsyncStorage plan) flash on entry; gate render after all hooks until every driver settles.
+- [Planner render-gate fail-safe](planner-render-gate-failsafe.md) — a gate blocking on no-timeout fetch flags spins forever if one hangs; needs a ceiling that renders best-known state after a bounded wait.

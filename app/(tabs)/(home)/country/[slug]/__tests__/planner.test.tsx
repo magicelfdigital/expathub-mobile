@@ -706,4 +706,34 @@ describe("PlannerScreen — render gate (flicker guard)", () => {
     });
     expect(allRenderedText(renderer)).toMatch(/Portugal/i);
   });
+
+  it("fail-safe: renders after the ceiling even if a driver never settles (no permanent spinner)", () => {
+    // Pathological on-device case: a hung entitlement fetch leaves
+    // subscriptionState.loading stuck true forever, so the gate never opens
+    // on its own. The screen must still render after PLANNER_GATE_MAX_WAIT_MS
+    // rather than spin indefinitely ("planner doesn't load at all").
+    authState = { loading: false, token: "tok-123" };
+    subscriptionState = {
+      hasActiveSubscription: true,
+      hasFullAccess: true,
+      loading: true, // never settles
+      lastRefreshAt: null,
+    };
+    jest.useFakeTimers();
+    try {
+      let renderer: any;
+      act(() => {
+        renderer = TestRenderer.create(<PlannerScreen />);
+      });
+      // Before the ceiling: still gated (no country content painted).
+      expect(allRenderedText(renderer)).not.toMatch(/Portugal/i);
+      // Advance past the fail-safe ceiling.
+      act(() => {
+        jest.advanceTimersByTime(5000);
+      });
+      expect(allRenderedText(renderer)).toMatch(/Portugal/i);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });
