@@ -14,7 +14,8 @@
       "channel": "preview",
       "env": {
         "EXPO_PUBLIC_BACKEND_URL": "https://www.expathub.website",
-        "EXPO_PUBLIC_DOMAIN": "www.expathub.website"
+        "EXPO_PUBLIC_DOMAIN": "www.expathub.website",
+        "EXPO_PUBLIC_POSTHOG_KEY": "phc_oezbxPiFSWwiJ3yErwc2AWo6qATuLNA8ehG54t9ErWBa"
       }
     },
     "production": {
@@ -25,7 +26,8 @@
       },
       "env": {
         "EXPO_PUBLIC_BACKEND_URL": "https://www.expathub.website",
-        "EXPO_PUBLIC_DOMAIN": "www.expathub.website"
+        "EXPO_PUBLIC_DOMAIN": "www.expathub.website",
+        "EXPO_PUBLIC_POSTHOG_KEY": "phc_oezbxPiFSWwiJ3yErwc2AWo6qATuLNA8ehG54t9ErWBa"
       }
     }
   },
