@@ -12,6 +12,8 @@ ExpatHub is a mobile-first app helping people plan and execute international rel
 
 Preferred communication style: Simple, everyday language.
 
+Git sync workflow: The user builds with `eas build` from a local Windows checkout and syncs code via git. The main agent cannot perform git fetch/push directly (blocked). Whenever there are committed changes to bring over — especially iOS version/build bumps in `app.json` — automatically push them to GitHub `origin/main` via a background task (do not ask first), so the user can `git pull` locally and rebuild. Do not make the user hand-edit files or run manual git steps.
+
 ---
 
 ## Critical Constraints for Replit Agents

@@ -9,3 +9,4 @@
 - [Jest cannot load .mjs ESM](jest-mjs-transform.md) — a jest project importing a shared `.mjs` helper needs a `"^.+\\.mjs$": "babel-jest"` transform or the whole suite fails to load; `.mjs` types go in `.d.mts`.
 - [Async-hydrating branch flicker](planner-async-branch-flicker.md) — screens that pick a layout from >1 async-settling source (entitlement loading + AsyncStorage plan) flash on entry; gate render after all hooks until every driver settles.
 - [Planner render-gate fail-safe](planner-render-gate-failsafe.md) — a gate blocking on no-timeout fetch flags spins forever if one hangs; needs a ceiling that renders best-known state after a bounded wait.
+- [Replit proxy URLs break EAS](replit-proxy-urls-break-eas.md) — in-repl npm install can bake `package-firewall.replit.local` into lockfile resolved URLs → EAS "Install dependencies" ENOTFOUND; rewrite to registry.npmjs.org, don't re-npm-install.
