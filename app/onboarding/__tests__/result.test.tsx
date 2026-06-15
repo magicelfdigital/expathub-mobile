@@ -56,6 +56,16 @@ jest.mock("@/src/subscriptions/revenuecat", () => ({
   setUserAttributes: jest.fn(async () => {}),
 }));
 
+const cancelQuizReminders = jest.fn();
+jest.mock("@/src/lib/notifications", () => ({
+  cancelQuizReminders: (...args: any[]) => cancelQuizReminders(...args),
+}));
+
+const maybeRequestReview = jest.fn();
+jest.mock("@/src/lib/rating", () => ({
+  maybeRequestReview: (...args: any[]) => maybeRequestReview(...args),
+}));
+
 jest.mock("@/lib/query-client", () => ({
   getApiUrl: () => "http://test/",
 }));
@@ -135,6 +145,8 @@ beforeEach(() => {
   trackEvent.mockReset();
   logFbEvent.mockReset();
   completeOnboarding.mockClear();
+  cancelQuizReminders.mockReset();
+  maybeRequestReview.mockReset();
   quizSaveModalRenders.length = 0;
   __resetRouter();
   __setSearchParams({ answers: ANSWERS_HIGH_READY });
@@ -621,5 +633,44 @@ describe("ResultScreen — save-progress prompt for low-readiness takers", () =>
     // lifetime of this render — the guard held.
     expect(findSaveModalNode(renderer!.root).props.visible).toBe(false);
     expect(countOpens()).toBe(1);
+  });
+});
+
+describe("ResultScreen — re-engagement cleanup + rating prompt", () => {
+  it("cancels the quiz reminders and offers the rating prompt once on mount", async () => {
+    await act(async () => {
+      TestRenderer.create(<ResultScreen />);
+    });
+    expect(cancelQuizReminders).toHaveBeenCalledTimes(1);
+    expect(maybeRequestReview).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels the reminders before requesting the rating prompt", async () => {
+    let order = 0;
+    let cancelOrder = -1;
+    let reviewOrder = -1;
+    cancelQuizReminders.mockImplementation(async () => {
+      cancelOrder = order++;
+    });
+    maybeRequestReview.mockImplementation(async () => {
+      reviewOrder = order++;
+    });
+    await act(async () => {
+      TestRenderer.create(<ResultScreen />);
+    });
+    expect(cancelOrder).toBeGreaterThanOrEqual(0);
+    expect(reviewOrder).toBeGreaterThan(cancelOrder);
+  });
+
+  it("does not re-trigger the cleanup or rating prompt on re-render (viewedRef guard)", async () => {
+    let renderer: any;
+    await act(async () => {
+      renderer = TestRenderer.create(<ResultScreen />);
+    });
+    await act(async () => {
+      renderer!.update(<ResultScreen />);
+    });
+    expect(cancelQuizReminders).toHaveBeenCalledTimes(1);
+    expect(maybeRequestReview).toHaveBeenCalledTimes(1);
   });
 });

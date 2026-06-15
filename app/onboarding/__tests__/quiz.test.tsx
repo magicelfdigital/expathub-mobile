@@ -30,6 +30,12 @@ jest.mock("@/src/components/QuizSaveModal", () => ({
   QuizSaveModal: () => null,
 }));
 
+const setupQuizRemindersOnStart = jest.fn();
+jest.mock("@/src/lib/notifications", () => ({
+  setupQuizRemindersOnStart: (...args: any[]) =>
+    setupQuizRemindersOnStart(...args),
+}));
+
 import * as React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import {
@@ -104,6 +110,7 @@ function getOptionByValue(
 
 beforeEach(() => {
   trackEvent.mockReset();
+  setupQuizRemindersOnStart.mockReset();
   __resetRouter();
   __setSearchParams({});
 });
@@ -315,5 +322,33 @@ describe("QuizScreen — edit-answers mode", () => {
     expect(
       trackEvent.mock.calls.filter((c) => c[0] === "quiz_abandoned"),
     ).toHaveLength(0);
+  });
+});
+
+describe("QuizScreen — re-engagement reminders", () => {
+  it("sets up the quiz reminders exactly once on mount", () => {
+    let renderer: any;
+    act(() => {
+      renderer = TestRenderer.create(<QuizScreen />);
+    });
+    expect(setupQuizRemindersOnStart).toHaveBeenCalledTimes(1);
+    // The startedRef guard must prevent a second setup on re-render.
+    act(() => {
+      renderer!.update(<QuizScreen />);
+    });
+    expect(setupQuizRemindersOnStart).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not set up reminders again when the user answers a question", () => {
+    let renderer: any;
+    act(() => {
+      renderer = TestRenderer.create(<QuizScreen />);
+    });
+    const q1 = QUIZ_QUESTIONS[0];
+    const opt = getOptionByValue(renderer!.root, q1.id, q1.options[0].value)!;
+    act(() => {
+      opt.props.onPress();
+    });
+    expect(setupQuizRemindersOnStart).toHaveBeenCalledTimes(1);
   });
 });
