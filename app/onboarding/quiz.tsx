@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { QUIZ_QUESTIONS, TIMELINE_CALLOUTS, type QuizAnswer, type TimelineTone } from "@/src/data/quiz";
 import { tokens } from "@/theme/tokens";
 import { trackEvent } from "@/src/lib/analytics";
+import { setupQuizRemindersOnStart } from "@/src/lib/notifications";
 import {
   buildQuizAnsweredPayload,
   decideQuizAdvance,
@@ -64,6 +65,11 @@ export default function QuizScreen() {
     if (!startedRef.current) {
       startedRef.current = true;
       trackEvent("quiz_started");
+      // Ask for notification permission at quiz start (not on cold open), then
+      // schedule the 24h and 72h re-engagement reminders if permission is
+      // granted. Skipped for users who already finished the quiz. Both reminders
+      // are cancelled when the quiz is completed.
+      void setupQuizRemindersOnStart();
     }
     return () => {
       const answeredCount = Object.keys(answersRef.current).length;

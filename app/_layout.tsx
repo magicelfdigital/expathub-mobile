@@ -30,6 +30,8 @@ import {
 } from "@expo-google-fonts/dm-sans";
 import { initCrashlytics } from "@/utils/crashlytics";
 import { initAnalytics, initFbSdk, trackEvent, captureDiagnostic } from "@/src/lib/analytics";
+import { configureNotificationHandler } from "@/src/lib/notifications";
+import { markAppLaunch, initSessionState } from "@/src/lib/appSession";
 import { tokens } from "@/theme/tokens";
 
 SplashScreen.preventAutoHideAsync();
@@ -100,6 +102,9 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError, bootCleanupDone]);
 
   useEffect(() => {
+    markAppLaunch();
+    void initSessionState();
+    configureNotificationHandler();
     initCrashlytics();
     initAnalytics();
     initFbSdk();

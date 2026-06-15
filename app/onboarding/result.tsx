@@ -17,6 +17,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEntitlement } from "@/src/contexts/EntitlementContext";
 import { tokens } from "@/theme/tokens";
 import { trackEvent, logFbEvent, identifyByEmail } from "@/src/lib/analytics";
+import { cancelQuizReminders } from "@/src/lib/notifications";
+import { maybeRequestReview } from "@/src/lib/rating";
 import { getApiUrl } from "@/lib/query-client";
 import { getBackendBase } from "@/src/billing/backendClient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -192,6 +194,13 @@ export default function ResultScreen() {
             quiz_score: String(result.score),
           });
         } catch {}
+      })();
+
+      // Quiz is complete: cancel the re-engagement reminders, then offer the
+      // App Store rating prompt (gated on dwell time and shown only once).
+      (async () => {
+        await cancelQuizReminders();
+        await maybeRequestReview();
       })();
     }
   }, [result, readiness, answers, user?.email]);
