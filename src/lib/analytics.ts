@@ -117,6 +117,8 @@ type AnalyticsEvent =
   | "paywall_unlock_tapped"
   | "entitlement_refresh"
   | "entitlement_refresh_error"
+  | "rc_login_retry"
+  | "rc_login_failed"
   | "explore_opened"
   | "compare_started"
   | "compare_row_viewed"

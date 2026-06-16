@@ -2,17 +2,10 @@ import type { Blocker, BlockerLevel, ReadinessLevel } from "@/src/data/quiz";
 
 /**
  * Pure helpers extracted from `app/onboarding/result.tsx`. These let us
- * unit-test the funnel behaviour (paywall gating, lead-save email guard,
- * CTA-specific quiz_completed payloads, fill-bar math, name derivation)
- * without spinning up the full screen.
+ * unit-test the funnel behaviour (paywall gating, CTA-specific
+ * quiz_completed payloads, fill-bar math, name derivation) without spinning
+ * up the full screen.
  */
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-export function isValidResultEmail(email: string | null | undefined): boolean {
-  if (!email || typeof email !== "string") return false;
-  return EMAIL_RE.test(email.trim());
-}
 
 export function getResultFillPercent(score: number, maxScore: number): number {
   const safeMax = Math.max(1, maxScore);
@@ -57,16 +50,6 @@ export function buildResultCtaPayload(input: {
     readiness_level: input.readinessLevel,
     score: input.score,
     action: input.action,
-  };
-}
-
-export function buildLeadSavePayload(input: {
-  readinessLevel: ReadinessLevel;
-  score: number;
-}): { readiness_level: ReadinessLevel; score: number } {
-  return {
-    readiness_level: input.readinessLevel,
-    score: input.score,
   };
 }
 

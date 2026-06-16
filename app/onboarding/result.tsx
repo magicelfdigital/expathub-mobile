@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { DragBottomSheet, type DragBottomSheetHandle } from "@/src/components/DragBottomSheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -16,20 +16,16 @@ import { useOnboarding } from "@/contexts/OnboardingContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEntitlement } from "@/src/contexts/EntitlementContext";
 import { tokens } from "@/theme/tokens";
-import { trackEvent, logFbEvent, identifyByEmail } from "@/src/lib/analytics";
+import { trackEvent, logFbEvent } from "@/src/lib/analytics";
 import { cancelQuizReminders } from "@/src/lib/notifications";
 import { maybeRequestReview } from "@/src/lib/rating";
-import { getApiUrl } from "@/lib/query-client";
-import { getBackendBase } from "@/src/billing/backendClient";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { setUserAttributes } from "@/src/subscriptions/revenuecat";
 import {
-  buildLeadSavePayload,
   buildResultCtaPayload,
   deriveResultFirstName,
   getResultFillPercent,
   groupBlockersByLevel,
-  isValidResultEmail,
   shouldShowPaywallAfterUrgent,
 } from "@/src/onboarding/resultFlow";
 import { WORKSHEET_BY_QUESTION_ID } from "@/src/data/worksheets";
@@ -55,11 +51,6 @@ const SECTION_TITLES: Record<BlockerLevel, string> = {
   moderate: "Worth your attention",
   explore: "Areas to explore",
 };
-
-function getBaseUrl(): string {
-  if (Platform.OS === "web") return getApiUrl().replace(/\/$/, "");
-  return getBackendBase();
-}
 
 function BlockerCard({
   blocker,
@@ -105,6 +96,7 @@ export default function ResultScreen() {
   const { answers: answersStr } = useLocalSearchParams<{ answers?: string }>();
   const {
     completeOnboarding,
+    clearForRetake,
     quizResult: persistedQuizResult,
     pendingWorksheetDelta,
     clearPendingWorksheetDelta,
@@ -280,10 +272,6 @@ export default function ResultScreen() {
     outputRange: [`${startFillPct}%`, `${fillPct}%`],
   });
 
-  const [email, setEmail] = useState("");
-  const [emailSent, setEmailSent] = useState(false);
-  const [emailSending, setEmailSending] = useState(false);
-  const [saveCardDismissed, setSaveCardDismissed] = useState(false);
   const [savePromptVisible, setSavePromptVisible] = useState(false);
   const savePromptShownRef = React.useRef(false);
 
@@ -308,52 +296,6 @@ export default function ResultScreen() {
     const t = setTimeout(() => setSavePromptVisible(true), 900);
     return () => clearTimeout(t);
   }, [savePromptNoCount]);
-
-  const handleEmailResults = async () => {
-    const addr = email;
-    if (!isValidResultEmail(addr)) return;
-    setEmailSending(true);
-    // Promote the live mobile distinct_id from `anon:<random>` to
-    // `email:<sha256>` BEFORE the POST so the `/api/readiness-lead` and the
-    // subsequent `readiness_lead_saved` event both land on the same
-    // email-keyed distinct_id. Mirrors what `identifyByEmail` does on web.
-    identifyByEmail(addr);
-    try {
-      const base = getBaseUrl();
-      const res = await fetch(`${base}/api/readiness-lead`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: addr,
-          score: result.score,
-          // Server stores this in `readiness_level` and dual-writes to the
-          // legacy `tier` column during the rename rollout (task #115).
-          readinessLevel: readiness.level,
-          risks: result.risks,
-          answers,
-        }),
-      });
-      // Only mark "sent" and fire the funnel event if the backend
-      // actually accepted the lead. A 4xx/5xx must NOT count as a saved
-      // lead (would over-report conversions in PostHog and confuse the
-      // user with a "we got it" UI when we didn't).
-      if (res?.ok) {
-        setEmailSent(true);
-        trackEvent(
-          "readiness_lead_saved",
-          buildLeadSavePayload({
-            readinessLevel: readiness.level,
-            score: result.score,
-          }),
-        );
-        // Mid-funnel signal for Meta App Promotion: the readiness-quiz email
-        // gate is another email-capture surface, so emit `Lead` here too —
-        // mirroring the country waitlist and web quiz-save modal. No raw
-        // email is forwarded into the payload (PII guardrail).
-        logFbEvent("Lead", undefined, { source: "readiness_quiz_gate" });
-      }
-    } catch {} finally { setEmailSending(false); }
-  };
 
   const handleCreateAccount = async () => {
     await completeOnboarding(result, false, numericAnswers);
@@ -410,7 +352,11 @@ export default function ResultScreen() {
     });
   };
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
+    // Full start-fresh: wipe the complete stored quiz footprint via the shared
+    // clearForRetake() (no duplicated clearing logic) before navigating, so a
+    // stale result can never survive a Restart.
+    await clearForRetake();
     router.replace("/onboarding/quiz");
   };
 
@@ -435,54 +381,6 @@ export default function ResultScreen() {
       pathname: "/(tabs)/(home)/country/[slug]",
       params: { slug: result.topMatch.slug },
     } as any);
-  };
-
-  const renderSaveCard = () => {
-    if (emailSent) {
-      return (
-        <View style={styles.card}>
-          <View style={styles.successRow}>
-            <Ionicons name="checkmark-circle" size={16} color={tokens.color.teal} />
-            <Text style={styles.successText}>Sent. Check your inbox — your full breakdown is on its way.</Text>
-          </View>
-        </View>
-      );
-    }
-
-    if (saveCardDismissed) return null;
-
-    return (
-      <View style={styles.card}>
-        <Text style={styles.emailLabel}>Save your results</Text>
-        <Text style={styles.emailSubtext}>No sales calls. No spam. Just your breakdown.</Text>
-        <TextInput
-          style={styles.emailInput}
-          placeholder="your@email.com"
-          placeholderTextColor={tokens.color.subtext}
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <Pressable
-          onPress={handleEmailResults}
-          disabled={emailSending}
-          style={({ pressed }) => [styles.goldBtn, pressed && { opacity: 0.9 }]}
-        >
-          {emailSending ? (
-            <ActivityIndicator size="small" color={tokens.color.text} />
-          ) : (
-            <Text style={styles.goldBtnText}>Email me the results</Text>
-          )}
-        </Pressable>
-        <View style={styles.secondaryLinks}>
-          <Pressable onPress={() => setSaveCardDismissed(true)} hitSlop={8}>
-            <Text style={styles.secondaryLink}>Skip for now</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
   };
 
   const scrollRef = React.useRef<ScrollView | null>(null);
@@ -766,8 +664,6 @@ export default function ResultScreen() {
             </View>
           </View>
         ) : null}
-
-        {renderSaveCard()}
       </ScrollView>
 
       <View style={[styles.stickyCtaBar, { paddingBottom: Math.max(bottomPad, 16) }]}>

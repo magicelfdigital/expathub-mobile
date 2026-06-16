@@ -1,0 +1,48 @@
+ExpatHub MOBILE repo (expathub-mobile). Add tests for two behaviors shipped in
+the last build. Do NOT change production code — tests and test-support files
+ONLY. If a test reveals a production bug, STOP and report it; do not fix
+production code in this task. Read the existing test setup first and match its
+conventions (mocking style, test runner, file locations).
+
+BEHAVIOR A — rc.logIn retry/failure (src/subscriptions/revenuecat.ts, loginUser):
+Write unit tests asserting:
+  A1. When rc.logIn rejects on all attempts: it retries up to 3 times,
+      rc_login_failed is fired exactly once (after final exhaustion), and
+      loginUser does NOT throw (resolves void).
+  A2. rc_login_retry fires per failed attempt as implemented (assert the count
+      matches the retry behavior).
+  A3. When getAppUserId() indicates the user is already bound (id matches /
+      no $RCAnonymousID prefix), the retry short-circuits and does NOT keep
+      calling rc.logIn.
+  A4. On a successful logIn (first attempt), no rc_login_retry / rc_login_failed
+      events fire and the existing setEmail/subscriber-attribute block still runs.
+  Mock rc.logIn, getAppUserId, and the analytics trackEvent. Assert on
+  trackEvent calls by event name + that loginUser resolves.
+
+BEHAVIOR B — ProPaywall confirmed-but-locked toast (src/components/ProPaywall.tsx):
+This is the important one. The test MUST exercise the ACTUAL effect's guard
+conditions, not a reimplementation. Render ProPaywall (or the minimal harness
+that runs the effect) with useSubscription / useEntitlement mocked, and:
+  B1. Normal purchase: after a confirmed purchase, hasFullAccess becomes TRUE,
+      loading false, lastRefreshAt fresh → assert showToast was NOT called.
+  B2. Divergent case: purchase confirmed, refresh settles (loading false,
+      lastRefreshAt fresh) but hasFullAccess stays FALSE → assert showToast WAS
+      called exactly once, with variant "info".
+  B3. Re-fire guard: after B2 fires once, a subsequent unrelated entitlement
+      refresh (lastRefreshAt changes again, hasFullAccess still false) does NOT
+      fire the toast a second time (confirmedPurchaseRef was cleared).
+  Mock showToast (from src/lib/toastBus.ts) and assert call count + args.
+
+CONSTRAINTS / HONESTY:
+- First, BEFORE writing tests, report what test infrastructure exists for
+  revenuecat.ts and for component/effect tests of ProPaywall, and state plainly
+  whether Behavior B can be tested by mounting/exercising the real effect. If
+  ProPaywall is too dependency-heavy to mount cleanly, say so and propose the
+  closest faithful alternative (e.g. extracting the guard into a tested pure
+  predicate WITHOUT changing runtime behavior — but flag that as a production
+  change and get confirmation first, do NOT do it unprompted).
+- Do NOT write tests that merely re-assert the guard logic in the test file
+  itself; they must exercise the shipped code path.
+- Run the new tests and report pass/fail with output. If anything fails because
+  the production behavior differs from B1–B3 as described, STOP and report the
+  discrepancy — that would be a real finding, not a test to massage green.

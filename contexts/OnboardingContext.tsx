@@ -9,6 +9,12 @@ const QUIZ_RESULT_KEY = "quizResult";
 const QUIZ_ANSWERS_KEY = "quizAnswers";
 const SKIP_BANNER_KEY = "skipBannerCount";
 const SKIPPED_ACCOUNT_KEY = "skippedAccount";
+// Quiz-derived attributes written from the result screen. They are part of the
+// quiz footprint, so clearForRetake must remove them too — otherwise a stale
+// top country / first name / completed flag lingers after a "start fresh".
+const USER_TOP_COUNTRY_KEY = "user_top_country";
+const USER_FIRST_NAME_KEY = "user_first_name";
+const USER_QUIZ_COMPLETED_KEY = "user_quiz_completed";
 
 export type PersistedQuizAnswers = Record<number, string>;
 
@@ -126,9 +132,17 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   const clearForRetake = useCallback(async () => {
-    await AsyncStorage.removeItem(QUIZ_RESULT_KEY);
-    await AsyncStorage.removeItem(QUIZ_ANSWERS_KEY);
-    await AsyncStorage.removeItem(ONBOARDING_KEY);
+    // Clear the COMPLETE quiz footprint so a retake starts truly fresh:
+    // quizResult, quizAnswers, hasSeenOnboarding, plus the three quiz-derived
+    // attribute keys written by the result screen.
+    await AsyncStorage.multiRemove([
+      QUIZ_RESULT_KEY,
+      QUIZ_ANSWERS_KEY,
+      ONBOARDING_KEY,
+      USER_TOP_COUNTRY_KEY,
+      USER_FIRST_NAME_KEY,
+      USER_QUIZ_COMPLETED_KEY,
+    ]);
     setQuizResult(null);
     setQuizAnswers(null);
     setHasSeenOnboarding(false);

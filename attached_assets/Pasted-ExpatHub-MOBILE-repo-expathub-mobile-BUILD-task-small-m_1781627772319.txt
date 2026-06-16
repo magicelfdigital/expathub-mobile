@@ -1,0 +1,36 @@
+ExpatHub MOBILE repo (expathub-mobile). BUILD task — small, mobile-only, no
+backend. Fix the quiz "Restart" control so it fully clears the user's stored
+quiz results, and fix the related leftover-keys bug in clearForRetake().
+Read the relevant files first. Do NOT touch billing/entitlement files.
+
+Context (from prior investigation):
+- "Restart" on the readiness result screen is navigate-only
+  (router.replace("/onboarding/quiz")) — it clears no AsyncStorage and resets no
+  in-memory state, so old results survive.
+- clearForRetake() (the real wipe, wired only to the account screen's "Retake
+  Quiz") clears quizResult/quizAnswers but LEAVES BEHIND user_top_country,
+  user_first_name, user_quiz_completed.
+
+Changes:
+1. clearForRetake() — extend it to also remove the three leftover AsyncStorage
+   keys: user_top_country, user_first_name, user_quiz_completed. After this, it
+   should clear the COMPLETE quiz footprint: quizResult, quizAnswers, and those
+   three. Quote the final list of keys it clears. Also reset the relevant
+   in-memory OnboardingContext state so the cleared result doesn't linger in
+   memory until reload.
+2. "Restart" handler on the result screen — change it from bare navigation to:
+   call clearForRetake() (the now-complete version) FIRST, then navigate to
+   /onboarding/quiz. So Restart performs a full clear + fresh start.
+3. Confirm "Edit" (if separate) is left as-is — Edit should NOT clear; it's meant
+   to resume/modify, not start fresh. Quote both handlers to confirm they now
+   differ correctly: Restart clears, Edit does not.
+
+Constraints:
+- Mobile-only. No backend calls, no new endpoints.
+- Do not change what the quiz itself does, only the clear/reset behavior.
+- Reuse the existing clearForRetake() — do not duplicate clearing logic in two
+  places (that duplication is part of what caused this bug).
+
+After building: show the diff, quote clearForRetake()'s final key list, confirm
+Restart calls it before navigating, and confirm Edit is unchanged. Run any
+onboarding/quiz tests and report. If no test covers Restart's clearing, say so.

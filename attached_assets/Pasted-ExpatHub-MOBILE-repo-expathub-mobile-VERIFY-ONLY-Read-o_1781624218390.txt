@@ -1,0 +1,47 @@
+ExpatHub MOBILE repo (expathub-mobile) — VERIFY ONLY. Read-only. Do NOT modify,
+create, or delete any code. This is a verification of changes just made to
+revenuecat.ts, analytics.ts, and ProPaywall.tsx. Quote real code; do not
+summarize or assert without a quote.
+
+1. DIFF SCOPE — using git (git diff / git status against the last commit before
+   these changes), list EVERY file changed and EVERY hunk. Confirm ONLY three
+   files changed: src/subscriptions/revenuecat.ts, src/lib/analytics.ts,
+   src/components/ProPaywall.tsx. If ANY other file shows as modified — including
+   version numbers, app.json/app.config, package.json, build numbers, or any
+   billing/entitlement file — quote the change and flag it. Do not dismiss
+   anything as "unrelated"; report it.
+
+2. REF CLEARING (the re-fire bug) — in ProPaywall.tsx, quote the full effect that
+   fires the toast AND every place confirmedPurchaseRef is set and cleared.
+   Confirm explicitly: after the toast effect evaluates, is confirmedPurchaseRef
+   reset so it CANNOT fire again on a later, unrelated entitlement refresh? Quote
+   the line that clears it. If it is not cleared, say so plainly.
+
+3. FALSE-POSITIVE GUARD — trace a NORMAL successful purchase (status confirmed,
+   refresh settles, hasFullAccess becomes TRUE). Walking the effect's actual
+   guard conditions as written, does the toast fire? It MUST NOT. Quote the guard
+   conditions and state, condition by condition, why the toast does not fire when
+   hasFullAccess is true. Then trace the real case (confirmed but hasFullAccess
+   stays false) and confirm it DOES fire exactly once.
+
+4. STALE READ — confirm the effect reads hasFullAccess from the hook/render
+   scope (reactive), NOT captured inline immediately after await refresh(). Quote
+   the read.
+
+5. RETRY PATH — in revenuecat.ts, quote the retry wrapper. Confirm: max 3
+   attempts, it checks getAppUserId() to short-circuit if already bound, it never
+   throws (loginUser still returns void on exhaustion), and rc_login_failed fires
+   only after final exhaustion. Confirm the existing init guard and setEmail block
+   are still present and unchanged.
+
+6. TESTS — is there ANY test exercising (a) logIn failing all retries →
+   rc_login_failed fired + no throw, and (b) the toast firing on confirmed-but-
+   locked but NOT on a normal purchase? If such tests exist, name them and report
+   pass/fail. If they do NOT exist, say so plainly — do not imply coverage that
+   isn't there.
+
+7. VERSION VALUES — the prior run's validation mentioned "version values." Quote
+   the current version/build values in app.json/app.config.js (and package.json
+   version) and confirm they are UNCHANGED from the last commit. Make NO changes.
+
+Report findings with quoted code under each number. Make NO edits.

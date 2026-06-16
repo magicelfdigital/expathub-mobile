@@ -1,0 +1,49 @@
+ExpatHub MOBILE repo (expathub-mobile) — INVESTIGATE ONLY. Read-only. Do NOT
+modify, create, or delete any code. Report facts with file/line refs; quote code,
+don't just summarize.
+
+Two related goals we're scoping:
+(A) Build server-side sync so quiz results persist to the user's ACCOUNT
+    (survive device change / reinstall / web), not just device-local AsyncStorage.
+(B) Confirm the "Restart" control on the readiness result screen fully clears the
+    stored result, since we intend to rely on it as the user's start-fresh action.
+
+Report:
+
+STORAGE
+1. Where are quiz results stored on mobile today? Quote the AsyncStorage keys
+   (expected quizResult, quizAnswers, plus user_top_country, user_first_name,
+   user_quiz_completed) and where they're written (OnboardingContext.tsx /
+   result.tsx). Confirm there is NO server write tying these to user.id today.
+
+RESTART (goal B)
+2. Find the "Restart" action on the readiness result screen (the screenshot shows
+   "Edit · Restart" on the RELOCATION READINESS card). Quote its handler. Exactly
+   what does it clear — does it remove quizResult/quizAnswers/the user_* keys from
+   AsyncStorage, or does it only reset in-memory/visible quiz state and navigate?
+3. Is there a difference between "Restart" and "Edit"? Quote both handlers if
+   they differ.
+4. Plain verdict: after tapping Restart, are the persisted result keys actually
+   gone from AsyncStorage, or do they survive? If they survive, that's a finding.
+
+SERVER-SYNC HOOK POINTS (goal A)
+5. Where do login and register COMPLETE (AuthContext.tsx) and where is user.id
+   available post-auth? Quote it.
+6. Is there an existing backend endpoint that stores per-user quiz/readiness data
+   keyed to the account (NOT the anonymous /api/readiness-lead email-keyed lead)?
+   Search server/routes and shared/schema for anything tying quiz results to
+   user.id. State plainly if none exists.
+7. What would a minimal sync need: (a) a server write after register/login that
+   sends the locally-stored quizResult/quizAnswers + user.id, (b) a table/column
+   to hold it, (c) a read on login to rehydrate local state. For each, report
+   whether any piece already exists or all are net-new.
+8. Does the schema (shared/schema.ts) already have a place this could live (a
+   users column, a related table), or would it need a new table/migration?
+
+CONSTRAINTS NOTE
+9. Confirm which files a sync build would touch and flag any that are protected
+   (AuthContext is auth-adjacent; entitlement/billing files must stay untouched).
+
+Plain summary: (B) does Restart fully clear results today — yes/no/partial; and
+(A) list exactly what's net-new to make account-creation actually persist results
+server-side. Make NO changes.

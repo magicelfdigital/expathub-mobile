@@ -1,0 +1,45 @@
+ExpatHub MOBILE repo (expathub-mobile) — INVESTIGATE ONLY. Read-only. Do NOT
+modify anything. You MAY read billing/entitlement/auth files but MUST NOT edit.
+
+We are about to add: (1) a silent retry-with-backoff + PostHog logging around
+rc.logIn in revenuecat.ts when identify fails, and (2) a NON-blocking,
+user-facing warning that fires ONLY when a purchase completed but access still
+appears wrong after entitlement refresh has settled. Confirm the exact hook
+points before we build.
+
+Report with file/line refs, no changes:
+
+1. rc.logIn in src/subscriptions/revenuecat.ts — quote the current call, its
+   try/catch, and exactly how errors are handled today (confirm they're
+   swallowed/logged). Where would a retry wrapper go, and is there an existing
+   way to check current RC identity (is the user already identified / not
+   anonymous) so a retry can be idempotent and skip if logIn already succeeded?
+
+2. Purchase completion — in the purchase path (ProPaywall.tsx / orchestrator.ts),
+   where is a successful purchase detected (the point AFTER orchestrator.purchase
+   and refreshMobileBilling resolve)? Quote it. This is where the access-state
+   check would hook.
+
+3. Entitlement refresh timing — after a purchase, what triggers EntitlementContext
+   to recompute hasFullAccess (the RC customerInfo listener? an explicit refresh
+   call? refreshMobileBilling's response)? How does the purchase flow KNOW the
+   refresh has completed vs. still pending? Is there a completion signal/promise,
+   or only the context value updating asynchronously? This determines how we
+   avoid false warnings during normal refresh lag.
+
+4. hasFullAccess read access — can the purchase-completion handler read the
+   current hasFullAccess (and loading state) WITHOUT modifying EntitlementContext
+   — e.g. via the existing useEntitlement/useSubscription hook? Quote how it's
+   consumed elsewhere.
+
+5. Is there an existing non-blocking notification/toast/banner pattern in the
+   app we should reuse for the warning, or would this be a new UI element?
+   (Calm/advisory tone, no urgency language.)
+
+6. PostHog — confirm the analytics call pattern used elsewhere (trackEvent?
+   identifyByEmail is already in revenuecat.ts) so the logIn-failure event
+   matches existing conventions.
+
+Plain summary: list the exact files/functions the build will touch, flag which
+are protected entitlement/billing files, and note any timing signal we'd rely on
+to decide "refresh has settled" before checking access. Make NO code changes.

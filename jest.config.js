@@ -38,6 +38,18 @@ module.exports = {
       testMatch: ["**/__tests__/**/*.test.ts"],
     },
     {
+      displayName: "subscriptions",
+      preset: "ts-jest",
+      testEnvironment: "node",
+      roots: ["<rootDir>/src/subscriptions"],
+      moduleNameMapper: {
+        ...sharedModuleNameMapper,
+        "^react-native$": "<rootDir>/src/billing/__mocks__/react-native.ts",
+      },
+      transform: tsJestTransform,
+      testMatch: ["**/__tests__/**/*.test.ts"],
+    },
+    {
       displayName: "server",
       preset: "ts-jest",
       testEnvironment: "node",

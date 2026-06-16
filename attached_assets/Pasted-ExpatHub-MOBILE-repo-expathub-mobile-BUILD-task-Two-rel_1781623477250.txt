@@ -1,0 +1,48 @@
+ExpatHub MOBILE repo (expathub-mobile). BUILD task. Two related changes.
+
+PROTECTED-FILE EXCEPTION: This task is explicitly authorized to edit ONE
+protected file — src/subscriptions/revenuecat.ts — for change #1 only. ALL other
+protected entitlement/billing files remain read-only: do NOT edit
+EntitlementContext.tsx, entitlementDerivation.ts, entitlementGate.ts,
+subscription.ts, SubscriptionContext.tsx, orchestrator.ts. Read them via existing
+hooks/exports only.
+
+Read the relevant files before editing. Match existing patterns.
+
+CHANGE #1 — silent retry + failure logging around rc.logIn
+(src/subscriptions/revenuecat.ts, inside loginUser, the rc.logIn(appUserId) call
+at ~:134):
+- Wrap rc.logIn(appUserId) in a retry-with-backoff (e.g. 3 attempts, short
+  exponential backoff). Keep it SILENT — no user-facing UI from this change.
+- IDEMPOTENCY: before each retry, check current identity via the existing
+  getAppUserId() (~:461). Skip remaining retries if app_user_id already equals
+  appUserId or no longer carries the $RCAnonymousID: prefix (logIn already
+  succeeded). rc.logIn is itself idempotent, so a redundant call is safe but
+  avoid it.
+- On FINAL failure (all retries exhausted): do NOT throw, do NOT block — keep
+  loginUser returning void as today, so login/purchase flow is never gated. Log
+  via trackEvent (see Change #1b). Do not introduce any state that could leave a
+  loading flag stuck.
+- Preserve all existing behavior in the try block (the rcLog lines, setEmail
+  attribute call, init guard at :122-130).
+
+CHANGE #1b — analytics event (src/lib/analytics.ts):
+- Add a new event name to the AnalyticsEvent union (~:98) — e.g.
+  "rc_login_failed" — so trackEvent type-checks. Add a second optional event for
+  retry attempts if cheap (e.g. "rc_login_retry"), otherwise just the failure.
+- In revenuecat.ts, on final logIn failure call trackEvent("rc_login_failed",
+  { appUserId, attempts, error: String(e) }). Match the existing trackEvent
+  signature and EventProperties typing (string|number|boolean|undefined only).
+
+CHANGE #2 — non-blocking "info" toast when purchase confirmed but access still
+false after refresh settles (src/components/ProPaywall.tsx):
+- SCOPE PRECISELY: this covers ONLY the case where orchestrator.purchase returned
+  status === "confirmed" (backend DID confirm) AND, after refresh() has settled,
+  hasFullAccess is still false. It must NOT overlap the existing
+  EntitlementPollingTimeoutError path (orchestrator throws / caught ~:505-510) —
+  that handles "backend never confirmed" and stays as-is.
+- CORRECTNESS — DO NOT read hasFullAccess inline after await refresh() (it is
+  stale-closure; state hasn't re-rendered — this would false-fire on normal
+  purchases). Instead add an EFFECT keyed on [lastRefreshAt, hasFullAccess,
+  loading] mirroring the existing auto-close effect (~:254-266). The effect fires
+  the toast only when: a purc

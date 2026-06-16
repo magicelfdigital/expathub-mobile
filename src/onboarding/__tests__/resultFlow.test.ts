@@ -1,10 +1,8 @@
 import {
-  buildLeadSavePayload,
   buildResultCtaPayload,
   deriveResultFirstName,
   getResultFillPercent,
   groupBlockersByLevel,
-  isValidResultEmail,
   shouldShowPaywallAfterUrgent,
 } from "../resultFlow";
 import type { Blocker } from "@/src/data/quiz";
@@ -19,31 +17,6 @@ function blocker(level: Blocker["level"], questionId = 1): Blocker {
     guideMeLabel: "guide",
   };
 }
-
-describe("isValidResultEmail — lead-save gate", () => {
-  it("accepts a normal RFC-shaped email", () => {
-    expect(isValidResultEmail("a@b.co")).toBe(true);
-  });
-
-  it("rejects empty / whitespace / null / undefined", () => {
-    expect(isValidResultEmail("")).toBe(false);
-    expect(isValidResultEmail("   ")).toBe(false);
-    expect(isValidResultEmail(null)).toBe(false);
-    expect(isValidResultEmail(undefined)).toBe(false);
-  });
-
-  it("rejects strings without an @ or without a TLD", () => {
-    expect(isValidResultEmail("not-an-email")).toBe(false);
-    expect(isValidResultEmail("a@b")).toBe(false);
-    expect(isValidResultEmail("a@b.")).toBe(false);
-    expect(isValidResultEmail("@b.co")).toBe(false);
-  });
-
-  it("rejects strings containing whitespace inside", () => {
-    expect(isValidResultEmail("a b@c.co")).toBe(false);
-    expect(isValidResultEmail("a@b .co")).toBe(false);
-  });
-});
 
 describe("getResultFillPercent — bar math + zero guard", () => {
   it("returns 0 for score=0", () => {
@@ -113,17 +86,6 @@ describe("buildResultCtaPayload — CTA-specific quiz_completed payloads", () =>
         score: 7,
       }),
     ).toEqual({ readiness_level: "curious_explorer", score: 7, action: "continue" });
-  });
-});
-
-describe("buildLeadSavePayload", () => {
-  it("contains exactly the readiness_level + score fields (no PII like email)", () => {
-    const payload = buildLeadSavePayload({
-      readinessLevel: "serious_researcher",
-      score: 12,
-    });
-    expect(payload).toEqual({ readiness_level: "serious_researcher", score: 12 });
-    expect(Object.keys(payload).sort()).toEqual(["readiness_level", "score"]);
   });
 });
 

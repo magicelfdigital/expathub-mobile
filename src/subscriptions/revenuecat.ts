@@ -6,6 +6,7 @@ import {
   ENTITLEMENT_ID,
   ENTITLEMENT_FULL_ACCESS,
 } from "@/src/config/subscription";
+import { trackEvent } from "@/src/lib/analytics";
 
 type PurchasesModule = typeof import("react-native-purchases");
 
@@ -130,14 +131,65 @@ export async function loginUser(appUserId: string, email?: string | null): Promi
   }
   const rc = await loadPurchases();
   if (!rc) return;
-  try {
-    const { customerInfo } = await rc.logIn(appUserId);
-    const activeKeys = Object.keys(customerInfo.entitlements.active);
-    rcLog(`Logged in user: ${appUserId}`);
-    rcLog(`App User ID after logIn: ${customerInfo.originalAppUserId}`);
-    rcLog(`Active entitlements after logIn: ${activeKeys.length > 0 ? activeKeys.join(", ") : "none"}`);
-  } catch (e) {
-    rcLog(`Login error: ${e}`);
+
+  // Silent retry-with-backoff around identify. RevenueCat's logIn is how the
+  // RC app_user_id is bound to the backend account id, so a failure here
+  // means webhook events can't be matched server-side. We retry a few times
+  // with short exponential backoff, but NEVER throw or block — login and
+  // purchase flows must not be gated on this. On final failure we only log
+  // an analytics event so the gap is observable.
+  const MAX_LOGIN_ATTEMPTS = 3;
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= MAX_LOGIN_ATTEMPTS; attempt++) {
+    // Idempotency: before each retry, check whether identify already took
+    // effect (RC reports our id, or is no longer anonymous). rc.logIn is
+    // itself idempotent, but this avoids a redundant network call.
+    if (attempt > 1) {
+      const currentId = await getAppUserId();
+      if (
+        currentId &&
+        (currentId === appUserId || !currentId.startsWith("$RCAnonymousID"))
+      ) {
+        rcLog(`logIn already effective for ${appUserId} (current=${currentId}), skipping remaining retries`);
+        lastError = null;
+        break;
+      }
+    }
+
+    try {
+      const { customerInfo } = await rc.logIn(appUserId);
+      const activeKeys = Object.keys(customerInfo.entitlements.active);
+      rcLog(`Logged in user: ${appUserId}`);
+      rcLog(`App User ID after logIn: ${customerInfo.originalAppUserId}`);
+      rcLog(`Active entitlements after logIn: ${activeKeys.length > 0 ? activeKeys.join(", ") : "none"}`);
+      lastError = null;
+      break;
+    } catch (e) {
+      lastError = e;
+      rcLog(`Login error (attempt ${attempt}/${MAX_LOGIN_ATTEMPTS}): ${e}`);
+      if (attempt < MAX_LOGIN_ATTEMPTS) {
+        try {
+          trackEvent("rc_login_retry", {
+            appUserId,
+            attempt,
+            error: String(e),
+          });
+        } catch {}
+        const backoffMs = 300 * Math.pow(2, attempt - 1);
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      }
+    }
+  }
+
+  if (lastError !== null) {
+    rcLog(`Login failed after ${MAX_LOGIN_ATTEMPTS} attempts for ${appUserId}`);
+    try {
+      trackEvent("rc_login_failed", {
+        appUserId,
+        attempts: MAX_LOGIN_ATTEMPTS,
+        error: String(lastError),
+      });
+    } catch {}
   }
 
   // Best-effort subscriber attribute sync. Isolated in its own try/catch

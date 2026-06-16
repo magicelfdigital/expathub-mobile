@@ -184,6 +184,7 @@ export function ProPaywall({
     promoCodeActive,
     redeemPromoCode,
     clearPromoCode,
+    lastRefreshAt,
   } = useSubscription();
   const [busy, setBusy] = useState(false);
   const [resumedPlan, setResumedPlan] = useState<"monthly" | "annual" | null>(null);
@@ -264,6 +265,47 @@ export function ProPaywall({
       else if (router.canGoBack()) router.back();
     }
   }, [hasFullAccess, entitlementLoading, busy, onClose, router]);
+
+  // Post-purchase access reconciliation. Set when orchestrator.purchase
+  // returns status === "confirmed" (the backend DID confirm the purchase).
+  // Reading hasFullAccess inline right after `await refresh()` is unsafe —
+  // the context state has not re-rendered yet, so it would always read the
+  // stale pre-refresh value and false-fire on normal purchases. Instead we
+  // resolve in an effect keyed on the refresh-settled signals below.
+  const confirmedPurchaseRef = useRef(false);
+  useEffect(() => {
+    // Wait until the entitlement refresh that follows the purchase has
+    // fully settled (loading cleared, a fresh refresh timestamp recorded,
+    // and no purchase/restore call still in flight) before judging access.
+    if (
+      !confirmedPurchaseRef.current ||
+      entitlementLoading ||
+      busy ||
+      lastRefreshAt === null
+    ) {
+      return;
+    }
+    confirmedPurchaseRef.current = false;
+    // Happy path: access is now present — the auto-close effect above closes
+    // the paywall, so nothing more to do here. Only the divergent case (the
+    // backend confirmed the purchase yet entitlements still read locked)
+    // surfaces a calm, non-blocking note. This deliberately does NOT cover
+    // the EntitlementPollingTimeoutError path (backend never confirmed),
+    // which is handled where the purchase is awaited.
+    if (!hasFullAccess) {
+      showToast({
+        message:
+          "Your purchase is confirmed. Full access can take a short while to appear — if it has not unlocked soon, use Restore Purchases.",
+        variant: "info",
+        durationMs: 6000,
+      });
+      // The GlobalToast surface lives at the app root, so it survives this
+      // paywall unmounting. Close so the paid user is not left staring at
+      // the locked plan list (matching the prior always-close behavior).
+      if (onClose) onClose();
+      else if (router.canGoBack()) router.back();
+    }
+  }, [lastRefreshAt, hasFullAccess, entitlementLoading, busy, onClose, router]);
 
   const offer: ProOffer = getProOffer(resolvedCountrySlug, pathwayKey);
   const mountedAtRef = useRef<number>(Date.now());
@@ -478,10 +520,14 @@ export function ProPaywall({
         } else if (type === "annual_subscription") {
           trackEvent("trial_started", { plan: "annual", platform: Platform.OS });
         }
+        // Hand off to the post-purchase reconciliation effect rather than
+        // closing inline: reading hasFullAccess here would be a stale
+        // pre-refresh value. The auto-close effect dismisses the paywall
+        // once access flips; the reconciliation effect handles the rare
+        // confirmed-but-still-locked case.
+        confirmedPurchaseRef.current = true;
         await refresh();
-        console.log(`[PURCHASE] ${type} confirmed by backend, closing paywall`);
-        if (onClose) onClose();
-        else router.back();
+        console.log(`[PURCHASE] ${type} confirmed by backend; awaiting entitlement reconciliation`);
       } else {
         console.log(`[PURCHASE] ${type}: backend status=${result.status}`);
         setError("Purchase is being processed. Please check back in a moment.");

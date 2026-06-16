@@ -3,9 +3,8 @@
  *
  * Asserts the result screen wires the right analytics events at the right
  * times: result_screen_viewed exactly once on mount (even across re-renders),
- * the CTA buttons fire CTA-specific quiz_completed payloads, and the
- * lead-save endpoint + readiness_lead_saved event are gated on a valid
- * email (no PII leak from invalid taps).
+ * and the CTA buttons fire CTA-specific quiz_completed payloads. The result
+ * screen's goal is account creation, so the primary CTA routes to register.
  */
 
 jest.mock("react-native", () => require("@/src/__test-mocks__/react-native"));
@@ -30,8 +29,9 @@ jest.mock("@/src/lib/analytics", () => ({
 }));
 
 const completeOnboarding = jest.fn(async () => {});
+const clearForRetake = jest.fn(async () => {});
 jest.mock("@/contexts/OnboardingContext", () => ({
-  useOnboarding: () => ({ completeOnboarding }),
+  useOnboarding: () => ({ completeOnboarding, clearForRetake }),
 }));
 
 let __authUser: { id: number; email: string } | null = {
@@ -125,10 +125,6 @@ function getButton(
   })[0];
 }
 
-function getTextInput(testInstance: any) {
-  return testInstance.findAll((n: any) => n.type === "TextInput")[0];
-}
-
 const ANSWERS_HIGH_READY = JSON.stringify({
   1: "yes",
   2: "yes",
@@ -145,6 +141,7 @@ beforeEach(() => {
   trackEvent.mockReset();
   logFbEvent.mockReset();
   completeOnboarding.mockClear();
+  clearForRetake.mockClear();
   cancelQuizReminders.mockReset();
   maybeRequestReview.mockReset();
   quizSaveModalRenders.length = 0;
@@ -230,171 +227,37 @@ describe("ResultScreen — funnel analytics", () => {
     expect(completeOnboarding).toHaveBeenCalledWith(expect.anything(), true, expect.anything());
   });
 
-  it("does NOT fire readiness_lead_saved when the email field is empty", async () => {
+  it("Restart clears the stored quiz footprint via clearForRetake before navigating to the quiz", async () => {
     let renderer: any;
     act(() => {
       renderer = TestRenderer.create(<ResultScreen />);
     });
-    const btn = getButton(renderer!.root, "Email me the results");
+    const btn = getButton(renderer!.root, "Restart");
     expect(btn).toBeDefined();
     await act(async () => {
       await btn.props.onPress();
     });
-    expect(
-      trackEvent.mock.calls.filter((c) => c[0] === "readiness_lead_saved"),
-    ).toHaveLength(0);
-    expect((global as any).fetch).not.toHaveBeenCalled();
+    expect(clearForRetake).toHaveBeenCalledTimes(1);
+    expect(__getRouter().replace).toHaveBeenCalledWith("/onboarding/quiz");
   });
 
-  it("does NOT fire readiness_lead_saved when the API returns a 5xx (no false-positive conversion)", async () => {
-    (global as any).fetch = jest.fn(async () => ({
-      ok: false,
-      status: 500,
-      json: async () => ({ error: "boom" }),
-    }));
+  it("Edit does NOT clear stored results — it resumes with prefilled answers", async () => {
     let renderer: any;
     act(() => {
       renderer = TestRenderer.create(<ResultScreen />);
     });
-    const input = getTextInput(renderer!.root);
-    act(() => {
-      input.props.onChangeText("ada@lovelace.io");
-    });
-    const btn = getButton(renderer!.root, "Email me the results");
+    const btn = getButton(renderer!.root, "Edit");
+    expect(btn).toBeDefined();
     await act(async () => {
       await btn.props.onPress();
     });
-    expect((global as any).fetch).toHaveBeenCalledTimes(1);
-    expect(
-      trackEvent.mock.calls.filter((c) => c[0] === "readiness_lead_saved"),
-    ).toHaveLength(0);
-  });
-
-  it("does NOT fire readiness_lead_saved when fetch itself rejects (network error)", async () => {
-    (global as any).fetch = jest.fn(async () => {
-      throw new Error("network down");
-    });
-    let renderer: any;
-    act(() => {
-      renderer = TestRenderer.create(<ResultScreen />);
-    });
-    const input = getTextInput(renderer!.root);
-    act(() => {
-      input.props.onChangeText("ada@lovelace.io");
-    });
-    const btn = getButton(renderer!.root, "Email me the results");
-    await act(async () => {
-      await btn.props.onPress();
-    });
-    expect(
-      trackEvent.mock.calls.filter((c) => c[0] === "readiness_lead_saved"),
-    ).toHaveLength(0);
-  });
-
-  it("fires readiness_lead_saved AND POSTs to /api/readiness-lead when the email is valid AND the API succeeds", async () => {
-    let renderer: any;
-    act(() => {
-      renderer = TestRenderer.create(<ResultScreen />);
-    });
-    const input = getTextInput(renderer!.root);
-    expect(input).toBeDefined();
-    act(() => {
-      input.props.onChangeText("ada@lovelace.io");
-    });
-    const btn = getButton(renderer!.root, "Email me the results");
-    await act(async () => {
-      await btn.props.onPress();
-    });
-    expect((global as any).fetch).toHaveBeenCalledTimes(1);
-    const [url, opts] = ((global as any).fetch as jest.Mock).mock.calls[0];
-    expect(url).toContain("/api/readiness-lead");
-    expect(opts.method).toBe("POST");
-    const body = JSON.parse(opts.body);
-    expect(body).toMatchObject({
-      email: "ada@lovelace.io",
-      readinessLevel: expect.any(String),
-      score: expect.any(Number),
-    });
-    const saved = trackEvent.mock.calls.filter(
-      (c) => c[0] === "readiness_lead_saved",
+    expect(clearForRetake).not.toHaveBeenCalled();
+    expect(__getRouter().replace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: "/onboarding/quiz",
+        params: expect.objectContaining({ edit: "1" }),
+      }),
     );
-    expect(saved).toHaveLength(1);
-    expect(saved[0][1]).toMatchObject({
-      readiness_level: expect.any(String),
-      score: expect.any(Number),
-    });
-  });
-
-  it("fires logFbEvent('Lead', source='readiness_quiz_gate') after a successful /api/readiness-lead save", async () => {
-    let renderer: any;
-    act(() => {
-      renderer = TestRenderer.create(<ResultScreen />);
-    });
-    const input = getTextInput(renderer!.root);
-    act(() => {
-      input.props.onChangeText("ada@lovelace.io");
-    });
-    const btn = getButton(renderer!.root, "Email me the results");
-    await act(async () => {
-      await btn.props.onPress();
-    });
-    const leads = logFbEvent.mock.calls.filter((c) => c[0] === "Lead");
-    expect(leads).toHaveLength(1);
-    expect(leads[0]).toEqual([
-      "Lead",
-      undefined,
-      { source: "readiness_quiz_gate" },
-    ]);
-    // PII guardrail: the raw email must never appear in the Meta payload.
-    expect(JSON.stringify(leads[0])).not.toContain("ada@lovelace.io");
-  });
-
-  it("does NOT fire logFbEvent('Lead') when the API returns a 5xx (no false-positive ad signal)", async () => {
-    (global as any).fetch = jest.fn(async () => ({
-      ok: false,
-      status: 500,
-      json: async () => ({ error: "boom" }),
-    }));
-    let renderer: any;
-    act(() => {
-      renderer = TestRenderer.create(<ResultScreen />);
-    });
-    const input = getTextInput(renderer!.root);
-    act(() => {
-      input.props.onChangeText("ada@lovelace.io");
-    });
-    const btn = getButton(renderer!.root, "Email me the results");
-    await act(async () => {
-      await btn.props.onPress();
-    });
-    expect((global as any).fetch).toHaveBeenCalledTimes(1);
-    expect(
-      logFbEvent.mock.calls.filter((c) => c[0] === "Lead"),
-    ).toHaveLength(0);
-  });
-
-  it("does NOT fire logFbEvent('Lead') when the API returns a 4xx", async () => {
-    (global as any).fetch = jest.fn(async () => ({
-      ok: false,
-      status: 400,
-      json: async () => ({ error: "bad request" }),
-    }));
-    let renderer: any;
-    act(() => {
-      renderer = TestRenderer.create(<ResultScreen />);
-    });
-    const input = getTextInput(renderer!.root);
-    act(() => {
-      input.props.onChangeText("ada@lovelace.io");
-    });
-    const btn = getButton(renderer!.root, "Email me the results");
-    await act(async () => {
-      await btn.props.onPress();
-    });
-    expect((global as any).fetch).toHaveBeenCalledTimes(1);
-    expect(
-      logFbEvent.mock.calls.filter((c) => c[0] === "Lead"),
-    ).toHaveLength(0);
   });
 
   it("Edit answers link fires result_edit_answers_tapped and router.replace with prefill + edit=1", async () => {

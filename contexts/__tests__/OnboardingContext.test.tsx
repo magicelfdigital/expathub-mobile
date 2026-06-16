@@ -137,11 +137,16 @@ describe("OnboardingContext — mutations", () => {
     expect(await AsyncStorage.getItem("skipBannerCount")).toBe("3");
   });
 
-  it("clearForRetake wipes both quizResult and onboarding-seen so the user re-enters the funnel", async () => {
+  it("clearForRetake wipes the complete quiz footprint so the user re-enters the funnel", async () => {
     const ref = await mounted();
     await act(async () => {
       await ref.current!.completeOnboarding(baseResult);
     });
+    // Seed the three result-screen attribute keys alongside the quiz state to
+    // prove clearForRetake also removes them (not just quizResult/answers).
+    await AsyncStorage.setItem("user_top_country", "portugal");
+    await AsyncStorage.setItem("user_first_name", "Ada");
+    await AsyncStorage.setItem("user_quiz_completed", "true");
     expect(ref.current?.hasSeenOnboarding).toBe(true);
     expect(ref.current?.quizResult).toBeTruthy();
 
@@ -150,8 +155,13 @@ describe("OnboardingContext — mutations", () => {
     });
     expect(ref.current?.hasSeenOnboarding).toBe(false);
     expect(ref.current?.quizResult).toBeNull();
+    expect(ref.current?.quizAnswers).toBeNull();
     expect(await AsyncStorage.getItem("quizResult")).toBeNull();
+    expect(await AsyncStorage.getItem("quizAnswers")).toBeNull();
     expect(await AsyncStorage.getItem("hasSeenOnboarding")).toBeNull();
+    expect(await AsyncStorage.getItem("user_top_country")).toBeNull();
+    expect(await AsyncStorage.getItem("user_first_name")).toBeNull();
+    expect(await AsyncStorage.getItem("user_quiz_completed")).toBeNull();
   });
 
   it("markAccountCreated clears skippedAccount but preserves the quiz result and banner count", async () => {
