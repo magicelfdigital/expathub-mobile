@@ -29,7 +29,6 @@ import {
   shouldShowPaywallAfterUrgent,
 } from "@/src/onboarding/resultFlow";
 import { WORKSHEET_BY_QUESTION_ID } from "@/src/data/worksheets";
-import { QuizSaveModal } from "@/src/components/QuizSaveModal";
 import { WorksheetDeltaBanner } from "@/src/components/WorksheetDeltaBanner";
 import type { WorksheetDelta } from "@/src/onboarding/worksheetDelta";
 
@@ -272,31 +271,6 @@ export default function ResultScreen() {
     outputRange: [`${startFillPct}%`, `${fillPct}%`],
   });
 
-  const [savePromptVisible, setSavePromptVisible] = useState(false);
-  const savePromptShownRef = React.useRef(false);
-
-  // Replaces the mid-quiz save modal. Trigger the same email-capture moment
-  // here on the result screen, AFTER the score is revealed, when the user
-  // landed with at least 3 "no" answers. Analytics events (quiz_save_shown
-  // / quiz_save_submitted / quiz_save_dismissed) are still fired from the
-  // QuizSaveModal component itself so existing dashboards keep working.
-  const savePromptNoCount = useMemo(() => {
-    let n = 0;
-    for (let i = 1; i <= 9; i++) {
-      if ((answers as Record<string, unknown>)[String(i)] === "no") n++;
-    }
-    return n;
-  }, [answers]);
-
-  React.useEffect(() => {
-    if (savePromptShownRef.current) return;
-    if (savePromptNoCount < 3) return;
-    savePromptShownRef.current = true;
-    // Let the result reveal land before surfacing the ask.
-    const t = setTimeout(() => setSavePromptVisible(true), 900);
-    return () => clearTimeout(t);
-  }, [savePromptNoCount]);
-
   const handleCreateAccount = async () => {
     await completeOnboarding(result, false, numericAnswers);
     trackEvent(
@@ -514,8 +488,6 @@ export default function ResultScreen() {
     !hasProAccess &&
     !entitlementLoading;
 
-  const handleSavePromptClose = () => setSavePromptVisible(false);
-  const handleSavePromptContinue = () => setSavePromptVisible(false);
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
@@ -733,12 +705,6 @@ export default function ResultScreen() {
         </View>
       </DragBottomSheet>
 
-      <QuizSaveModal
-        visible={savePromptVisible}
-        noCount={savePromptNoCount}
-        onClose={handleSavePromptClose}
-        onContinue={handleSavePromptContinue}
-      />
     </View>
   );
 }

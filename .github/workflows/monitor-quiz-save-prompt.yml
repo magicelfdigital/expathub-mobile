@@ -16,9 +16,12 @@ name: Monitor Save-Progress Prompt
 # on-call sees one persistent issue per outage. The issue auto-closes on the
 # next successful run.
 
+# DISABLED: the result-screen save-progress prompt (QuizSaveModal) was removed
+# from the app, so `quiz_save_shown` events with `placement: result_screen` are
+# now expected to be absent. Leaving the hourly schedule on would page on that
+# expected absence. Reduced to manual-only (workflow_dispatch) pending deletion
+# of this workflow and the related probe code.
 on:
-  schedule:
-    - cron: "0 * * * *"
   workflow_dispatch:
 
 permissions:

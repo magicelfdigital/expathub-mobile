@@ -26,10 +26,6 @@ jest.mock("@/src/lib/analytics", () => ({
   identifyUser: () => {},
 }));
 
-jest.mock("@/src/components/QuizSaveModal", () => ({
-  QuizSaveModal: () => null,
-}));
-
 const setupQuizRemindersOnStart = jest.fn();
 jest.mock("@/src/lib/notifications", () => ({
   setupQuizRemindersOnStart: (...args: any[]) =>
