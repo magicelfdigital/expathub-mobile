@@ -1,11 +1,12 @@
 {
   "version": 1,
-  "lastRunAt": "2026-02-11T00:09:33.195Z",
+  "lastRunAt": "2026-09-18T17:35:08.172Z",
   "hashes": {
-    "pt-tax": "825178e5a8dfa9abb6d7b57130a92ca78dcc7274865e02afcb0fca29be256b49",
-    "es-tax": "4e12885be429f5d7dc445b8af49933f709617d5db88972a0288ef21e8e8261c5",
-    "uk-skilled-worker": "29c9974bba935e65bb6791efbccf068d19f10e2876c9e0e058609e49a284d4ce",
-    "mt-residency": "99f87707d6466bd0381d562bc2c33f00a0a842905b130aa36d75f49683e7648d",
-    "pa-immigration": "0841368b2674687059aa572fe2ed1dc3d066ba38693c74b2da2b110416af859a"
+    "pt-tax": "d6edc834b9f0e798477bf428d99c78c64749299b343cfc027864fc786daa119f",
+    "es-tax": "c5d421d5dc25ff8dca25be3bec62f82b93d7484bb20cbda71f6ac603a4e3c243",
+    "uk-skilled-worker": "7f1e03639e350a4f751e4a552b9076d813e477dc98f3c29712415494ab2a0420",
+    "mt-residency": "dbcb011131f3f325d39ba7e1ca990a67fc86f4a65224d6e40072cd2ff7eebac3",
+    "pa-immigration": "c79a7fb7a15f977521fc66c25cc2b4d65be5ab99d353e701c8e82b1b3c0be09b",
+    "ca-ircc": "ad23011a0667da4c5c9056c1f06cf12542f0245610cccb66dac737014d061a46"
   }
 }
