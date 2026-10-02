@@ -4,34 +4,52 @@
     "countrySlug": "portugal",
     "pathwayKey": null,
     "url": "https://www.aima.gov.pt/en/",
-    "detectedAt": "2026-02-11T00:09:13.959Z",
+    "detectedAt": "2026-10-02T19:03:05.558Z",
     "severity": "P2",
     "summary": "Source unreachable: fetch failed"
   },
   {
-    "id": "es-immigration",
+    "id": "pt-tax",
+    "countrySlug": "portugal",
+    "pathwayKey": null,
+    "url": "https://www.portaldasfinancas.gov.pt/at/html/index.html",
+    "detectedAt": "2026-10-02T19:03:06.259Z",
+    "severity": "P2",
+    "summary": "Source content changed (hash diff). Review for decision-impacting updates."
+  },
+  {
+    "id": "es-tax",
     "countrySlug": "spain",
     "pathwayKey": null,
-    "url": "https://extranjeros.inclusion.gob.es/",
-    "detectedAt": "2026-02-11T00:09:14.913Z",
-    "severity": "P2",
-    "summary": "Source unreachable: fetch failed"
+    "url": "https://sede.agenciatributaria.gob.es/",
+    "detectedAt": "2026-10-02T19:03:09.806Z",
+    "severity": "P0",
+    "summary": "Source content changed with potential eligibility/legal impact. Immediate review required."
   },
   {
-    "id": "ca-ircc",
-    "countrySlug": "canada",
-    "pathwayKey": "express-entry",
-    "url": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/express-entry.html",
-    "detectedAt": "2026-02-11T00:09:31.540Z",
+    "id": "uk-skilled-worker",
+    "countrySlug": "united-kingdom",
+    "pathwayKey": "skilled-worker",
+    "url": "https://www.gov.uk/skilled-worker-visa",
+    "detectedAt": "2026-10-02T19:03:10.702Z",
+    "severity": "P0",
+    "summary": "Source content changed with potential eligibility/legal impact. Immediate review required."
+  },
+  {
+    "id": "mt-residency",
+    "countrySlug": "malta",
+    "pathwayKey": null,
+    "url": "https://residencymalta.gov.mt/",
+    "detectedAt": "2026-10-02T19:03:11.258Z",
     "severity": "P2",
-    "summary": "Source unreachable: This operation was aborted"
+    "summary": "Source content changed (hash diff). Review for decision-impacting updates."
   },
   {
     "id": "cr-immigration",
     "countrySlug": "costa-rica",
     "pathwayKey": null,
     "url": "https://www.migracion.go.cr/",
-    "detectedAt": "2026-02-11T00:09:31.801Z",
+    "detectedAt": "2026-10-02T19:03:11.486Z",
     "severity": "P2",
     "summary": "Source unreachable: HTTP 403 Forbidden"
   },
@@ -40,17 +58,8 @@
     "countrySlug": "panama",
     "pathwayKey": null,
     "url": "https://www.migracion.gob.pa/",
-    "detectedAt": "2026-02-11T00:09:32.880Z",
-    "severity": "P2",
-    "summary": "Source content changed (hash diff). Review for decision-impacting updates."
-  },
-  {
-    "id": "ec-immigration",
-    "countrySlug": "ecuador",
-    "pathwayKey": null,
-    "url": "https://www.cancilleria.gob.ec/",
-    "detectedAt": "2026-02-11T00:09:33.195Z",
-    "severity": "P2",
-    "summary": "Source unreachable: fetch failed"
+    "detectedAt": "2026-10-02T19:03:14.156Z",
+    "severity": "P0",
+    "summary": "Source content changed with potential eligibility/legal impact. Immediate review required."
   }
 ]
